@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 
-const port = Number(process.env.ANTSEED_DESKTOP_RENDERER_PORT) || 5174;
+const port = Number(process.env.TORVE_DESKTOP_RENDERER_PORT) || 5174;
 let child = spawn('pnpm', [
   'exec',
   'wait-on',

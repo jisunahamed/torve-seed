@@ -37,7 +37,7 @@ async function runLegacyStake(
   try {
     const stack = await resolveCliContractStack(config);
     if (stack.mode === 'recognized-usage') {
-      spinner.fail(chalk.red('New USDC stakes are closed after the recognized-usage upgrade. Use: antseed seller stake <ants> --epochs <n>'));
+      spinner.fail(chalk.red('New USDC stakes are closed after the recognized-usage upgrade. Use: torve seller stake <ants> --epochs <n>'));
       process.exit(1);
     }
     const { wallet, address } = await loadCryptoContext(global.dataDir);
@@ -45,7 +45,7 @@ async function runLegacyStake(
     const identityClient = createIdentityClient(config);
     const isReg = await identityClient.isRegistered(address);
     if (!isReg) {
-      spinner.fail(chalk.red('Not registered. Run: antseed seller register'));
+      spinner.fail(chalk.red('Not registered. Run: torve seller register'));
       process.exit(1);
     }
 
@@ -55,7 +55,7 @@ async function runLegacyStake(
       agentId = options.agentId;
     }
     if (agentId === 0) {
-      spinner.fail(chalk.red('No agentId found. Pass --agent-id <id> from your antseed seller register output.'));
+      spinner.fail(chalk.red('No agentId found. Pass --agent-id <id> from your torve seller register output.'));
       process.exit(1);
     }
 
@@ -117,12 +117,12 @@ export function registerSellerStakeCommand(sellerCmd: Command): void {
       const stack = await resolveCliContractStack(config);
 
       if (stack.mode !== 'recognized-usage') {
-        console.error(chalk.red('ANTS staking is not available on this network. For legacy USDC staking, use: antseed seller legacy stake <amount>'));
+        console.error(chalk.red('ANTS staking is not available on this network. For legacy USDC staking, use: torve seller legacy stake <amount>'));
         process.exitCode = 1;
         return;
       }
       if (options.epochs === undefined) {
-        console.error(chalk.red('ANTS pool staking requires a lock duration. Use: antseed seller stake <ants> --epochs <n>'));
+        console.error(chalk.red('ANTS pool staking requires a lock duration. Use: torve seller stake <ants> --epochs <n>'));
         process.exitCode = 1;
         return;
       }
@@ -135,7 +135,7 @@ export function registerSellerStakeCommand(sellerCmd: Command): void {
   legacy
     .command('stake <amount>')
     .description('Stake USDC before the recognized-usage upgrade (e.g. "10" = 10 USDC)')
-    .option('--agent-id <id>', 'ERC-8004 agent ID (from antseed seller register output)', parsePositiveInteger)
+    .option('--agent-id <id>', 'ERC-8004 agent ID (from torve seller register output)', parsePositiveInteger)
     .action(async (amount: string, options: { agentId?: number }) => {
       await runLegacyStake(getGlobalOptions(legacy), amount, options);
     });

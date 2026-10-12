@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { parsePositiveInteger } from '../parse-positive-integer.js';
-import { stake } from '@antseed/ants';
+import { stake } from '@torveai/ants';
 import { ants, runAction } from './shared.js';
 
 export function registerAntsStakeCommand(antsCmd: Command): void {

@@ -7,9 +7,9 @@ import { homedir } from 'node:os'
 import { createConnection } from 'node:net'
 import { getGlobalOptions } from '../types.js'
 import { loadConfig } from '../../../config/loader.js'
-import { AntseedNode, DepositRelayClient, DepositsClient, getInstance, peerRelaysSweeps, resolveChainConfig } from '@antseed/node'
-import type { Identity, NodePaymentsConfig } from '@antseed/node'
-import { OFFICIAL_BOOTSTRAP_NODES, parseBootstrapList, toBootstrapConfig } from '@antseed/node/discovery'
+import { TorveNode, DepositRelayClient, DepositsClient, getInstance, peerRelaysSweeps, resolveChainConfig } from '@torveai/node'
+import type { Identity, NodePaymentsConfig } from '@torveai/node'
+import { OFFICIAL_BOOTSTRAP_NODES, parseBootstrapList, toBootstrapConfig } from '@torveai/node/discovery'
 import { setupShutdownHandler } from '../../shutdown.js'
 import { loadRouterPlugin, loadVerifierPlugin, buildPluginConfig, getPackageVersions } from '../../../plugins/loader.js'
 import { ensurePluginsUpToDate } from '../../../plugins/drift.js'
@@ -47,8 +47,8 @@ export function buildBuyerRuntimeOverridesFromFlags(options: {
 
 export function buildRouterRuntimeEnvFromBuyerConfig(buyerConfig: BuyerCLIConfig): Record<string, string> {
   return {
-    ANTSEED_MIN_REPUTATION: String(buyerConfig.minPeerReputation),
-    ANTSEED_MAX_PRICING_JSON: JSON.stringify(buyerConfig.maxPricing),
+    TORVE_MIN_REPUTATION: String(buyerConfig.minPeerReputation),
+    TORVE_MAX_PRICING_JSON: JSON.stringify(buyerConfig.maxPricing),
   }
 }
 
@@ -167,8 +167,8 @@ export async function isCompatibleBuyerProxy(port: number, timeoutMs = 1200): Pr
       headers: { accept: 'application/json' },
       signal: controller.signal,
     })
-    const antseedHeaderNames = ['x-antseed-request-id', 'x-antseed-peer-id', 'x-antseed-provider']
-    if (antseedHeaderNames.some((header) => response.headers.has(header))) return true
+    const torveHeaderNames = ['x-torve-request-id', 'x-torve-peer-id', 'x-torve-provider']
+    if (torveHeaderNames.some((header) => response.headers.has(header))) return true
 
     const body = (await response.text()).toLowerCase()
     return body.includes('no sellers available on the network')
@@ -205,8 +205,8 @@ export function registerBuyerStartCommand(buyerCmd: Command): void {
       const config = await loadConfig(globalOpts.config)
       const logFilter = typeof options.logFilter === 'string' ? options.logFilter.trim() : ''
       if (logFilter.length > 0) {
-        process.env['ANTSEED_DEBUG'] = '1'
-        process.env['ANTSEED_LOG_FILTER'] = logFilter
+        process.env['TORVE_DEBUG'] = '1'
+        process.env['TORVE_LOG_FILTER'] = logFilter
       }
 
       const pinnedPeerId = options.peer as string | undefined
@@ -232,7 +232,7 @@ export function registerBuyerStartCommand(buyerCmd: Command): void {
       const routerName = resolveBuyerRouterName({ router: options.router as string | undefined })
 
       if (options.instance) {
-        const configPath = join(homedir(), '.antseed', 'config.json')
+        const configPath = join(homedir(), '.torve', 'config.json')
         const instance = await getInstance(configPath, options.instance)
         if (!instance) {
           console.error(chalk.red(`Instance "${options.instance}" not found.`))
@@ -282,7 +282,7 @@ export function registerBuyerStartCommand(buyerCmd: Command): void {
       const nodeSpinner = ora('Connecting to P2P network...').start()
 
       let paymentsConfig: NodePaymentsConfig | undefined
-      const settlementEnv = parseOptionalBoolEnv(process.env['ANTSEED_ENABLE_SETTLEMENT'])
+      const settlementEnv = parseOptionalBoolEnv(process.env['TORVE_ENABLE_SETTLEMENT'])
       const cryptoOverrides = config.payments?.crypto
       const chainConfig = resolveChainConfig({
         chainId: cryptoOverrides?.chainId,
@@ -302,7 +302,7 @@ export function registerBuyerStartCommand(buyerCmd: Command): void {
         const rpcUp = await isRpcReachable(chainConfig.rpcUrl)
         if (!rpcUp) {
           console.log(chalk.yellow(`Chain RPC not answering at ${chainConfig.rpcUrl} — payments stay enabled; on-chain reads resume automatically once it is reachable.`))
-          console.log(chalk.dim('Set ANTSEED_ENABLE_SETTLEMENT=false to run without payments.'))
+          console.log(chalk.dim('Set TORVE_ENABLE_SETTLEMENT=false to run without payments.'))
         }
       }
 
@@ -317,7 +317,7 @@ export function registerBuyerStartCommand(buyerCmd: Command): void {
           usdcAddress: chainConfig.usdcContractAddress,
           // Staking + identity registry addresses let the buyer-side node wire
           // a StakingClient and IdentityClient. Without stakingAddress, the
-          // on-chain verification loop in AntseedNode.discoverPeers() is
+          // on-chain verification loop in TorveNode.discoverPeers() is
           // skipped entirely, so `onChainTotalVolumeUsdcMicros` and
           // `onChainLastSettledAtSec` never populate on PeerInfo (and end up
           // as `null` in buyer.state.json). The seller-pools, usage-accounting
@@ -347,7 +347,7 @@ export function registerBuyerStartCommand(buyerCmd: Command): void {
       }
 
       const resolvedRouterName = options.instance
-        ? (await getInstance(join(homedir(), '.antseed', 'config.json'), options.instance))?.package
+        ? (await getInstance(join(homedir(), '.torve', 'config.json'), options.instance))?.package
         : routerName
       const versions = getPackageVersions(resolvedRouterName ?? undefined)
       if (Object.keys(versions).length > 0) {
@@ -378,13 +378,13 @@ export function registerBuyerStartCommand(buyerCmd: Command): void {
         console.log(chalk.yellow(`  pinned peer: ${pinnedPeerId} (router bypassed)`))
       } else {
         console.log(chalk.yellow('  pinned peer: none — model-only requests use the configured Price + Trust ranking'))
-        console.log(chalk.dim('    Explicit session pin: antseed network browse → antseed buyer connection set --peer <peerId>'))
-        console.log(chalk.dim('    Explicit request pin: x-antseed-pin-peer: <peerId> header'))
+        console.log(chalk.dim('    Explicit session pin: torve network browse → torve buyer connection set --peer <peerId>'))
+        console.log(chalk.dim('    Explicit request pin: x-torve-pin-peer: <peerId> header'))
         console.log(chalk.dim('    Explicit model pin:   <peerId>@<model>'))
       }
       console.log('')
 
-      const node = new AntseedNode({
+      const node = new TorveNode({
         role: 'buyer',
         bootstrapNodes,
         allowPrivateIPs: true,
@@ -565,7 +565,7 @@ export function registerBuyerStartCommand(buyerCmd: Command): void {
           console.warn(chalk.yellow(`Buyer identity ${entry.name} not loaded: ${entry.error}`))
         }
         if (loaded.length > 0) {
-          console.log(chalk.dim(`  Buyer identities: default + ${loaded.map((entry) => entry.name).join(', ')} (select with the x-antseed-buyer-identity header)`))
+          console.log(chalk.dim(`  Buyer identities: default + ${loaded.map((entry) => entry.name).join(', ')} (select with the x-torve-buyer-identity header)`))
         }
       }
 
@@ -582,8 +582,8 @@ export function registerBuyerStartCommand(buyerCmd: Command): void {
         console.log(`  export OPENAI_BASE_URL=${proxyUrl}`)
       }
       console.log('')
-      console.log(chalk.dim('Enable debug logs: export ANTSEED_DEBUG=1'))
-      console.log(chalk.dim('Filter debug logs: antseed buyer start --log-filter ProxyMux'))
+      console.log(chalk.dim('Enable debug logs: export TORVE_DEBUG=1'))
+      console.log(chalk.dim('Filter debug logs: torve buyer start --log-filter ProxyMux'))
       console.log('')
 
       setupShutdownHandler(async () => {

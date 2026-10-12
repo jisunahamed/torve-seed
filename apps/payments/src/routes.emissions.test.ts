@@ -69,11 +69,11 @@ describe('GET /api/config', () => {
       chainConfig: {
         chainId: 'base-mainnet',
         evmChainId: 8453,
-        networkStatsUrl: 'https://network.antseed.com',
+        networkStatsUrl: 'https://network.torveai.com',
       } as any,
     }));
     const res = await app.inject({ method: 'GET', url: '/api/config' });
-    expect(res.json().networkStatsUrl).toBe('https://network.antseed.com');
+    expect(res.json().networkStatsUrl).toBe('https://network.torveai.com');
     await app.close();
   });
 
@@ -182,7 +182,7 @@ describe('recognized-usage contract selection', () => {
   });
 
   it('reads the current emission schedule from the gate, never the legacy ABI at UsageAccounting', async () => {
-    const { EmissionsClient, EmissionsGateClient } = await import('@antseed/node');
+    const { EmissionsClient, EmissionsGateClient } = await import('@torveai/node');
     const oldRead = vi.spyOn(EmissionsClient.prototype, 'getEpochInfo').mockRejectedValue(new Error('Wrong emission schedule client'));
     for (const [method, value] of [['currentEpoch', 25], ['epochDuration', 604800], ['genesis', 1000], ['halvingInterval', 52]] as const) {
       vi.spyOn(EmissionsGateClient.prototype, method).mockImplementation(async function (this: { contractAddress: string }) {
@@ -201,7 +201,7 @@ describe('recognized-usage contract selection', () => {
   });
 
   it.each(['recognized', 'legacy'] as const)('reads legacy V2 rewards with %s configuration', async (mode) => {
-    const { EmissionsClient } = await import('@antseed/node');
+    const { EmissionsClient } = await import('@torveai/node');
     const shares = { sellerSharePct: 50, buyerSharePct: 30, reserveSharePct: 10, teamSharePct: 10, maxSellerSharePct: 100, maxBuyerSharePct: 100, initialized: true };
     const v1Reads: string[] = [];
     vi.spyOn(EmissionsClient.prototype, 'getEpochInfo').mockImplementation(async function (this: { contractAddress: string }) {

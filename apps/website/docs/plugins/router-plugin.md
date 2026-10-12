@@ -7,7 +7,7 @@ hide_title: true
 
 # Router Plugin
 
-Router plugins enforce general buyer policy and record request results. For model-only requests, the buyer proxy first resolves the canonical model and uses the shared model-route ranking from `@antseed/node/model-routing`, so the desktop catalog, `/v1/models/:id`, internal chat, and CLI proxy agree on seller order. Retryable peer failures may advance to the next eligible seller; recognized conversations softly prefer their previous successful route, while explicit pins remain hard.
+Router plugins enforce general buyer policy and record request results. For model-only requests, the buyer proxy first resolves the canonical model and uses the shared model-route ranking from `@torveai/node/model-routing`, so the desktop catalog, `/v1/models/:id`, internal chat, and CLI proxy agree on seller order. Retryable peer failures may advance to the next eligible seller; recognized conversations softly prefer their previous successful route, while explicit pins remain hard.
 
 ## Model-Only Routing Preferences
 
@@ -27,7 +27,7 @@ const DEFAULT_MODEL_ROUTING_PREFERENCES = {
 
 ## Default Scoring Weights
 
-The `@antseed/router-core` scores peers with:
+The `@torveai/router-core` scores peers with:
 
 ```typescript title="scoring weights"
 const DEFAULT_WEIGHTS = {

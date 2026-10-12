@@ -9,7 +9,7 @@ export interface SellerProviderPricingConfig {
  * Per-provider capacity and pricing configuration for sellers.
  */
 export interface SellerProviderConfig {
-  /** Provider identifier (must match a key in AntseedConfig.providers) */
+  /** Provider identifier (must match a key in TorveConfig.providers) */
   type: ProviderType;
   /** Whether this provider is enabled for selling */
   enabled: boolean;

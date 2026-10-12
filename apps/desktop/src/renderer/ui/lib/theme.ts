@@ -8,7 +8,7 @@
 
 export type ThemeMode = 'light' | 'dark';
 
-const THEME_STORAGE_KEY = 'antseed:theme';
+const THEME_STORAGE_KEY = 'torve:theme';
 
 export function getStoredThemeMode(): ThemeMode | null {
   try {

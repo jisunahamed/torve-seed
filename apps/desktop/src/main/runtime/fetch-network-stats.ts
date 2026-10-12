@@ -122,7 +122,7 @@ export async function getNetworkStats(urls: {
 }
 
 /**
- * Fetches network-wide per-agent stats from the @antseed/network-stats aggregator.
+ * Fetches network-wide per-agent stats from the @torveai/network-stats aggregator.
  * On any failure (unset URL, timeout, non-2xx, JSON parse error, unexpected shape),
  * returns an empty map so callers fall back field-by-field to local stats.
  */

@@ -1,4 +1,4 @@
-import '@antseed/ui/styles';
+import '@torveai/ui/styles';
 import { initChatModule } from './modules/chat/controller';
 import { initSettingsModule } from './modules/app/settings';
 import { initRuntimeModule } from './modules/app/runtime';
@@ -62,7 +62,7 @@ import { recordUserAction, recordUserActionCoalesced } from './modules/telemetry
 /*  Bootstrap                                                          */
 /* ------------------------------------------------------------------ */
 
-const bridge = window.antseedDesktop as DesktopBridge | undefined;
+const bridge = window.torveDesktop as DesktopBridge | undefined;
 
 // `bridge.platform` comes from `process.platform` in the preload (Node side),
 // which is the authoritative source. Fall back to a navigator sniff only when
@@ -264,7 +264,7 @@ function rememberedPinFor(provider: string, serviceId: string): string | null {
 function actionSelectVprModel(provider: string, serviceId: string, peerId: string | null = null): void {
   const entry = findCatalogEntry(uiState.vprModelCatalog, provider, serviceId);
   if (!entry) return;
-  // Video models run through the Antseed Videos skill, never the built-in
+  // Video models run through the Torve Videos skill, never the built-in
   // chat or the connected-apps route.
   if (entry.kind === 'video') return;
   // Image models are internal-chat tools, not AI VPN defaults. Restore a

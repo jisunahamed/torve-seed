@@ -4,7 +4,7 @@
  * Three numbers describe the same pot of money and none of them alone answers
  * "how much do I have left?":
  *
- *   - deposited  — everything in AntseedDeposits for this buyer.
+ *   - deposited  — everything in TorveDeposits for this buyer.
  *   - reserved   — the slice locked into open payment channels. Reserving does
  *                  not spend it; closing a channel hands the remainder back.
  *   - pending    — signed away via SpendingAuth but not settled on-chain yet.

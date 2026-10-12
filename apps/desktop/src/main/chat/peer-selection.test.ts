@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  ANTSEED_PEER_CUSTOM_TYPE,
+  TORVE_PEER_CUSTOM_TYPE,
   normalizeChatPeerSelectionRequest,
   resolveLatestPeerBinding,
 } from './peer-selection.js';
@@ -61,12 +61,12 @@ test('resolveLatestPeerBinding treats a newer clear entry as authoritative', () 
   const binding = resolveLatestPeerBinding([
     {
       type: 'custom',
-      customType: ANTSEED_PEER_CUSTOM_TYPE,
+      customType: TORVE_PEER_CUSTOM_TYPE,
       data: { peerId: 'peer-old', peerLabel: 'Old peer' },
     },
     {
       type: 'custom',
-      customType: ANTSEED_PEER_CUSTOM_TYPE,
+      customType: TORVE_PEER_CUSTOM_TYPE,
       data: {},
     },
   ]);
@@ -78,12 +78,12 @@ test('resolveLatestPeerBinding returns the latest non-empty peer binding', () =>
   const binding = resolveLatestPeerBinding([
     {
       type: 'custom',
-      customType: ANTSEED_PEER_CUSTOM_TYPE,
+      customType: TORVE_PEER_CUSTOM_TYPE,
       data: { peerId: 'peer-old', peerLabel: 'Old peer' },
     },
     {
       type: 'custom',
-      customType: ANTSEED_PEER_CUSTOM_TYPE,
+      customType: TORVE_PEER_CUSTOM_TYPE,
       data: { peerId: ' peer-new ', peerLabel: ' New peer ' },
     },
   ]);
@@ -93,7 +93,7 @@ test('resolveLatestPeerBinding returns the latest non-empty peer binding', () =>
 
 test('resolveLatestPeerBinding surfaces the recorded route mode', () => {
   const binding = resolveLatestPeerBinding([
-    { type: 'custom', customType: ANTSEED_PEER_CUSTOM_TYPE, data: { peerId: 'peer-1', routeMode: 'pinned' } },
+    { type: 'custom', customType: TORVE_PEER_CUSTOM_TYPE, data: { peerId: 'peer-1', routeMode: 'pinned' } },
   ]);
   assert.deepEqual(binding, { peerId: 'peer-1', routeMode: 'pinned' });
 });
@@ -101,22 +101,22 @@ test('resolveLatestPeerBinding surfaces the recorded route mode', () => {
 test('a legacy binding without a route mode resolves to undefined', () => {
   // Threads predate route-mode tracking; callers treat these as auto.
   const binding = resolveLatestPeerBinding([
-    { type: 'custom', customType: ANTSEED_PEER_CUSTOM_TYPE, data: { peerId: 'peer-1' } },
+    { type: 'custom', customType: TORVE_PEER_CUSTOM_TYPE, data: { peerId: 'peer-1' } },
   ]);
   assert.deepEqual(binding, { peerId: 'peer-1' });
 });
 
 test('an unrecognized route mode is ignored rather than trusted', () => {
   const binding = resolveLatestPeerBinding([
-    { type: 'custom', customType: ANTSEED_PEER_CUSTOM_TYPE, data: { peerId: 'peer-1', routeMode: 'whatever' } },
+    { type: 'custom', customType: TORVE_PEER_CUSTOM_TYPE, data: { peerId: 'peer-1', routeMode: 'whatever' } },
   ]);
   assert.deepEqual(binding, { peerId: 'peer-1' });
 });
 
 test('the newest binding wins when the route mode changes', () => {
   const binding = resolveLatestPeerBinding([
-    { type: 'custom', customType: ANTSEED_PEER_CUSTOM_TYPE, data: { peerId: 'peer-1', routeMode: 'auto' } },
-    { type: 'custom', customType: ANTSEED_PEER_CUSTOM_TYPE, data: { peerId: 'peer-2', routeMode: 'pinned' } },
+    { type: 'custom', customType: TORVE_PEER_CUSTOM_TYPE, data: { peerId: 'peer-1', routeMode: 'auto' } },
+    { type: 'custom', customType: TORVE_PEER_CUSTOM_TYPE, data: { peerId: 'peer-2', routeMode: 'pinned' } },
   ]);
   assert.deepEqual(binding, { peerId: 'peer-2', routeMode: 'pinned' });
 });

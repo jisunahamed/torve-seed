@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface IAntseedSellerPools {
+interface ITorveSellerPools {
     event StakingSourceSet(address indexed stakingSource);
     event StakeCreated(
         uint256 indexed positionId,

@@ -25,7 +25,7 @@ export function SellerPage() {
     return (
       <Panel title="Open your seller dashboard">
         <p className="muted">
-          Open this dashboard with <code>antseed ants --address 0x...</code> using your seller’s address, then connect that seller’s wallet.
+          Open this dashboard with <code>torve ants --address 0x...</code> using your seller’s address, then connect that seller’s wallet.
         </p>
       </Panel>
     );
@@ -98,7 +98,7 @@ function SellerBody({ data }: { data: SellerView }) {
           <RegisterAction data={data} />
         </div>
         <div className="hint mt">
-          CLI equivalent: <code>antseed seller register</code>
+          CLI equivalent: <code>torve seller register</code>
         </div>
       </Panel>
 
@@ -148,7 +148,7 @@ function SellerBody({ data }: { data: SellerView }) {
                 ]}
               />
               <div className="hint mt">
-                CLI equivalent: <code>antseed seller legacy claim-starter</code>
+                CLI equivalent: <code>torve seller legacy claim-starter</code>
               </div>
             </Details>
           </>

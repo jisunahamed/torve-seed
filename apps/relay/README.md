@@ -1,4 +1,4 @@
-# @antseed/relay
+# @torveai/relay
 
 Web relay for browser buyers. Two jobs:
 
@@ -25,7 +25,7 @@ metrics contain no client IPs, seller IDs, SDP, or ICE data.
 ## Run
 
 ```bash
-pnpm --filter=@antseed/relay run build
+pnpm --filter=@torveai/relay run build
 node apps/relay/dist/index.js
 ```
 

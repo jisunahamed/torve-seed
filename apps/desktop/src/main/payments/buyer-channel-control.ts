@@ -1,6 +1,6 @@
 /** Buyer-daemon client and response normalization for payment channels. */
-import type { ChannelInfo, CloseChannelResultPayload } from '@antseed/node';
-import { multicallRead } from '@antseed/node/payments';
+import type { ChannelInfo, CloseChannelResultPayload } from '@torveai/node';
+import { multicallRead } from '@torveai/node/payments';
 import { Interface, type AbstractProvider } from 'ethers';
 import { LOCALHOST_URL } from '../constants.js';
 import type { DesktopPaymentChannelSummary } from './buyer-channels.js';
@@ -107,7 +107,7 @@ export async function requestCooperativeChannelCloseAtPort(
   options: CooperativeCloseRequestOptions = {},
 ): Promise<CloseChannelResultPayload> {
   const fetchImpl = options.fetchImpl ?? fetch;
-  const response = await fetchImpl(`${LOCALHOST_URL}:${port}/_antseed/channels/close`, {
+  const response = await fetchImpl(`${LOCALHOST_URL}:${port}/_torve/channels/close`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ peerId, includeAuth: true }),

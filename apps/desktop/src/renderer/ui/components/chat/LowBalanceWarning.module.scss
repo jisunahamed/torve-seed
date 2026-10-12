@@ -16,7 +16,7 @@
   line-height: 1.4;
 }
 
-// Scoped under the container so it outranks the @antseed/ui `.as-button--ghost`
+// Scoped under the container so it outranks the @torveai/ui `.as-button--ghost`
 // variant classes (which tie on specificity and would otherwise win on source order).
 .low-balance-warning .add-credits-link {
   min-height: 0;

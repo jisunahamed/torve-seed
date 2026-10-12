@@ -1,5 +1,5 @@
 import type { BuyerConnection } from './interfaces.js';
-import { MessageType } from '@antseed/protocol/messages';
+import { MessageType } from '@torveai/protocol/messages';
 import type {
   SpendingAuthPayload,
   AuthAckPayload,
@@ -11,10 +11,10 @@ import type {
   NeedAuthPayload,
   CloseChannelRequestPayload,
   CloseChannelResultPayload,
-} from '@antseed/protocol/messages';
-import { encodeFrame } from '@antseed/protocol/framing';
-import type { FramedMessage } from '@antseed/protocol/messages';
-import * as codec from '@antseed/protocol/payment-codec';
+} from '@torveai/protocol/messages';
+import { encodeFrame } from '@torveai/protocol/framing';
+import type { FramedMessage } from '@torveai/protocol/messages';
+import * as codec from '@torveai/protocol/payment-codec';
 import { debugLog } from './debug.js';
 
 const MESSAGE_TYPE_NAME: Record<number, string> = {

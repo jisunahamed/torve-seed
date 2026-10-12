@@ -2,7 +2,7 @@ import type { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { ZeroAddress } from 'ethers';
-import type { DepositsClient } from '@antseed/node';
+import type { DepositsClient } from '@torveai/node';
 import type { CryptoContext } from '../../payment-utils.js';
 import { getGlobalOptions } from '../types.js';
 
@@ -104,7 +104,7 @@ export function registerBuyerSetAuthorizedWalletCommand(buyerCmd: Command): void
 
         const globalOpts = getGlobalOptions(buyerCmd);
         if (!options.self) {
-          const { createServer } = await import('@antseed/payments');
+          const { createServer } = await import('@torveai/payments');
           const openBrowser = options.open ? (await import('open')).default : undefined;
           await runBrowserWalletAuthorization({
             dataDir: globalOpts.dataDir,
@@ -119,7 +119,7 @@ export function registerBuyerSetAuthorizedWalletCommand(buyerCmd: Command): void
 
         const { loadConfig } = await import('../../../config/loader.js');
         const { loadCryptoContext, createDepositsClient, requireCryptoConfig } = await import('../../payment-utils.js');
-        const { makeDepositsDomain, signSetOperator } = await import('@antseed/node');
+        const { makeDepositsDomain, signSetOperator } = await import('@torveai/node');
         const config = await loadConfig(globalOpts.config);
         const crypto = requireCryptoConfig(config);
         const context = await loadCryptoContext(globalOpts.dataDir);

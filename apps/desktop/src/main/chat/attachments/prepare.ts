@@ -18,7 +18,7 @@ export interface PreparedChatAttachment {
    * Stable server-generated identifier under which the raw bytes were
    * persisted on disk (via the storage callback passed to
    * `prepareChatAttachments`). The renderer uses this to build
-   * `antseed-attachment://<conversationId>/<attachmentId>` URLs for the
+   * `torve-attachment://<conversationId>/<attachmentId>` URLs for the
    * in-chat preview. Absent when no storage callback was supplied.
    */
   attachmentId?: string;

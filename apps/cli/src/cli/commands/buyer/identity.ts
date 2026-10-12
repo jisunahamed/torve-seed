@@ -1,7 +1,7 @@
 import { InvalidArgumentError, type Command } from 'commander'
 import chalk from 'chalk'
 import Table from 'cli-table3'
-import { DEFAULT_BUYER_IDENTITY, DepositsClient, resolveChainConfig } from '@antseed/node'
+import { DEFAULT_BUYER_IDENTITY, DepositsClient, resolveChainConfig } from '@torveai/node'
 import { getGlobalOptions } from '../types.js'
 import { loadConfig } from '../../../config/loader.js'
 import { archiveBuyerIdentity, createBuyerIdentity, listBuyerIdentities, parseKeySource, readDefaultWallet } from '../../../buyer-identities/store.js'
@@ -13,7 +13,7 @@ function formatUsdc(baseUnits: bigint): string {
 export function registerBuyerIdentityCommands(buyerCmd: Command): void {
   const identity = buyerCmd
     .command('identity')
-    .description('Extra buyer wallets one running buyer can pay as (select per request with x-antseed-buyer-identity)')
+    .description('Extra buyer wallets one running buyer can pay as (select per request with x-torve-buyer-identity)')
 
   identity.command('create')
     .description('Create a buyer identity with its own wallet')
@@ -40,10 +40,10 @@ export function registerBuyerIdentityCommands(buyerCmd: Command): void {
       console.log("identity's credits automatically.")
       if (!created.keyFrom) {
         console.log('To show the address as a QR code:')
-        console.log(chalk.dim(`  antseed --data-dir ${created.dir} buyer deposit --no-watch`))
+        console.log(chalk.dim(`  torve --data-dir ${created.dir} buyer deposit --no-watch`))
       }
       console.log('')
-      console.log(`Use it by sending ${chalk.bold(`x-antseed-buyer-identity: ${created.name}`)} with requests to the buyer.`)
+      console.log(`Use it by sending ${chalk.bold(`x-torve-buyer-identity: ${created.name}`)} with requests to the buyer.`)
     })
 
   identity.command('list')

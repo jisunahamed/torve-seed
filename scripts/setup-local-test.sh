@@ -7,14 +7,14 @@ RPC=http://127.0.0.1:8545
 # Contract addresses (deterministic from anvil nonce sequence)
 USDC=0x5FbDB2315678afecb367f032d93F642f64180aa3          # nonce 0
 REGISTRY=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512      # nonce 1 — MockERC8004Registry
-# ANTSToken = nonce 2, AntseedRegistry = nonce 3
+# ANTSToken = nonce 2, TorveRegistry = nonce 3
 STAKING=0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9       # nonce 4
 DEPOSITS=0x5FC8d32690cc91D4c39d9d3abcBD16989F875707      # nonce 5
 CHANNELS=0x0165878A594ca255338adfa4d48449f69242Eb8F      # nonce 6
 # Stats = nonce 7, Emissions = nonce 8
 DEPOSIT_RELAY=0x8A791620dd6260079BF849Dc5567aDC3F2FdC318 # nonce 9
 
-cd /Users/shahafan/Development/antseed
+cd /Users/shahafan/Development/torve
 
 echo "=== Step 1: Deploy contracts ==="
 echo "Make sure anvil is running: anvil"
@@ -28,8 +28,8 @@ echo ""
 echo "=== Step 2: Setup seller ==="
 
 # Ensure seller data dir and config exist
-mkdir -p ~/.antseed-seller
-cat > ~/.antseed-seller/config.json << EOF
+mkdir -p ~/.torve-seller
+cat > ~/.torve-seller/config.json << EOF
 {
   "identity": { "displayName": "Local Test Seller" },
   "seller": {
@@ -58,19 +58,19 @@ cat > ~/.antseed-seller/config.json << EOF
   ]
 }
 EOF
-echo "Created seller config at ~/.antseed-seller/config.json"
+echo "Created seller config at ~/.torve-seller/config.json"
 
 # Ensure plugin is linked
-mkdir -p ~/.antseed/plugins/node_modules/@antseed
-ln -sf "$(pwd)/plugins/provider-openai-responses" ~/.antseed/plugins/node_modules/@antseed/provider-openai-responses 2>/dev/null || true
+mkdir -p ~/.torve/plugins/node_modules/@torve
+ln -sf "$(pwd)/plugins/provider-openai-responses" ~/.torve/plugins/node_modules/@torveai/provider-openai-responses 2>/dev/null || true
 
 echo ""
 echo "=== Step 3: Get wallet addresses ==="
-SELLER_ADDR=$(node -e "const{loadOrCreateIdentity}=require('./packages/node/dist/p2p/identity.js');(async()=>{const i=await loadOrCreateIdentity('/Users/shahafan/.antseed-seller');console.log(i.wallet.address)})()")
-SELLER_KEY=$(node -e "const{loadOrCreateIdentity}=require('./packages/node/dist/p2p/identity.js');(async()=>{const i=await loadOrCreateIdentity('/Users/shahafan/.antseed-seller');console.log(i.wallet.privateKey)})()")
-BUYER_ADDR=$(node -e "const{loadOrCreateIdentity}=require('./packages/node/dist/p2p/identity.js');(async()=>{const i=await loadOrCreateIdentity('/Users/shahafan/.antseed');console.log(i.wallet.address)})()")
-BUYER_KEY=$(node -e "const{loadOrCreateIdentity}=require('./packages/node/dist/p2p/identity.js');(async()=>{const i=await loadOrCreateIdentity('/Users/shahafan/.antseed');console.log(i.wallet.privateKey)})()")
-SELLER_PEER=$(cat ~/.antseed-seller/identity.key)
+SELLER_ADDR=$(node -e "const{loadOrCreateIdentity}=require('./packages/node/dist/p2p/identity.js');(async()=>{const i=await loadOrCreateIdentity('/Users/shahafan/.torve-seller');console.log(i.wallet.address)})()")
+SELLER_KEY=$(node -e "const{loadOrCreateIdentity}=require('./packages/node/dist/p2p/identity.js');(async()=>{const i=await loadOrCreateIdentity('/Users/shahafan/.torve-seller');console.log(i.wallet.privateKey)})()")
+BUYER_ADDR=$(node -e "const{loadOrCreateIdentity}=require('./packages/node/dist/p2p/identity.js');(async()=>{const i=await loadOrCreateIdentity('/Users/shahafan/.torve');console.log(i.wallet.address)})()")
+BUYER_KEY=$(node -e "const{loadOrCreateIdentity}=require('./packages/node/dist/p2p/identity.js');(async()=>{const i=await loadOrCreateIdentity('/Users/shahafan/.torve');console.log(i.wallet.privateKey)})()")
+SELLER_PEER=$(cat ~/.torve-seller/identity.key)
 
 echo "Seller EVM: $SELLER_ADDR"
 echo "Buyer EVM:  $BUYER_ADDR"
@@ -144,7 +144,7 @@ echo "  Channels:    $CHANNELS"
 echo "  DepositRelay: $DEPOSIT_RELAY"
 echo ""
 echo "Start seller:"
-echo "  node apps/cli/dist/cli/index.js --data-dir ~/.antseed-seller seller start --provider openai-responses --verbose --config ~/.antseed-seller/config.json"
+echo "  node apps/cli/dist/cli/index.js --data-dir ~/.torve-seller seller start --provider openai-responses --verbose --config ~/.torve-seller/config.json"
 echo ""
 echo "Start desktop:"
 echo "  cd apps/desktop && npm run dev"

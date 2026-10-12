@@ -67,7 +67,7 @@ describe('VerificationSampler', () => {
       expect(manifest.requestId).toBe(request.requestId);
       expect(manifest.requestHash).toBe(responseAuth.requestHash);
       expect(manifest.responseHash).toBe(responseAuth.responseHash);
-      expect((manifest.files as Record<string, unknown>).encoding).toBe('antseed-http-codec-v1');
+      expect((manifest.files as Record<string, unknown>).encoding).toBe('torve-http-codec-v1');
 
       const storedRequest = decodeHttpRequest(readFileSync(join(sample!.directory, 'request.bin')));
       const storedResponse = decodeHttpResponse(readFileSync(join(sample!.directory, 'response.bin')));

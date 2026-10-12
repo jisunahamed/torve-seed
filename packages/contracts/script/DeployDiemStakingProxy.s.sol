@@ -6,26 +6,26 @@ import "forge-std/Script.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import { DiemStakingProxy } from "../staking/DiemStakingProxy.sol";
-import { IAntseedRegistry } from "../interfaces/IAntseedRegistry.sol";
+import { ITorveRegistry } from "../interfaces/ITorveRegistry.sol";
 
 interface IERC8004RegisterAndTransfer {
     function register(string calldata uri) external returns (uint256 agentId);
     function transferFrom(address from, address to, uint256 tokenId) external;
 }
 
-interface IAntseedStakingForDiemProxyDeploy {
+interface ITorveStakingForDiemProxyDeploy {
     function stakeFor(address seller, uint256 agentId, uint256 amount) external;
 }
 
 /**
  * @title DeployDiemStakingProxy
- * @notice Deploys DiemStakingProxy and optionally stakes its AntSeed seller identity.
+ * @notice Deploys DiemStakingProxy and optionally stakes its Torve seller identity.
  *
  * Required env:
  *   DEPLOYER_PRIVATE_KEY   Broadcaster private key.
  *   DIEM_ADDRESS           DIEM staking token/adapter address.
- *   USDC_ADDRESS           USDC token used by AntSeed staking/deposits.
- *   ANTSEED_REGISTRY       AntseedRegistry address.
+ *   USDC_ADDRESS           USDC token used by Torve staking/deposits.
+ *   TORVE_REGISTRY       TorveRegistry address.
  *   DIEM_PROXY_OPERATOR    Initial authorized operator and default operator-fee recipient.
  *
  * Optional env:
@@ -51,16 +51,16 @@ contract DeployDiemStakingProxy is Script {
 
         address diem = vm.envAddress("DIEM_ADDRESS");
         address usdc = vm.envAddress("USDC_ADDRESS");
-        address registryAddress = vm.envAddress("ANTSEED_REGISTRY");
+        address registryAddress = vm.envAddress("TORVE_REGISTRY");
         address operator = vm.envAddress("DIEM_PROXY_OPERATOR");
         uint256 stakeAmount = vm.envOr("DIEM_PROXY_STAKE_USDC", uint256(0));
 
-        IAntseedRegistry registry = IAntseedRegistry(registryAddress);
+        ITorveRegistry registry = ITorveRegistry(registryAddress);
         address identityRegistry = registry.identityRegistry();
-        address antseedStaking = registry.staking();
+        address torveStaking = registry.staking();
 
         require(identityRegistry != address(0), "identity registry not set");
-        require(antseedStaking != address(0), "staking not set");
+        require(torveStaking != address(0), "staking not set");
 
         vm.startBroadcast(deployerPrivateKey);
 
@@ -68,9 +68,9 @@ contract DeployDiemStakingProxy is Script {
         console.log("Deployer:              ", deployer);
         console.log("DIEM:                  ", diem);
         console.log("USDC:                  ", usdc);
-        console.log("AntseedRegistry:       ", registryAddress);
+        console.log("TorveRegistry:       ", registryAddress);
         console.log("ERC-8004 Registry:     ", identityRegistry);
-        console.log("AntseedStaking:        ", antseedStaking);
+        console.log("TorveStaking:        ", torveStaking);
         console.log("Operator/FeeRecipient: ", operator);
         console.log("");
 
@@ -89,8 +89,8 @@ contract DeployDiemStakingProxy is Script {
 
         if (stakeAmount > 0) {
             require(agentId != 0, "agent id required for staking");
-            IERC20(usdc).approve(antseedStaking, stakeAmount);
-            IAntseedStakingForDiemProxyDeploy(antseedStaking).stakeFor(address(proxy), agentId, stakeAmount);
+            IERC20(usdc).approve(torveStaking, stakeAmount);
+            ITorveStakingForDiemProxyDeploy(torveStaking).stakeFor(address(proxy), agentId, stakeAmount);
             console.log("Staked USDC:           ", stakeAmount);
         }
 

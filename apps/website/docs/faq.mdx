@@ -1,7 +1,7 @@
 ---
 id: faq
 title: Frequently Asked Questions
-description: Common questions about Antseed — the peer-to-peer AI services network. Covers privacy, models, pricing, setup, and how it compares to centralized AI APIs.
+description: Common questions about Torve — the peer-to-peer AI services network. Covers privacy, models, pricing, setup, and how it compares to centralized AI APIs.
 sidebar_position: 99
 ---
 
@@ -13,10 +13,10 @@ export const faqLd = {
   mainEntity: [
     {
       '@type': 'Question',
-      name: 'What is Antseed?',
+      name: 'What is Torve?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: "Antseed is a peer-to-peer network for AI services. It connects buyers who need AI services with providers who deliver them — specialized inference, domain expertise, autonomous agents — directly, without a central platform in the middle. The Antseed protocol handles discovery, routing, reputation scoring, and payment settlement across a decentralized network of peers.",
+        text: "Torve is a peer-to-peer network for AI services. It connects buyers who need AI services with providers who deliver them — specialized inference, domain expertise, autonomous agents — directly, without a central platform in the middle. The Torve protocol handles discovery, routing, reputation scoring, and payment settlement across a decentralized network of peers.",
       },
     },
     {
@@ -24,12 +24,12 @@ export const faqLd = {
       name: 'How is this different from centralized AI chat products?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: "Centralized AI chat products are closed platforms built on top of a single provider's models. Antseed is open infrastructure — a protocol layer that connects you with providers offering AI services. Your requests don't go through a single company. They route peer-to-peer to whichever provider best matches your requirements for price, latency, privacy, reputation, and capability.",
+        text: "Centralized AI chat products are closed platforms built on top of a single provider's models. Torve is open infrastructure — a protocol layer that connects you with providers offering AI services. Your requests don't go through a single company. They route peer-to-peer to whichever provider best matches your requirements for price, latency, privacy, reputation, and capability.",
       },
     },
     {
       '@type': 'Question',
-      name: 'Is Antseed open source?',
+      name: 'Is Torve open source?',
       acceptedAnswer: {
         '@type': 'Answer',
         text: 'Yes. The full protocol, CLI, and node implementation are open source on GitHub. Anyone can inspect the code, run a node, or build on top of the protocol.',
@@ -37,18 +37,18 @@ export const faqLd = {
     },
     {
       '@type': 'Question',
-      name: 'Who runs the Antseed network?',
+      name: 'Who runs the Torve network?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'The network runs on the independent peers that join it. Antseed is open peer-to-peer software; no single hosted service controls every node, provider, model, output, log, or data practice.',
+        text: 'The network runs on the independent peers that join it. Torve is open peer-to-peer software; no single hosted service controls every node, provider, model, output, log, or data practice.',
       },
     },
     {
       '@type': 'Question',
-      name: 'Is my data private on Antseed?',
+      name: 'Is my data private on Torve?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: "Antseed is designed for anonymous access without a central account, platform-issued API key, or centralized chat database. Requests route peer-to-peer, so providers generally see a peer/wallet rather than a platform identity account, and TEE providers can add hardware-backed confidentiality where available. This is not a promise that every piece of data is hidden from every participant: independent providers and supporting infrastructure may process data needed to deliver and settle requests, and public-chain activity remains visible on-chain.",
+        text: "Torve is designed for anonymous access without a central account, platform-issued API key, or centralized chat database. Requests route peer-to-peer, so providers generally see a peer/wallet rather than a platform identity account, and TEE providers can add hardware-backed confidentiality where available. This is not a promise that every piece of data is hidden from every participant: independent providers and supporting infrastructure may process data needed to deliver and settle requests, and public-chain activity remains visible on-chain.",
       },
     },
     {
@@ -61,15 +61,15 @@ export const faqLd = {
     },
     {
       '@type': 'Question',
-      name: 'Does Antseed log my requests?',
+      name: 'Does Torve log my requests?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: "Antseed the protocol does not create a central request log, but independent providers, nodes, interfaces, RPC providers, analytics tools, or other infrastructure may log or observe data. Each provider has its own data handling practices. Prefer TEE-verified providers where stronger confidentiality is required.",
+        text: "Torve the protocol does not create a central request log, but independent providers, nodes, interfaces, RPC providers, analytics tools, or other infrastructure may log or observe data. Each provider has its own data handling practices. Prefer TEE-verified providers where stronger confidentiality is required.",
       },
     },
     {
       '@type': 'Question',
-      name: 'What AI services are available on Antseed?',
+      name: 'What AI services are available on Torve?',
       acceptedAnswer: {
         '@type': 'Answer',
         text: "Any service a provider chooses to offer. Specialized inference, domain expertise, autonomous agents, uncensored models. The network is open — availability depends on who's online. See the live pricing page for what is online right now.",
@@ -77,15 +77,15 @@ export const faqLd = {
     },
     {
       '@type': 'Question',
-      name: 'Can I use closed-source models like GPT-4 on Antseed?',
+      name: 'Can I use closed-source models like GPT-4 on Torve?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'If a provider offers access to GPT-4 or other closed-source models, you can access them through Antseed. The protocol is model-agnostic. Availability depends on what providers choose to offer.',
+        text: 'If a provider offers access to GPT-4 or other closed-source models, you can access them through Torve. The protocol is model-agnostic. Availability depends on what providers choose to offer.',
       },
     },
     {
       '@type': 'Question',
-      name: 'What if an Antseed service goes offline?',
+      name: 'What if an Torve service goes offline?',
       acceptedAnswer: {
         '@type': 'Answer',
         text: 'Model-only routes automatically fail over to the next eligible ranked seller after retryable peer failures. A conversation normally prefers its previously selected seller, but that soft affinity can switch when the seller is unavailable, cooling down, or no longer allowed. Explicit seller pins remain hard.',
@@ -93,7 +93,7 @@ export const faqLd = {
     },
     {
       '@type': 'Question',
-      name: 'Do I need to sign up or create an account to use Antseed?',
+      name: 'Do I need to sign up or create an account to use Torve?',
       acceptedAnswer: {
         '@type': 'Answer',
         text: 'No account required. Install the CLI, start the buyer proxy, and request any model from the network-wide /v1/models catalog. The proxy applies the same Price + Trust preferences as the desktop, with a default minimum trust score of 60. Any tool that speaks a supported OpenAI or Anthropic API format works immediately.',
@@ -101,23 +101,23 @@ export const faqLd = {
     },
     {
       '@type': 'Question',
-      name: 'How do I install Antseed?',
+      name: 'How do I install Torve?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Install the CLI with npm install -g @antseed/cli, then start the buyer proxy with antseed buyer start --router local. See the installation guide for full details.',
+        text: 'Install the CLI with npm install -g @torveai/cli, then start the buyer proxy with torve buyer start --router local. See the installation guide for full details.',
       },
     },
     {
       '@type': 'Question',
-      name: 'Does Antseed work with Claude Code, Codex, or other AI tools?',
+      name: 'Does Torve work with Claude Code, Codex, or other AI tools?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Yes. Antseed is OpenAI API-compatible. Point your tool at the Antseed endpoint and it works without any other changes — no code modifications needed.',
+        text: 'Yes. Torve is OpenAI API-compatible. Point your tool at the Torve endpoint and it works without any other changes — no code modifications needed.',
       },
     },
     {
       '@type': 'Question',
-      name: 'What operating systems does Antseed support?',
+      name: 'What operating systems does Torve support?',
       acceptedAnswer: {
         '@type': 'Answer',
         text: 'macOS (Apple Silicon and Intel), Windows, and Linux. The CLI runs anywhere Node.js runs.',
@@ -125,7 +125,7 @@ export const faqLd = {
     },
     {
       '@type': 'Question',
-      name: 'Can I become an Antseed provider?',
+      name: 'Can I become an Torve provider?',
       acceptedAnswer: {
         '@type': 'Answer',
         text: "Yes. The network is open. Wrap your expertise in AI and sell it — video creation, legal analysis, code audits, uncensored inference, autonomous agents. It's your job to pick the models and workflows that deliver the best results. The network only measures delivery quality. No permission or partnership required.",
@@ -133,23 +133,23 @@ export const faqLd = {
     },
     {
       '@type': 'Question',
-      name: 'How does pricing work on Antseed?',
+      name: 'How does pricing work on Torve?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Providers set their own prices. For model-only requests, Antseed ranks eligible offers using shared Price + Trust preferences, pricing metadata, cached-input pricing coverage, and peer health. The default minimum trust score is 60, while explicit seller pins remain available when you need a fixed route.',
+        text: 'Providers set their own prices. For model-only requests, Torve ranks eligible offers using shared Price + Trust preferences, pricing metadata, cached-input pricing coverage, and peer health. The default minimum trust score is 60, while explicit seller pins remain available when you need a fixed route.',
       },
     },
     {
       '@type': 'Question',
-      name: 'How do providers get paid on Antseed?',
+      name: 'How do providers get paid on Torve?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: "Buyers pre-deposit USDC into the on-chain AntseedDeposits contract. Each session is authorized by an EIP-712 ReserveAuth. The seller calls reserve() on AntseedChannels to lock funds. During the session, the buyer signs cumulative SpendingAuth messages. The seller calls close() with the latest SpendingAuth to settle. No invoicing, no monthly billing — automatic settlement per session.",
+        text: "Buyers pre-deposit USDC into the on-chain TorveDeposits contract. Each session is authorized by an EIP-712 ReserveAuth. The seller calls reserve() on TorveChannels to lock funds. During the session, the buyer signs cumulative SpendingAuth messages. The seller calls close() with the latest SpendingAuth to settle. No invoicing, no monthly billing — automatic settlement per session.",
       },
     },
     {
       '@type': 'Question',
-      name: 'Are there usage limits on Antseed?',
+      name: 'Are there usage limits on Torve?',
       acceptedAnswer: {
         '@type': 'Answer',
         text: 'No caps and no daily, weekly, or monthly quota. You pay per request from your credits and keep going as long as there are credits to spend. Top up in the AI VPN by card or Apple Pay, or with USDC from the CLI.',
@@ -168,15 +168,15 @@ export const faqLd = {
       name: 'Does my tool or agent need an API key?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'No account and no real key. The local endpoint does not validate one, but most tools want a non-empty value, so use a placeholder like antseed. The antseed claude, codex, and opencode wrappers set this for you. Only a public endpoint you publish from the Agents view uses a real, generated key.',
+        text: 'No account and no real key. The local endpoint does not validate one, but most tools want a non-empty value, so use a placeholder like torve. The torve claude, codex, and opencode wrappers set this for you. Only a public endpoint you publish from the Agents view uses a real, generated key.',
       },
     },
     {
       '@type': 'Question',
-      name: 'How does Antseed choose the provider for each request?',
+      name: 'How does Torve choose the provider for each request?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'By your routing policy: price plus trust, with a default minimum trust score of 60. Leave it on auto to hit the cheapest verified provider every time, or pin a provider with <peerId>@<model> in the model field, or from the CLI with antseed buyer connection set --peer <peerId>.',
+        text: 'By your routing policy: price plus trust, with a default minimum trust score of 60. Leave it on auto to hit the cheapest verified provider every time, or pin a provider with <peerId>@<model> in the model field, or from the CLI with torve buyer connection set --peer <peerId>.',
       },
     },
     {
@@ -192,7 +192,7 @@ export const faqLd = {
       name: "How do I verify a provider's TEE?",
       acceptedAnswer: {
         '@type': 'Answer',
-        text: "Your buyer node checks it on your machine, against Intel's own certificate chain, with no third party in between and no special hardware on your side. The check happens after a provider is picked and before any payment. Verification is on by default and best-effort; run antseed buyer start --verifiers antseed-verifier --require-verifier to refuse any provider that does not pass.",
+        text: "Your buyer node checks it on your machine, against Intel's own certificate chain, with no third party in between and no special hardware on your side. The check happens after a provider is picked and before any payment. Verification is on by default and best-effort; run torve buyer start --verifiers torve-verifier --require-verifier to refuse any provider that does not pass.",
       },
     },
     {
@@ -213,10 +213,10 @@ export const faqLd = {
     },
     {
       '@type': 'Question',
-      name: 'Why would a provider use Antseed instead of building their own API?',
+      name: 'Why would a provider use Torve instead of building their own API?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Because distribution is the hard part. On Antseed a provider plugs into existing demand: buyers, discovery, reputation, and onchain settlement come with the network. No billing stack to build, no customers to acquire, no payment risk to carry.',
+        text: 'Because distribution is the hard part. On Torve a provider plugs into existing demand: buyers, discovery, reputation, and onchain settlement come with the network. No billing stack to build, no customers to acquire, no payment risk to carry.',
       },
     },
     {
@@ -224,7 +224,7 @@ export const faqLd = {
       name: 'What happens when LLMs become so good that anyone can do anything?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'When LLMs become dramatically more capable, costs collapse and more people can run capable models on their own hardware. Those people become Antseed providers, so the supply side grows. The value is in what you build on top: the skills, the workflows, the domain expertise, the agent orchestration.',
+        text: 'When LLMs become dramatically more capable, costs collapse and more people can run capable models on their own hardware. Those people become Torve providers, so the supply side grows. The value is in what you build on top: the skills, the workflows, the domain expertise, the agent orchestration.',
       },
     },
     {
@@ -246,27 +246,27 @@ export const faqLd = {
 
 ## General
 
-### What is Antseed?
+### What is Torve?
 
-Antseed is a peer-to-peer network for AI services. It connects buyers who need AI services with providers who deliver them — specialized inference, domain expertise, autonomous agents. Directly, without a central platform in the middle.
+Torve is a peer-to-peer network for AI services. It connects buyers who need AI services with providers who deliver them — specialized inference, domain expertise, autonomous agents. Directly, without a central platform in the middle.
 
-Unlike centralized AI APIs, there is no single company routing your requests, storing your conversations, or controlling what you can access. The Antseed protocol handles discovery, routing, reputation scoring, and payment settlement across a decentralized network of peers.
+Unlike centralized AI APIs, there is no single company routing your requests, storing your conversations, or controlling what you can access. The Torve protocol handles discovery, routing, reputation scoring, and payment settlement across a decentralized network of peers.
 
 ### How is this different from centralized AI chat products?
 
-Centralized AI chat products are closed platforms built on top of a single provider's models. Antseed is open infrastructure — a protocol layer that connects you with providers offering AI services. Not just models — expertise, agents, and specialized workflows.
+Centralized AI chat products are closed platforms built on top of a single provider's models. Torve is open infrastructure — a protocol layer that connects you with providers offering AI services. Not just models — expertise, agents, and specialized workflows.
 
 The key difference: your requests don't go through a single company. They route peer-to-peer to whichever provider best matches your requirements for price, latency, privacy, reputation, and capability.
 
 Your existing tools — [Claude Code](https://claude.ai/code), [Codex](https://github.com/openai/codex), or any OpenAI-compatible client — connect and work immediately without modification.
 
-### Is Antseed open source?
+### Is Torve open source?
 
-Yes. The full protocol, CLI, and node implementation are open source on [GitHub](https://github.com/AntSeed/antseed). Anyone can inspect the code, run a node, or build on top of the protocol.
+Yes. The full protocol, CLI, and node implementation are open source on [GitHub](https://github.com/Torve/torve). Anyone can inspect the code, run a node, or build on top of the protocol.
 
 ### Who runs the network?
 
-The network runs on the independent peers that join it. Antseed is open peer-to-peer software; no single hosted service controls every node, provider, model, output, log, or data practice.
+The network runs on the independent peers that join it. Torve is open peer-to-peer software; no single hosted service controls every node, provider, model, output, log, or data practice.
 
 ---
 
@@ -274,13 +274,13 @@ The network runs on the independent peers that join it. Antseed is open peer-to-
 
 ### Is my data private?
 
-Privacy on Antseed works in two layers:
+Privacy on Torve works in two layers:
 
-**Layer 1 — Anonymous access (default).** Antseed is designed for use without a central account, sign-up, or platform-issued API key. Requests route peer-to-peer, so providers generally see a peer/wallet rather than a platform identity account.
+**Layer 1 — Anonymous access (default).** Torve is designed for use without a central account, sign-up, or platform-issued API key. Requests route peer-to-peer, so providers generally see a peer/wallet rather than a platform identity account.
 
 **Layer 2 — TEE-verified providers.** These run inside Trusted Execution Environments (Intel TDX, AMD SEV) — hardware enclaves that can reduce what the node operator can see. This is cryptographic proof, not just a policy promise. TEE provider verification is being rolled out in a future release.
 
-Antseed's privacy model is architectural rather than account-based: users can route requests without a central identity account, platform-issued API key, or centralized chat database, and TEE providers can add hardware-backed confidentiality where available. It is not, however, a promise that every piece of data is hidden from every participant. Independent providers and supporting infrastructure may process data needed to deliver and settle requests, and public-chain activity remains visible on-chain. Users should choose providers and routes appropriate to the sensitivity of their work.
+Torve's privacy model is architectural rather than account-based: users can route requests without a central identity account, platform-issued API key, or centralized chat database, and TEE providers can add hardware-backed confidentiality where available. It is not, however, a promise that every piece of data is hidden from every participant. Independent providers and supporting infrastructure may process data needed to deliver and settle requests, and public-chain activity remains visible on-chain. Users should choose providers and routes appropriate to the sensitivity of their work.
 
 Most users are well-served by no-account routing. Journalists, lawyers, security researchers, and anyone handling sensitive data should carefully choose providers and prefer TEE routes where available.
 
@@ -288,9 +288,9 @@ Most users are well-served by no-account routing. Journalists, lawyers, security
 
 Standard providers can. TEE-verified providers cannot — the hardware prevents it even if the operator wanted to look. When paying for a TEE-verified request, you receive a cryptographic attestation proving the enclave was genuine.
 
-### Does Antseed log my requests?
+### Does Torve log my requests?
 
-Antseed the protocol does not create a central request log, but independent providers, nodes, interfaces, RPC providers, analytics tools, or other infrastructure may log or observe data. Each provider has its own data handling practices. Prefer TEE-verified providers where stronger confidentiality is required.
+Torve the protocol does not create a central request log, but independent providers, nodes, interfaces, RPC providers, analytics tools, or other infrastructure may log or observe data. Each provider has its own data handling practices. Prefer TEE-verified providers where stronger confidentiality is required.
 
 ### Can a provider see what I send?
 
@@ -298,7 +298,7 @@ Requests route peer-to-peer with no platform in the middle, so a provider sees a
 
 ### How do I verify a provider's TEE?
 
-Your buyer node checks it on your machine, against Intel's own certificate chain, with no third party in between and no special hardware on your side. The check happens after a provider is picked and before any payment, so attestation is free. Verification is on by default and best-effort; run `antseed buyer start --verifiers antseed-verifier --require-verifier` to refuse any provider that does not pass, and the request then fails with a 502 naming the failed claims instead of being quietly routed elsewhere. `antseed network browse` shows which providers advertise a verifier. See [Verify a provider's TEE](/docs/guides/verify-tee).
+Your buyer node checks it on your machine, against Intel's own certificate chain, with no third party in between and no special hardware on your side. The check happens after a provider is picked and before any payment, so attestation is free. Verification is on by default and best-effort; run `torve buyer start --verifiers torve-verifier --require-verifier` to refuse any provider that does not pass, and the request then fails with a 502 naming the failed claims instead of being quietly routed elsewhere. `torve network browse` shows which providers advertise a verifier. See [Verify a provider's TEE](/docs/guides/verify-tee).
 
 ### What does a passing TEE check prove, and what does it not?
 
@@ -314,7 +314,7 @@ Any service a provider chooses to offer. Specialized inference, domain expertise
 
 ### Can I use closed-source models like GPT-4?
 
-If a provider offers access to GPT-4 or other closed-source models, you can access them through Antseed. The protocol is model-agnostic. Availability depends on what providers choose to offer.
+If a provider offers access to GPT-4 or other closed-source models, you can access them through Torve. The protocol is model-agnostic. Availability depends on what providers choose to offer.
 
 ### What if a service goes offline?
 
@@ -326,25 +326,25 @@ Model-only routes automatically fail over to the next eligible ranked seller aft
 
 ### Do I need to sign up or create an account?
 
-No account required. Install the CLI, run `antseed buyer start`, and request any model listed by `curl localhost:8377/v1/models`. The proxy applies the same Price + Trust preferences as the desktop AI VPN, including the default hard minimum trust score of `60`. Pinning a specific seller with `antseed buyer connection set --peer <peerId>`, `x-antseed-pin-peer`, or `<peerId>@<model>` remains available as an explicit override. Tools that speak a supported OpenAI or Anthropic API format work immediately.
+No account required. Install the CLI, run `torve buyer start`, and request any model listed by `curl localhost:8377/v1/models`. The proxy applies the same Price + Trust preferences as the desktop AI VPN, including the default hard minimum trust score of `60`. Pinning a specific seller with `torve buyer connection set --peer <peerId>`, `x-torve-pin-peer`, or `<peerId>@<model>` remains available as an explicit override. Tools that speak a supported OpenAI or Anthropic API format work immediately.
 
-### How do I install Antseed?
+### How do I install Torve?
 
 ```bash
-npm install -g @antseed/cli
+npm install -g @torveai/cli
 ```
 
 Then start the buyer proxy:
 
 ```bash
-antseed buyer start --router local
+torve buyer start --router local
 ```
 
 See the [installation guide](/docs/install) for full details.
 
 ### Does it work with Claude Code, Codex, or other AI tools?
 
-Yes. Antseed is OpenAI API-compatible. Point your tool at the Antseed endpoint and it works without any other changes — no code modifications needed.
+Yes. Torve is OpenAI API-compatible. Point your tool at the Torve endpoint and it works without any other changes — no code modifications needed.
 
 ### What operating systems are supported?
 
@@ -352,19 +352,19 @@ macOS (Apple Silicon and Intel), Windows, and Linux. The CLI runs anywhere Node.
 
 ### Are there usage limits?
 
-No caps and no daily, weekly, or monthly quota. You pay per request from your credits and keep going as long as there are credits to spend. Top up in the AI VPN by card or Apple Pay, or with USDC from the CLI using `antseed buyer deposit`.
+No caps and no daily, weekly, or monthly quota. You pay per request from your credits and keep going as long as there are credits to spend. Top up in the AI VPN by card or Apple Pay, or with USDC from the CLI using `torve buyer deposit`.
 
 ### Do I need the AI VPN desktop app, or is the CLI enough?
 
-The CLI is enough. `npm install -g @antseed/cli`, then `antseed buyer start` runs your local endpoint and `antseed buyer deposit` funds it with USDC, on any machine. `antseed claude`, `antseed codex`, and `antseed opencode` launch those tools through it. The AI VPN desktop app adds a model picker, an Apps view that launches installed tools, card and Apple Pay top-ups, and the Agents view for publishing an authenticated public endpoint. See the [install guide](/docs/install).
+The CLI is enough. `npm install -g @torveai/cli`, then `torve buyer start` runs your local endpoint and `torve buyer deposit` funds it with USDC, on any machine. `torve claude`, `torve codex`, and `torve opencode` launch those tools through it. The AI VPN desktop app adds a model picker, an Apps view that launches installed tools, card and Apple Pay top-ups, and the Agents view for publishing an authenticated public endpoint. See the [install guide](/docs/install).
 
 ### Does my tool or agent need an API key?
 
-No account and no real key. The local endpoint does not validate one, but most tools want a non-empty value, so use a placeholder like `antseed`. The `antseed claude`, `codex`, and `opencode` wrappers set this for you. Only a public endpoint you publish from the AI VPN's Agents view uses a real, generated key.
+No account and no real key. The local endpoint does not validate one, but most tools want a non-empty value, so use a placeholder like `torve`. The `torve claude`, `codex`, and `opencode` wrappers set this for you. Only a public endpoint you publish from the AI VPN's Agents view uses a real, generated key.
 
-### How does Antseed choose the provider for each request?
+### How does Torve choose the provider for each request?
 
-By your routing policy: price plus trust, with a default minimum trust score of `60`. Leave it on auto to hit the cheapest verified provider every time, or pin a provider with `<peerId>@<model>` in the model field, or from the CLI with `antseed buyer connection set --peer <peerId>`.
+By your routing policy: price plus trust, with a default minimum trust score of `60`. Leave it on auto to hit the cheapest verified provider every time, or pin a provider with `<peerId>@<model>` in the model field, or from the CLI with `torve buyer connection set --peer <peerId>`.
 
 ---
 
@@ -382,7 +382,7 @@ Providers set their own prices. For model-only requests, the routing layer ranks
 
 ### How do providers get paid?
 
-Buyers pre-deposit USDC into the on-chain AntseedDeposits contract. Each session is authorized by an EIP-712 ReserveAuth that caps the seller's charge. The seller calls `reserve()` on AntseedChannels to lock funds. During the session, the buyer signs cumulative SpendingAuth messages that authorize spending. The seller calls `close()` with the buyer's latest SpendingAuth to settle and release remaining funds. If the seller disappears, the buyer (or their deposits operator) calls `requestClose()`, then `withdraw()` after a 15-minute grace period to release remaining funds. No invoicing, no monthly billing — automatic settlement per session.
+Buyers pre-deposit USDC into the on-chain TorveDeposits contract. Each session is authorized by an EIP-712 ReserveAuth that caps the seller's charge. The seller calls `reserve()` on TorveChannels to lock funds. During the session, the buyer signs cumulative SpendingAuth messages that authorize spending. The seller calls `close()` with the buyer's latest SpendingAuth to settle and release remaining funds. If the seller disappears, the buyer (or their deposits operator) calls `requestClose()`, then `withdraw()` after a 15-minute grace period to release remaining funds. No invoicing, no monthly billing — automatic settlement per session.
 
 ### Are seller ANTS incentives claimable now?
 
@@ -399,9 +399,9 @@ Network fees are set to 4% and may be directed to ecosystem mechanisms such as r
 
 Providers compete. Some run open models on their own hardware, some sell capacity they legitimately hold. Providers must build their own service on top of upstream APIs and comply with upstream terms.
 
-### Why would a provider use Antseed instead of building their own API?
+### Why would a provider use Torve instead of building their own API?
 
-Because distribution is the hard part. On Antseed a provider plugs into existing demand: buyers, discovery, reputation, and onchain settlement come with the network. No billing stack to build, no customers to acquire, no payment risk to carry. Serve a request, get paid, automatically.
+Because distribution is the hard part. On Torve a provider plugs into existing demand: buyers, discovery, reputation, and onchain settlement come with the network. No billing stack to build, no customers to acquire, no payment risk to carry. Serve a request, get paid, automatically.
 
 ### Are ANTS incentives guaranteed?
 
@@ -416,7 +416,7 @@ before the lock ends also incurs a principal penalty. See
 
 ### What happens when LLMs become so good that anyone can do anything?
 
-That is exactly what we want. When LLMs become dramatically more capable, costs collapse and more people can run their own capable LLMs on their own hardware. Those people become Antseed providers, so the supply side grows, not shrinks. But "anyone can do anything" does not mean everyone delivers the same result. The value is in what you build on top: the skills, the workflows, the domain expertise, the agent orchestration. A more capable base model raises the ceiling for every provider.
+That is exactly what we want. When LLMs become dramatically more capable, costs collapse and more people can run their own capable LLMs on their own hardware. Those people become Torve providers, so the supply side grows, not shrinks. But "anyone can do anything" does not mean everyone delivers the same result. The value is in what you build on top: the skills, the workflows, the domain expertise, the agent orchestration. A more capable base model raises the ceiling for every provider.
 
 ### Isn't this just like P2P file sharing? Netflix killed that.
 
@@ -426,4 +426,4 @@ Netflix and Spotify won because humans are happy to pay a simple subscription fo
 
 ## Still have questions?
 
-Join the community on [Telegram](https://t.me/antseed) or open an issue on [GitHub](https://github.com/AntSeed/antseed).
+Join the community on [Telegram](https://t.me/torve) or open an issue on [GitHub](https://github.com/Torve/torve).

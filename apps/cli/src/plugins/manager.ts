@@ -12,7 +12,7 @@ const INSTALL_TIMEOUT_MS = 120_000
 /** Dedupe concurrent installs of the same package so first-requests can't race npm. */
 const inflightInstalls = new Map<string, Promise<void>>()
 
-export const PLUGINS_DIR = join(homedir(), '.antseed', 'plugins')
+export const PLUGINS_DIR = join(homedir(), '.torve', 'plugins')
 
 function resolvePluginsDir(): string {
   if (existsSync(PLUGINS_DIR)) return PLUGINS_DIR
@@ -38,7 +38,7 @@ async function ensurePluginsDir(): Promise<void> {
   } catch {
     await writeFile(
       pluginsPackageJson,
-      JSON.stringify({ name: 'antseed-plugins', version: '1.0.0', private: true, dependencies: {} }, null, 2),
+      JSON.stringify({ name: 'torve-plugins', version: '1.0.0', private: true, dependencies: {} }, null, 2),
       'utf-8'
     )
   }

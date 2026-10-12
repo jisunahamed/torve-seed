@@ -1,9 +1,9 @@
 ---
 slug: buyer-protection
 title: "Buyer Protection Without a Middleman"
-authors: [antseed]
+authors: [torve]
 tags: [protocol, payments, security, P2P, buyer-protection]
-description: How Antseed protects buyers during active AI sessions — overdraft control, independent cost verification, reserve ceilings, and a guaranteed on-chain escape hatch — without any intermediary.
+description: How Torve protects buyers during active AI sessions — overdraft control, independent cost verification, reserve ceilings, and a guaranteed on-chain escape hatch — without any intermediary.
 keywords: [buyer protection, overdraft control, cost verification, EIP-712, SpendingAuth, P2P payments, payment channels, streaming payments, escrow, smart contract]
 image: /og-image.jpg
 date: 2099-01-01
@@ -14,7 +14,7 @@ When you use an AI API, you swipe a card and trust the provider to charge you fa
 
 On a P2P network, none of that exists. The buyer is paying a stranger — no brand, no support department, no recourse beyond the protocol itself. If the seller overcharges, there's no one to call. If the seller disappears mid-session, there's no one to refund you. The protocol has to make cheating unprofitable and recovery automatic.
 
-Antseed's buyer protection is built in eight layers. Each one addresses a specific attack or failure mode. Together, they ensure the buyer never risks more than it can afford, never pays more than it can verify, and can always get unspent funds back — without trusting the seller or any intermediary.
+Torve's buyer protection is built in eight layers. Each one addresses a specific attack or failure mode. Together, they ensure the buyer never risks more than it can afford, never pays more than it can verify, and can always get unspent funds back — without trusting the seller or any intermediary.
 
 <!-- truncate -->
 
@@ -48,7 +48,7 @@ If the seller inflates costs, the buyer's verified cost falls behind the seller'
 
 ## Layer 2: Cap What the Seller Claims
 
-The seller reports its cost per response via HTTP headers: `x-antseed-cost`, `x-antseed-input-tokens`, `x-antseed-output-tokens`. The buyer reads these — but doesn't trust them blindly.
+The seller reports its cost per response via HTTP headers: `x-torve-cost`, `x-torve-input-tokens`, `x-torve-output-tokens`. The buyer reads these — but doesn't trust them blindly.
 
 Before accepting the seller's claimed cost, the buyer compares it against its own estimate. If the seller's claim exceeds **1.4 times** the buyer's independent estimate, the buyer caps the accepted cost at the tolerance boundary:
 
@@ -88,10 +88,10 @@ This matters most for autonomous agents. An AI agent running unattended on a ser
 
 If a seller stops responding, refuses to settle, or disappears entirely, the buyer's funds aren't stuck. The recovery path is mechanical — it requires no cooperation from the seller, no arbitration, and no third party.
 
-The operator calls `requestClose(channelId)` on the AntseedChannels contract. This starts a 15-minute grace period during which the seller can submit the latest SpendingAuth to settle earned revenue. After the grace period, the operator calls `withdraw(channelId)`, and all unreserved funds are released back to the buyer's available balance.
+The operator calls `requestClose(channelId)` on the TorveChannels contract. This starts a 15-minute grace period during which the seller can submit the latest SpendingAuth to settle earned revenue. After the grace period, the operator calls `withdraw(channelId)`, and all unreserved funds are released back to the buyer's available balance.
 
 ```
-Operator                      AntseedChannels       AntseedDeposits
+Operator                      TorveChannels       TorveDeposits
 (hardware wallet / multisig)        |                     |
      |                              |                     |
      |-- requestClose(channelId) -->|                     |
@@ -116,7 +116,7 @@ The seller has strong incentive to settle promptly: if `requestClose()` fires an
 
 For buyers who want explicit control over every payment — institutional deployments, high-value tasks, or cautious operators — manual approval mode returns every 402 to the application layer. The buyer's node doesn't auto-sign anything.
 
-The application receives the seller's terms: address, pricing, suggested amount. It can present an approval card, check an internal policy, or require human confirmation. On approval, the application signs the SpendingAuth externally and attaches it to the retry request via the `x-antseed-spending-auth` header. The node extracts the pre-signed authorization before proxying — from the seller's perspective, the flow is identical to auto mode. Same EIP-712 signatures, same on-chain `reserve()` call, same settlement.
+The application receives the seller's terms: address, pricing, suggested amount. It can present an approval card, check an internal policy, or require human confirmation. On approval, the application signs the SpendingAuth externally and attaches it to the retry request via the `x-torve-spending-auth` header. The node extracts the pre-signed authorization before proxying — from the seller's perspective, the flow is identical to auto mode. Same EIP-712 signatures, same on-chain `reserve()` call, same settlement.
 
 Auto mode is the default. It handles everything internally using the caps described above — the application never sees the 402, just gets a slightly delayed response on the first request while the on-chain reserve confirms. Manual mode exists for cases where the overdraft limits aren't sufficient assurance and a human needs to approve.
 

@@ -8,13 +8,13 @@ import {
   ViewIcon,
   ViewOffSlashIcon,
 } from '@hugeicons/core-free-icons';
-import { Modal } from '@antseed/ui';
+import { Modal } from '@torveai/ui';
 import type { PublicTunnelStatus, TunnelProvider } from '../../../types/bridge';
 import { BrandIcon } from '../brand/BrandIcon';
 import formStyles from '../views/VprToolsView.module.scss';
 import styles from './PublicEndpointModal.module.scss';
 
-const TUNNEL_DOCS_URL = 'https://antseed.com/docs/guides/public-tunnels';
+const TUNNEL_DOCS_URL = 'https://torveai.com/docs/guides/public-tunnels';
 const MASKED_API_KEY = '••••••••••••••••••••••••••••••••';
 type CopyKind = 'url' | 'key';
 
@@ -84,7 +84,7 @@ export function PublicEndpointModal({
 
   const configureAndStart = useCallback(async () => {
     const provider = editingProvider;
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!provider || !bridge?.publicTunnelConfigure || !bridge.publicTunnelStart) return;
     setBusyProvider(provider);
     setError(null);
@@ -113,7 +113,7 @@ export function PublicEndpointModal({
   }, [editingProvider, onStatusChange, publicUrl, token]);
 
   const toggleTunnel = useCallback(async (provider: TunnelProvider) => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     const isRunning = status?.running === true && status.activeProvider === provider;
     setBusyProvider(provider);
     setError(null);
@@ -140,7 +140,7 @@ export function PublicEndpointModal({
 
   const loadApiKey = useCallback(async (): Promise<string | null> => {
     if (apiKey) return apiKey;
-    const result = await window.antseedDesktop?.publicTunnelGetApiKey?.();
+    const result = await window.torveDesktop?.publicTunnelGetApiKey?.();
     const loadedApiKey = result?.apiKey ?? null;
     setApiKey(loadedApiKey);
     return loadedApiKey;
@@ -188,7 +188,7 @@ export function PublicEndpointModal({
         isOpen={isOpen}
         onClose={onClose}
         size="lg"
-        title="Internet-accessible Antseed endpoint"
+        title="Internet-accessible Torve endpoint"
         subtitle="Connect Cursor, remote agents, hosted clients, and servers through an authenticated HTTPS endpoint."
         className={styles.modal}
         bodyClassName={styles.modalBody}
@@ -196,9 +196,9 @@ export function PublicEndpointModal({
       <section className={styles.intro}>
         <div>
           <h3 className={styles.sectionTitle}>Choose a tunnel provider</h3>
-          <p className={styles.sectionHint}>Only Antseed’s authenticated <code>/v1</code> model API is published. Port 8377 remains local.</p>
+          <p className={styles.sectionHint}>Only Torve’s authenticated <code>/v1</code> model API is published. Port 8377 remains local.</p>
         </div>
-        <button type="button" className={styles.docsLink} onClick={() => void window.antseedDesktop?.openExternalUrl?.(TUNNEL_DOCS_URL)}>
+        <button type="button" className={styles.docsLink} onClick={() => void window.torveDesktop?.openExternalUrl?.(TUNNEL_DOCS_URL)}>
           Public tunnel guide <HugeiconsIcon icon={ArrowUpRight01Icon} size={13} strokeWidth={2} />
         </button>
       </section>
@@ -294,7 +294,7 @@ export function PublicEndpointModal({
         onClose={closeConfigure}
         size="sm"
         title={selectedProvider?.name ?? 'Tunnel provider'}
-        subtitle="Expose only Antseed’s authenticated /v1 API."
+        subtitle="Expose only Torve’s authenticated /v1 API."
         className={styles.modal}
         bodyClassName={styles.settingsBody}
       >
@@ -307,7 +307,7 @@ export function PublicEndpointModal({
               </div>
               <p className={styles.fieldHint}>{selectedProvider.setupHint}</p>
               <input type="password" className={styles.input} value={token} placeholder={selectedProvider.tokenPlaceholder} autoComplete="off" spellCheck={false} onChange={(event) => setToken(event.target.value)} />
-              <button type="button" className={styles.docsLink} onClick={() => void window.antseedDesktop?.openExternalUrl?.(selectedProvider.dashboardUrl)}>
+              <button type="button" className={styles.docsLink} onClick={() => void window.torveDesktop?.openExternalUrl?.(selectedProvider.dashboardUrl)}>
                 {selectedProvider.dashboardLabel} <HugeiconsIcon icon={ArrowUpRight01Icon} size={12} strokeWidth={2} />
               </button>
             </section>

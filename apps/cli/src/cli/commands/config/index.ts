@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { getGlobalOptions } from '../types.js';
 import { loadConfig, saveConfig } from '../../../config/loader.js';
-import type { AntseedConfig, SellerProviderConfig } from '../../../config/types.js';
+import type { TorveConfig, SellerProviderConfig } from '../../../config/types.js';
 import { assertValidConfig } from '../../../config/validation.js';
 import {
   parseServiceCapabilitiesInput,
@@ -13,14 +13,14 @@ import { installPlugin } from '../../../plugins/manager.js';
 import { resolvePluginPackage } from '../../../plugins/registry.js';
 
 /**
- * Register the `antseed config` command and its subcommands.
+ * Register the `torve config` command and its subcommands.
  */
 export function registerConfigCommand(program: Command): void {
   const configCmd = program
     .command('config')
-    .description('Manage Antseed configuration');
+    .description('Manage Torve configuration');
 
-  // antseed config show
+  // torve config show
   configCmd
     .command('show')
     .description('Display current configuration (credentials redacted)')
@@ -31,7 +31,7 @@ export function registerConfigCommand(program: Command): void {
       console.log(JSON.stringify(redacted, null, 2));
     });
 
-  // antseed config set <key> <value>
+  // torve config set <key> <value>
   configCmd
     .command('set <key> <value>')
     .description('Set a configuration value (e.g., seller.reserveFloor 20)')
@@ -96,7 +96,7 @@ export function registerConfigCommand(program: Command): void {
         const providers = config.seller.providers;
         const providerCfg = providers[providerName];
         if (!providerCfg) {
-          console.error(chalk.red(`Provider "${providerName}" not found. Add it first with antseed config seller add-provider ${providerName} --plugin <plugin>.`));
+          console.error(chalk.red(`Provider "${providerName}" not found. Add it first with torve config seller add-provider ${providerName} --plugin <plugin>.`));
           process.exitCode = 1;
           return;
         }
@@ -168,7 +168,7 @@ export function registerConfigCommand(program: Command): void {
   sellerCmd
     .command('add-provider <name>')
     .description('Add a provider (installs plugin, creates seller.providers[name] entry)')
-    .requiredOption('--plugin <plugin>', 'plugin name or npm package (e.g., openai, anthropic, @antseed/provider-openai)')
+    .requiredOption('--plugin <plugin>', 'plugin name or npm package (e.g., openai, anthropic, @torveai/provider-openai)')
     .option('--base-url <url>', 'upstream API base URL (e.g., https://api.together.ai)')
     .option('--input <usd>', 'default input price in USD per 1M tokens', parseFloat)
     .option('--output <usd>', 'default output price in USD per 1M tokens', parseFloat)
@@ -219,7 +219,7 @@ export function registerConfigCommand(program: Command): void {
         assertValidConfig(config);
         await saveConfig(globalOpts.config, config);
         console.log(chalk.green(`Added provider "${name}" (plugin: ${pluginName})`));
-        console.log(chalk.dim(`Next: antseed config seller add-service ${name} <serviceId> --input <usd> --output <usd>`));
+        console.log(chalk.dim(`Next: torve config seller add-service ${name} <serviceId> --input <usd> --output <usd>`));
       } catch (err) {
         console.error(chalk.red(`Error: ${(err as Error).message}`));
         process.exitCode = 1;
@@ -267,7 +267,7 @@ export function registerConfigCommand(program: Command): void {
       await setRoleScopedValue(program, 'buyer', key, value);
     });
 
-  // antseed config init
+  // torve config init
   configCmd
     .command('init')
     .description('Initialize a new config file with defaults')
@@ -283,7 +283,7 @@ export function registerConfigCommand(program: Command): void {
 /**
  * Redact sensitive fields (auth values) from config for display.
  */
-export function redactConfig(config: AntseedConfig): Record<string, unknown> {
+export function redactConfig(config: TorveConfig): Record<string, unknown> {
   return JSON.parse(JSON.stringify(config)) as Record<string, unknown>;
 }
 
@@ -356,13 +356,13 @@ export function isDynamicKey(key: string): boolean {
     || DYNAMIC_KEY_PREFIXES.some((prefix) => key.startsWith(prefix));
 }
 
-function getValidConfigKeys(config: AntseedConfig, prefix = ''): string[] {
+function getValidConfigKeys(config: TorveConfig, prefix = ''): string[] {
   const keys: string[] = [];
   for (const [k, v] of Object.entries(config)) {
     if (k === 'plugins') continue;
     const path = prefix ? `${prefix}.${k}` : k;
     if (v && typeof v === 'object' && !Array.isArray(v)) {
-      keys.push(...getValidConfigKeys(v as unknown as AntseedConfig, path));
+      keys.push(...getValidConfigKeys(v as unknown as TorveConfig, path));
     } else {
       keys.push(path);
     }

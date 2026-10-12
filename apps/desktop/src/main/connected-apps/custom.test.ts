@@ -170,7 +170,7 @@ test('customAppToCliProfile emits a plain proxy profile', () => {
 });
 
 test('saveCustomApps/loadCustomApps round-trips and skips malformed entries', () => {
-  const dataDir = mkdtempSync(path.join(tmpdir(), 'antseed-custom-apps-'));
+  const dataDir = mkdtempSync(path.join(tmpdir(), 'torve-custom-apps-'));
   assert.deepEqual(loadCustomApps(dataDir), []);
 
   const record: CustomAppRecord = {

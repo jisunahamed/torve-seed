@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { classifyChatStreamFailure, formatChatStreamStopForLog } from './stream-stop.js';
-import { ANTSEED_BUYER_FAULT_ERROR_CODE } from '@antseed/node/types';
+import { TORVE_BUYER_FAULT_ERROR_CODE } from '@torveai/node/types';
 
 test('classifyChatStreamFailure detects retryable upstream 502 failures', () => {
   const reason = classifyChatStreamFailure({
@@ -18,7 +18,7 @@ test('classifyChatStreamFailure detects retryable upstream 502 failures', () => 
 test('classifyChatStreamFailure preserves protocol peer guidance without a stream prefix', () => {
   const message = [
     'Oops, pinned peer could not complete the request.',
-    'Antseed is a peer-to-peer network. Try another peer or use Auto routing.',
+    'Torve is a peer-to-peer network. Try another peer or use Auto routing.',
     'Original Response: {"message":"Insufficient balance or no resource package. Please recharge.","status":429}',
   ].join('\n');
   const reason = classifyChatStreamFailure({
@@ -200,7 +200,7 @@ test('a buyer-fault 503 is non-retryable so the user sees the real fix', () => {
     error: {
       message: 'Insufficient buyer deposits for reserve top-up',
       status: 503,
-      code: ANTSEED_BUYER_FAULT_ERROR_CODE,
+      code: TORVE_BUYER_FAULT_ERROR_CODE,
     },
     stopReason: 'error',
   });
@@ -216,7 +216,7 @@ test('an unreachable chain RPC names the RPC, not the peer', () => {
     error: {
       message: 'Could not reach the chain RPC',
       status: 503,
-      code: ANTSEED_BUYER_FAULT_ERROR_CODE,
+      code: TORVE_BUYER_FAULT_ERROR_CODE,
     },
     stopReason: 'error',
   });
@@ -232,7 +232,7 @@ test('a payments-inactive buyer fault surfaced as agent text shows the authored 
   const body = JSON.stringify({
     error: {
       type: 'api_error',
-      code: ANTSEED_BUYER_FAULT_ERROR_CODE,
+      code: TORVE_BUYER_FAULT_ERROR_CODE,
       message: 'This seller requires payment, but payments are not running on this buyer, '
         + 'so the request could not be authorized. This is not a balance problem — '
         + 'enable payments on the buyer (check its startup logs and chain settings), or use a free peer.',
@@ -288,7 +288,7 @@ test('seller-authored message fields are not displayed verbatim on generic upstr
 test('a seller mentioning the buyer-fault marker in display text stays retryable', () => {
   const reason = classifyChatStreamFailure({
     error: {
-      message: `Upstream rejected the literal text ${ANTSEED_BUYER_FAULT_ERROR_CODE}`,
+      message: `Upstream rejected the literal text ${TORVE_BUYER_FAULT_ERROR_CODE}`,
       status: 503,
       code: 'upstream_error',
     },

@@ -9,8 +9,8 @@ import {
   withTimeoutSignal,
 } from "./verification-utils.js";
 
-export const GITHUB_VERIFICATION_PROOF_FILE = "antseed.json";
-export const GITHUB_VERIFICATION_PROOF_TYPE = "antseed-github-verification";
+export const GITHUB_VERIFICATION_PROOF_FILE = "torve.json";
+export const GITHUB_VERIFICATION_PROOF_TYPE = "torve-github-verification";
 
 export interface GithubVerificationResult {
   username: string;

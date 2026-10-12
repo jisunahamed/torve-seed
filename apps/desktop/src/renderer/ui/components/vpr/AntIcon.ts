@@ -31,7 +31,7 @@ export const AntIcon: IconSvgElement = [
       fill: 'currentColor',
       strokeOpacity: 0,
       transform: 'translate(6.9087333 6) scale(0.6666667)',
-      key: `antseed-ant-${index}`,
+      key: `torve-ant-${index}`,
     },
   ]),
 ];

@@ -8,7 +8,7 @@ real MetaMask/Rabby extension popup, and no personal wallet or real funds are ne
 ## Start a fresh session
 
 Use the repository's pinned Node.js version, Anvil, and solc 0.8.24. Install
-workspace dependencies, then build `@antseed/node` and `@antseed/ants`.
+workspace dependencies, then build `@torveai/node` and `@torveai/ants`.
 
 ```sh
 node scripts/ants-sandbox.mjs --restricted --browser --port 3123

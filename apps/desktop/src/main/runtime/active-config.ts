@@ -12,7 +12,7 @@ import { readConfig } from './config-io.js';
 export const DEFAULT_BUYER_PROXY_PORT = 8377;
 
 function resolveActiveConfigPath(): string {
-  const explicit = process.env['ANTSEED_CONFIG_PATH']?.trim();
+  const explicit = process.env['TORVE_CONFIG_PATH']?.trim();
   if (explicit && explicit.length > 0) {
     return explicit;
   }

@@ -19,7 +19,7 @@
  */
 import { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { AntseedNode } from '../src/node.js';
+import { TorveNode } from '../src/node.js';
 import { SellerRequestHandler } from '../src/seller-request-handler.js';
 import { ConnectionState } from '../src/types/connection.js';
 import type { PeerId } from '../src/types/peer.js';
@@ -35,9 +35,9 @@ function makeFakeConn(remotePeerId: PeerId): EventEmitter & { remotePeerId: Peer
   return conn;
 }
 
-/** Create a minimal seller AntseedNode with real network disabled. */
-function makeSellerNode(): AntseedNode {
-  const node = new AntseedNode({ role: 'seller' });
+/** Create a minimal seller TorveNode with real network disabled. */
+function makeSellerNode(): TorveNode {
+  const node = new TorveNode({ role: 'seller' });
   // Inject identity so internal helpers that read it don't throw
   (node as any)._identity = {
     peerId: SELLER_PEER_ID,

@@ -2,14 +2,14 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import "../stats/AntseedStats.sol";
-import "../core/AntseedRegistry.sol";
+import "../stats/TorveStats.sol";
+import "../core/TorveRegistry.sol";
 import "./mocks/MockERC8004Registry.sol";
 
-contract AntseedStatsTest is Test {
-    AntseedRegistry public registry;
+contract TorveStatsTest is Test {
+    TorveRegistry public registry;
     MockERC8004Registry public identityRegistry;
-    AntseedStats public stats;
+    TorveStats public stats;
 
     address public tokenOwner = address(0x1);
     address public writer = address(0x2);
@@ -18,9 +18,9 @@ contract AntseedStatsTest is Test {
     uint256 public tokenId;
 
     function setUp() public {
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         identityRegistry = new MockERC8004Registry();
-        stats = new AntseedStats();
+        stats = new TorveStats();
         registry.setIdentityRegistry(address(identityRegistry));
 
         vm.prank(tokenOwner);
@@ -36,7 +36,7 @@ contract AntseedStatsTest is Test {
         vm.prank(writer);
         stats.recordMetadata(tokenId, buyer, bytes32("chan-1"), abi.encode(uint256(1), uint256(175), uint256(90), uint256(5)));
 
-        IAntseedStats.BuyerMetadataStats memory buyerStats = stats.getBuyerMetadataStats(tokenId, buyer);
+        ITorveStats.BuyerMetadataStats memory buyerStats = stats.getBuyerMetadataStats(tokenId, buyer);
         assertEq(buyerStats.totalInputTokens, 175);
         assertEq(buyerStats.totalOutputTokens, 90);
         assertEq(buyerStats.totalRequestCount, 5);
@@ -59,7 +59,7 @@ contract AntseedStatsTest is Test {
         stats.recordMetadata(tokenId, buyer, bytes32("chan-1"), abi.encode(uint256(1), uint256(90), uint256(10), uint256(1)));
 
         // Stats unchanged from first call
-        IAntseedStats.BuyerMetadataStats memory buyerStats = stats.getBuyerMetadataStats(tokenId, buyer);
+        ITorveStats.BuyerMetadataStats memory buyerStats = stats.getBuyerMetadataStats(tokenId, buyer);
         assertEq(buyerStats.totalInputTokens, 100);
         assertEq(buyerStats.totalOutputTokens, 40);
         assertEq(buyerStats.totalRequestCount, 2);
@@ -74,7 +74,7 @@ contract AntseedStatsTest is Test {
         vm.prank(writer);
         stats.recordMetadata(tokenId, buyer, bytes32("chan-2"), abi.encode(uint256(1), uint256(175), uint256(90), uint256(5)));
 
-        IAntseedStats.BuyerMetadataStats memory buyerStats = stats.getBuyerMetadataStats(tokenId, buyer);
+        ITorveStats.BuyerMetadataStats memory buyerStats = stats.getBuyerMetadataStats(tokenId, buyer);
         assertEq(buyerStats.totalInputTokens, 275);
         assertEq(buyerStats.totalOutputTokens, 130);
         assertEq(buyerStats.totalRequestCount, 7);
@@ -99,7 +99,7 @@ contract AntseedStatsTest is Test {
             abi.encode(uint256(1), uint256(100), uint256(40), uint256(2), uint256(999))
         );
 
-        IAntseedStats.BuyerMetadataStats memory buyerStats = stats.getBuyerMetadataStats(tokenId, buyer);
+        ITorveStats.BuyerMetadataStats memory buyerStats = stats.getBuyerMetadataStats(tokenId, buyer);
         assertEq(buyerStats.totalInputTokens, 100);
         assertEq(buyerStats.totalOutputTokens, 40);
         assertEq(buyerStats.totalRequestCount, 2);

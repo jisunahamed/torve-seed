@@ -1,7 +1,7 @@
 {
-  "name": "@antseed/payments",
+  "name": "@torveai/payments",
   "version": "0.1.64",
-  "description": "Buyer payments portal for AntSeed",
+  "description": "Buyer payments portal for Torve",
   "files": [
     "dist"
   ],
@@ -22,13 +22,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@antseed/node": "workspace:*",
+    "@torveai/node": "workspace:*",
     "@fastify/cors": "^10.0.0",
     "@fastify/static": "^9.0.0",
     "fastify": "^5.7.4"
   },
   "devDependencies": {
-    "@antseed/ui": "workspace:*",
+    "@torveai/ui": "workspace:*",
     "@metamask/sdk": "^0.34.0",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@tanstack/react-query": "^5.94.5",

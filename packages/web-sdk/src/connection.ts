@@ -1,6 +1,6 @@
 /**
  * Browser transport to one seller: relay-signaled WebRTC DataChannel carrying
- * AntSeed protocol frames. Satisfies @antseed/buyer-core's BuyerConnection
+ * Torve protocol frames. Satisfies @torveai/buyer-core's BuyerConnection
  * interface; all request/payment logic lives in the shared buyer machinery.
  */
 
@@ -13,7 +13,7 @@ import {
   MessageType,
   encodeFrame,
   type FramedMessage,
-} from '@antseed/protocol';
+} from '@torveai/protocol';
 import { buildHelloEnvelope } from './identity.js';
 import { SignalingSocket, type WebSocketCtor } from './signaling.js';
 
@@ -48,7 +48,7 @@ export interface ConnectionOptions {
 /** @deprecated Use ConnectionPathInfo. */
 export type ConnectionInfo = ConnectionPathInfo;
 
-const DATA_CHANNEL_LABEL = 'antseed-data';
+const DATA_CHANNEL_LABEL = 'torve-data';
 const PING_INTERVAL_MS = 15_000;
 const MAX_MISSED_PONGS = 3;
 const DEFAULT_ICE_SERVERS: RTCIceServer[] = [

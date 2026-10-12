@@ -1,19 +1,19 @@
-# Build a Antseed Provider Plugin
+# Build a Torve Provider Plugin
 
-This template shows how to publish a **provider plugin** for the Antseed Network. A provider plugin connects the Antseed node to an upstream AI API (Anthropic, OpenAI, a local LLM, etc.) and offers AI services to buyers on the P2P network.
+This template shows how to publish a **provider plugin** for the Torve Network. A provider plugin connects the Torve node to an upstream AI API (Anthropic, OpenAI, a local LLM, etc.) and offers AI services to buyers on the P2P network.
 
-> **Important:** Antseed is designed for providers who build differentiated services — such as TEE-secured inference, domain-specific skills or agents, fine-tuned models, or managed product experiences. Simply reselling raw API access or subscription credentials is not the intended use and may violate your upstream provider's terms of service.
+> **Important:** Torve is designed for providers who build differentiated services — such as TEE-secured inference, domain-specific skills or agents, fine-tuned models, or managed product experiences. Simply reselling raw API access or subscription credentials is not the intended use and may violate your upstream provider's terms of service.
 
 ## How It Works
 
 ```
-antseed seller start
+torve seller start
        ↓
-CLI loads antseed-provider-echo from ~/.antseed/plugins/
+CLI loads torve-provider-echo from ~/.torve/plugins/
        ↓
 plugin.createProvider(config) → Provider
        ↓
-AntseedNode (seller mode) handles DHT, encrypted P2P transport, metering, payments
+TorveNode (seller mode) handles DHT, encrypted P2P transport, metering, payments
 ```
 
 Your plugin only owns the upstream connection logic. Everything else is handled by the node.
@@ -29,10 +29,10 @@ npm run build      # compile to dist/
 To test end-to-end with the CLI:
 
 ```bash
-antseed plugin add ./   # install this package as a plugin
-antseed config seller add-provider echo --plugin echo
-antseed config seller add-service echo my-model-v1 --input 2 --output 2 --categories coding
-antseed seller start
+torve plugin add ./   # install this package as a plugin
+torve config seller add-provider echo --plugin echo
+torve config seller add-service echo my-model-v1 --input 2 --output 2 --categories coding
+torve seller start
 ```
 
 ## Customization
@@ -40,8 +40,8 @@ antseed seller start
 Replace `EchoProvider` in `src/provider.ts` with your real inference logic:
 
 ```ts
-import type { Provider } from '@antseed/node';
-import type { SerializedHttpRequest, SerializedHttpResponse } from '@antseed/node/types';
+import type { Provider } from '@torveai/node';
+import type { SerializedHttpRequest, SerializedHttpResponse } from '@torveai/node/types';
 
 export class MyProvider implements Provider {
   readonly name = 'my-provider';
@@ -86,17 +86,17 @@ Then declare config keys in `src/index.ts`:
 ```ts
 configSchema: [
   { key: 'MY_API_KEY', label: 'API Key', type: 'secret', required: true, description: 'API key' },
-  { key: 'ANTSEED_SERVICE_CAPABILITIES_JSON', label: 'Service Capabilities JSON', type: 'string' },
+  { key: 'TORVE_SERVICE_CAPABILITIES_JSON', label: 'Service Capabilities JSON', type: 'string' },
 ],
 ```
 
-The CLI reads matching environment variables and passes them to `createProvider(config)`. Non-secret runtime shape such as services, pricing, categories, capabilities, unit billing, and provider `baseUrl` should live in `~/.antseed/config.json`.
+The CLI reads matching environment variables and passes them to `createProvider(config)`. Non-secret runtime shape such as services, pricing, categories, capabilities, unit billing, and provider `baseUrl` should live in `~/.torve/config.json`.
 
-Use `parseServiceCapabilitiesJson()` from `@antseed/provider-core` to consume `ANTSEED_SERVICE_CAPABILITIES_JSON`. If your plugin supports non-token billing, also declare `ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON` and parse it with `parseServiceUnitBillingModelsJson()`. Plugins that omit the unit-billing key cause seller startup to warn when an operator configures `unitBillingModels` for them.
+Use `parseServiceCapabilitiesJson()` from `@torveai/provider-core` to consume `TORVE_SERVICE_CAPABILITIES_JSON`. If your plugin supports non-token billing, also declare `TORVE_SERVICE_UNIT_BILLING_MODELS_JSON` and parse it with `parseServiceUnitBillingModelsJson()`. Plugins that omit the unit-billing key cause seller startup to warn when an operator configures `unitBillingModels` for them.
 
 ## Adding an Ant Agent
 
-Providers can differentiate their service by wrapping it with a **ant agent** — a read-only, knowledge-augmented AI service that injects a persona, guardrails, and on-demand knowledge into buyer requests. Creators can also add custom tools for fetching external data, calling APIs, etc. The CLI handles this automatically via `@antseed/ant-agent` — no plugin code required.
+Providers can differentiate their service by wrapping it with a **ant agent** — a read-only, knowledge-augmented AI service that injects a persona, guardrails, and on-demand knowledge into buyer requests. Creators can also add custom tools for fetching external data, calling APIs, etc. The CLI handles this automatically via `@torveai/ant-agent` — no plugin code required.
 
 ### Setup
 
@@ -139,13 +139,13 @@ Then point your config at the agent directory:
 ### How it works
 
 1. **Persona + guardrails** are always injected into the system prompt
-2. **Knowledge modules** are loaded on demand — an `antseed_load_knowledge` tool is injected and the LLM decides which modules to load during the conversation
+2. **Knowledge modules** are loaded on demand — an `torve_load_knowledge` tool is injected and the LLM decides which modules to load during the conversation
 3. Internal tool calls are executed in a loop until the LLM produces a final text response
 4. The buyer gets a clean streamed response with no internal tools or loop artifacts
 
 The composition chain is: `AntAgentProvider → BaseProvider`.
 
-See the [`@antseed/ant-agent` README](../../../packages/ant-agent/README.md) for the full manifest reference.
+See the [`@torveai/ant-agent` README](../../../packages/ant-agent/README.md) for the full manifest reference.
 
 ## Publishing
 
@@ -153,9 +153,9 @@ See the [`@antseed/ant-agent` README](../../../packages/ant-agent/README.md) for
 npm publish
 
 # Users install with:
-antseed plugin add my-provider-package
-antseed config seller add-provider my-provider --plugin my-provider
-antseed seller start
+torve plugin add my-provider-package
+torve config seller add-provider my-provider --plugin my-provider
+torve seller start
 ```
 
 ## Verification
@@ -184,7 +184,7 @@ npm run verify
 | `handleRequest(req)` | `Promise<SerializedHttpResponse>` | Handle an inference request |
 | `getCapacity()` | `{ current: number; max: number }` | Current / max concurrency |
 
-### `AntseedProviderPlugin`
+### `TorveProviderPlugin`
 
 | Property | Type | Description |
 |---|---|---|
@@ -198,7 +198,7 @@ npm run verify
 
 ## Links
 
-- [@antseed/node source](https://github.com/AntSeed/node)
-- [Provider interface](https://github.com/AntSeed/node/tree/main/src/interfaces/seller-provider.ts)
-- [Official Anthropic provider](https://github.com/AntSeed/provider-anthropic)
-- [Official Claude Code provider](https://github.com/AntSeed/provider-claude-code)
+- [@torveai/node source](https://github.com/Torve/node)
+- [Provider interface](https://github.com/Torve/node/tree/main/src/interfaces/seller-provider.ts)
+- [Official Anthropic provider](https://github.com/Torve/provider-anthropic)
+- [Official Claude Code provider](https://github.com/Torve/provider-claude-code)

@@ -49,7 +49,7 @@ export class NatTraversal {
     this._nat = new NatAPI({
       enablePMP: true,
       enableUPNP: true,
-      description: "Antseed P2P",
+      description: "Torve P2P",
       ttl: 7200,
     });
 
@@ -102,7 +102,7 @@ export class NatTraversal {
           publicPort: port,
           privatePort: port,
           protocol,
-          description: `Antseed ${protocol}`,
+          description: `Torve ${protocol}`,
         });
 
         if (mapped) {

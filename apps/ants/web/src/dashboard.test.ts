@@ -17,8 +17,8 @@ import { formatYieldPercent, poolApyRange, poolApyEstimates } from './pool-yield
 import type { PoolView, PoolsView, RewardsView, SellerView } from '../../src/api-types';
 
 const state = vi.hoisted(() => ({ data: { 'positions:current': { config: { minStakeEpochs: 1, maxStakeEpochs: 104, stakeActivationDelay: 1 } } } as Record<string, unknown>, keys: [] as Array<string | null>, loadingPools: false, partialPools: false, reconcilingPools: false, poolsError: null as string | null }));
-vi.mock('@antseed/ui', async original => ({
-  ...await original<typeof import('@antseed/ui')>(),
+vi.mock('@torveai/ui', async original => ({
+  ...await original<typeof import('@torveai/ui')>(),
   Modal: ({ children, title, subtitle, isOpen }: { children: ReactNode; title: ReactNode; subtitle?: ReactNode; isOpen: boolean }) => isOpen ? createElement('section', { role: 'dialog' }, createElement('h2', null, title), subtitle, children) : null,
 }));
 vi.mock('./data', () => ({ usePageData: (key: string | null) => { state.keys.push(key); return { data: key ? state.data[key] ?? null : null, error: key === 'pools' ? state.poolsError : null, loading: key === 'pools' && state.loadingPools, partial: key === 'pools' && state.partialPools, reconciling: key === 'pools' && state.reconcilingPools, refresh: () => {} }; } }));

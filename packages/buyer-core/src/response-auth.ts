@@ -1,15 +1,15 @@
 import { keccak256 } from 'ethers';
 import { keccak_256 } from '@noble/hashes/sha3';
-import { createMp4Inspector } from '@antseed/api-adapter';
-import { VIDEO_DOWNLOAD_MAX_BYTES } from '@antseed/protocol/http';
+import { createMp4Inspector } from '@torveai/api-adapter';
+import { VIDEO_DOWNLOAD_MAX_BYTES } from '@torveai/protocol/http';
 import type { Wallet } from 'ethers';
-import type { ResponseAuthPayload } from '@antseed/protocol/messages';
-import type { SerializedHttpRequest, SerializedHttpResponse } from '@antseed/protocol/http';
-import { ANTSEED_STREAMING_RESPONSE_HEADER } from '@antseed/protocol/http';
-import { bytesToHex, hexToBytes, signData, verifySignature } from '@antseed/protocol/signing';
-import { encodeHttpRequest, encodeHttpResponse, encodeHttpResponsePrefix } from '@antseed/protocol/request-codec';
+import type { ResponseAuthPayload } from '@torveai/protocol/messages';
+import type { SerializedHttpRequest, SerializedHttpResponse } from '@torveai/protocol/http';
+import { TORVE_STREAMING_RESPONSE_HEADER } from '@torveai/protocol/http';
+import { bytesToHex, hexToBytes, signData, verifySignature } from '@torveai/protocol/signing';
+import { encodeHttpRequest, encodeHttpResponse, encodeHttpResponsePrefix } from '@torveai/protocol/request-codec';
 
-const RESPONSE_AUTH_DOMAIN = 'antseed-response-auth-v1';
+const RESPONSE_AUTH_DOMAIN = 'torve-response-auth-v1';
 
 export interface ResponseAuthInput {
   request: SerializedHttpRequest;
@@ -182,11 +182,11 @@ function buildResponseAuthSigningBytes(payload: Omit<ResponseAuthPayload, 'signa
 }
 
 function stripStreamingHeader(response: SerializedHttpResponse): SerializedHttpResponse {
-  if (response.headers[ANTSEED_STREAMING_RESPONSE_HEADER] !== '1') {
+  if (response.headers[TORVE_STREAMING_RESPONSE_HEADER] !== '1') {
     return response;
   }
   const headers = { ...response.headers };
-  delete headers[ANTSEED_STREAMING_RESPONSE_HEADER];
+  delete headers[TORVE_STREAMING_RESPONSE_HEADER];
   return { ...response, headers };
 }
 

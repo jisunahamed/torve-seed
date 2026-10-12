@@ -3,8 +3,8 @@ pragma solidity ^0.8.24;
 
 /**
  * @title MockChannelsCounter
- * @notice Minimal stand-in for AntseedChannels that exposes only the one method
- *         AntseedStaking reads — `activeChannelCount(address)` — with a settable value.
+ * @notice Minimal stand-in for TorveChannels that exposes only the one method
+ *         TorveStaking reads — `activeChannelCount(address)` — with a settable value.
  *         Lets the staking suite drive the unstake guard against arbitrary counts
  *         without spinning up the full payment stack.
  */

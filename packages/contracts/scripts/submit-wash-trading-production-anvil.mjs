@@ -54,7 +54,7 @@ const signer = new Wallet(
 let nonce = await provider.getTransactionCount(signer.address, "pending");
 
 const batchAuthenticator = await deploy("WashTradingDevelopmentE2E.sol/WashTradingLocalBatchAuthenticator.json", []);
-const registry = await deploy("AntseedWashTradingRegistry.sol/AntseedWashTradingRegistry.json", [
+const registry = await deploy("TorveWashTradingRegistry.sol/TorveWashTradingRegistry.json", [
   verifierAddress,
   expectedVerifierHash,
   blockhashStoreAddress,
@@ -167,7 +167,7 @@ function validateArtifacts(candidates) {
   const sellers = new Set();
   let configuration;
   for (const candidate of candidates) {
-    if (candidate?.version !== 3 || candidate.kind !== "antseed-wash-trading-seller-proof"
+    if (candidate?.version !== 3 || candidate.kind !== "torve-wash-trading-seller-proof"
       || candidate.proofArchitecture !== "direct-seller-v1" || candidate.securityMode !== "production"
       || candidate.proved !== true || candidate.verified !== true) {
       throw new Error("artifact directory contains a non-production seller proof");

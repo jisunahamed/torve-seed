@@ -1,2 +1,2 @@
-// Moved to @antseed/buyer-core; re-exported for compatibility.
-export * from '@antseed/buyer-core/base-evm-client';
+// Moved to @torveai/buyer-core; re-exported for compatibility.
+export * from '@torveai/buyer-core/base-evm-client';

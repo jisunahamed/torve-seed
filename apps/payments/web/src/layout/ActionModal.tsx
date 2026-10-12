@@ -1,4 +1,4 @@
-import { Modal } from '@antseed/ui';
+import { Modal } from '@torveai/ui';
 import type { ReactNode } from 'react';
 
 interface ActionModalProps {

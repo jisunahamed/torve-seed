@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { BuyerRequestHandler } from './buyer-request-handler.js';
-import { ConnectionState, toPeerId } from '@antseed/protocol';
+import { ConnectionState, toPeerId } from '@torveai/protocol';
 import type { BuyerPeerView } from './interfaces.js';
-import type { SerializedHttpRequest, SerializedHttpResponse } from '@antseed/protocol/http';
+import type { SerializedHttpRequest, SerializedHttpResponse } from '@torveai/protocol/http';
 
 const VIDEO_MODEL = {
   version: 1 as const,
@@ -106,7 +106,7 @@ describe('BuyerRequestHandler payment negotiation', () => {
   it('does not negotiate for a client-provided spending authorization', async () => {
     const { handler, handle402 } = makeHandler([PAYMENT_REQUIRED]);
 
-    expect((await handler.sendRequest(makePeer(), makeRequest({ 'x-antseed-spending-auth': 'client-signed' }))).statusCode).toBe(402);
+    expect((await handler.sendRequest(makePeer(), makeRequest({ 'x-torve-spending-auth': 'client-signed' }))).statusCode).toBe(402);
     expect(handle402).not.toHaveBeenCalled();
   });
 });

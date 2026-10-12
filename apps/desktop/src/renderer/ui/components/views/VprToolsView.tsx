@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, ArrowDown01Icon, ArrowLeft01Icon, ArrowReloadHorizontalIcon, ArrowRight01Icon, ArrowUpRight01Icon, Copy01Icon, Settings02Icon, SquareLock01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
-import { Modal } from '@antseed/ui';
+import { Modal } from '@torveai/ui';
 import type { InstalledAppEntry, SystemProxyProfileSummary } from '../../../types/bridge';
 import { chooseBestVprRoute, isPeerRoutable } from '../../../modules/routing/select';
 import { routesForSelectedModel } from '../../../modules/catalog/view-models';
@@ -25,9 +25,9 @@ import { recordUserAction } from '../../../modules/telemetry/actions';
 import { normalizeTelemetryAppName } from '../../../../shared/telemetry.js';
 
 
-declare const __ANTSEED_SYSTEM_PROXY_PORT__: number;
+declare const __TORVE_SYSTEM_PROXY_PORT__: number;
 
-const DEFAULT_PORT = __ANTSEED_SYSTEM_PROXY_PORT__;
+const DEFAULT_PORT = __TORVE_SYSTEM_PROXY_PORT__;
 
 const BUILT_IN_APP_INFO: Readonly<Record<string, { description: string; websiteUrl: string }>> = {
   opencode: {
@@ -78,8 +78,8 @@ function appInfo(profile: SystemProxyProfileSummary): { description: string; web
   const domain = profile.domains[0];
   return {
     description: profile.custom
-      ? 'A custom AI application routed through Antseed.'
-      : `${profile.displayName} is configured to use Antseed for AI requests.`,
+      ? 'A custom AI application routed through Torve.'
+      : `${profile.displayName} is configured to use Torve for AI requests.`,
     ...(domain ? { websiteUrl: `https://${domain}` } : {}),
   };
 }
@@ -195,7 +195,7 @@ export function VprToolsView() {
   // fetched on demand — mount, after adding an app, after trusting — never on
   // the 3s poll above.
   const refreshCaTrust = useCallback(async (): Promise<'trusted' | 'stale' | 'absent' | 'unknown'> => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.systemProxyCaTrustState) return 'unknown';
     try {
       const result = await bridge.systemProxyCaTrustState();
@@ -210,11 +210,11 @@ export function VprToolsView() {
 
   useEffect(() => {
     void refreshCaTrust();
-    void window.antseedDesktop?.systemProxyCaInfo?.().then(setCaInfo);
+    void window.torveDesktop?.systemProxyCaInfo?.().then(setCaInfo);
   }, [refreshCaTrust]);
 
   const testGui = useCallback(async () => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.systemProxyTestGui) return;
     try {
       setGuiTest(await bridge.systemProxyTestGui({ port: DEFAULT_PORT }));
@@ -241,10 +241,10 @@ export function VprToolsView() {
   }, [hasConnectedProxyProfile, testGui]);
 
   // Every connected app follows the default AI VPN route; the model itself is
-  // resolved live by the buyer (the `antseed` alias), so there are no per-app
+  // resolved live by the buyer (the `torve` alias), so there are no per-app
   // model overrides here anymore.
   const startProfiles = useCallback(async (names: string[]): Promise<boolean> => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.systemProxyStart || !defaultPeerId) return false;
     setBusy(names.join(','));
     setMessage(null);
@@ -271,7 +271,7 @@ export function VprToolsView() {
   }, [activeProfileNames.length, defaultModel, defaultPeerId, peerOptions, profiles, proxyState?.running]);
 
   const disconnect = useCallback(async (appName?: string) => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     recordUserAction('app_disconnect', 'apps', appName !== undefined ? normalizeTelemetryAppName(appName) : undefined);
     setBusy('stop');
     const result = await bridge?.systemProxyStop?.();
@@ -284,12 +284,12 @@ export function VprToolsView() {
   }, [profiles]);
 
   const openUrl = useCallback(async (url: string) => {
-    const result = await window.antseedDesktop?.openExternalUrl?.(url);
+    const result = await window.torveDesktop?.openExternalUrl?.(url);
     if (result && !result.ok) setMessage(result.error ?? 'Could not open tool');
   }, []);
 
   const openTool = useCallback(async (toolName: string) => {
-    const result = await window.antseedDesktop?.openTool?.(toolName);
+    const result = await window.torveDesktop?.openTool?.(toolName);
     if (result && !result.ok) setMessage(result.error ?? 'Could not open tool');
   }, []);
 
@@ -330,7 +330,7 @@ export function VprToolsView() {
   }, [activeProfileNames, disconnect, startProfiles]);
 
   const restartApp = useCallback(async (profileName: string, label: string) => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.systemProxyRestartApp) return;
     setActionBusy(profileName);
     setMessage(null);
@@ -346,7 +346,7 @@ export function VprToolsView() {
   }, [refresh]);
 
   const trustCa = useCallback(async () => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.systemProxyInstallCa) return;
     setTrustBusy(true);
     setMessage(null);
@@ -371,7 +371,7 @@ export function VprToolsView() {
   }, [refreshCaTrust, testGui]);
 
   const revealCa = useCallback(async () => {
-    const result = await window.antseedDesktop?.systemProxyRevealCa?.();
+    const result = await window.torveDesktop?.systemProxyRevealCa?.();
     if (result && !result.ok) setMessage(result.error ?? 'Could not reveal the certificate');
   }, []);
 
@@ -427,7 +427,7 @@ export function VprToolsView() {
   // runtime only reads profiles on connect, so edits never apply mid-session;
   // reconnecting stays on the apps list row.
   const saveSettings = useCallback(async () => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!settingsFor || !bridge) return;
     setSettingsSaving(true);
     setMessage(null);
@@ -475,7 +475,7 @@ export function VprToolsView() {
   }, []);
 
   const addCustomApp = useCallback(async (force = false) => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.systemProxyAddCustomApp) return;
     setAddBusy(true);
     setAddError(null);
@@ -513,7 +513,7 @@ export function VprToolsView() {
   }, [advanceAddStep, refreshCaTrust, trustCa]);
 
   const removeCustomApp = useCallback(async (profileName: string, connected: boolean) => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.systemProxyRemoveCustomApp) return;
     setActionBusy(profileName);
     setMessage(null);
@@ -704,7 +704,7 @@ export function VprToolsView() {
                   <>
                     <p className={styles.caHint}>
                       {caTrust === 'stale'
-                        ? 'An older Antseed certificate is still trusted on this device — trust the current one to replace it, otherwise intercepted apps fail with an SSL certificate error.'
+                        ? 'An older Torve certificate is still trusted on this device — trust the current one to replace it, otherwise intercepted apps fail with an SSL certificate error.'
                         : 'Apps whose HTTPS traffic is intercepted trust a certificate generated locally on this device. It never leaves your machine — inspect it any time.'}
                     </p>
                     <button type="button" className={styles.caPath} onClick={() => { void copyCaPath(); }} title={caInfo.path}>
@@ -777,7 +777,7 @@ export function VprToolsView() {
           </div>
           <p className={styles.settingHint}>
             Connecting an app routes its AI requests through AI VPN. The app works exactly
-            as usual — its model calls are served by the Antseed network and paid from
+            as usual — its model calls are served by the Torve network and paid from
             your balance instead of a subscription or API key. Click an app&apos;s name
             any time to open it.
           </p>
@@ -889,7 +889,7 @@ export function VprToolsView() {
                     <p className={styles.settingHint}>
                       {connected
                         ? `${settingsProfile.displayName}'s AI requests currently route through AI VPN. Disconnecting restores its direct connection.${settingsDirty ? ' Saving these changes disconnects it first — reconnect from the apps list.' : ''}`
-                        : `Connect from the apps list to route ${settingsProfile.displayName}'s AI requests through AI VPN — served by the Antseed network and paid from your balance.`}
+                        : `Connect from the apps list to route ${settingsProfile.displayName}'s AI requests through AI VPN — served by the Torve network and paid from your balance.`}
                     </p>
                   </section>
 
@@ -1074,7 +1074,7 @@ export function VprToolsView() {
                 </div>
                 <p className={styles.settingHint}>
                   AI requests the app sends to this URL are redirected to AI VPN on this
-                  device (localhost) and served by the Antseed network instead.
+                  device (localhost) and served by the Torve network instead.
                 </p>
                 <input
                   type="text"
@@ -1139,8 +1139,8 @@ export function VprToolsView() {
                 </div>
                 <p className={styles.settingHint}>
                   {caTrust === 'stale'
-                    ? 'An older Antseed certificate is still trusted on this device — trust the current one to replace it, otherwise the app fails with an SSL certificate error.'
-                    : 'Custom apps connect over HTTPS intercepted on this device, which needs the certificate generated locally by Antseed to be trusted. It never leaves your machine.'}
+                    ? 'An older Torve certificate is still trusted on this device — trust the current one to replace it, otherwise the app fails with an SSL certificate error.'
+                    : 'Custom apps connect over HTTPS intercepted on this device, which needs the certificate generated locally by Torve to be trusted. It never leaves your machine.'}
                 </p>
                 {caInfo?.path ? (
                   <button type="button" className={styles.caPath} onClick={() => { void copyCaPath(); }} title={caInfo.path}>
@@ -1178,7 +1178,7 @@ export function VprToolsView() {
                   </div>
                   <p className={styles.settingHint}>
                     Connecting routes {addedLabel}&apos;s AI requests through AI VPN — served by
-                    the Antseed network and paid from your balance. The app opens after
+                    the Torve network and paid from your balance. The app opens after
                     connecting; start a new session there so it picks up the routing.
                   </p>
                   {addedProfile ? (

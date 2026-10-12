@@ -3,10 +3,10 @@ import type { PeerInfo } from '../types/peer.js';
 /**
  * Local wash-trading / sybil heuristic, display-only.
  *
- * Flags peers whose lifetime `AntseedChannels` stats look like self-dealing
+ * Flags peers whose lifetime `TorveChannels` stats look like self-dealing
  * (many tiny channels, exclusive custom services burned through quickly,
  * very young accounts with high channel counts). The authoritative signal is
- * `AntseedWashTradingRegistry`, which feeds the trust score; this heuristic
+ * `TorveWashTradingRegistry`, which feeds the trust score; this heuristic
  * only surfaces an early warning in the CLI and desktop.
  */
 

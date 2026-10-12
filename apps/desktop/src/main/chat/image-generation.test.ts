@@ -18,8 +18,8 @@ test('generateChatImage uses model-only routing and persists the peer selected b
       status: 200,
       headers: {
         'content-type': 'application/json',
-        'x-antseed-peer-id': 'routed-peer',
-        'x-antseed-service': 'image-model-v2',
+        'x-torve-peer-id': 'routed-peer',
+        'x-torve-service': 'image-model-v2',
       },
     });
   }) as typeof fetch;
@@ -40,7 +40,7 @@ test('generateChatImage uses model-only routing and persists the peer selected b
           user: { role: 'user', content: prompt, timestamp: 10 },
           assistant: {
             role: 'assistant', content: [{ type: 'text', text: marker }], api: 'openai-completions',
-            provider: 'antseed', model: 'image-model', usage: {
+            provider: 'torve', model: 'image-model', usage: {
               input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
               cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
             }, stopReason: 'stop', timestamp: 11,
@@ -61,7 +61,7 @@ test('generateChatImage uses model-only routing and persists the peer selected b
     assert.deepEqual(calls[0]?.body, {
       model: 'image-model', prompt: 'A tiny ant astronaut', n: 1, response_format: 'b64_json', moderation: 'low',
     });
-    assert.equal(calls[0]?.headers.get('x-antseed-required-parameters'), 'moderation');
+    assert.equal(calls[0]?.headers.get('x-torve-required-parameters'), 'moderation');
     assert.equal(persistedPrompt, 'A tiny ant astronaut');
     assert.equal(persistedPeerId, 'routed-peer');
     assert.equal(persistedService, 'image-model-v2');
@@ -94,7 +94,7 @@ test('generateChatImage preserves an explicitly pinned image peer', async () => 
         user: { role: 'user', content: prompt, timestamp: 1 },
         assistant: {
           role: 'assistant', content: [{ type: 'text', text: marker }], api: 'openai-completions',
-          provider: 'antseed', model: 'image-model', usage: {
+          provider: 'torve', model: 'image-model', usage: {
             input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
           }, stopReason: 'stop', timestamp: 2,
@@ -139,7 +139,7 @@ test('generateChatImage edits a prior generated image with multipart routing', a
         user: { role: 'user', content: prompt, timestamp: 1 },
         assistant: {
           role: 'assistant', content: [{ type: 'text', text: marker }], api: 'openai-completions',
-          provider: 'antseed', model: 'image-model', usage: {
+          provider: 'torve', model: 'image-model', usage: {
             input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
           }, stopReason: 'stop', timestamp: 2,
@@ -165,9 +165,9 @@ test('generateChatImage edits a prior generated image with multipart routing', a
 
     assert.equal(result.ok, true, result.error);
     assert.equal(requestUrl, 'http://127.0.0.1:8377/v1/images/edits');
-    assert.equal(requestHeaders.get('authorization'), 'Bearer antseed-desktop');
-    assert.equal(requestHeaders.get('x-antseed-pin-peer'), 'image-peer');
-    assert.equal(requestHeaders.get('x-antseed-required-parameters'), 'moderation');
+    assert.equal(requestHeaders.get('authorization'), 'Bearer torve-desktop');
+    assert.equal(requestHeaders.get('x-torve-pin-peer'), 'image-peer');
+    assert.equal(requestHeaders.get('x-torve-required-parameters'), 'moderation');
     assert.equal(requestHeaders.has('content-type'), false);
     assert.equal(loadedAttachmentId, 'source-image');
     assert.ok(requestBody instanceof FormData);
@@ -227,7 +227,7 @@ test('generateChatImage downloads and validates an HTTPS image response', async 
         user: { role: 'user', content: prompt, timestamp: 1 },
         assistant: {
           role: 'assistant', content: [{ type: 'text', text: marker }], api: 'openai-completions',
-          provider: 'antseed', model: 'image-model', usage: {
+          provider: 'torve', model: 'image-model', usage: {
             input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
           }, stopReason: 'stop', timestamp: 2,
@@ -319,7 +319,7 @@ test('persisted generated-image assistant markers project back to image attachme
       text: '<generated-image id="attachment-1" mime="image/png" name="generated.png">',
     }],
     api: 'openai-completions',
-    provider: 'antseed',
+    provider: 'torve',
     model: 'image-model',
     usage: {
       input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,

@@ -1,8 +1,8 @@
 import type { VprPeerListing, VprRoutingPreferences, VprRouteSelection } from '../../core/state';
-import type { ModelRoutingPreferences } from '@antseed/node/model-routing';
+import type { ModelRoutingPreferences } from '@torveai/node/model-routing';
 
-export const VPR_PREFERENCES_STORAGE_KEY = 'antseed.desktop.vpr.preferences';
-export const VPR_ROUTE_SELECTION_STORAGE_KEY = 'antseed.desktop.vpr.routeSelection';
+export const VPR_PREFERENCES_STORAGE_KEY = 'torve.desktop.vpr.preferences';
+export const VPR_ROUTE_SELECTION_STORAGE_KEY = 'torve.desktop.vpr.routeSelection';
 const VPR_PREFERENCES_VERSION = 2;
 const ROUTING_PEER_ID_PATTERN = /^(?:0x)?[0-9a-f]{40}$/i;
 

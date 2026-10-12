@@ -1,4 +1,4 @@
-import { Button, Modal } from '@antseed/ui';
+import { Button, Modal } from '@torveai/ui';
 import styles from './SwitchServiceDialog.module.scss';
 
 type LowReputationDialogProps = {
@@ -27,7 +27,7 @@ export function LowReputationDialog({
       <p className={styles.body}>
         <strong>{peerLabel || 'This peer'}</strong> has a lower on-chain activity score
         {scoreLabel ? <> of <strong>{scoreLabel}</strong></> : null}. Newer or lower-volume
-        peers can still be useful, but they have less settled-volume history on Antseed.
+        peers can still be useful, but they have less settled-volume history on Torve.
       </p>
       <p className={styles.body}>
         Continue only if you&apos;re comfortable trying this peer.

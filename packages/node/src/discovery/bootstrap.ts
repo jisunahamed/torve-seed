@@ -5,8 +5,8 @@ export interface BootstrapNode {
 }
 
 export const OFFICIAL_BOOTSTRAP_NODES: BootstrapNode[] = [
-  { host: "dht1.antseed.com", port: 6881, label: "AntSeed-1" },
-  { host: "dht2.antseed.com", port: 6881, label: "AntSeed-2" },
+  { host: "dht1.torveai.com", port: 6881, label: "Torve-1" },
+  { host: "dht2.torveai.com", port: 6881, label: "Torve-2" },
 ];
 
 export function parseBootstrapList(entries: string[]): BootstrapNode[] {

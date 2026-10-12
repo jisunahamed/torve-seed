@@ -9,7 +9,7 @@
 
 /**
  * Default retail-prices models API URL for the measured-savings baseline.
- * Overridden by ANTSEED_COMPARABLE_PRICES_URL at runtime (an empty value
+ * Overridden by TORVE_COMPARABLE_PRICES_URL at runtime (an empty value
  * disables the baseline entirely).
  */
 export const BAKED_COMPARABLE_PRICES_URL: string | null = null;

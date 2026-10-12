@@ -15,14 +15,14 @@ describe('plugin-config-manager', () => {
   let configPath: string
 
   beforeEach(async () => {
-    tmpDir = await mkdtemp(join(tmpdir(), 'antseed-test-'))
+    tmpDir = await mkdtemp(join(tmpdir(), 'torve-test-'))
     configPath = join(tmpDir, 'config.json')
   })
 
   it('should add and retrieve an instance', async () => {
     await addInstance(configPath, {
       id: 'test-provider',
-      package: '@antseed/provider-test',
+      package: '@torveai/provider-test',
       type: 'provider',
       config: { API_KEY: 'sk-secret-123', BASE_URL: 'https://api.test.com' },
     }, schema)
@@ -37,7 +37,7 @@ describe('plugin-config-manager', () => {
   it('should encrypt secrets in the file', async () => {
     await addInstance(configPath, {
       id: 'test',
-      package: '@antseed/provider-test',
+      package: '@torveai/provider-test',
       type: 'provider',
       config: { API_KEY: 'sk-secret', BASE_URL: 'https://api.test.com' },
     }, schema)
@@ -54,7 +54,7 @@ describe('plugin-config-manager', () => {
   it('should remove an instance', async () => {
     await addInstance(configPath, {
       id: 'to-remove',
-      package: '@antseed/provider-test',
+      package: '@torveai/provider-test',
       type: 'provider',
       config: {},
     })

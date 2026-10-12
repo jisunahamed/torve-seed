@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { shallowEqual, useUiSelector } from './useUiSelector';
 
-const HAS_EVER_FUNDED_KEY = 'antseed.desktop.vpr.hasEverFunded';
+const HAS_EVER_FUNDED_KEY = 'torve.desktop.vpr.hasEverFunded';
 
 function loadEverFunded(): boolean {
   try {

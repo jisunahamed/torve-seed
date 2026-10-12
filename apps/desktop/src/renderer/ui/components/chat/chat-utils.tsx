@@ -108,7 +108,7 @@ function isSafeHref(rawHref: string): boolean {
   const trimmed = rawHref.trim();
   if (!trimmed) return false;
   try {
-    const parsed = new URL(trimmed, 'https://antseed.invalid');
+    const parsed = new URL(trimmed, 'https://torve.invalid');
     const protocol = parsed.protocol.toLowerCase();
     return protocol === 'http:' || protocol === 'https:' || protocol === 'mailto:';
   } catch {

@@ -4,12 +4,12 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import {IAntseedRegistry} from "../interfaces/IAntseedRegistry.sol";
+import {ITorveRegistry} from "../interfaces/ITorveRegistry.sol";
 
 contract ANTSToken is ERC20, Ownable {
     uint256 public constant MAX_SUPPLY = 1_040_000_000e18; // 1.04B ANTS
 
-    IAntseedRegistry public registry;
+    ITorveRegistry public registry;
     bool public transfersEnabled;       // Phase 1: false. One-way toggle to true.
     mapping(address => bool) public transferWhitelist;
 
@@ -22,13 +22,13 @@ contract ANTSToken is ERC20, Ownable {
     event TransfersEnabled();
     event WhitelistUpdated(address indexed account, bool allowed);
 
-    constructor() ERC20("AntSeed", "ANTS") Ownable(msg.sender) {
+    constructor() ERC20("Torve", "ANTS") Ownable(msg.sender) {
         transfersEnabled = false;   // Phase 1: non-transferable
     }
 
     function setRegistry(address _registry) external onlyOwner {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     /// @notice Mint ANTS tokens. Restricted to emissions contract.

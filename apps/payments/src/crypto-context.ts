@@ -1,5 +1,5 @@
-import { loadOrCreateIdentity, identityFromPrivateKeyHex } from '@antseed/node';
-import type { Identity } from '@antseed/node';
+import { loadOrCreateIdentity, identityFromPrivateKeyHex } from '@torveai/node';
+import type { Identity } from '@torveai/node';
 import type { Wallet } from 'ethers';
 
 export interface CryptoContext {
@@ -17,7 +17,7 @@ export interface PaymentCryptoConfig {
 }
 
 /**
- * Load crypto context from either ANTSEED_IDENTITY_HEX env var
+ * Load crypto context from either TORVE_IDENTITY_HEX env var
  * or from the data directory's identity file.
  */
 export async function loadCryptoContext(options: {
@@ -32,7 +32,7 @@ export async function loadCryptoContext(options: {
     identity = identityFromPrivateKeyHex(normalizedHex);
   } else {
     const { homedir } = await import('node:os');
-    const dataDir = options.dataDir || `${homedir()}/.antseed`;
+    const dataDir = options.dataDir || `${homedir()}/.torve`;
     identity = await loadOrCreateIdentity(dataDir);
   }
 

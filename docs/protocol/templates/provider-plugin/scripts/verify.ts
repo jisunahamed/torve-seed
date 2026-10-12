@@ -2,12 +2,12 @@
  * Provider plugin verification script.
  *
  * Checks that:
- *  1. The plugin default export satisfies AntseedProviderPlugin
+ *  1. The plugin default export satisfies TorveProviderPlugin
  *  2. createProvider() returns a valid Provider
  *  3. handleRequest returns a valid SerializedHttpResponse
  *  4. getCapacity returns the correct shape
  */
-import type { AntseedProviderPlugin } from '@antseed/node';
+import type { TorveProviderPlugin } from '@torveai/node';
 import plugin from '../src/index.js';
 
 let passed = 0;
@@ -27,8 +27,8 @@ async function main(): Promise<void> {
   console.log('Verifying provider plugin...\n');
 
   // --- 1. Plugin shape ---
-  console.log('1. Plugin shape (AntseedProviderPlugin)');
-  const p = plugin as AntseedProviderPlugin;
+  console.log('1. Plugin shape (TorveProviderPlugin)');
+  const p = plugin as TorveProviderPlugin;
   assert(p.type === 'provider', 'plugin.type is "provider"');
   assert(typeof p.name === 'string' && p.name.length > 0, 'plugin.name is a non-empty string');
   assert(typeof p.displayName === 'string', 'plugin.displayName is a string');

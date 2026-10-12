@@ -29,7 +29,7 @@ import {useMarketplaceShowcase} from '../lib/useMarketplacePrices';
  * never drift.
  */
 
-export const LIVE_PRICES_URL = 'https://antseedstats.com/network';
+export const LIVE_PRICES_URL = 'https://torvestats.com/network';
 
 type IconSize = (props: {size?: number}) => ReactNode;
 type IconCombine = (props: {size?: number; textMultiple?: number}) => ReactNode;

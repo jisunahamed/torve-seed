@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import type { AntseedVerifierPlugin, VerifyResult } from '@antseed/node';
-import { TEE_REQUIRED_CLAIMS } from '@antseed/node/tee-status';
+import type { TorveVerifierPlugin, VerifyResult } from '@torveai/node';
+import { TEE_REQUIRED_CLAIMS } from '@torveai/node/tee-status';
 import { runVerifier } from './verifier.js';
 
 const claims = TEE_REQUIRED_CLAIMS.map((claim) => ({ claim, ok: true }));
-const policy = { require: true, prefer: ['antseed-verifier'] };
-const caps = ['verifier.antseed-verifier'];
-function loader(result: VerifyResult, name = 'antseed-verifier') {
-  return async (): Promise<AntseedVerifierPlugin> => ({ name, type: 'verifier', version: '0.1.0', displayName: 'Test', description: 'Test', verify: () => result });
+const policy = { require: true, prefer: ['torve-verifier'] };
+const caps = ['verifier.torve-verifier'];
+function loader(result: VerifyResult, name = 'torve-verifier') {
+  return async (): Promise<TorveVerifierPlugin> => ({ name, type: 'verifier', version: '0.1.0', displayName: 'Test', description: 'Test', verify: () => result });
 }
 const reach = () => async () => ({ statusCode: 200, headers: {}, body: new Uint8Array() });
 

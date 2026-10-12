@@ -5,12 +5,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {IAntseedRegistry} from "../interfaces/IAntseedRegistry.sol";
-import {IAntseedDeposits} from "../interfaces/IAntseedDeposits.sol";
+import {ITorveRegistry} from "../interfaces/ITorveRegistry.sol";
+import {ITorveDeposits} from "../interfaces/ITorveDeposits.sol";
 import {IANTSToken} from "../interfaces/IANTSToken.sol";
 
 /**
- * @title AntseedEmissions
+ * @title TorveEmissions
  * @notice Weekly epoch-based ANTS token emissions.
  *
  *         Points earned in epoch N only earn from epoch N's budget.
@@ -23,9 +23,9 @@ import {IANTSToken} from "../interfaces/IANTSToken.sol";
  *         No explicit epoch advancement — everything is a pure function of time.
  *         Empty epoch budgets go to reserve (no rollover).
  */
-contract AntseedEmissions is Ownable, Pausable, ReentrancyGuard {
+contract TorveEmissions is Ownable, Pausable, ReentrancyGuard {
     // ─── Configuration ───
-    IAntseedRegistry public registry;
+    ITorveRegistry public registry;
 
     uint256 public immutable EPOCH_DURATION;
     uint256 public immutable HALVING_INTERVAL;
@@ -97,7 +97,7 @@ contract AntseedEmissions is Ownable, Pausable, ReentrancyGuard {
         if (_initialEmission == 0) revert InvalidValue();
         if (_epochDuration == 0) revert InvalidValue();
 
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
         INITIAL_EMISSION = _initialEmission;
         EPOCH_DURATION = _epochDuration;
         HALVING_INTERVAL = 104;
@@ -206,7 +206,7 @@ contract AntseedEmissions is Ownable, Pausable, ReentrancyGuard {
      *         Buyer address never receives tokens directly.
      */
     function claimBuyerEmissions(address buyer, uint256[] calldata epochs) external nonReentrant whenNotPaused {
-        if (IAntseedDeposits(registry.deposits()).getOperator(buyer) != msg.sender) revert NotAuthorized();
+        if (ITorveDeposits(registry.deposits()).getOperator(buyer) != msg.sender) revert NotAuthorized();
 
         uint256 _currentEpoch = currentEpoch();
         uint256 totalReward = 0;
@@ -309,7 +309,7 @@ contract AntseedEmissions is Ownable, Pausable, ReentrancyGuard {
 
     function setRegistry(address _registry) external onlyOwner {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     function setSharePercentages(uint256 sellerPct, uint256 buyerPct, uint256 reservePct, uint256 teamPct) external onlyOwner {

@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 
-const KEY_PREFIX = 'antseed_'
+const KEY_PREFIX = 'torve_'
 
 export interface GeneratedApiKey {
   /** Shown once at creation; only its hash is stored. */

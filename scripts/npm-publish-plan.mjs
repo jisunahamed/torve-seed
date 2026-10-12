@@ -12,8 +12,8 @@
  *      EXACT versions at pack time. If a package is being published but a
  *      public dependent that pins it is not, npm users of the dependent
  *      keep resolving the old version and the fix silently never ships
- *      (e.g. a @antseed/node bump requires republishing @antseed/payments
- *      and @antseed/cli; peer-range dependents like provider-core do not
+ *      (e.g. a @torveai/node bump requires republishing @torveai/payments
+ *      and @torveai/cli; peer-range dependents like provider-core do not
  *      need a rebump).
  *   2. Local-behind-registry — a local version older than the published
  *      one means version bumps from a previous release were never

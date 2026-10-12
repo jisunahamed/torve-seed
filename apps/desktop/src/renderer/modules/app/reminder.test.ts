@@ -11,10 +11,10 @@ import {
   mergeCounters,
 } from './reminder';
 
-const INSTALL_DATE_KEY = 'antseed.desktop.reminder.installDate';
-const INSTALLED_AT_KEY = 'antseed.desktop.reminder.installedAt';
-const STATE_KEY = 'antseed.desktop.reminder.state';
-const COUNTERS_KEY = 'antseed.desktop.reminder.counters';
+const INSTALL_DATE_KEY = 'torve.desktop.reminder.installDate';
+const INSTALLED_AT_KEY = 'torve.desktop.reminder.installedAt';
+const STATE_KEY = 'torve.desktop.reminder.state';
+const COUNTERS_KEY = 'torve.desktop.reminder.counters';
 
 class MemoryStorage {
   readonly values = new Map<string, string>();
@@ -943,7 +943,7 @@ test('fresh installs start at D1 while existing profiles are grandfathered to D2
   assert.equal(freshState.reminderState, 'armed_d1');
 
   const existingStorage = new MemoryStorage();
-  existingStorage.setItem('antseed.desktop.vpr.hasChats', '1');
+  existingStorage.setItem('torve.desktop.vpr.hasChats', '1');
   const existingState = createInitialUiState();
   initReminderModule({
     uiState: existingState,

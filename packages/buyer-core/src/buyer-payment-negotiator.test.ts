@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { BuyerPaymentNegotiator } from './buyer-payment-negotiator.js';
 import type { BuyerConnection, BuyerPeerView } from './interfaces.js';
-import { ConnectionState, toPeerId } from '@antseed/protocol';
-import type { OneOffChannelPlan } from '@antseed/protocol/messages';
+import { ConnectionState, toPeerId } from '@torveai/protocol';
+import type { OneOffChannelPlan } from '@torveai/protocol/messages';
 
 describe('BuyerPaymentNegotiator', () => {
   it('decodes a browser-compatible external spending auth header', async () => {

@@ -3,7 +3,7 @@ import { usePageData } from '../data';
 import { poolDetailOptions } from '../pool-data';
 import { api } from '../api';
 import { Button, Card } from './ui';
-import { Modal } from '@antseed/ui';
+import { Modal } from '@torveai/ui';
 import { useMemo, useState, type ReactNode } from 'react';
 import { PoolActivity, SellerModels } from './PoolActivity';
 import type { EpochVolume, PoolConfigView, PoolEpochPoint, PoolView, PoolsView, RewardsView } from '../../../src/api-types';

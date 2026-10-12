@@ -1,4 +1,4 @@
-import { advertisesTeeSupport } from '@antseed/node/verifier-capabilities';
+import { advertisesTeeSupport } from '@torveai/node/verifier-capabilities';
 import type { DiscoverRow, VprModelCatalogEntry, VprRoutingPreferences } from '../../core/state';
 import { isRouteEligibleForAutoSelection } from '../routing/select';
 import { modelPinKey } from '../routing/model-pins';

@@ -24,7 +24,7 @@ Accounting applies the registered points policies and tracks buyer/seller
 points and pool-weighted points. A missing pool or filtered record earns no
 new usage points; this does not prevent the underlying USDC settlement.
 
-`AntseedSellerPools` holds locked ANTS positions represented by lANTS NFTs.
+`TorveSellerPools` holds locked ANTS positions represented by lANTS NFTs.
 Staking power activates in the following epoch. Initialize or seed seller pools
 before an epoch boundary to have power in that epoch.
 Legacy USDC staking remains an eligibility fallback until explicitly disabled;
@@ -70,7 +70,7 @@ Check the pool contract's current values before moving or withdrawing stake.
 
 ## Starter positions and seller proxies
 
-Fund `AntseedPositionInit` with ANTS separately. Before global transfers are
+Fund `TorvePositionInit` with ANTS separately. Before global transfers are
 enabled, the funding wallet must be a whitelisted sender. Fund conservatively:
 the faucet has no owner or sweep function, so unused funds cannot be recovered.
 
@@ -94,8 +94,8 @@ that limit, it reverts with `InitExpired`. Claiming later does not extend the
 lock's end epoch. The faucet must also hold at least `initAmount` ANTS for each
 grant.
 
-With the recognized-usage CLI, use `antseed seller legacy claim-starter`
-(or `antseed ants seller claim-starter`) for starter-position initialization. It creates a staking position;
+With the recognized-usage CLI, use `torve seller legacy claim-starter`
+(or `torve ants seller claim-starter`) for starter-position initialization. It creates a staking position;
 it does not withdraw locked legacy rewards. That separate release is described
 in [Locked seller rewards: M002](./legacy-emissions.md#locked-seller-rewards-m002).
 
@@ -234,18 +234,18 @@ was deployed on September 9. All were verified on Basescan.
 
 | Contract | Address |
 |---|---|
-| AntseedWashTradingRegistry | `0xc02a111CB94332Cc31C08E079cbe781880b2121C` |
-| AntseedEmissionsGate | `0xE60a31E6CD2F8455503cA0B3f6545Dd3DDF543BD` |
-| AntseedSellerPools | `0x8Bf4d39AA13F3CB03F87D9500767fBc4D0940652` |
-| AntseedSellerRegistry | `0x99c533BCc6Ca646E543dbA835Fdbb9C2ee02Cb60` |
-| AntseedPositionInit | `0xB68AD13b681319fcEB6b0A640c2fd96C0138CBc8` |
-| AntseedUsageAccounting | `0xAdd2D85316153D7bfaF7921EE9Bf1Bb6c7A1cBc9` |
-| AntseedPointsPolicyRegistry | `0x212D2C1058b84507de248a147aaFeB08fb19E3b6` |
-| AntseedWashTradingPointsPolicy | `0x7a605aaa3c725aa25012dfDeD6B5dddcC561D6e5` |
-| AntseedSellerPoolsRewards | `0x83cc5B9AA0c8cB8683F35462c385a5BAAa755EE5` |
-| AntseedUsageRewards | `0x78330bF154172F1137219Bb559d4F3A270B3201F` |
-| AntseedLegacyEmissionsEscrow | `0x4d0fC3C0BBb5233Af6c4Ce33223e5330c34db9ab` |
-| AntseedLegacyRewardsPoolRegistry | `0xF76590430d9fCe0E871107Aa1f1AE796B0d03a11` |
+| TorveWashTradingRegistry | `0xc02a111CB94332Cc31C08E079cbe781880b2121C` |
+| TorveEmissionsGate | `0xE60a31E6CD2F8455503cA0B3f6545Dd3DDF543BD` |
+| TorveSellerPools | `0x8Bf4d39AA13F3CB03F87D9500767fBc4D0940652` |
+| TorveSellerRegistry | `0x99c533BCc6Ca646E543dbA835Fdbb9C2ee02Cb60` |
+| TorvePositionInit | `0xB68AD13b681319fcEB6b0A640c2fd96C0138CBc8` |
+| TorveUsageAccounting | `0xAdd2D85316153D7bfaF7921EE9Bf1Bb6c7A1cBc9` |
+| TorvePointsPolicyRegistry | `0x212D2C1058b84507de248a147aaFeB08fb19E3b6` |
+| TorveWashTradingPointsPolicy | `0x7a605aaa3c725aa25012dfDeD6B5dddcC561D6e5` |
+| TorveSellerPoolsRewards | `0x83cc5B9AA0c8cB8683F35462c385a5BAAa755EE5` |
+| TorveUsageRewards | `0x78330bF154172F1137219Bb559d4F3A270B3201F` |
+| TorveLegacyEmissionsEscrow | `0x4d0fC3C0BBb5233Af6c4Ce33223e5330c34db9ab` |
+| TorveLegacyRewardsPoolRegistry | `0xF76590430d9fCe0E871107Aa1f1AE796B0d03a11` |
 
 The [payments address list](./payments.md#base-mainnet-contract-addresses)
 contains the settlement contracts. Pre-migration endpoints are listed in the

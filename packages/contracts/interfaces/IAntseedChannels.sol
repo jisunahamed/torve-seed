@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IAntseedChannels {
+interface ITorveChannels {
     struct AgentStats {
         uint64 channelCount;
         uint64 ghostCount;

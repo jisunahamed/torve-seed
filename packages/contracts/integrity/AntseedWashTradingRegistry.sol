@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { IAntseedWashTradingRegistry } from "../interfaces/IAntseedWashTradingRegistry.sol";
+import { ITorveWashTradingRegistry } from "../interfaces/ITorveWashTradingRegistry.sol";
 import { IBlockhashStore } from "../interfaces/IBlockhashStore.sol";
 import { ISP1Verifier, ISP1VerifierWithHash } from "../interfaces/ISP1Verifier.sol";
 
-contract AntseedWashTradingRegistry is IAntseedWashTradingRegistry {
+contract TorveWashTradingRegistry is ITorveWashTradingRegistry {
     uint32 public constant SCHEMA_VERSION = 1;
     uint64 public constant BASE_CHAIN_ID = 8_453;
     uint256 public constant WASH_TRADING_THRESHOLD_BPS = 2_500;

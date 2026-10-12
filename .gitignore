@@ -23,8 +23,8 @@ coverage/
 # TypeScript incremental
 *.tsbuildinfo
 
-# Antseed data
-.antseed/
+# Torve data
+.torve/
 
 # Runtime native module markers
 .runtime-native-meta.json

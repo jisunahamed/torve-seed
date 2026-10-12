@@ -8,7 +8,7 @@ import type { Transaction } from '../src/payments/types.js';
 import type { WalletInfo } from '../src/payments/types.js';
 
 function tmpDir(): string {
-  return path.join(os.tmpdir(), `antseed-bm-test-${randomBytes(8).toString('hex')}`);
+  return path.join(os.tmpdir(), `torve-bm-test-${randomBytes(8).toString('hex')}`);
 }
 
 const dirsToClean: string[] = [];

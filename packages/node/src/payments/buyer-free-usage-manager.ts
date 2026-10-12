@@ -1,2 +1,2 @@
-// Moved to @antseed/buyer-core; re-exported for compatibility.
-export * from '@antseed/buyer-core/buyer-free-usage-manager';
+// Moved to @torveai/buyer-core; re-exported for compatibility.
+export * from '@torveai/buyer-core/buyer-free-usage-manager';

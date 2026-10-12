@@ -43,7 +43,7 @@ describe('issue #1033 reconnect without increasing earned spend', () => {
   let provider: JsonRpcProvider | undefined;
 
   beforeEach(() => {
-    directory = mkdtempSync(join(tmpdir(), 'antseed-1033-'));
+    directory = mkdtempSync(join(tmpdir(), 'torve-1033-'));
     buyerStore = new ChannelStore(join(directory, 'buyer'));
     sellerStore = new ChannelStore(join(directory, 'seller'));
     if (!chain) {

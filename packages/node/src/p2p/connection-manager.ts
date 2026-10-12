@@ -49,7 +49,7 @@ async function loadNodeDatachannel(): Promise<typeof import("node-datachannel")>
 
 const NDC_PROBE_SOURCE =
   "const m = require(process.argv[1]);" +
-  "const pc = new m.PeerConnection('antseed-probe', { iceServers: [] });" +
+  "const pc = new m.PeerConnection('torve-probe', { iceServers: [] });" +
   "const dc = pc.createDataChannel('probe', { ordered: true });" +
   "dc.close(); pc.close();" +
   "process.exit(0);";
@@ -127,7 +127,7 @@ type SignalingMessage =
       mid: string;
     };
 
-const DATA_CHANNEL_LABEL = "antseed-data";
+const DATA_CHANNEL_LABEL = "torve-data";
 const LINE_SEPARATOR = "\n";
 const INITIAL_LINE_TIMEOUT_MS = 10_000;
 const MAX_INITIAL_LINE_BYTES = 8 * 1024;
@@ -1238,7 +1238,7 @@ export class ConnectionManager extends EventEmitter {
       return Array.isArray(server.urls) ? server.urls : [server.urls];
     });
 
-    return new ndc.PeerConnection(`antseed-${remotePeerId.slice(0, 12)}`, {
+    return new ndc.PeerConnection(`torve-${remotePeerId.slice(0, 12)}`, {
       iceServers,
       iceTransportPolicy: this._iceConfig.iceTransportPolicy ?? "all",
     });
@@ -1370,7 +1370,7 @@ export class ConnectionManager extends EventEmitter {
         this._detectedTransportMode = "tcp";
         return this._detectedTransportMode;
       }
-      const probe = new ndc.PeerConnection("antseed-transport-probe", { iceServers: [] });
+      const probe = new ndc.PeerConnection("torve-transport-probe", { iceServers: [] });
       try {
         const channel = probe.createDataChannel("probe", { ordered: true });
         channel.close();

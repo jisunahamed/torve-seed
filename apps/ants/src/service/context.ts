@@ -20,7 +20,7 @@ import {
   UsageRewardsClient,
   WashTradingRegistryClient,
   resolveLegacyContractAddresses,
-} from '@antseed/node/payments';
+} from '@torveai/node/payments';
 import type { ProtocolPhase } from '../api-types.js';
 
 /** Resolved chain configuration (the CLI's `requireCryptoConfig` output or a `resolveChainConfig` result). */
@@ -89,7 +89,7 @@ function sameAddress(a?: string | null, b?: string | null): boolean {
 
 export class MissingContractError extends Error {
   constructor(name: string, chainId: string) {
-    super(`${name} address is not configured for chain '${chainId}'. Set payments.crypto.${name}Address or upgrade @antseed/cli.`);
+    super(`${name} address is not configured for chain '${chainId}'. Set payments.crypto.${name}Address or upgrade @torveai/cli.`);
     this.name = 'MissingContractError';
   }
 }
@@ -393,7 +393,7 @@ export class AntsContext {
     let lockedRewardsPool: string | null = null;
     const legacy = this.legacyEmissionsAt(legacyEmissions);
     if (legacy) {
-      // V1 AntseedEmissions (base-local, base-sepolia) has no sellerRewardsPool(); a
+      // V1 TorveEmissions (base-local, base-sepolia) has no sellerRewardsPool(); a
       // BAD_DATA revert there must not take every dashboard view down.
       try {
         const pool = await legacy.sellerRewardsPool();

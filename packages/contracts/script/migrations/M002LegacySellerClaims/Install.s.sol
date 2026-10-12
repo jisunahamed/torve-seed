@@ -3,9 +3,9 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
 
-import { AntseedLegacySellerClaimPolicy } from "../../../policies/AntseedLegacySellerClaimPolicy.sol";
+import { TorveLegacySellerClaimPolicy } from "../../../policies/TorveLegacySellerClaimPolicy.sol";
 
-interface IAntseedRegistryView {
+interface ITorveRegistryView {
     function emissions() external view returns (address);
     function antsToken() external view returns (address);
 }
@@ -40,7 +40,7 @@ interface IEmissionsGateView {
 
 /**
  * @title M002InstallLegacySellerClaims
- * @notice Unfreezes the deployed AntseedSellerRewardsPool so legacy sellers
+ * @notice Unfreezes the deployed TorveSellerRewardsPool so legacy sellers
  *         can claim the released share of their locked ANTS.
  *
  *         Two things block `pool.claim()` today:
@@ -54,10 +54,10 @@ interface IEmissionsGateView {
  *           - TOKEN OWNER (`DEPLOYER`): `ANTSToken.setTransferWhitelist(pool, true)`
  *             unless transfers are already enabled or the pool is whitelisted.
  *           - POOL OWNER (`SELLER_REWARDS_POOL_OWNER`): deploys
- *             AntseedLegacySellerClaimPolicy and installs it on the pool.
+ *             TorveLegacySellerClaimPolicy and installs it on the pool.
  *
  *         Run only after M001 has activated (`registry.emissions()` is
- *         AntseedUsageAccounting). From that point on the last epoch that
+ *         TorveUsageAccounting). From that point on the last epoch that
  *         legacy V2 could lock into the pool is fixed at
  *         `gate.effectiveEpoch() - 1`, which the policy needs as an immutable
  *         scan bound.
@@ -76,14 +76,14 @@ interface IEmissionsGateView {
  * Required env:
  *   DEPLOYER                     ANTSToken owner address (whitelists the pool).
  *   SELLER_REWARDS_POOL_OWNER    Owner address of the deployed
- *                                AntseedSellerRewardsPool.
- *   ANTSEED_REGISTRY             Legacy AntseedRegistry address.
+ *                                TorveSellerRewardsPool.
+ *   TORVE_REGISTRY             Legacy TorveRegistry address.
  *   EXPECTED_ANTS_TOKEN          Deployed ANTSToken.
- *   LEGACY_EMISSIONS_V2          Deployed legacy AntseedEmissionsV2 (the
+ *   LEGACY_EMISSIONS_V2          Deployed legacy TorveEmissionsV2 (the
  *                                contract that locked rewards into the pool).
- *   USAGE_ACCOUNTING             AntseedUsageAccounting from M001 (reads the
+ *   USAGE_ACCOUNTING             TorveUsageAccounting from M001 (reads the
  *                                gate's effective epoch).
- *   WASH_TRADING_REGISTRY        Deployed AntseedWashTradingRegistry. The CLI
+ *   WASH_TRADING_REGISTRY        Deployed TorveWashTradingRegistry. The CLI
  *                                defaults it to the activated M001 ledger's
  *                                washTradingRegistry address.
  *
@@ -97,7 +97,7 @@ interface IEmissionsGateView {
  *   source .env
  *   forge script script/migrations/M002LegacySellerClaims/Install.s.sol:M002InstallLegacySellerClaims \
  *     --rpc-url $BASE_MAINNET_RPC_URL \
- *     --account antseed-owner --account pool-owner \
+ *     --account torve-owner --account pool-owner \
  *     --broadcast \
  *     --via-ir
  */
@@ -121,7 +121,7 @@ contract M002InstallLegacySellerClaims is Script {
             Config({
                 tokenOwner: vm.envAddress("DEPLOYER"),
                 poolOwner: vm.envAddress("SELLER_REWARDS_POOL_OWNER"),
-                registry: vm.envAddress("ANTSEED_REGISTRY"),
+                registry: vm.envAddress("TORVE_REGISTRY"),
                 antsToken: vm.envAddress("EXPECTED_ANTS_TOKEN"),
                 legacyEmissionsV2: vm.envAddress("LEGACY_EMISSIONS_V2"),
                 usageAccounting: vm.envAddress("USAGE_ACCOUNTING"),
@@ -133,7 +133,7 @@ contract M002InstallLegacySellerClaims is Script {
     }
 
     function runWith(Config memory cfg) public returns (address) {
-        IAntseedRegistryView registry = IAntseedRegistryView(cfg.registry);
+        ITorveRegistryView registry = ITorveRegistryView(cfg.registry);
         IANTSTokenWhitelist token = IANTSTokenWhitelist(cfg.antsToken);
         ILegacyEmissionsV2View v2 = ILegacyEmissionsV2View(cfg.legacyEmissionsV2);
 
@@ -165,7 +165,7 @@ contract M002InstallLegacySellerClaims is Script {
         bool needsWhitelist = !token.transfersEnabled() && !token.transferWhitelist(address(pool));
         address existingPolicy = pool.sellerClaimPolicy();
 
-        console.log("=== AntSeed Legacy Seller Claims (M002) ===");
+        console.log("=== Torve Legacy Seller Claims (M002) ===");
         console.log("SellerRewardsPool:      ", address(pool));
         console.log("Pool total locked:      ", pool.totalLockedRewards());
         console.log("Pool whitelisted:       ", !needsWhitelist);
@@ -196,8 +196,8 @@ contract M002InstallLegacySellerClaims is Script {
         address policyAddress = existingPolicy;
         if (existingPolicy == address(0)) {
             vm.startBroadcast(cfg.poolOwner);
-            AntseedLegacySellerClaimPolicy policy =
-                new AntseedLegacySellerClaimPolicy(address(v2), lastEpoch, cfg.releaseBps, cfg.washTradingRegistry);
+            TorveLegacySellerClaimPolicy policy =
+                new TorveLegacySellerClaimPolicy(address(v2), lastEpoch, cfg.releaseBps, cfg.washTradingRegistry);
             pool.setSellerClaimPolicy(address(policy));
             vm.stopBroadcast();
             policyAddress = address(policy);

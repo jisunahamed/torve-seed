@@ -152,8 +152,8 @@ export function startupReachabilityWarning(value: string | undefined): string | 
   return [
     'WARNING: This seller is not announcing a publicly routable endpoint.',
     assessment.message,
-    'Set one with: antseed config seller set publicAddress "seller.example.com:6882"',
-    'Then run: antseed seller doctor',
-    'Networking guide: https://antseed.com/docs/transport/',
+    'Set one with: torve config seller set publicAddress "seller.example.com:6882"',
+    'Then run: torve seller doctor',
+    'Networking guide: https://torveai.com/docs/transport/',
   ].join('\n');
 }

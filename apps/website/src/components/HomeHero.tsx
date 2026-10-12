@@ -71,7 +71,7 @@ export function CountUp({value, duration = 1100}: {value: string; duration?: num
 
 /* ============================================================
    HERO DOT CANVAS — dot grid that ripples out from the demo and
-   surfaces the Antseed ant, in sync with the live demo timeline.
+   surfaces the Torve ant, in sync with the live demo timeline.
    Ported from the design prototype (Remotion beats at 30 fps).
    ============================================================ */
 const ANT_H = 800;
@@ -457,25 +457,25 @@ function readUseParam(): HeroUse | null {
 }
 
 const CLI_ALL = [
-  'npm install -g @antseed/cli',
-  'antseed buyer start',
+  'npm install -g @torveai/cli',
+  'torve buyer start',
   "curl localhost:8377/v1/chat/completions -H 'content-type: application/json' -d '{\"model\": \"deepseek-v4-flash\", \"messages\": [{\"role\": \"user\", \"content\": \"Hello\"}]}'",
-  'antseed buyer deposit',
+  'torve buyer deposit',
 ].join('\n');
-const CLI_ACTIVITY = ['Proxy listening on localhost:8377', 'Works with any OpenAI-compatible app', 'Antseed routes each request to a provider'];
+const CLI_ACTIVITY = ['Proxy listening on localhost:8377', 'Works with any OpenAI-compatible app', 'Torve routes each request to a provider'];
 type CliTok = {cls: 'c'|'g'|'p'|'b'|'y'|'o'|'w'; text: string};
 const CLI_LINES: CliTok[][] = [
   [{cls:'c',text:'# Install the CLI'}],
-  [{cls:'g',text:'$ '},{cls:'p',text:'npm'},{cls:'b',text:' install'},{cls:'y',text:' -g'},{cls:'o',text:' @antseed/cli'}],
+  [{cls:'g',text:'$ '},{cls:'p',text:'npm'},{cls:'b',text:' install'},{cls:'y',text:' -g'},{cls:'o',text:' @torveai/cli'}],
   [{cls:'c',text:'# Start your local endpoint'}],
-  [{cls:'g',text:'$ '},{cls:'p',text:'antseed'},{cls:'b',text:' buyer start'}],
+  [{cls:'g',text:'$ '},{cls:'p',text:'torve'},{cls:'b',text:' buyer start'}],
   [{cls:'w',text:'→ listening on localhost:8377'}],
   [{cls:'c',text:'# Call it like any OpenAI API'}],
   [{cls:'g',text:'$ '},{cls:'p',text:'curl'},{cls:'b',text:' localhost:8377/v1/chat/completions'},{cls:'w',text:' \\'}],
   [{cls:'y',text:'    -H'},{cls:'o',text:" 'content-type: application/json'"},{cls:'w',text:' \\'}],
   [{cls:'y',text:'    -d'},{cls:'o',text:' \'{"model": "deepseek-v4-flash", "messages": [{"role": "user", "content": "Hello"}]}\''}],
   [{cls:'c',text:'# Fund it for paid models (free ones need nothing)'}],
-  [{cls:'g',text:'$ '},{cls:'p',text:'antseed'},{cls:'b',text:' buyer deposit'}],
+  [{cls:'g',text:'$ '},{cls:'p',text:'torve'},{cls:'b',text:' buyer deposit'}],
 ];
 
 export function HeroCliVisual({active = true}: {active?: boolean}) {
@@ -502,7 +502,7 @@ export function HeroCliVisual({active = true}: {active?: boolean}) {
               <i style={{background: '#F59E0B'}} />
               <i style={{background: '#676663'}} />
             </span>
-            <span className={cli.barTitle}>Antseed CLI</span>
+            <span className={cli.barTitle}>Torve CLI</span>
             <button type="button" className={cli.copy} onClick={all.copy} aria-live="polite">
               {all.copied ? 'Copied' : 'Copy commands'}
             </button>
@@ -530,7 +530,7 @@ export function HeroCliVisual({active = true}: {active?: boolean}) {
 
 export function HeroUseSwitch({use, setUse}: {use: HeroUse; setUse: (value: HeroUse) => void}) {
   return (
-    <div className={styles.useSwitch} role="tablist" aria-label="How do you want to use Antseed?">
+    <div className={styles.useSwitch} role="tablist" aria-label="How do you want to use Torve?">
       {HERO_USES.map((u) => (
         <button
           key={u.id}

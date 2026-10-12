@@ -18,7 +18,7 @@ export type FileBlock = {
   truncated?: boolean;
   /**
    * Stable ID under which the raw bytes live in the attachment store.
-   * When present the renderer can build an `antseed-attachment://` URL
+   * When present the renderer can build an `torve-attachment://` URL
    * and preview the file natively.
    */
   attachmentId?: string;

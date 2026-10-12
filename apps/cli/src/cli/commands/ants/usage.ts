@@ -2,7 +2,7 @@ import type { Command } from 'commander';
 import { parsePositiveInteger } from '../parse-positive-integer.js';
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { usage } from '@antseed/ants';
+import { usage } from '@torveai/ants';
 import { printJson, runRead } from './shared.js';
 
 export const DEFAULT_USAGE_EPOCHS = 8;

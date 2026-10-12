@@ -1,4 +1,4 @@
-import { isNativeVideoProtocol, type NativeVideoProtocol } from '@antseed/api-adapter'
+import { isNativeVideoProtocol, type NativeVideoProtocol } from '@torveai/api-adapter'
 
 const ROUTE_TTL_MS = 30 * 24 * 60 * 60_000
 const MAX_ROUTES = 10_000

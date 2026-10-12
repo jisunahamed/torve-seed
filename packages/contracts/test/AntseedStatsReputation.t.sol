@@ -2,20 +2,20 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import "../payments/AntseedChannels.sol";
-import "../staking/AntseedStaking.sol";
-import "../core/AntseedRegistry.sol";
-import "../payments/AntseedDeposits.sol";
+import "../payments/TorveChannels.sol";
+import "../staking/TorveStaking.sol";
+import "../core/TorveRegistry.sol";
+import "../payments/TorveDeposits.sol";
 import "./mocks/MockERC8004Registry.sol";
 import "./mocks/MockUSDC.sol";
 
-/// @dev Tests for AgentStats tracking within AntseedChannels.
+/// @dev Tests for AgentStats tracking within TorveChannels.
 ///      Uses the Channels contract directly (stats are now inline).
-contract AntseedStatsReputationTest is Test {
-    AntseedChannels public channelsContract;
-    AntseedStaking public staking;
-    AntseedRegistry public antseedRegistry;
-    AntseedDeposits public deposits;
+contract TorveStatsReputationTest is Test {
+    TorveChannels public channelsContract;
+    TorveStaking public staking;
+    TorveRegistry public torveRegistry;
+    TorveDeposits public deposits;
     MockERC8004Registry public identityRegistry;
     MockUSDC public usdc;
 
@@ -31,16 +31,16 @@ contract AntseedStatsReputationTest is Test {
         usdc = new MockUSDC();
         identityRegistry = new MockERC8004Registry();
 
-        antseedRegistry = new AntseedRegistry();
-        deposits = new AntseedDeposits(address(usdc));
-        channelsContract = new AntseedChannels(address(antseedRegistry));
-        staking = new AntseedStaking(address(usdc), address(antseedRegistry));
+        torveRegistry = new TorveRegistry();
+        deposits = new TorveDeposits(address(usdc));
+        channelsContract = new TorveChannels(address(torveRegistry));
+        staking = new TorveStaking(address(usdc), address(torveRegistry));
 
-        antseedRegistry.setChannels(address(channelsContract));
-        antseedRegistry.setDeposits(address(deposits));
-        antseedRegistry.setStaking(address(staking));
-        antseedRegistry.setIdentityRegistry(address(identityRegistry));
-        antseedRegistry.setProtocolReserve(reserve);
+        torveRegistry.setChannels(address(channelsContract));
+        torveRegistry.setDeposits(address(deposits));
+        torveRegistry.setStaking(address(staking));
+        torveRegistry.setIdentityRegistry(address(identityRegistry));
+        torveRegistry.setProtocolReserve(reserve);
 
         // Register seller
         vm.prank(seller);
@@ -57,7 +57,7 @@ contract AntseedStatsReputationTest is Test {
     // ── getAgentStats ──
 
     function test_getAgentStats_empty() public view {
-        AntseedChannels.AgentStats memory s = channelsContract.getAgentStats(999);
+        TorveChannels.AgentStats memory s = channelsContract.getAgentStats(999);
         assertEq(s.channelCount, 0);
         assertEq(s.ghostCount, 0);
         assertEq(s.totalVolumeUsdc, 0);

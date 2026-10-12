@@ -1,6 +1,6 @@
 /* AttachmentViewer.module.scss — fullscreen modal for previewing chat
    attachments. Images render inline; PDFs / HTML are served via the
-   `antseed-attachment://` custom protocol and rendered by Chromium's
+   `torve-attachment://` custom protocol and rendered by Chromium's
    native engines inside an iframe. */
 
 @keyframes av-backdrop-in {

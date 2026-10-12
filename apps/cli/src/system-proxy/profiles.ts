@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
 import type { SystemProxyConfigPatch, SystemProxyForwardRule, SystemProxyProfile, SystemProxyProfileMetadata, SystemProxySource } from './types.js'
 
-const PROFILES_JSON_ENV = 'ANTSEED_SYSTEM_PROXY_PROFILES_JSON'
-const PROFILES_FILE_ENV = 'ANTSEED_SYSTEM_PROXY_PROFILES_FILE'
+const PROFILES_JSON_ENV = 'TORVE_SYSTEM_PROXY_PROFILES_JSON'
+const PROFILES_FILE_ENV = 'TORVE_SYSTEM_PROXY_PROFILES_FILE'
 const APP_ACTIONS = new Set<NonNullable<SystemProxyProfileMetadata['appAction']>>([
   'none',
   'open-url',

@@ -11,8 +11,8 @@
  * directory, which causes electron-builder's asar packer to fail with
  * "must be under <appDir>" errors.
  *
- * Handles both top-level packages (e.g. antseed-dashboard) and scoped
- * packages (e.g. @antseed/node).
+ * Handles both top-level packages (e.g. torve-dashboard) and scoped
+ * packages (e.g. @torveai/node).
  */
 
 import { readdirSync, lstatSync, readlinkSync, realpathSync, rmSync, cpSync, existsSync, mkdirSync, chmodSync, writeFileSync, readFileSync } from 'node:fs';
@@ -29,14 +29,14 @@ const nmDir = path.join(appDir, 'node_modules');
 
 /** Map of workspace package names to their real source directories. */
 const WORKSPACE_PACKAGES = {
-  '@antseed/ants': path.resolve(appDir, '..', 'ants'),
-  '@antseed/antseed-verifier': path.resolve(appDir, '..', '..', 'packages', 'antseed-verifier'),
-  '@antseed/api-adapter': path.resolve(appDir, '..', '..', 'packages', 'api-adapter'),
-  '@antseed/buyer-core': path.resolve(appDir, '..', '..', 'packages', 'buyer-core'),
-  '@antseed/node': path.resolve(appDir, '..', '..', 'packages', 'node'),
-  '@antseed/payments': path.resolve(appDir, '..', 'payments'),
-  '@antseed/protocol': path.resolve(appDir, '..', '..', 'packages', 'protocol'),
-  '@antseed/ui': path.resolve(appDir, '..', '..', 'packages', 'ui'),
+  '@torveai/ants': path.resolve(appDir, '..', 'ants'),
+  '@torveai/torve-verifier': path.resolve(appDir, '..', '..', 'packages', 'torve-verifier'),
+  '@torveai/api-adapter': path.resolve(appDir, '..', '..', 'packages', 'api-adapter'),
+  '@torveai/buyer-core': path.resolve(appDir, '..', '..', 'packages', 'buyer-core'),
+  '@torveai/node': path.resolve(appDir, '..', '..', 'packages', 'node'),
+  '@torveai/payments': path.resolve(appDir, '..', 'payments'),
+  '@torveai/protocol': path.resolve(appDir, '..', '..', 'packages', 'protocol'),
+  '@torveai/ui': path.resolve(appDir, '..', '..', 'packages', 'ui'),
 };
 
 function isWorkspaceSymlink(fullPath) {
@@ -51,7 +51,7 @@ function isWorkspaceSymlink(fullPath) {
 
 function copyWorkspacePackage(linkPath, sourcePath, label) {
   console.log(`[prepare-dist] Copying workspace package: ${label} -> ${sourcePath}`);
-  // force: the link may not pre-exist — @antseed/api-adapter is not a direct
+  // force: the link may not pre-exist — @torveai/api-adapter is not a direct
   // desktop dependency, so a fresh CI install creates no node_modules entry
   // for it; the copy below materializes it for the bundled-runtime walk.
   rmSync(linkPath, { recursive: true, force: true });
@@ -118,7 +118,7 @@ chmodSync(bundleOutput, 0o755);
 // correctly regardless of whether the parent directory has "type":"module".
 writeFileSync(
   path.join(cliDestDir, 'package.json'),
-  JSON.stringify({ name: 'antseed-cli-bundled', version: '1.0.0', type: 'commonjs' }, null, 2),
+  JSON.stringify({ name: 'torve-cli-bundled', version: '1.0.0', type: 'commonjs' }, null, 2),
 );
 
 console.log(`[prepare-dist] Bundled CLI -> ${bundleOutput}`);
@@ -134,11 +134,11 @@ const electronPkg = JSON.parse(
 const electronVersion = electronPkg.version;
 const betterSqlite3Dir = path.resolve(appDir, '..', '..', 'node_modules', 'better-sqlite3');
 
-// Honors ANTSEED_PACK_ARCH so release scripts can pack arm64 + x64 separately
+// Honors TORVE_PACK_ARCH so release scripts can pack arm64 + x64 separately
 // without each DMG inheriting the build host's native binary.
-const targetArch = process.env.ANTSEED_PACK_ARCH || process.arch;
+const targetArch = process.env.TORVE_PACK_ARCH || process.arch;
 if (!['x64', 'arm64'].includes(targetArch)) {
-  throw new Error(`[prepare-dist] Unsupported ANTSEED_PACK_ARCH=${targetArch}`);
+  throw new Error(`[prepare-dist] Unsupported TORVE_PACK_ARCH=${targetArch}`);
 }
 
 const prebuildInstallEntry = createRequire(
@@ -167,7 +167,7 @@ if (process.platform === 'darwin') {
   }
 }
 
-// --- 4. Bundle full transitive runtime deps of @antseed/node ---
+// --- 4. Bundle full transitive runtime deps of @torveai/node ---
 // The desktop app must be repairable from its own bundle even on machines that
 // have no Node/npm available (e.g. corp networks where npm registry SSL is
 // blocked). electron-builder asarUnpack does not transparently fix fs.cp from
@@ -176,11 +176,11 @@ if (process.platform === 'darwin') {
 
 const BUNDLED_RUNTIME_DIR = path.join(appDir, 'bundled-runtime');
 const EXPLICITLY_BUNDLED_PACKAGES = new Set([
-  '@antseed/antseed-verifier',
-  '@antseed/router-local',
-  '@antseed/router-core',
-  '@antseed/node',
-  '@antseed/api-adapter',
+  '@torveai/torve-verifier',
+  '@torveai/router-local',
+  '@torveai/router-core',
+  '@torveai/node',
+  '@torveai/api-adapter',
 ]);
 const NODE_BUILTINS = new Set([
   ...builtinModules,
@@ -297,7 +297,7 @@ function copyDepTree(name, parentSourceDir, parentDestDir, topDestRoot, visited)
   }
 }
 
-const runtimeRoots = ['@antseed/node', '@antseed/antseed-verifier'];
+const runtimeRoots = ['@torveai/node', '@torveai/torve-verifier'];
 const visited = new Set();
 for (const packageName of runtimeRoots) {
   const packageDir = WORKSPACE_PACKAGES[packageName]

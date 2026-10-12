@@ -5,15 +5,15 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {IAntseedDeposits} from "../interfaces/IAntseedDeposits.sol";
+import {ITorveDeposits} from "../interfaces/ITorveDeposits.sol";
 import {IERC3009} from "../interfaces/IERC3009.sol";
 
 /**
- * @title AntseedDepositRelay
- * @notice Gasless USDC sweep from a buyer hot wallet into AntseedDeposits,
+ * @title TorveDepositRelay
+ * @notice Gasless USDC sweep from a buyer hot wallet into TorveDeposits,
  *         paid for in USDC by the buyer and executed by permissionless
  *         relayers. Stateless periphery — holds no funds between transactions
- *         (swappable tier, like AntseedChannels), fully immutable: no owner,
+ *         (swappable tier, like TorveChannels), fully immutable: no owner,
  *         no tunable parameters.
  *
  *         Single-signature design: the buyer's EIP-3009 authorization is
@@ -25,7 +25,7 @@ import {IERC3009} from "../interfaces/IERC3009.sol";
  *           1. Pull `amount` USDC from the buyer via EIP-3009
  *              receiveWithAuthorization (only this contract can redeem the
  *              authorization; the 3009 nonce is replay-safe).
- *           2. Credit `amount - FEE` to the BUYER's AntseedDeposits balance —
+ *           2. Credit `amount - FEE` to the BUYER's TorveDeposits balance —
  *              never a token transfer to the buyer address (iron rule: the
  *              buyer hot wallet never receives funds).
  *           3. Pay `FEE` to msg.sender (the relayer's compensation).
@@ -34,12 +34,12 @@ import {IERC3009} from "../interfaces/IERC3009.sol";
  *         the identical sweep and claim the fee; the buyer outcome is
  *         unchanged.
  */
-contract AntseedDepositRelay is ReentrancyGuard {
+contract TorveDepositRelay is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // ─── State ───────────────────────────────────────────────────────
     IERC20 public immutable usdc;
-    IAntseedDeposits public immutable deposits;
+    ITorveDeposits public immutable deposits;
 
     /// @notice Fixed relayer fee in USDC base units. Immutable — a signed
     ///         authorization can never face different terms than it consented to.
@@ -64,7 +64,7 @@ contract AntseedDepositRelay is ReentrancyGuard {
     constructor(address _usdc, address _deposits, uint256 _fee) {
         if (_usdc == address(0) || _deposits == address(0)) revert InvalidAddress();
         usdc = IERC20(_usdc);
-        deposits = IAntseedDeposits(_deposits);
+        deposits = ITorveDeposits(_deposits);
         FEE = _fee;
     }
 
@@ -73,7 +73,7 @@ contract AntseedDepositRelay is ReentrancyGuard {
     // ═══════════════════════════════════════════════════════════════════
 
     /**
-     * @notice Sweep `amount` USDC from `from` into their AntseedDeposits
+     * @notice Sweep `amount` USDC from `from` into their TorveDeposits
      *         balance, paying the fixed FEE to msg.sender. Anyone can call —
      *         authorization comes from the buyer's EIP-3009 signature, which
      *         is addressed to this contract and thereby consents to FEE.

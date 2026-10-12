@@ -20,7 +20,7 @@ import { availablePort } from './deployments/runtime/anvil.mjs';
 
 const args = process.argv.slice(2);
 if (args.includes('--help')) {
-  console.log('node scripts/ants-sandbox.mjs [--check] [--restricted] [--browser] [--port 3122]\nOptional: BASE_MAINNET_RPC_URL, FORK_BLOCK. Requires pnpm --filter=@antseed/ants run build and built @antseed/node.');
+  console.log('node scripts/ants-sandbox.mjs [--check] [--restricted] [--browser] [--port 3122]\nOptional: BASE_MAINNET_RPC_URL, FORK_BLOCK. Requires pnpm --filter=@torveai/ants run build and built @torveai/node.');
   process.exit(0);
 }
 const check = args.includes('--check');

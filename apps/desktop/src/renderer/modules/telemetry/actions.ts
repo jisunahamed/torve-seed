@@ -39,7 +39,7 @@ export function recordUserAction(
   app?: TelemetryAppName,
 ): void {
   try {
-    void window.antseedDesktop?.telemetryRecordUserAction?.({
+    void window.torveDesktop?.telemetryRecordUserAction?.({
       action,
       surface,
       ...(app !== undefined ? { app } : {}),
@@ -64,7 +64,7 @@ export function recordUserActionCoalesced(
 
 export function recordFirstModelShown(signal: FirstModelShownSignal): void {
   try {
-    void window.antseedDesktop?.telemetryRecordFirstModelShown?.(signal).catch(() => undefined);
+    void window.torveDesktop?.telemetryRecordFirstModelShown?.(signal).catch(() => undefined);
   } catch {
     // Telemetry must never affect rendering.
   }

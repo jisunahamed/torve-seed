@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IAntseedUsageAccounting {
+interface ITorveUsageAccounting {
     struct BuyerUsage {
         uint256 points;
         uint256 weightedPoints;

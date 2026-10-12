@@ -97,7 +97,7 @@ export function SetupAppPreview() {
               </span>
             </div>
             {/* App pills + usage: your tools connect here, and the Saving
-                tile is the point — using Antseed saves money. */}
+                tile is the point — using Torve saves money. */}
             <div className={styles.pillRow}>
               {PREVIEW_APPS.slice(0, 4).map((app) => (
                 <span key={app.brand} className={styles.pill}>
@@ -124,7 +124,7 @@ export function SetupAppPreview() {
           {/* Scene 2 — Chat: the first question, answered. */}
           <div className={`${styles.scene} ${styles.sceneChat}`}>
             <span className={styles.sceneTitle}>Chat</span>
-            <div className={`${styles.bubble} ${styles.bubbleUser}`}>What is Antseed?</div>
+            <div className={`${styles.bubble} ${styles.bubbleUser}`}>What is Torve?</div>
             <div className={`${styles.bubble} ${styles.bubbleTyping}`}><span /><span /><span /></div>
             <div className={`${styles.bubble} ${styles.bubbleAnswer}`}>
               A peer-to-peer network of AI models — each request routes to the best seller, and you only pay for what you use.

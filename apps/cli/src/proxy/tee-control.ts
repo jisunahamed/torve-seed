@@ -2,7 +2,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { chmod, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { teeControlFileName, type TeeSnapshot } from '@antseed/node/tee-status'
+import { teeControlFileName, type TeeSnapshot } from '@torveai/node/tee-status'
 
 export class TeeControl {
   private readonly token = randomBytes(32).toString('hex')
@@ -51,11 +51,11 @@ export class TeeControl {
       reply(403, { error: 'Local verification authorization required' })
       return
     }
-    if (method === 'GET' && path === '/_antseed/verification') {
+    if (method === 'GET' && path === '/_torve/verification') {
       reply(200, snapshot())
       return
     }
-    if (method !== 'POST' || path !== '/_antseed/verification/check') {
+    if (method !== 'POST' || path !== '/_torve/verification/check') {
       reply(404, { error: 'Unknown verification endpoint' })
       return
     }

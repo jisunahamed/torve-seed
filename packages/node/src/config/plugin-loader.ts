@@ -1,6 +1,6 @@
 import type { Provider } from '../interfaces/seller-provider.js'
 import type { Router } from '../interfaces/buyer-router.js'
-import type { AntseedProviderPlugin, AntseedRouterPlugin, AntseedPlugin } from '../interfaces/plugin.js'
+import type { TorveProviderPlugin, TorveRouterPlugin, TorvePlugin } from '../interfaces/plugin.js'
 import { getInstances } from './plugin-config-manager.js'
 
 export interface LoadedProvider {
@@ -18,7 +18,7 @@ export interface LoadedRouter {
 /**
  * Load a plugin's default export from its npm package.
  */
-export async function loadPluginModule(packageName: string, pluginsDir: string): Promise<AntseedPlugin> {
+export async function loadPluginModule(packageName: string, pluginsDir: string): Promise<TorvePlugin> {
   const { join, resolve } = await import('node:path')
   const { pathToFileURL } = await import('node:url')
   const pluginPath = join(pluginsDir, 'node_modules', packageName, 'dist', 'index.js')
@@ -46,7 +46,7 @@ export async function loadPluginModule(packageName: string, pluginsDir: string):
     throw new Error(`Plugin "${packageName}" has invalid type: ${typed.type}`)
   }
 
-  return plugin as AntseedPlugin
+  return plugin as TorvePlugin
 }
 
 function instanceConfigToRecord(config: Record<string, unknown>): Record<string, string> {
@@ -77,11 +77,11 @@ export async function loadAllPlugins(configPath: string, pluginsDir: string): Pr
     const configRecord = instanceConfigToRecord(instance.config)
 
     if (instance.type === 'provider' && plugin.type === 'provider') {
-      const providerPlugin = plugin as AntseedProviderPlugin
+      const providerPlugin = plugin as TorveProviderPlugin
       const provider = await providerPlugin.createProvider(configRecord)
       providers.push({ instanceId: instance.id, provider, pluginName: plugin.name })
     } else if (instance.type === 'router' && plugin.type === 'router') {
-      const routerPlugin = plugin as AntseedRouterPlugin
+      const routerPlugin = plugin as TorveRouterPlugin
       const router = await routerPlugin.createRouter(configRecord)
       routers.push({ instanceId: instance.id, router, pluginName: plugin.name })
     }

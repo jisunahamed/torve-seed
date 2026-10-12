@@ -1,4 +1,4 @@
-import { formatAntsExact, rewards, type AntsChainConfig } from '@antseed/ants/service';
+import { formatAntsExact, rewards, type AntsChainConfig } from '@torveai/ants/service';
 import type { DesktopRewardsSummary } from '../payments/buyer-channels.js';
 import { sharedChainContext } from '../payments/shared-chain.js';
 

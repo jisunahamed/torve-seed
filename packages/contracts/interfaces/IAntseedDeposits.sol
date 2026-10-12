@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IAntseedDeposits {
+interface ITorveDeposits {
     function usdc() external view returns (address);
     function deposit(address buyer, uint256 amount) external;
     function MIN_BUYER_DEPOSIT() external view returns (uint256);

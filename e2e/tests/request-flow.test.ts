@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { AntseedNode } from '@antseed/node';
-import type { SerializedHttpRequest, PeerInfo } from '@antseed/node';
+import { TorveNode } from '@torveai/node';
+import type { SerializedHttpRequest, PeerInfo } from '@torveai/node';
 import { createLocalBootstrap } from './helpers/local-bootstrap.js';
 import { MockAnthropicProvider } from './helpers/mock-provider.js';
 import { tmpdir } from 'node:os';
@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 async function waitForPeers(
-  node: AntseedNode,
+  node: TorveNode,
   expectedCount: number,
   timeoutMs = 15_000,
   intervalMs = 500,
@@ -25,8 +25,8 @@ async function waitForPeers(
 
 describe('Request flow: buyer sends request to seller via P2P', () => {
   let bootstrap: Awaited<ReturnType<typeof createLocalBootstrap>> | null = null;
-  let sellerNode: AntseedNode | null = null;
-  let buyerNode: AntseedNode | null = null;
+  let sellerNode: TorveNode | null = null;
+  let buyerNode: TorveNode | null = null;
   let sellerDataDir: string | null = null;
   let buyerDataDir: string | null = null;
 
@@ -46,10 +46,10 @@ describe('Request flow: buyer sends request to seller via P2P', () => {
     bootstrap = await createLocalBootstrap();
 
     // 2. Seller
-    sellerDataDir = await mkdtemp(join(tmpdir(), 'antseed-seller-'));
+    sellerDataDir = await mkdtemp(join(tmpdir(), 'torve-seller-'));
     const mockProvider = new MockAnthropicProvider();
 
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: 'seller',
       dataDir: sellerDataDir,
       dhtPort: 0,
@@ -62,9 +62,9 @@ describe('Request flow: buyer sends request to seller via P2P', () => {
     await sellerNode.start();
 
     // 3. Buyer
-    buyerDataDir = await mkdtemp(join(tmpdir(), 'antseed-buyer-'));
+    buyerDataDir = await mkdtemp(join(tmpdir(), 'torve-buyer-'));
 
-    buyerNode = new AntseedNode({
+    buyerNode = new TorveNode({
       role: 'buyer',
       dataDir: buyerDataDir,
       dhtPort: 0,

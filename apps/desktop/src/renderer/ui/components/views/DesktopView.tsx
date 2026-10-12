@@ -97,7 +97,7 @@ function downloadLogs(logs: RuntimeLogEntry[]): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `antseed-logs-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
+  a.download = `torve-logs-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
   document.body.appendChild(a);
   try {
     a.click();

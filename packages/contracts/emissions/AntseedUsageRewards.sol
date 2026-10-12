@@ -8,20 +8,20 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-import { IAntseedDeposits } from "../interfaces/IAntseedDeposits.sol";
-import { IAntseedEmissionsGate } from "../interfaces/IAntseedEmissionsGate.sol";
-import { IAntseedSellerPools } from "../interfaces/IAntseedSellerPools.sol";
-import { IAntseedUsageAccounting } from "../interfaces/IAntseedUsageAccounting.sol";
+import { ITorveDeposits } from "../interfaces/ITorveDeposits.sol";
+import { ITorveEmissionsGate } from "../interfaces/ITorveEmissionsGate.sol";
+import { ITorveSellerPools } from "../interfaces/ITorveSellerPools.sol";
+import { ITorveUsageAccounting } from "../interfaces/ITorveUsageAccounting.sol";
 import { IERC8004Registry } from "../interfaces/IERC8004Registry.sol";
-import { AntseedShareMath } from "./AntseedShareMath.sol";
+import { TorveShareMath } from "./TorveShareMath.sol";
 
 /**
- * @title AntseedUsageRewards
+ * @title TorveUsageRewards
  * @notice Controller for direct seller/operator and buyer recognized usage
  *         rewards.
  *
- *         AntseedEmissionsGate owns one 10% usage budget. This controller
- *         reads weighted usage points from AntseedUsageAccounting, splits the
+ *         TorveEmissionsGate owns one 10% usage budget. This controller
+ *         reads weighted usage points from TorveUsageAccounting, splits the
  *         usage budget 50/50 between seller/operator and buyer rewards, and
  *         mints through that explicit usage bucket.
  *
@@ -32,7 +32,7 @@ import { AntseedShareMath } from "./AntseedShareMath.sol";
  *           - Both sides are capped per account/agent at 5% of that side's
  *             epoch budget; overflow routes to protocol reserve.
  */
-contract AntseedUsageRewards is Ownable2Step, Pausable, ReentrancyGuard {
+contract TorveUsageRewards is Ownable2Step, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Math for uint256;
 
@@ -44,10 +44,10 @@ contract AntseedUsageRewards is Ownable2Step, Pausable, ReentrancyGuard {
     uint32 public constant MAX_SELLER_SHARE_BPS = 10_000;
 
     // ─── External Contracts ──────────────────────────────────────────
-    IAntseedEmissionsGate public immutable emissionsGate;
+    ITorveEmissionsGate public immutable emissionsGate;
     address public immutable identityRegistry;
-    IAntseedUsageAccounting public immutable usageAccounting;
-    IAntseedSellerPools public sellerPools;
+    ITorveUsageAccounting public immutable usageAccounting;
+    ITorveSellerPools public sellerPools;
     address public operatorSource;
 
     /// @notice Contract allowed to initiate agent reward claims on a seller's
@@ -171,10 +171,10 @@ contract AntseedUsageRewards is Ownable2Step, Pausable, ReentrancyGuard {
             revert InvalidAddress();
         }
 
-        emissionsGate = IAntseedEmissionsGate(_emissionsGate);
+        emissionsGate = ITorveEmissionsGate(_emissionsGate);
         identityRegistry = _identityRegistry;
         operatorSource = _operatorSource;
-        usageAccounting = IAntseedUsageAccounting(_usageAccounting);
+        usageAccounting = ITorveUsageAccounting(_usageAccounting);
 
         _currentConfig = DynamicUsageConfig({
             buyerMinShareBps: 5_000,
@@ -281,7 +281,7 @@ contract AntseedUsageRewards is Ownable2Step, Pausable, ReentrancyGuard {
 
     function setSellerPools(address _sellerPools) external onlyOwner {
         if (_sellerPools == address(0)) revert InvalidAddress();
-        sellerPools = IAntseedSellerPools(_sellerPools);
+        sellerPools = ITorveSellerPools(_sellerPools);
         emit SellerPoolsSet(_sellerPools);
     }
 
@@ -515,7 +515,7 @@ contract AntseedUsageRewards is Ownable2Step, Pausable, ReentrancyGuard {
         // A side with a zero weighted denominator has no possible claimant
         // (the gate only lets finalized epochs reach this point, so the
         // denominator can no longer change); its budget is unallocated.
-        IAntseedUsageAccounting accounting = usageAccounting;
+        ITorveUsageAccounting accounting = usageAccounting;
         uint256 allocatedBudget;
         if (accounting.totalWeightedBuyerPointsByEpoch(epoch) != 0) allocatedBudget += buyerBudget;
         if (accounting.totalWeightedPoolPointsByEpoch(epoch) != 0) allocatedBudget += sellerBudget;
@@ -580,7 +580,7 @@ contract AntseedUsageRewards is Ownable2Step, Pausable, ReentrancyGuard {
         uint256 claimableAmount,
         uint256 reserveAmount
     ) internal returns (uint256 newPositionId) {
-        IAntseedSellerPools pools = sellerPools;
+        ITorveSellerPools pools = sellerPools;
         if (address(pools) == address(0)) revert InvalidAddress();
 
         _mintReward(epoch, address(this), claimableAmount, reserveAmount);
@@ -598,20 +598,20 @@ contract AntseedUsageRewards is Ownable2Step, Pausable, ReentrancyGuard {
     ///      both the buyer and seller share lookups.
     function _buyerShareBpsAt(uint256 epoch, uint256 epochVolume) internal view returns (uint32) {
         DynamicUsageConfig memory config = dynamicUsageConfigAt(epoch);
-        return AntseedShareMath.saturatingShareBps(
+        return TorveShareMath.saturatingShareBps(
             epochVolume, config.buyerMinShareBps, config.buyerMaxShareBps, config.volumeShareTarget
         );
     }
 
     function _sellerShareBpsAt(uint256 epoch, uint256 epochVolume) internal view returns (uint32) {
         DynamicUsageConfig memory config = dynamicUsageConfigAt(epoch);
-        return AntseedShareMath.saturatingShareBps(
+        return TorveShareMath.saturatingShareBps(
             epochVolume, config.sellerMinShareBps, config.sellerMaxShareBps, config.volumeShareTarget
         );
     }
 
     function _epochVolume(uint256 epoch) internal view returns (uint256) {
-        IAntseedUsageAccounting accounting = usageAccounting;
+        ITorveUsageAccounting accounting = usageAccounting;
         uint256 buyerPoints = accounting.totalBuyerPointsByEpoch(epoch);
         uint256 sellerPoints = accounting.totalSellerPointsByEpoch(epoch);
         return buyerPoints > sellerPoints ? buyerPoints : sellerPoints;
@@ -632,7 +632,7 @@ contract AntseedUsageRewards is Ownable2Step, Pausable, ReentrancyGuard {
         view
         returns (uint256 weightedPoints, uint256 totalWeightedPoints)
     {
-        IAntseedUsageAccounting accounting = usageAccounting;
+        ITorveUsageAccounting accounting = usageAccounting;
         if (address(accounting) == address(0)) revert InvalidAddress();
         weightedPoints = accounting.weightedBuyerPointsByEpoch(epoch, buyer);
         totalWeightedPoints = accounting.totalWeightedBuyerPointsByEpoch(epoch);
@@ -643,7 +643,7 @@ contract AntseedUsageRewards is Ownable2Step, Pausable, ReentrancyGuard {
         view
         returns (uint256 weightedPoints, uint256 totalWeightedPoints)
     {
-        IAntseedUsageAccounting accounting = usageAccounting;
+        ITorveUsageAccounting accounting = usageAccounting;
         if (address(accounting) == address(0)) revert InvalidAddress();
         weightedPoints = accounting.weightedPoolPointsByEpoch(epoch, agentId);
         totalWeightedPoints = accounting.totalWeightedPoolPointsByEpoch(epoch);
@@ -661,7 +661,7 @@ contract AntseedUsageRewards is Ownable2Step, Pausable, ReentrancyGuard {
         address depositsAddress = operatorSource;
         if (depositsAddress == address(0)) revert RewardRecipientUnavailable();
 
-        address operator = IAntseedDeposits(depositsAddress).getOperator(buyer);
+        address operator = ITorveDeposits(depositsAddress).getOperator(buyer);
         if (operator == address(0)) revert RewardRecipientUnavailable();
         return operator;
     }

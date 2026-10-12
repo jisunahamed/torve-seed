@@ -1,12 +1,12 @@
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { teeControlFileName, type TeeSnapshot } from '@antseed/node/tee-status';
+import { teeControlFileName, type TeeSnapshot } from '@torveai/node/tee-status';
 
 export async function requestTeeSnapshot(directory: string, port: number, peerId?: string): Promise<TeeSnapshot> {
   const file = join(directory, teeControlFileName(port));
   const metadata = await stat(file).catch((error: NodeJS.ErrnoException) => {
     if (error.code === 'ENOENT') {
-      throw new Error('TEE verification credentials are missing. Ensure the buyer supports verification and uses the same data directory as desktop (ANTSEED_DESKTOP_CONNECT_DATA_DIR).');
+      throw new Error('TEE verification credentials are missing. Ensure the buyer supports verification and uses the same data directory as desktop (TORVE_DESKTOP_CONNECT_DATA_DIR).');
     }
     throw error;
   });
@@ -16,7 +16,7 @@ export async function requestTeeSnapshot(directory: string, port: number, peerId
   const credential = JSON.parse(await readFile(file, 'utf8')) as { token?: string; sessionId?: string; port?: number };
   if (credential.port !== port || typeof credential.token !== 'string' || !/^[a-f0-9]{64}$/.test(credential.token)
     || typeof credential.sessionId !== 'string') throw new Error('Invalid buyer verification credential');
-  const response = await fetch(`http://127.0.0.1:${port}/_antseed/verification${peerId === undefined ? '' : '/check'}`, {
+  const response = await fetch(`http://127.0.0.1:${port}/_torve/verification${peerId === undefined ? '' : '/check'}`, {
     method: peerId === undefined ? 'GET' : 'POST',
     headers: { authorization: `Bearer ${credential.token}`, 'content-type': 'application/json' },
     ...(peerId === undefined ? {} : { body: JSON.stringify({ peerId }) }),

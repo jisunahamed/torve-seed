@@ -93,7 +93,7 @@ export function VprCreditsView({ onSelectView }: Props) {
             className={styles.withdraw}
             onClick={() => {
               recordUserAction('withdraw_start', 'credits');
-              void window.antseedDesktop?.paymentsOpenPayPage?.({ kind: 'withdraw' });
+              void window.torveDesktop?.paymentsOpenPayPage?.({ kind: 'withdraw' });
             }}
           >
             Withdraw unused credits
@@ -157,7 +157,7 @@ export function VprCreditsView({ onSelectView }: Props) {
               <button
                 type="button"
                 className={styles.inlineLink}
-                onClick={() => window.antseedDesktop?.paymentsOpenPayPage?.({ kind: 'authorize' })}
+                onClick={() => window.torveDesktop?.paymentsOpenPayPage?.({ kind: 'authorize' })}
               >
                 Authorize a wallet
               </button>

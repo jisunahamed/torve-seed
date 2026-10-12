@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowUpRight01Icon, Copy01Icon, Settings02Icon, Tick02Icon } from '@hugeicons/core-free-icons';
-import { Modal } from '@antseed/ui';
+import { Modal } from '@torveai/ui';
 import type { TelegramBridgeStatus } from '../../../types/bridge';
 import { BrandIcon } from '../brand/BrandIcon';
 import styles from './VprToolsView.module.scss';
@@ -22,7 +22,7 @@ export function TelegramBotCard() {
   const [changingBot, setChangingBot] = useState(false);
 
   useEffect(() => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     let disposed = false;
     void bridge?.telegramGetStatus?.().then((result) => {
       if (!disposed && result.ok && result.data) setStatus(result.data);
@@ -35,7 +35,7 @@ export function TelegramBotCard() {
   }, []);
 
   const connect = useCallback(async () => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     const token = tokenDraft.trim();
     if (!token || !bridge?.telegramConnect) return;
     recordUserAction('app_connect', 'apps', 'telegram');
@@ -56,7 +56,7 @@ export function TelegramBotCard() {
   }, [tokenDraft]);
 
   const disconnect = useCallback(async () => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.telegramDisconnect) return;
     if (!window.confirm('Disconnect the Telegram bot? The saved token is removed from this device.')) return;
     recordUserAction('app_disconnect', 'apps', 'telegram');
@@ -66,7 +66,7 @@ export function TelegramBotCard() {
   }, []);
 
   const openPairingLink = useCallback(() => {
-    if (status?.pairingLink) void window.antseedDesktop?.openExternalUrl?.(status.pairingLink);
+    if (status?.pairingLink) void window.torveDesktop?.openExternalUrl?.(status.pairingLink);
   }, [status?.pairingLink]);
 
   const copyPairingLink = useCallback(() => {
@@ -136,11 +136,11 @@ export function TelegramBotCard() {
         title="Telegram Bot"
         subtitle={(
           <span className={styles.modalAppSubtitle}>
-            Connect a private Telegram bot to chat with your Antseed agent from Telegram.
+            Connect a private Telegram bot to chat with your Torve agent from Telegram.
             <button
               type="button"
               className={styles.settingWebsiteLink}
-              onClick={() => void window.antseedDesktop?.openExternalUrl?.('https://telegram.org/apps')}
+              onClick={() => void window.torveDesktop?.openExternalUrl?.('https://telegram.org/apps')}
             >
               Website / download
               <HugeiconsIcon icon={ArrowUpRight01Icon} size={12} strokeWidth={2} />
@@ -160,7 +160,7 @@ export function TelegramBotCard() {
                 <button
                   type="button"
                   className={styles.settingHintLink}
-                  onClick={() => void window.antseedDesktop?.openExternalUrl?.('https://t.me/BotFather')}
+                  onClick={() => void window.torveDesktop?.openExternalUrl?.('https://t.me/BotFather')}
                   title="Open @BotFather in Telegram"
                 >
                   <code>@BotFather</code>

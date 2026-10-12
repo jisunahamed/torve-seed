@@ -12,7 +12,7 @@ import {
 } from './store.js';
 
 async function withTempRoot(fn: (rootDir: string) => Promise<void>): Promise<void> {
-  const rootDir = await mkdtemp(path.join(tmpdir(), 'antseed-attach-'));
+  const rootDir = await mkdtemp(path.join(tmpdir(), 'torve-attach-'));
   try {
     await fn(rootDir);
   } finally {

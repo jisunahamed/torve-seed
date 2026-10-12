@@ -3,20 +3,20 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import {AntseedStaking} from "../../staking/AntseedStaking.sol";
+import {TorveStaking} from "../../staking/TorveStaking.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {MockERC8004Registry} from "../mocks/MockERC8004Registry.sol";
 import {MockChannelsCounter} from "../mocks/MockChannelsCounter.sol";
 
 /**
  * @title StakingHandler
- * @notice Stateful fuzzing handler for AntseedStaking. Drives stake/stakeFor/unstake plus an
+ * @notice Stateful fuzzing handler for TorveStaking. Drives stake/stakeFor/unstake plus an
  *         adjustable active-channel count (via MockChannelsCounter) to exercise the unstake
  *         guard. Three sellers, each owning a distinct ERC-8004 agentId registered at
  *         construction so ownership checks pass.
  */
 contract StakingHandler is Test {
-    AntseedStaking public staking;
+    TorveStaking public staking;
     MockUSDC public usdc;
     MockERC8004Registry public identity;
     MockChannelsCounter public mockChannels;
@@ -25,7 +25,7 @@ contract StakingHandler is Test {
     uint256[3] public agentIds;
     address public payer = address(0xBEEF);
 
-    constructor(AntseedStaking _staking, MockUSDC _usdc, MockERC8004Registry _identity, MockChannelsCounter _mock) {
+    constructor(TorveStaking _staking, MockUSDC _usdc, MockERC8004Registry _identity, MockChannelsCounter _mock) {
         staking = _staking;
         usdc = _usdc;
         identity = _identity;

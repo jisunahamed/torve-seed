@@ -1,8 +1,8 @@
 import type { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
-import type { CloseChannelResultPayload, StoredChannel } from '@antseed/node';
-import { CHANNEL_KIND, CHANNEL_STATUS } from '@antseed/node/payments';
+import type { CloseChannelResultPayload, StoredChannel } from '@torveai/node';
+import { CHANNEL_KIND, CHANNEL_STATUS } from '@torveai/node/payments';
 import { getGlobalOptions } from '../types.js';
 import { loadConfig } from '../../../config/loader.js';
 import {
@@ -36,7 +36,7 @@ export function resolveBuyerChannelById(
   const matches = channels.filter((channel) => normalizeChannelId(channel.sessionId).startsWith(query));
 
   if (matches.length === 0) {
-    throw new Error(`No local buyer channel found for ${channelIdOrPrefix}. Run \`antseed buyer channels\` to list channels.`);
+    throw new Error(`No local buyer channel found for ${channelIdOrPrefix}. Run \`torve buyer channels\` to list channels.`);
   }
   if (matches.length > 1) {
     const examples = matches.slice(0, 5).map((channel) => channel.sessionId).join(', ');
@@ -79,10 +79,10 @@ function openChannelStoreOrExit(dataDir: string): ReturnType<typeof openChannelS
 const REJECT_HINTS: Record<string, string> = {
   busy: 'The seller is still serving a request on this channel. Retry in a few seconds.',
   pending_auth: 'The seller has served work you have not signed for yet. The catch-up authorization was just requested — retry in a few seconds.',
-  no_channel: 'The seller has no active channel with you. It may already be closed on-chain — check `antseed buyer channels list`.',
+  no_channel: 'The seller has no active channel with you. It may already be closed on-chain — check `torve buyer channels list`.',
   invalid_auth: 'The seller rejected the attached authorization. Retry with --no-auth to let the seller close using the signature it already holds.',
   close_failed: 'The seller could not submit the on-chain close.',
-  unsupported: 'This peer does not support cooperative close. Use `antseed buyer channels request-close` instead.',
+  unsupported: 'This peer does not support cooperative close. Use `torve buyer channels request-close` instead.',
 };
 
 async function daemonRequestClose(
@@ -92,7 +92,7 @@ async function daemonRequestClose(
 ): Promise<CloseChannelResultPayload> {
   let res: Response;
   try {
-    res = await fetch(`http://127.0.0.1:${port}/_antseed/channels/close`, {
+    res = await fetch(`http://127.0.0.1:${port}/_torve/channels/close`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ peerId, includeAuth }),
@@ -101,8 +101,8 @@ async function daemonRequestClose(
   } catch {
     throw new Error(
       `No buyer daemon is listening on port ${port}. A cooperative close runs over the daemon's live `
-      + 'connection to the seller — start it with `antseed buyer start`, or fall back to '
-      + '`antseed buyer channels request-close <channelId>`.',
+      + 'connection to the seller — start it with `torve buyer start`, or fall back to '
+      + '`torve buyer channels request-close <channelId>`.',
     );
   }
   const body = await res.json().catch(() => null) as {
@@ -138,7 +138,7 @@ export function registerBuyerChannelWithdrawCommands(channelsCmd: Command, buyer
 
       if (localChannel.channelKind === CHANNEL_KIND.ONE_OFF) {
         console.error(chalk.red('One-off video channels do not support cooperative close.'));
-        console.error(chalk.dim(`Use antseed buyer channels request-close ${localChannel.sessionId}, then withdraw after the grace period.`));
+        console.error(chalk.dim(`Use torve buyer channels request-close ${localChannel.sessionId}, then withdraw after the grace period.`));
         process.exit(1);
       }
 
@@ -158,8 +158,8 @@ export function registerBuyerChannelWithdrawCommands(channelsCmd: Command, buyer
         // the decline path gives, not just the raw error.
         spinner.fail(chalk.red(`Close request failed: ${(err as Error).message}`));
         console.log(chalk.dim('The channel is unchanged. To release the reserve without the seller:'));
-        console.log(chalk.cyan(`  antseed buyer channels request-close ${localChannel.sessionId}`));
-        console.log(chalk.dim(`  ...then after ${formatWait(CHANNEL_CLOSE_GRACE_PERIOD_SECONDS)}: antseed buyer channels withdraw ${localChannel.sessionId}`));
+        console.log(chalk.cyan(`  torve buyer channels request-close ${localChannel.sessionId}`));
+        console.log(chalk.dim(`  ...then after ${formatWait(CHANNEL_CLOSE_GRACE_PERIOD_SECONDS)}: torve buyer channels withdraw ${localChannel.sessionId}`));
         process.exit(1);
       }
 
@@ -182,7 +182,7 @@ export function registerBuyerChannelWithdrawCommands(channelsCmd: Command, buyer
       if (result.reason) console.log(chalk.dim(result.reason));
       const hint = result.code ? REJECT_HINTS[result.code] : undefined;
       if (hint) console.log(hint);
-      console.log(chalk.dim(`Fallback: antseed buyer channels request-close ${localChannel.sessionId}`));
+      console.log(chalk.dim(`Fallback: torve buyer channels request-close ${localChannel.sessionId}`));
       process.exit(1);
     });
 
@@ -240,7 +240,7 @@ export function registerBuyerChannelWithdrawCommands(channelsCmd: Command, buyer
           }
           console.log(chalk.yellow(`Close was already requested for ${shortId(localChannel.sessionId, 18)}.`));
           console.log(waitSeconds === 0
-            ? chalk.green('It is ready to withdraw now: antseed buyer channels withdraw ' + localChannel.sessionId)
+            ? chalk.green('It is ready to withdraw now: torve buyer channels withdraw ' + localChannel.sessionId)
             : chalk.dim(`Withdraw should be available in ${formatWait(waitSeconds)}.`));
           return;
         }
@@ -257,7 +257,7 @@ export function registerBuyerChannelWithdrawCommands(channelsCmd: Command, buyer
         }
         console.log(chalk.dim(`Transaction: ${txHash}`));
         console.log(chalk.dim(`Withdraw reserved funds after ${formatWait(CHANNEL_CLOSE_GRACE_PERIOD_SECONDS)}:`));
-        console.log(chalk.cyan(`  antseed buyer channels withdraw ${localChannel.sessionId}`));
+        console.log(chalk.cyan(`  torve buyer channels withdraw ${localChannel.sessionId}`));
       } catch (err) {
         spinner.fail(chalk.red(`Close request failed: ${(err as Error).message}`));
         process.exit(1);
@@ -295,7 +295,7 @@ export function registerBuyerChannelWithdrawCommands(channelsCmd: Command, buyer
           throw new Error(`On-chain channel is ${CHANNEL_STATUS_LABELS[onChain.status] ?? `status ${onChain.status}`}; nothing active remains to withdraw.`);
         }
         if (onChain.closeRequestedAt <= 0n) {
-          throw new Error(`Close has not been requested yet. Run \`antseed buyer channels request-close ${localChannel.sessionId}\` first.`);
+          throw new Error(`Close has not been requested yet. Run \`torve buyer channels request-close ${localChannel.sessionId}\` first.`);
         }
         const waitSeconds = secondsUntilChannelWithdrawReady(
           onChain.closeRequestedAt,

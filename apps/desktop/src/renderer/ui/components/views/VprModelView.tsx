@@ -28,7 +28,7 @@ import { BrandIcon } from '../brand/BrandIcon';
 import { InfoTooltip } from '../InfoTooltip';
 import { formatUsdShort, VprBadge, VprCard, VprPage, VprSettingRow, VprStatRow, VprStatTile, VprToggle } from '../vpr/VprKit';
 import styles from './VprModelView.module.scss';
-import { advertisesTeeSupport } from '@antseed/node/verifier-capabilities';
+import { advertisesTeeSupport } from '@torveai/node/verifier-capabilities';
 import { filterTeeBrowseRows, projectTeeBrowseCatalog, teeBrowseCache } from '../../../modules/catalog/tee-browse';
 import { useRetainedState } from '../../hooks/useRetainedState';
 import { VprTeeFilter, VprTeeNotice } from '../vpr/VprTeeAvailability';

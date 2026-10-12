@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { PeerLookup, type LookupConfig } from '../src/discovery/peer-lookup.js';
 import {
-  ANTSEED_WILDCARD_TOPIC,
+  TORVE_WILDCARD_TOPIC,
   SUBNET_COUNT,
   peerTopic,
   subnetOf,
@@ -48,7 +48,7 @@ describe('PeerLookup', () => {
       };
     }
     const wildcardEndpoint: PeerEndpoint = { host: '10.99.99.1', port: 6882 };
-    const wildcardHashHex = topicToInfoHash(ANTSEED_WILDCARD_TOPIC).toString('hex');
+    const wildcardHashHex = topicToInfoHash(TORVE_WILDCARD_TOPIC).toString('hex');
 
     const lookupMany = vi.fn(async (hashes: Buffer[]) => {
       const merged: PeerEndpoint[] = [];
@@ -87,7 +87,7 @@ describe('PeerLookup', () => {
 
   it('findAll queries the wildcard first, then subnet topics in order', async () => {
     // The wildcard runs alone first to warm the local DHT routing table
-    // with nodes that already know about AntSeed traffic; subsequent
+    // with nodes that already know about Torve traffic; subsequent
     // per-subnet lookups converge much faster against that hot cache.
     // If this ordering regresses, sequential subnet lookups go back to
     // converging slowly on a cold routing table.
@@ -106,7 +106,7 @@ describe('PeerLookup', () => {
 
     expect(lookup).toHaveBeenCalledTimes(SUBNET_COUNT + 1);
     const calls = lookup.mock.calls.map(([h]) => (h as Buffer).toString('hex'));
-    expect(calls[0]).toBe(topicToInfoHash(ANTSEED_WILDCARD_TOPIC).toString('hex'));
+    expect(calls[0]).toBe(topicToInfoHash(TORVE_WILDCARD_TOPIC).toString('hex'));
     for (let i = 0; i < SUBNET_COUNT; i++) {
       expect(calls[i + 1]).toBe(topicToInfoHash(subnetTopic(i)).toString('hex'));
     }
@@ -138,10 +138,10 @@ describe('PeerLookup', () => {
 
     const calls = capturedHashes.map((h) => h.toString('hex'));
     expect(calls).toEqual([
-      topicToInfoHash(ANTSEED_WILDCARD_TOPIC).toString('hex'),
+      topicToInfoHash(TORVE_WILDCARD_TOPIC).toString('hex'),
       topicToInfoHash(subnetTopic(0)).toString('hex'),
       topicToInfoHash(subnetTopic(1)).toString('hex'),
-      topicToInfoHash(ANTSEED_WILDCARD_TOPIC).toString('hex'),
+      topicToInfoHash(TORVE_WILDCARD_TOPIC).toString('hex'),
       topicToInfoHash(subnetTopic(2)).toString('hex'),
       topicToInfoHash(subnetTopic(3)).toString('hex'),
     ]);
@@ -150,7 +150,7 @@ describe('PeerLookup', () => {
   it('findAllExhaustive emits metadata partials for non-empty batches', async () => {
     const wildcardPeer: PeerEndpoint = { host: '10.99.99.1', port: 6882 };
     const subnetPeer: PeerEndpoint = { host: '10.0.7.1', port: 6882 };
-    const wildcardHashHex = topicToInfoHash(ANTSEED_WILDCARD_TOPIC).toString('hex');
+    const wildcardHashHex = topicToInfoHash(TORVE_WILDCARD_TOPIC).toString('hex');
     const subnet7HashHex = topicToInfoHash(subnetTopic(7)).toString('hex');
     const lookup = vi.fn(async (hash: Buffer) => {
       const hex = hash.toString('hex');
@@ -207,7 +207,7 @@ describe('PeerLookup', () => {
     await peerLookup.findAllExhaustive();
 
     const expectedHashes = new Set<string>([
-      topicToInfoHash(ANTSEED_WILDCARD_TOPIC).toString('hex'),
+      topicToInfoHash(TORVE_WILDCARD_TOPIC).toString('hex'),
       ...Array.from({ length: SUBNET_COUNT }, (_, i) =>
         topicToInfoHash(subnetTopic(i)).toString('hex'),
       ),

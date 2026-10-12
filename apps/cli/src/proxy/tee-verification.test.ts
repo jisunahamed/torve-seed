@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { onlineManager } from '@tanstack/query-core';
-import { TEE_BADGE_MAX_AGE_MS, TEE_MAX_AGE_MS } from '@antseed/node/tee-status';
+import { TEE_BADGE_MAX_AGE_MS, TEE_MAX_AGE_MS } from '@torveai/node/tee-status';
 import type { VerifyOutcome } from '../plugins/verifier.js';
 import { TeeVerification } from './tee-verification.js';
 
-const peer = { peerId: 'a'.repeat(40), capabilities: ['verifier.antseed-verifier'] };
-const strict = { require: true, prefer: ['antseed-verifier'] };
-const pass: VerifyOutcome = { ok: true, verified: true, sellerNodeVerified: true, sdk: 'antseed-verifier' };
+const peer = { peerId: 'a'.repeat(40), capabilities: ['verifier.torve-verifier'] };
+const strict = { require: true, prefer: ['torve-verifier'] };
+const pass: VerifyOutcome = { ok: true, verified: true, sellerNodeVerified: true, sdk: 'torve-verifier' };
 
 test('display checks reuse successful evidence for 24 hours without extending it on reads', async () => {
   let now = 100;

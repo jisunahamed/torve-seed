@@ -55,7 +55,7 @@ describe('OAuth recovery', () => {
 
   it('times out refresh requests without surfacing credentials', async () => {
     vi.useFakeTimers();
-    vi.stubEnv('ANTSEED_OAUTH_REFRESH_TIMEOUT_MS', '20');
+    vi.stubEnv('TORVE_OAUTH_REFRESH_TIMEOUT_MS', '20');
     vi.stubGlobal('fetch', vi.fn((_url, init: RequestInit) => new Promise((_resolve, reject) => {
       init.signal?.addEventListener('abort', () => reject(new DOMException('secret', 'AbortError')));
     })));

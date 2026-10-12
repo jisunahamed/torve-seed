@@ -31,13 +31,13 @@ function providerTokenEnvironmentName(provider: TunnelProvider): string {
 
 function resolveTunnelToken(provider: TunnelProvider): string {
   const providerToken = process.env[providerTokenEnvironmentName(provider)]
-  return (process.env['ANTSEED_TUNNEL_TOKEN'] ?? providerToken ?? '').trim()
+  return (process.env['TORVE_TUNNEL_TOKEN'] ?? providerToken ?? '').trim()
 }
 
 function parsePublicUrl(value: string, provider: TunnelProvider): URL | null {
   if (!value) {
     if (provider === 'cloudflare') {
-      throw new Error('ANTSEED_TUNNEL_PUBLIC_URL is required for Cloudflare Tunnel.')
+      throw new Error('TORVE_TUNNEL_PUBLIC_URL is required for Cloudflare Tunnel.')
     }
     return null
   }
@@ -46,10 +46,10 @@ function parsePublicUrl(value: string, provider: TunnelProvider): URL | null {
   try {
     url = new URL(value)
   } catch {
-    throw new Error('ANTSEED_TUNNEL_PUBLIC_URL must be a valid https:// URL.')
+    throw new Error('TORVE_TUNNEL_PUBLIC_URL must be a valid https:// URL.')
   }
   if (url.protocol !== 'https:') {
-    throw new Error('ANTSEED_TUNNEL_PUBLIC_URL must be an https:// URL.')
+    throw new Error('TORVE_TUNNEL_PUBLIC_URL must be an https:// URL.')
   }
   return url
 }
@@ -130,7 +130,7 @@ function waitForNgrokUrl(child: ReturnType<typeof spawn>): Promise<URL> {
 }
 
 function resolveNgrokBinary(): string {
-  const configured = process.env['ANTSEED_NGROK_BIN']?.trim()
+  const configured = process.env['TORVE_NGROK_BIN']?.trim()
   if (configured) return configured
   const executable = process.platform === 'win32' ? 'ngrok.exe' : 'ngrok'
   const candidates = [
@@ -139,7 +139,7 @@ function resolveNgrokBinary(): string {
   ]
   const found = candidates.find((candidate) => existsSync(candidate))
   if (found) return found
-  throw new Error('ngrok CLI was not found. Install ngrok or set ANTSEED_NGROK_BIN.')
+  throw new Error('ngrok CLI was not found. Install ngrok or set TORVE_NGROK_BIN.')
 }
 
 export function registerTunnelStartCommand(cmd: Command): void {
@@ -154,10 +154,10 @@ export function registerTunnelStartCommand(cmd: Command): void {
       const dataDir = globalOptions.dataDir
       const buyerPort = parseInt(options.buyerPort, 10) || DEFAULT_BUYER_PORT
       const gatewayPort = parseInt(options.gatewayPort, 10) || DEFAULT_GATEWAY_PORT
-      const provider = parseTunnelProvider(options.provider ?? process.env['ANTSEED_TUNNEL_PROVIDER'] ?? 'cloudflare')
+      const provider = parseTunnelProvider(options.provider ?? process.env['TORVE_TUNNEL_PROVIDER'] ?? 'cloudflare')
       const tunnelToken = resolveTunnelToken(provider)
-      const configuredPublicUrl = process.env['ANTSEED_TUNNEL_PUBLIC_URL']?.trim() ?? ''
-      const apiKey = process.env['ANTSEED_TUNNEL_API_KEY']?.trim() ?? ''
+      const configuredPublicUrl = process.env['TORVE_TUNNEL_PUBLIC_URL']?.trim() ?? ''
+      const apiKey = process.env['TORVE_TUNNEL_API_KEY']?.trim() ?? ''
       if (!tunnelToken) {
         throw new Error(`Set ${providerTokenEnvironmentName(provider)} before starting the tunnel.`)
       }
@@ -232,8 +232,8 @@ export function registerTunnelStartCommand(cmd: Command): void {
       spinner.succeed(chalk.green('Public HTTPS tunnel is running'))
       console.log(`${chalk.bold('Base URL:')} ${baseUrl}`)
       console.log(chalk.dim(apiKey
-        ? 'Use ANTSEED_TUNNEL_API_KEY or a key from `antseed gateway key create` as the client API key.'
-        : 'Use a key from `antseed gateway key create` as the client API key.'))
+        ? 'Use TORVE_TUNNEL_API_KEY or a key from `torve gateway key create` as the client API key.'
+        : 'Use a key from `torve gateway key create` as the client API key.'))
 
       setupShutdownHandler(async () => {
         tunnelProcess?.kill('SIGTERM')

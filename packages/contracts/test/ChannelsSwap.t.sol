@@ -3,10 +3,10 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import {AntseedChannels} from "../payments/AntseedChannels.sol";
-import {AntseedDeposits} from "../payments/AntseedDeposits.sol";
-import {AntseedStaking} from "../staking/AntseedStaking.sol";
-import {AntseedRegistry} from "../core/AntseedRegistry.sol";
+import {TorveChannels} from "../payments/TorveChannels.sol";
+import {TorveDeposits} from "../payments/TorveDeposits.sol";
+import {TorveStaking} from "../staking/TorveStaking.sol";
+import {TorveRegistry} from "../core/TorveRegistry.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 import {MockERC8004Registry} from "./mocks/MockERC8004Registry.sol";
 
@@ -24,11 +24,11 @@ import {MockERC8004Registry} from "./mocks/MockERC8004Registry.sol";
 contract ChannelsSwapTest is Test {
     MockUSDC usdc;
     MockERC8004Registry identity;
-    AntseedRegistry registry;
-    AntseedStaking staking;
-    AntseedDeposits deposits;
-    AntseedChannels channelsA;
-    AntseedChannels channelsB;
+    TorveRegistry registry;
+    TorveStaking staking;
+    TorveDeposits deposits;
+    TorveChannels channelsA;
+    TorveChannels channelsB;
 
     uint256 constant BUYER_PK = 0xA11CE;
     uint256 constant SELLER_PK = 0xB0B;
@@ -47,11 +47,11 @@ contract ChannelsSwapTest is Test {
 
         usdc = new MockUSDC();
         identity = new MockERC8004Registry();
-        registry = new AntseedRegistry();
-        staking = new AntseedStaking(address(usdc), address(registry));
-        deposits = new AntseedDeposits(address(usdc));
-        channelsA = new AntseedChannels(address(registry));
-        channelsB = new AntseedChannels(address(registry));
+        registry = new TorveRegistry();
+        staking = new TorveStaking(address(usdc), address(registry));
+        deposits = new TorveDeposits(address(usdc));
+        channelsA = new TorveChannels(address(registry));
+        channelsB = new TorveChannels(address(registry));
 
         registry.setChannels(address(channelsA));
         registry.setDeposits(address(deposits));
@@ -115,7 +115,7 @@ contract ChannelsSwapTest is Test {
 
         // Old Channels can no longer release — Deposits.releaseLock is gated to channelsB now.
         vm.prank(operator);
-        vm.expectRevert(AntseedDeposits.NotAuthorized.selector);
+        vm.expectRevert(TorveDeposits.NotAuthorized.selector);
         channelsA.withdraw(id);
 
         assertEq(_reserved(), AMOUNT, "funds still stranded");
@@ -127,11 +127,11 @@ contract ChannelsSwapTest is Test {
         registry.setChannels(address(channelsB));
 
         vm.prank(operator);
-        vm.expectRevert(AntseedChannels.ChannelNotActive.selector);
+        vm.expectRevert(TorveChannels.ChannelNotActive.selector);
         channelsB.withdraw(id);
 
         vm.prank(seller);
-        vm.expectRevert(AntseedChannels.ChannelNotActive.selector);
+        vm.expectRevert(TorveChannels.ChannelNotActive.selector);
         channelsB.close(id, 0, "", "");
     }
 
@@ -154,7 +154,7 @@ contract ChannelsSwapTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(BUYER_PK, digest);
 
         vm.prank(seller);
-        vm.expectRevert(AntseedDeposits.NotAuthorized.selector);
+        vm.expectRevert(TorveDeposits.NotAuthorized.selector);
         channelsA.settle(id, cum, meta, abi.encodePacked(r, s, v));
     }
 

@@ -4,11 +4,11 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { ANTSToken } from "../../core/ANTSToken.sol";
-import { AntseedRegistry } from "../../core/AntseedRegistry.sol";
-import { AntseedEmissionsGate } from "../../emissions/AntseedEmissionsGate.sol";
+import { TorveRegistry } from "../../core/TorveRegistry.sol";
+import { TorveEmissionsGate } from "../../emissions/TorveEmissionsGate.sol";
 
 /**
- * @title AntseedEmissionsGateFuzz
+ * @title TorveEmissionsGateFuzz
  * @notice Fuzz tests for the canonical ANTS mint authority. The single most
  *         important property of the whole stack is that ANTS can never be
  *         over-minted. These tests fuzz that invariant directly:
@@ -27,10 +27,10 @@ import { AntseedEmissionsGate } from "../../emissions/AntseedEmissionsGate.sol";
  *           5. The minter share checkpoint binary search returns the correct
  *              piecewise-constant share for any epoch.
  */
-contract AntseedEmissionsGateFuzzTest is Test {
+contract TorveEmissionsGateFuzzTest is Test {
     ANTSToken token;
-    AntseedRegistry registry;
-    AntseedEmissionsGate gate;
+    TorveRegistry registry;
+    TorveEmissionsGate gate;
 
     address constant KNOWN_ANTS_TOKEN = 0xa87EE81b2C0Bc659307ca2D9ffdC38514DD85263;
     uint256 constant GATE_GENESIS = 1_775_728_461;
@@ -44,15 +44,15 @@ contract AntseedEmissionsGateFuzzTest is Test {
     address reserve = address(0x5E5E);
     address deposits = address(0xDEDE);
 
-    bytes32 constant TEAM_MINTER_ID = keccak256("antseed.emissions.team.v1");
-    bytes32 constant RESERVE_MINTER_ID = keccak256("antseed.emissions.reserve.v1");
+    bytes32 constant TEAM_MINTER_ID = keccak256("torve.emissions.team.v1");
+    bytes32 constant RESERVE_MINTER_ID = keccak256("torve.emissions.reserve.v1");
 
     function setUp() public {
         vm.warp(1_700_000_000);
         deployCodeTo("ANTSToken.sol:ANTSToken", KNOWN_ANTS_TOKEN);
         token = ANTSToken(KNOWN_ANTS_TOKEN);
 
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         registry.setAntsToken(address(token));
         registry.setEmissions(legacyController);
         registry.setTeamWallet(teamWallet);
@@ -65,7 +65,7 @@ contract AntseedEmissionsGateFuzzTest is Test {
     function _deployGate(uint256 atEpoch) internal {
         // Deploy so that currentEpoch() == atEpoch.
         vm.warp(GATE_GENESIS + GATE_EPOCH_DURATION * atEpoch + 1);
-        gate = new AntseedEmissionsGate(teamWallet, reserve, 15_000, 15_000);
+        gate = new TorveEmissionsGate(teamWallet, reserve, 15_000, 15_000);
         token.setRegistry(address(gate));
         // No bucket mints until the legacy escrow is settled; any recipient
         // address marks the pot funded.
@@ -203,12 +203,12 @@ contract AntseedEmissionsGateFuzzTest is Test {
         // No budget for the finalized epoch the first minter partially
         // claimed, nor for the rotation epoch whose share the removal freed.
         vm.prank(secondMinter);
-        vm.expectRevert(AntseedEmissionsGate.BucketBudgetExceeded.selector);
+        vm.expectRevert(TorveEmissionsGate.BucketBudgetExceeded.selector);
         gate.claim(epoch, secondMinter, secondBudget);
 
         _warpGateEpoch(epoch + 3);
         vm.prank(secondMinter);
-        vm.expectRevert(AntseedEmissionsGate.BucketBudgetExceeded.selector);
+        vm.expectRevert(TorveEmissionsGate.BucketBudgetExceeded.selector);
         gate.claim(epoch + 1, secondMinter, 1);
 
         // From the epoch after rotation it earns its full share.

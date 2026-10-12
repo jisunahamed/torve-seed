@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { UnitBillingContext, UnitBillingModelV1 } from '@antseed/protocol/billing';
-import { validateUnitBillingUsage } from '@antseed/protocol/billing';
+import type { UnitBillingContext, UnitBillingModelV1 } from '@torveai/protocol/billing';
+import { validateUnitBillingUsage } from '@torveai/protocol/billing';
 import {
   captureUnitBillingContext,
   computeFinalUnitBilling,

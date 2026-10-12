@@ -13,7 +13,7 @@ import { Field, Input } from './Field';
 import { Facts } from './Panel';
 import { Pill } from './Pill';
 
-const PROOF_KIND = 'antseed-wash-trading-seller-proof';
+const PROOF_KIND = 'torve-wash-trading-seller-proof';
 
 /** Registry contract facts and enforcement; the hashes live in a collapsed details block. */
 export function VerificationRegistry({ data }: { data: VerificationView }) {

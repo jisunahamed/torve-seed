@@ -1,6 +1,6 @@
 import type { ProviderType } from '../types/metering.js';
 
-export const ANTSEED_PROVIDER_HEADER = 'x-antseed-provider';
+export const TORVE_PROVIDER_HEADER = 'x-torve-provider';
 
 const KNOWN_PROVIDERS = new Set<string>([
   'anthropic',
@@ -26,7 +26,7 @@ function getHeaderCaseInsensitive(
  * Return the provider encoded in an internal routing header, if valid.
  */
 export function detectProviderFromHeaders(headers: Record<string, string>): ProviderType | null {
-  const raw = getHeaderCaseInsensitive(headers, ANTSEED_PROVIDER_HEADER);
+  const raw = getHeaderCaseInsensitive(headers, TORVE_PROVIDER_HEADER);
   if (!raw) {
     return null;
   }

@@ -10,9 +10,9 @@ import { runMigration } from './runtime/runner.mjs';
 /**
  * M002 — Legacy seller claims.
  *
- * Unfreezes the deployed AntseedSellerRewardsPool after M001 has activated:
+ * Unfreezes the deployed TorveSellerRewardsPool after M001 has activated:
  * whitelists the pool on ANTSToken (it is the transfer *sender* and was never
- * whitelisted) and installs AntseedLegacySellerClaimPolicy so sellers can
+ * whitelisted) and installs TorveLegacySellerClaimPolicy so sellers can
  * claim the released share of their locked legacy rewards. Proven wash
  * traders (per the wash-trading registry) can claim nothing.
  *
@@ -35,7 +35,7 @@ const SIGNER_ENV = {
 };
 
 const CONTRACT_NAMES = {
-  AntseedLegacySellerClaimPolicy: 'legacySellerClaimPolicy',
+  TorveLegacySellerClaimPolicy: 'legacySellerClaimPolicy',
 };
 
 // ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ export function validateM002Baseline(canonical) {
     throw new Error(`M002 ${canonical.network} deployment baseline is missing: ${missing.join(', ')}`);
   }
   if (!sameAddress(canonical.contracts.emissions.address, canonical.contracts.usageAccounting.address)) {
-    throw new Error(`M002 ${canonical.network} baseline: emissions must already be AntseedUsageAccounting (run M001 first)`);
+    throw new Error(`M002 ${canonical.network} baseline: emissions must already be TorveUsageAccounting (run M001 first)`);
   }
 }
 
@@ -253,7 +253,7 @@ function migrationEnvironment(context, observation, signerAddresses = {}, extra 
     ),
     BASE_MAINNET_RPC_URL: context.rpcUrl,
     BASE_SEPOLIA_RPC_URL: context.rpcUrl,
-    ANTSEED_REGISTRY: context.expected.registry,
+    TORVE_REGISTRY: context.expected.registry,
     EXPECTED_ANTS_TOKEN: context.expected.antsToken,
     LEGACY_EMISSIONS_V2: observation.legacyEmissionsV2,
     USAGE_ACCOUNTING: context.expected.usageAccounting,
@@ -302,7 +302,7 @@ function verificationConfiguration(context, observation, policy) {
 async function recordRelease(context, observation) {
   const parsed = await parseBroadcast(broadcastPath('Install.s.sol', context.canonical.chainId), context.rpcUrl, CONTRACT_NAMES);
   const policy = parsed.contracts.legacySellerClaimPolicy?.address ?? observation.pool.sellerClaimPolicy;
-  if (!policy || sameAddress(policy, ZERO_ADDRESS)) throw new Error('No AntseedLegacySellerClaimPolicy found to record');
+  if (!policy || sameAddress(policy, ZERO_ADDRESS)) throw new Error('No TorveLegacySellerClaimPolicy found to record');
   if (parsed.transactions.length === 0) throw new Error('Confirmed Foundry receipts are required to record M002');
   const contracts = parsed.contracts.legacySellerClaimPolicy
     ? parsed.contracts
@@ -355,7 +355,7 @@ const installPhase = {
       'SellerRewardsPool.sellerClaimPolicy': {
         before: observation.pool.sellerClaimPolicy,
         after: sameAddress(observation.pool.sellerClaimPolicy, ZERO_ADDRESS)
-          ? 'AntseedLegacySellerClaimPolicy (deployed by this phase)'
+          ? 'TorveLegacySellerClaimPolicy (deployed by this phase)'
           : observation.pool.sellerClaimPolicy,
       },
     },
@@ -408,7 +408,7 @@ function idleMessage(observation) {
 
 async function rehearse({ network, runMigration: drive }) {
   const overrides = {
-    environment: { ANTSEED_DEPLOY_CONFIRM: network },
+    environment: { TORVE_DEPLOY_CONFIRM: network },
     signers: {
       deployer: `unlocked:${ANVIL_ACCOUNT_0}`,
       sellerRewardsPoolOwner: `unlocked:${ANVIL_ACCOUNT_1}`,

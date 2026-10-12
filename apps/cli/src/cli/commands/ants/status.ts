@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { overview, rewards, formatAnts, type OverviewView } from '@antseed/ants';
+import { overview, rewards, formatAnts, type OverviewView } from '@torveai/ants';
 import { ants, epochDate, printJson, runRead } from './shared.js';
 
 export function formatDuration(seconds: number): string {
@@ -54,6 +54,6 @@ export function registerAntsStatusCommand(antsCmd: Command): void {
       if (pending) table.push(['Claimable rewards', ants(pending.total)]);
       console.log(table.toString());
       for (const notice of view.notices) console.log(chalk.yellow(`⚠ ${notice}`));
-      console.log(chalk.dim('\nOpen the dashboard with: antseed ants'));
+      console.log(chalk.dim('\nOpen the dashboard with: torve ants'));
     }));
 }

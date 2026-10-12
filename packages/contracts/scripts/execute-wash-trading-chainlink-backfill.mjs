@@ -6,7 +6,7 @@
 //   BlockhashStore.storeVerifyHeader(n, rawHeader(n + 1))
 // once per block, batched through Multicall3.aggregate so one transaction carries ~150 headers.
 // Chainlink verifies keccak256(header) against its stored hash(n + 1) and stores parentHash as
-// hash(n); nothing AntSeed-owned sits in the verification path. The wash-trading registry is
+// hash(n); nothing Torve-owned sits in the verification path. The wash-trading registry is
 // then deployed with WASH_TRADING_BLOCKHASH_STORE set to the Chainlink store itself.
 import { readFile, writeFile } from "node:fs/promises";
 import { Contract, Interface, JsonRpcProvider, Wallet, decodeRlp, getAddress, keccak256 } from "ethers";
@@ -52,7 +52,7 @@ if (has("--execute") && !localRpc && !process.env.BACKFILL_PRIVATE_KEY) {
 }
 
 const plan = JSON.parse(await readFile(planPath, "utf8"));
-if (plan.version !== 2 || plan.kind !== "antseed-wash-trading-sparse-blockhash-backfill-plan") {
+if (plan.version !== 2 || plan.kind !== "torve-wash-trading-sparse-blockhash-backfill-plan") {
   throw new Error("expected a version 2 blockhash backfill plan");
 }
 const { digest, ...planWithoutDigest } = plan;
@@ -86,7 +86,7 @@ if ((await provider.getCode(chainlinkAddress)) === "0x") throw new Error(`no Cha
 
 const checkpoint = (await readCheckpoint()) ?? {
   version: 3,
-  kind: "antseed-wash-trading-chainlink-blockhash-backfill-checkpoint",
+  kind: "torve-wash-trading-chainlink-blockhash-backfill-checkpoint",
   planDigest: digest,
   chainlinkBlockhashStore: chainlinkAddress,
   multicall: multicallAddress,
@@ -96,7 +96,7 @@ const checkpoint = (await readCheckpoint()) ?? {
   submittedBlocks: 0,
 };
 if (
-  checkpoint.kind !== "antseed-wash-trading-chainlink-blockhash-backfill-checkpoint"
+  checkpoint.kind !== "torve-wash-trading-chainlink-blockhash-backfill-checkpoint"
   || checkpoint.planDigest !== digest
   || getAddress(checkpoint.chainlinkBlockhashStore) !== chainlinkAddress
 ) {

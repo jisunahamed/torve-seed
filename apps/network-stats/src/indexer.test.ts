@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import type { DecodedMetadataRecorded } from '@antseed/node';
+import type { DecodedMetadataRecorded } from '@torveai/node';
 import { SqliteStore } from './store.js';
 import { MetadataIndexer } from './indexer.js';
 
@@ -12,7 +12,7 @@ function makeMockClient(opts: {
   events?: DecodedMetadataRecorded[];
   throwOnFetch?: boolean;
 }): {
-  client: Pick<import('@antseed/node').StatsClient, 'getMetadataRecordedEvents' | 'getBlockNumber'>;
+  client: Pick<import('@torveai/node').StatsClient, 'getMetadataRecordedEvents' | 'getBlockNumber'>;
   fetchCalls: Array<{ fromBlock: number; toBlock: number }>;
 } {
   const fetchCalls: Array<{ fromBlock: number; toBlock: number }> = [];

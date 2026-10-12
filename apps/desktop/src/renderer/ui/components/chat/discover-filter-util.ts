@@ -106,7 +106,7 @@ export function matchesMinStake(row: DiscoverRow, minStakeAnts: number): boolean
 
 /**
  * Effective on-chain channel count for a peer. Prefers the live value from
- * AntseedChannels.getAgentStats; falls back to the peer-metadata count while
+ * TorveChannels.getAgentStats; falls back to the peer-metadata count while
  * chain stats haven't loaded yet.
  */
 export function rowChannelCount(row: DiscoverRow): number {

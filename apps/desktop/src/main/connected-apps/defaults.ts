@@ -48,9 +48,9 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
     configPatch: {
       format: 'opencode',
       configPath: '~/.config/opencode/opencode.jsonc',
-      providerKey: 'antseed',
+      providerKey: 'torve',
       npm: '@ai-sdk/openai-compatible',
-      providerName: 'Antseed',
+      providerName: 'Torve',
       baseURL: 'http://localhost:{buyerPort}/v1',
       // Patch actual installations (native and, on Windows, WSL distros)
       // instead of blindly writing the one path above; fail the connect when
@@ -70,8 +70,8 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
     configPatch: {
       format: 'codex',
       configPath: '~/.codex/config.toml',
-      providerKey: 'antseed',
-      providerName: 'Antseed',
+      providerKey: 'torve',
+      providerName: 'Torve',
       baseURL: 'http://localhost:{buyerPort}/v1',
       installProbe: 'codex',
     },
@@ -87,7 +87,7 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
     configPatch: {
       format: 'claude-code',
       configPath: '~/.claude/settings.json',
-      providerKey: 'antseed',
+      providerKey: 'torve',
       baseURL: 'http://localhost:{buyerPort}',
       installProbe: 'claude',
     },
@@ -113,7 +113,7 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
       format: 'claude-desktop',
       // Claude's normal-profile config: the patch flips deploymentMode to
       // "3p" here, which makes Claude boot against the Claude-3p profile
-      // directory below, where the Antseed gateway profile is written.
+      // directory below, where the Torve gateway profile is written.
       // Windows paths are NOT resolved here — Claude has several install
       // layouts there (classic, MSIX, Nest), so claudeDesktopPatchTargets
       // derives its own candidate roots on win32 and these apply elsewhere.
@@ -139,7 +139,7 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
     configPatch: {
       format: 'hermes',
       configPath: '~/.hermes/config.yaml',
-      providerKey: 'antseed',
+      providerKey: 'torve',
       baseURL: 'http://localhost:{buyerPort}/v1',
     },
   },
@@ -155,8 +155,8 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
       format: 'droid',
       // Droid CLI and Factory Desktop share this live-reloaded user config.
       configPath: '~/.factory/settings.json',
-      providerKey: 'antseed',
-      providerName: 'Antseed Auto',
+      providerKey: 'torve',
+      providerName: 'Torve Auto',
       baseURL: 'http://localhost:{buyerPort}/v1',
       originator: 'droid',
       installProbe: 'droid',
@@ -173,8 +173,8 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
     configPatch: {
       format: 't3code',
       configPath: '~/.t3/userdata/settings.json',
-      providerKey: 'antseed',
-      providerName: 'Antseed',
+      providerKey: 'torve',
+      providerName: 'Torve',
       baseURL: 'http://localhost:{buyerPort}',
     },
   },
@@ -190,7 +190,7 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
       format: 'pi',
       configPath: '~/.pi/agent/models.json',
       settingsPath: '~/.pi/agent/settings.json',
-      providerKey: 'antseed',
+      providerKey: 'torve',
       baseURL: 'http://localhost:{buyerPort}/v1',
       // Pi's OpenAI Responses transport includes prompt_cache_key with the
       // Pi session id. The buyer proxy uses that as the conversation key so
@@ -212,7 +212,7 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
       format: 'pi',
       configPath: '~/.pi/agent/models.json',
       settingsPath: '~/.pi/agent/settings.json',
-      providerKey: 'antseed-gooeypi',
+      providerKey: 'torve-gooeypi',
       baseURL: 'http://localhost:{buyerPort}/v1',
       api: 'openai-responses',
       originator: 'gooeypi',
@@ -235,8 +235,8 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
       }),
       // WSL installs read the XDG path regardless of the Windows resolution.
       wslConfigPath: '~/.config/crush/crush.json',
-      providerKey: 'antseed',
-      providerName: 'Antseed',
+      providerKey: 'torve',
+      providerName: 'Torve',
       baseURL: 'http://localhost:{buyerPort}/v1',
       installProbe: 'crush',
     },
@@ -279,8 +279,8 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
         base: 'APPDATA',
         segments: ['Zed', 'settings.json'],
       }),
-      providerKey: 'antseed',
-      providerName: 'Antseed',
+      providerKey: 'torve',
+      providerName: 'Torve',
       baseURL: 'http://localhost:{buyerPort}/v1',
     },
   },

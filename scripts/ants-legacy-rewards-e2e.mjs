@@ -16,10 +16,10 @@ export function artifacts() {
   const version = spawnSync(compiler, ['--version'], { encoding: 'utf8' });
   assert.match(version.stdout ?? '', /Version: 0\.8\.24\+/, 'Install Foundry solc 0.8.24 or set SOLC_BIN to that compiler');
   const selection = {
-    'legacy/AntseedEmissions.sol': { AntseedEmissions: ['storageLayout'] },
-    'legacy/AntseedEmissionsV2.sol': { AntseedEmissionsV2: ['storageLayout'] },
-    'policies/AntseedSellerUnlockPolicy.sol': { AntseedSellerUnlockPolicy: ['abi', 'evm.bytecode.object'] },
-    'policies/AntseedLegacySellerClaimPolicy.sol': { AntseedLegacySellerClaimPolicy: ['abi', 'evm.bytecode.object'] },
+    'legacy/TorveEmissions.sol': { TorveEmissions: ['storageLayout'] },
+    'legacy/TorveEmissionsV2.sol': { TorveEmissionsV2: ['storageLayout'] },
+    'policies/TorveSellerUnlockPolicy.sol': { TorveSellerUnlockPolicy: ['abi', 'evm.bytecode.object'] },
+    'policies/TorveLegacySellerClaimPolicy.sol': { TorveLegacySellerClaimPolicy: ['abi', 'evm.bytecode.object'] },
     'test/mocks/AntsRewardsSandbox.sol': { '*': ['abi', 'evm.bytecode.object'] },
   };
   const result = spawnSync(compiler, ['--standard-json', '--base-path', path.join(repository, 'packages/contracts'), '--include-path', path.join(repository, 'node_modules')], {
@@ -75,7 +75,7 @@ export async function runLegacyRewardScenarios({ isolate, api, action, open, pro
     const params = await legacy.epochParams(epoch);
     assert(params[6] && params[0] > 0n && params[1] > 0n, 'Pinned epoch must have real snapshotted reward budgets');
     const pointsContract = preMigration ? new Contract(await legacy.legacyEmissions(), legacy.interface, provider) : legacy;
-    const layout = preMigration ? artifacts()['legacy/AntseedEmissions.sol'].AntseedEmissions.storageLayout.storage : artifacts()['legacy/AntseedEmissionsV2.sol'].AntseedEmissionsV2.storageLayout.storage;
+    const layout = preMigration ? artifacts()['legacy/TorveEmissions.sol'].TorveEmissions.storageLayout.storage : artifacts()['legacy/TorveEmissionsV2.sol'].TorveEmissionsV2.storageLayout.storage;
     const mappingSlot = (label, keys) => {
       const field = layout.find(entry => entry.label === label);
       assert(field && field.offset === 0 && field.type.startsWith('t_mapping'), `Missing mapping layout: ${label}`);
@@ -113,7 +113,7 @@ export async function runLegacyRewardScenarios({ isolate, api, action, open, pro
   async function installRelease(fixture, { whitelist = true, wash = false } = {}) {
     const status = await deploy('test/mocks/AntsRewardsSandbox.sol', 'AntsRewardsSandboxWashStatus');
     if (wash) await (await status.setWashTrader(wallet, true)).wait();
-    const policy = await deploy('policies/AntseedLegacySellerClaimPolicy.sol', 'AntseedLegacySellerClaimPolicy', [fixture.legacy.target, fixture.lastEpoch, 1000, status.target]);
+    const policy = await deploy('policies/TorveLegacySellerClaimPolicy.sol', 'TorveLegacySellerClaimPolicy', [fixture.legacy.target, fixture.lastEpoch, 1000, status.target]);
     await ownerSend(fixture.pool, 'setSellerClaimPolicy', [policy.target]);
     await ownerSend(token, 'setTransferWhitelist', [fixture.pool.target, whitelist]);
     await refresh();
@@ -244,7 +244,7 @@ export async function runLegacyRewardScenarios({ isolate, api, action, open, pro
 
   await isolate('legacy matrix: eligible seller payout goes to wallet, not a stake', async () => {
     const fixture = await seed();
-    const policy = await deploy('policies/AntseedSellerUnlockPolicy.sol', 'AntseedSellerUnlockPolicy');
+    const policy = await deploy('policies/TorveSellerUnlockPolicy.sol', 'TorveSellerUnlockPolicy');
     await (await policy.setSellerEligibility(wallet, true)).wait();
     await ownerSend(fixture.legacy, 'setSellerUnlockPolicy', [policy.target]); await refresh();
     assert.deepEqual((await api('rewards')).legacy.sellerPayout, { destination: 'wallet', recipient: wallet });
@@ -259,7 +259,7 @@ export async function runLegacyRewardScenarios({ isolate, api, action, open, pro
 
   await isolate('legacy matrix: stale seller payout destination is rejected before wallet approval', async () => {
     const fixture = await seed();
-    const policy = await deploy('policies/AntseedSellerUnlockPolicy.sol', 'AntseedSellerUnlockPolicy');
+    const policy = await deploy('policies/TorveSellerUnlockPolicy.sol', 'TorveSellerUnlockPolicy');
     await (await policy.setSellerEligibility(wallet, true)).wait();
     await ownerSend(fixture.legacy, 'setSellerUnlockPolicy', [policy.target]);
     const nonce = await rpc('eth_getTransactionCount', [wallet, 'latest']);

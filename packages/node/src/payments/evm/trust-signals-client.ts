@@ -17,15 +17,15 @@ import { multicallRead, MULTICALL3_ADDRESS, type MulticallRequest } from './mult
  */
 
 export interface TrustSignalsAddresses {
-  /** `AntseedSellerRegistry` (or legacy `AntseedStaking`): `getAgentId`. */
+  /** `TorveSellerRegistry` (or legacy `TorveStaking`): `getAgentId`. */
   sellerRegistry: string;
-  /** `AntseedChannels`: `getAgentStats`. */
+  /** `TorveChannels`: `getAgentStats`. */
   channels: string;
-  /** `AntseedSellerPools`: pool power and active stake. */
+  /** `TorveSellerPools`: pool power and active stake. */
   sellerPools?: string;
-  /** `AntseedUsageAccounting`: epoch and recognized seller points. */
+  /** `TorveUsageAccounting`: epoch and recognized seller points. */
   usageAccounting?: string;
-  /** `AntseedWashTradingRegistry`: proven wash-trader verdicts. */
+  /** `TorveWashTradingRegistry`: proven wash-trader verdicts. */
   washTradingRegistry?: string;
 }
 

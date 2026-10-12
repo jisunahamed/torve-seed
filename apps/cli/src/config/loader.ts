@@ -4,10 +4,10 @@ import { homedir } from 'node:os';
 import {
   DEFAULT_MODEL_ROUTING_PREFERENCES,
   type ModelRoutingPreferences,
-} from '@antseed/node/model-routing';
+} from '@torveai/node/model-routing';
 import type {
   HierarchicalPricingConfig,
-  AntseedConfig,
+  TorveConfig,
   DomainVerificationConfig,
   DomainVerificationMethod,
   GithubVerificationConfig,
@@ -237,8 +237,8 @@ function normalizeGithubVerification(
 }
 
 function cloneVerifications(
-  value: AntseedConfig['seller']['verifications'],
-): AntseedConfig['seller']['verifications'] {
+  value: TorveConfig['seller']['verifications'],
+): TorveConfig['seller']['verifications'] {
   if (!value) return undefined;
   const domains = value.domains
     ? value.domains.map((claim) => ({
@@ -261,8 +261,8 @@ function cloneVerifications(
 
 function normalizeVerifications(
   value: unknown,
-  fallback?: AntseedConfig['seller']['verifications'],
-): { verifications: NonNullable<AntseedConfig['seller']['verifications']> } | Record<string, never> {
+  fallback?: TorveConfig['seller']['verifications'],
+): { verifications: NonNullable<TorveConfig['seller']['verifications']> } | Record<string, never> {
   if (!isRecord(value)) {
     const cloned = cloneVerifications(fallback);
     return cloned ? { verifications: cloned } : {};
@@ -280,8 +280,8 @@ function normalizeVerifications(
 }
 
 function cloneSellerHealthCheck(
-  value: AntseedConfig['seller']['healthCheck'],
-): AntseedConfig['seller']['healthCheck'] {
+  value: TorveConfig['seller']['healthCheck'],
+): TorveConfig['seller']['healthCheck'] {
   if (!value) return undefined;
   return {
     ...(value.enabled !== undefined ? { enabled: value.enabled } : {}),
@@ -292,8 +292,8 @@ function cloneSellerHealthCheck(
 
 function normalizeSellerHealthCheck(
   value: unknown,
-  fallback?: AntseedConfig['seller']['healthCheck'],
-): { healthCheck: NonNullable<AntseedConfig['seller']['healthCheck']> } | Record<string, never> {
+  fallback?: TorveConfig['seller']['healthCheck'],
+): { healthCheck: NonNullable<TorveConfig['seller']['healthCheck']> } | Record<string, never> {
   if (!isRecord(value)) {
     const cloned = cloneSellerHealthCheck(fallback);
     return cloned ? { healthCheck: cloned } : {};
@@ -309,8 +309,8 @@ function normalizeSellerHealthCheck(
 }
 
 function cloneSellerGasCheck(
-  value: AntseedConfig['seller']['gasCheck'],
-): AntseedConfig['seller']['gasCheck'] {
+  value: TorveConfig['seller']['gasCheck'],
+): TorveConfig['seller']['gasCheck'] {
   if (!value) return undefined;
   return {
     ...(value.enabled !== undefined ? { enabled: value.enabled } : {}),
@@ -321,8 +321,8 @@ function cloneSellerGasCheck(
 
 function normalizeSellerGasCheck(
   value: unknown,
-  fallback?: AntseedConfig['seller']['gasCheck'],
-): { gasCheck: NonNullable<AntseedConfig['seller']['gasCheck']> } | Record<string, never> {
+  fallback?: TorveConfig['seller']['gasCheck'],
+): { gasCheck: NonNullable<TorveConfig['seller']['gasCheck']> } | Record<string, never> {
   if (!isRecord(value)) {
     const cloned = cloneSellerGasCheck(fallback);
     return cloned ? { gasCheck: cloned } : {};
@@ -338,8 +338,8 @@ function normalizeSellerGasCheck(
 }
 
 function cloneSellerFreeTier(
-  value: AntseedConfig['seller']['freeTier'],
-): AntseedConfig['seller']['freeTier'] {
+  value: TorveConfig['seller']['freeTier'],
+): TorveConfig['seller']['freeTier'] {
   if (!value) return undefined;
   return {
     ...(value.maxRequestsPerAddress !== undefined ? { maxRequestsPerAddress: value.maxRequestsPerAddress } : {}),
@@ -350,8 +350,8 @@ function cloneSellerFreeTier(
 
 function normalizeSellerFreeTier(
   value: unknown,
-  fallback?: AntseedConfig['seller']['freeTier'],
-): { freeTier: NonNullable<AntseedConfig['seller']['freeTier']> } | Record<string, never> {
+  fallback?: TorveConfig['seller']['freeTier'],
+): { freeTier: NonNullable<TorveConfig['seller']['freeTier']> } | Record<string, never> {
   if (!isRecord(value)) {
     const cloned = cloneSellerFreeTier(fallback);
     return cloned ? { freeTier: cloned } : {};
@@ -371,20 +371,20 @@ function normalizeSellerFreeTier(
 
 function normalizeSellerFreeUsage(
   value: unknown,
-  fallback?: AntseedConfig['seller']['freeUsage'],
-): { freeUsage: NonNullable<AntseedConfig['seller']['freeUsage']> } | Record<string, never> {
+  fallback?: TorveConfig['seller']['freeUsage'],
+): { freeUsage: NonNullable<TorveConfig['seller']['freeUsage']> } | Record<string, never> {
   const src: Record<string, unknown> | undefined = isRecord(value) ? value : fallback;
   if (!src) return {};
-  const out: NonNullable<AntseedConfig['seller']['freeUsage']> = {};
+  const out: NonNullable<TorveConfig['seller']['freeUsage']> = {};
   if (typeof src['recordBatchSize'] === 'number') out.recordBatchSize = src['recordBatchSize'];
   if (typeof src['recordFlushIntervalMs'] === 'number') out.recordFlushIntervalMs = src['recordFlushIntervalMs'];
   return Object.keys(out).length > 0 ? { freeUsage: out } : {};
 }
 
 function mergeSellerConfig(
-  defaults: AntseedConfig['seller'],
+  defaults: TorveConfig['seller'],
   value: unknown
-): AntseedConfig['seller'] {
+): TorveConfig['seller'] {
   if (!isRecord(value)) {
     return {
       reserveFloor: defaults.reserveFloor,
@@ -475,8 +475,8 @@ function mergeBuyerRoutingPreferences(
 }
 
 function cloneBuyerVerification(
-  value: AntseedConfig['buyer']['verification'],
-): AntseedConfig['buyer']['verification'] {
+  value: TorveConfig['buyer']['verification'],
+): TorveConfig['buyer']['verification'] {
   if (!value) return undefined;
   return {
     ...(value.sampleRate !== undefined ? { sampleRate: value.sampleRate } : {}),
@@ -486,8 +486,8 @@ function cloneBuyerVerification(
 
 function normalizeBuyerVerification(
   value: unknown,
-  fallback?: AntseedConfig['buyer']['verification'],
-): { verification: NonNullable<AntseedConfig['buyer']['verification']> } | Record<string, never> {
+  fallback?: TorveConfig['buyer']['verification'],
+): { verification: NonNullable<TorveConfig['buyer']['verification']> } | Record<string, never> {
   if (!isRecord(value)) {
     const cloned = cloneBuyerVerification(fallback);
     return cloned ? { verification: cloned } : {};
@@ -501,9 +501,9 @@ function normalizeBuyerVerification(
 }
 
 function mergeBuyerConfig(
-  defaults: AntseedConfig['buyer'],
+  defaults: TorveConfig['buyer'],
   value: unknown
-): AntseedConfig['buyer'] {
+): TorveConfig['buyer'] {
   const defaultRoutingPreferences = defaults.routingPreferences ?? DEFAULT_MODEL_ROUTING_PREFERENCES;
   if (!isRecord(value)) {
     return {
@@ -566,7 +566,7 @@ function normalizeBooleanConfigValue(value: unknown, defaultValue: boolean, path
  * Load configuration from a JSON file.
  * Returns default configuration if the file does not exist.
  */
-export async function loadConfig(configPath: string): Promise<AntseedConfig> {
+export async function loadConfig(configPath: string): Promise<TorveConfig> {
   const resolved = resolveConfigPath(configPath);
 
   let raw: string;
@@ -590,9 +590,9 @@ export async function loadConfig(configPath: string): Promise<AntseedConfig> {
   const defaults = createDefaultConfig();
   const parsed = isRecord(parsedRaw) ? parsedRaw : {};
 
-  const merged: AntseedConfig = {
+  const merged: TorveConfig = {
     ...defaults,
-    ...(parsed as Partial<AntseedConfig>),
+    ...(parsed as Partial<TorveConfig>),
     identity: {
       ...defaults.identity,
       ...(isRecord(parsed['identity']) ? parsed['identity'] : {}),
@@ -617,7 +617,7 @@ export async function loadConfig(configPath: string): Promise<AntseedConfig> {
  * Save configuration to a JSON file.
  * Creates the directory if it doesn't exist.
  */
-export async function saveConfig(configPath: string, config: AntseedConfig): Promise<void> {
+export async function saveConfig(configPath: string, config: TorveConfig): Promise<void> {
   const resolved = resolveConfigPath(configPath);
   await mkdir(dirname(resolved), { recursive: true });
   await writeFile(resolved, JSON.stringify(config, null, 2), 'utf-8');

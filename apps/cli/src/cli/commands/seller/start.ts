@@ -8,7 +8,7 @@ import { getGlobalOptions } from '../types.js'
 import { loadConfig } from '../../../config/loader.js'
 import { DEFAULT_RESTRICTED_COUNTRIES } from '../../../config/defaults.js'
 import {
-  AntseedNode,
+  TorveNode,
   ModelHealthChecker,
   GasHealthMonitor,
   CONNECTION_CAPABILITY_MODEL_HEALTH_V1,
@@ -24,24 +24,24 @@ import {
   type ConfigField,
   resolveChainConfig,
   loadOrCreateIdentity,
-} from '@antseed/node'
-import type { PaymentConfig } from '@antseed/node/payments'
-import { checkSellerReadiness, DEFAULT_MIN_SETTLE_DELTA_STR } from '@antseed/node/payments'
+} from '@torveai/node'
+import type { PaymentConfig } from '@torveai/node/payments'
+import { checkSellerReadiness, DEFAULT_MIN_SETTLE_DELTA_STR } from '@torveai/node/payments'
 import {
-  ANTSEED_BASE_RPC_URL_ENV,
+  TORVE_BASE_RPC_URL_ENV,
   createIdentityClient,
   createStakingClient,
   resolveBaseRpcUrlOverride,
 } from '../../payment-utils.js'
-import type { AntseedConfig, SellerCLIConfig, SellerProviderConfig } from '../../../config/types.js'
-import { ANTSEED_VERIFIER_SDKS_ENV, buildVerifierCapabilities, normalizeVerifierIds } from '../../../plugins/verifier.js'
-import { parseBootstrapList, toBootstrapConfig } from '@antseed/node/discovery'
+import type { TorveConfig, SellerCLIConfig, SellerProviderConfig } from '../../../config/types.js'
+import { TORVE_VERIFIER_SDKS_ENV, buildVerifierCapabilities, normalizeVerifierIds } from '../../../plugins/verifier.js'
+import { parseBootstrapList, toBootstrapConfig } from '@torveai/node/discovery'
 import { setupShutdownHandler } from '../../shutdown.js'
 import { loadProviderPlugin, loadProverPlugin, buildPluginConfig, getPackageVersions } from '../../../plugins/loader.js'
 import { ensurePluginsUpToDate } from '../../../plugins/drift.js'
 import { resolveEffectiveSellerConfig, type SellerRuntimeOverrides } from '../../../config/effective.js'
 import { ensureDerivedIdentityDisplayName } from '../../../config/identity-display-name.js'
-import { AntAgentProvider, loadAntAgent, type AntAgentDefinition } from '@antseed/ant-agent'
+import { AntAgentProvider, loadAntAgent, type AntAgentDefinition } from '@torveai/ant-agent'
 import { resolvePluginPackage } from '../../../plugins/registry.js'
 import { startupReachabilityWarning } from './reachability.js'
 import { initializeProvider } from './provider-init.js'
@@ -91,7 +91,7 @@ export function isPublicRpcUrl(rpcUrl: string): boolean {
 }
 
 /**
- * Gate `antseed seller start` on required prerequisites:
+ * Gate `torve seller start` on required prerequisites:
  *   1. At least one service is configured for the selected provider.
  *   2. (When payments are enabled) seller is registered on-chain and staked.
  * Runtime pricing overrides that would be silently ignored (because the
@@ -102,7 +102,7 @@ export function isPublicRpcUrl(rpcUrl: string): boolean {
  */
 export async function assertSellerPrerequisites(input: {
   dataDir: string
-  config: AntseedConfig
+  config: TorveConfig
   effectiveSeller: SellerCLIConfig
   providerNames: string[]
   paymentsEnabled: boolean
@@ -131,7 +131,7 @@ export async function assertSellerPrerequisites(input: {
       failures.push({
         title: `No services configured for provider "${providerName}"`,
         detail: 'A seller must announce at least one service. Add one with:',
-        command: `antseed config seller add-service ${providerName} <serviceId> --input <usd> --output <usd>`,
+        command: `torve config seller add-service ${providerName} <serviceId> --input <usd> --output <usd>`,
       })
     }
   }
@@ -141,8 +141,8 @@ export async function assertSellerPrerequisites(input: {
   if (runtimePricingOverride && Object.keys(effectiveSeller.providers).length === 0) {
     failures.push({
       title: 'Pricing override has nothing to apply to',
-      detail: `--input-usd-per-million / --output-usd-per-million (or ANTSEED_SELLER_*_USD_PER_MILLION env) were supplied, but no providers are configured in seller.providers. The override would silently no-op.`,
-      command: `antseed config seller add-service ${providerNames[0] ?? '<provider>'} <serviceId> --input <usd> --output <usd>`,
+      detail: `--input-usd-per-million / --output-usd-per-million (or TORVE_SELLER_*_USD_PER_MILLION env) were supplied, but no providers are configured in seller.providers. The override would silently no-op.`,
+      command: `torve config seller add-service ${providerNames[0] ?? '<provider>'} <serviceId> --input <usd> --output <usd>`,
     })
   }
 
@@ -184,7 +184,7 @@ export async function assertSellerPrerequisites(input: {
     }
     console.error('')
   }
-  console.error(chalk.dim('Run `antseed seller setup` for a guided walkthrough, or pass --skip-prereq-check to bypass all checks (not recommended).'))
+  console.error(chalk.dim('Run `torve seller setup` for a guided walkthrough, or pass --skip-prereq-check to bypass all checks (not recommended).'))
   throw new Error('seller prerequisites not met')
 }
 
@@ -251,7 +251,7 @@ export function buildSellerRuntimeOverridesFromFlags(options: {
 
 /**
  * Translate the unified `seller.providers[name]` block into the flat
- * `ANTSEED_*` env keys that provider plugins consume. Plugins continue to
+ * `TORVE_*` env keys that provider plugins consume. Plugins continue to
  * receive the same shape they always have — the CLI just produces it from
  * config.json instead of having users set env vars by hand.
  */
@@ -261,28 +261,28 @@ export function buildSellerPluginRuntimeEnv(
 ): Record<string, string> {
   const providerCfg = sellerConfig.providers?.[providerName]
   const runtimeEnv: Record<string, string> = {
-    ANTSEED_MAX_CONCURRENCY: String(sellerConfig.maxConcurrentBuyers),
+    TORVE_MAX_CONCURRENCY: String(sellerConfig.maxConcurrentBuyers),
   }
   if (!providerCfg) {
     return runtimeEnv
   }
 
   if (providerCfg.defaults) {
-    runtimeEnv['ANTSEED_INPUT_USD_PER_MILLION'] = String(providerCfg.defaults.inputUsdPerMillion)
-    runtimeEnv['ANTSEED_OUTPUT_USD_PER_MILLION'] = String(providerCfg.defaults.outputUsdPerMillion)
+    runtimeEnv['TORVE_INPUT_USD_PER_MILLION'] = String(providerCfg.defaults.inputUsdPerMillion)
+    runtimeEnv['TORVE_OUTPUT_USD_PER_MILLION'] = String(providerCfg.defaults.outputUsdPerMillion)
     if (providerCfg.defaults.cachedInputUsdPerMillion != null) {
-      runtimeEnv['ANTSEED_CACHED_INPUT_USD_PER_MILLION'] = String(providerCfg.defaults.cachedInputUsdPerMillion)
+      runtimeEnv['TORVE_CACHED_INPUT_USD_PER_MILLION'] = String(providerCfg.defaults.cachedInputUsdPerMillion)
     }
   }
 
   const serviceIds = Object.keys(providerCfg.services)
   if (serviceIds.length > 0) {
-    runtimeEnv['ANTSEED_ALLOWED_SERVICES'] = serviceIds.join(',')
+    runtimeEnv['TORVE_ALLOWED_SERVICES'] = serviceIds.join(',')
   }
 
   // Per-service pricing: { serviceId -> TokenPricingUsdPerMillion }
   // Note: categories are NOT emitted as an env var. No plugin reads
-  // ANTSEED_SERVICE_CATEGORIES_JSON — the CLI writes them directly onto
+  // TORVE_SERVICE_CATEGORIES_JSON — the CLI writes them directly onto
   // `provider.serviceCategories` in seed.ts below. Keeping categories out of
   // the plugin env avoids dead noise in process.env.
   const servicePricing: Record<string, unknown> = {}
@@ -304,24 +304,24 @@ export function buildSellerPluginRuntimeEnv(
     }
   }
   if (Object.keys(servicePricing).length > 0) {
-    runtimeEnv['ANTSEED_SERVICE_PRICING_JSON'] = JSON.stringify(servicePricing)
+    runtimeEnv['TORVE_SERVICE_PRICING_JSON'] = JSON.stringify(servicePricing)
   }
   if (Object.keys(serviceAliasMap).length > 0) {
-    runtimeEnv['ANTSEED_SERVICE_ALIAS_MAP_JSON'] = JSON.stringify(serviceAliasMap)
+    runtimeEnv['TORVE_SERVICE_ALIAS_MAP_JSON'] = JSON.stringify(serviceAliasMap)
   }
   if (Object.keys(serviceCapabilities).length > 0) {
-    runtimeEnv['ANTSEED_SERVICE_CAPABILITIES_JSON'] = JSON.stringify(serviceCapabilities)
+    runtimeEnv['TORVE_SERVICE_CAPABILITIES_JSON'] = JSON.stringify(serviceCapabilities)
   }
   if (Object.keys(serviceUnitBillingModels).length > 0) {
-    runtimeEnv['ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON'] = JSON.stringify(serviceUnitBillingModels)
+    runtimeEnv['TORVE_SERVICE_UNIT_BILLING_MODELS_JSON'] = JSON.stringify(serviceUnitBillingModels)
   }
   const pluginPackage = resolvePluginPackage(providerCfg.plugin)
-  const envPrefix = pluginPackage === '@antseed/provider-local-llm'
+  const envPrefix = pluginPackage === '@torveai/provider-local-llm'
     ? 'LOCAL_LLM'
-    : pluginPackage === '@antseed/provider-typesafe'
+    : pluginPackage === '@torveai/provider-typesafe'
       ? 'TYPESAFE'
-      : pluginPackage === '@antseed/provider-venice-video' ? 'VENICE_VIDEO'
-      : pluginPackage === '@antseed/provider-fal-video' ? 'FAL_VIDEO'
+      : pluginPackage === '@torveai/provider-venice-video' ? 'VENICE_VIDEO'
+      : pluginPackage === '@torveai/provider-fal-video' ? 'FAL_VIDEO'
       : 'OPENAI'
   if (providerCfg.baseUrl) {
     runtimeEnv[`${envPrefix}_BASE_URL`] = providerCfg.baseUrl
@@ -348,7 +348,7 @@ export function getUnsupportedUnitBillingWarning(
     .filter(([, service]) => service.unitBillingModels !== undefined)
     .map(([serviceId]) => serviceId)
   if (configuredServices.length === 0) return undefined
-  if (configFields.some((field) => field.key === 'ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON')) {
+  if (configFields.some((field) => field.key === 'TORVE_SERVICE_UNIT_BILLING_MODELS_JSON')) {
     return undefined
   }
   return `Provider "${providerName}" (${providerConfig.plugin}) ignores unitBillingModels for service(s): ${configuredServices.join(', ')} because its plugin does not support unit billing.`
@@ -364,8 +364,8 @@ export function mergeSellerRuntimeEnv(
   const merged = { ...baseConfig }
   const forcePricingOverride = options?.forcePricingOverride ?? false
   const pricingKeys = new Set([
-    'ANTSEED_INPUT_USD_PER_MILLION',
-    'ANTSEED_OUTPUT_USD_PER_MILLION',
+    'TORVE_INPUT_USD_PER_MILLION',
+    'TORVE_OUTPUT_USD_PER_MILLION',
   ])
 
   for (const [key, value] of Object.entries(runtimeEnv)) {
@@ -389,9 +389,9 @@ export function registerSellerStartCommand(sellerCmd: Command): void {
     .option('--dht-port <number>', 'UDP port for DHT (default: 6881)', parseInt)
     .option('--signaling-port <number>', 'TCP port for P2P signaling (default: 6882)', parseInt)
     .option('--min-settle-delta <usdc>', 'minimum unsettled delta (USDC decimal, e.g. 0.002) before idle settle submits a tx')
-    .option('--base-rpc-url <url>', `runtime-only Base JSON-RPC URL override (also ${ANTSEED_BASE_RPC_URL_ENV})`)
+    .option('--base-rpc-url <url>', `runtime-only Base JSON-RPC URL override (also ${TORVE_BASE_RPC_URL_ENV})`)
     .option('--skip-prereq-check', 'skip pre-flight checks (services configured, on-chain registration + stake). Use only for local testing.')
-    .option('--verifiers <ids>', `comma-separated verifier SDK ids this seller supports (first is default; also ${ANTSEED_VERIFIER_SDKS_ENV})`)
+    .option('--verifiers <ids>', `comma-separated verifier SDK ids this seller supports (first is default; also ${TORVE_VERIFIER_SDKS_ENV})`)
     .action(async (options) => {
       const globalOpts = getGlobalOptions(sellerCmd)
       const config = await loadConfig(globalOpts.config)
@@ -430,7 +430,7 @@ export function registerSellerStartCommand(sellerCmd: Command): void {
 
       if (selectedProviderNames.length === 0) {
         console.error(chalk.red('Error: No seller providers are configured.'))
-        console.error(chalk.dim('Run: antseed seller setup  or  antseed config seller add-provider <name> --plugin <plugin>'))
+        console.error(chalk.dim('Run: torve seller setup  or  torve config seller add-provider <name> --plugin <plugin>'))
         process.exit(1)
       }
 
@@ -441,7 +441,7 @@ export function registerSellerStartCommand(sellerCmd: Command): void {
         process.exit(1)
       }
 
-      // Refresh any installed plugin whose pinned `@antseed/*` core deps are
+      // Refresh any installed plugin whose pinned `@torveai/*` core deps are
       // older than the versions the CLI itself bundles. Must run BEFORE the
       // first `loadProviderPlugin` import below — once a plugin is `import()`-ed,
       // refreshing it on disk has no effect on the running process.
@@ -470,7 +470,7 @@ export function registerSellerStartCommand(sellerCmd: Command): void {
           const pluginConfig = {
             ...mergeSellerRuntimeEnv(basePluginConfig, runtimeEnv, { forcePricingOverride }),
             // Lets plugins keep small state (e.g. pending video download URLs) across restarts.
-            ANTSEED_DATA_DIR: globalOpts.dataDir,
+            TORVE_DATA_DIR: globalOpts.dataDir,
           }
           const provider = await plugin.createProvider(pluginConfig)
           if (provider.init) {
@@ -493,11 +493,11 @@ export function registerSellerStartCommand(sellerCmd: Command): void {
         : undefined
 
       const preferredMethod = config.payments.preferredMethod
-      const defaultDepositAmountUSDC = process.env['ANTSEED_DEFAULT_DEPOSIT_USDC'] ?? config.payments.crypto?.defaultLockAmountUSDC ?? '1'
+      const defaultDepositAmountUSDC = process.env['TORVE_DEFAULT_DEPOSIT_USDC'] ?? config.payments.crypto?.defaultLockAmountUSDC ?? '1'
       const defaultDepositAmountUSDCBaseUnits = toUSDCBaseUnits(defaultDepositAmountUSDC, '1000000')
-      const settlementIdleMsRaw = process.env['ANTSEED_SETTLEMENT_IDLE_MS']
+      const settlementIdleMsRaw = process.env['TORVE_SETTLEMENT_IDLE_MS']
       const settlementIdleMs = settlementIdleMsRaw ? parseInt(settlementIdleMsRaw, 10) : 600_000
-      const sellerWalletAddress = process.env['ANTSEED_SELLER_WALLET_ADDRESS']
+      const sellerWalletAddress = process.env['TORVE_SELLER_WALLET_ADDRESS']
 
       let paymentConfig: PaymentConfig | null = null
       let depositRelayAddress: string | undefined
@@ -536,7 +536,7 @@ export function registerSellerStartCommand(sellerCmd: Command): void {
         }
       }
 
-      const settlementEnv = parseOptionalBoolEnv(process.env['ANTSEED_ENABLE_SETTLEMENT'])
+      const settlementEnv = parseOptionalBoolEnv(process.env['TORVE_ENABLE_SETTLEMENT'])
       let paymentsEnabled = settlementEnv ?? paymentConfig !== null
       const cryptoRpcUrl = paymentConfig?.crypto?.rpcUrl
 
@@ -545,7 +545,7 @@ export function registerSellerStartCommand(sellerCmd: Command): void {
         if (!rpcUp) {
           paymentsEnabled = false
           console.log(chalk.yellow(`Payments disabled: RPC node unreachable at ${cryptoRpcUrl}`))
-          console.log(chalk.dim('Start your chain node or set ANTSEED_ENABLE_SETTLEMENT=true to force-enable payments.'))
+          console.log(chalk.dim('Start your chain node or set TORVE_ENABLE_SETTLEMENT=true to force-enable payments.'))
         }
       }
 
@@ -624,7 +624,7 @@ export function registerSellerStartCommand(sellerCmd: Command): void {
         const rpcSource = baseRpcUrlOverride ? 'runtime override' : 'config/default'
         console.log(chalk.dim(`  Base RPC URL: ${paymentConfig.crypto.rpcUrl} (${rpcSource})`))
         if (isPublicRpcUrl(paymentConfig.crypto.rpcUrl)) {
-          console.log(chalk.yellow('  Warning: using a public Base RPC. Public RPCs can be rate-limited or lag on event/log polling; sellers should use a dedicated RPC for reliable payment channel settlement. Learn how to configure one: https://antseed.com/docs/config#base-rpc-url'))
+          console.log(chalk.yellow('  Warning: using a public Base RPC. Public RPCs can be rate-limited or lag on event/log polling; sellers should use a dedicated RPC for reliable payment channel settlement. Learn how to configure one: https://torveai.com/docs/config#base-rpc-url'))
         }
       }
       // CLI flag (decimal USDC) overrides config JSON (base-unit string).
@@ -664,7 +664,7 @@ export function registerSellerStartCommand(sellerCmd: Command): void {
           console.log(chalk.yellow(`  restricted countries: off, geoip-country failed to load (${(err as Error).message})`))
         }
       }
-      const maxUploadBodyBytes = parseOptionalPositiveIntegerEnv(process.env['ANTSEED_MAX_UPLOAD_BODY_BYTES'])
+      const maxUploadBodyBytes = parseOptionalPositiveIntegerEnv(process.env['TORVE_MAX_UPLOAD_BODY_BYTES'])
         ?? effectiveSellerConfig.maxUploadBodyBytes
       if (maxUploadBodyBytes !== undefined) {
         console.log(chalk.dim(`  max upload body bytes: ${maxUploadBodyBytes}`))
@@ -694,7 +694,7 @@ export function registerSellerStartCommand(sellerCmd: Command): void {
       try {
         requestedVerifierIds = normalizeVerifierIds(
           (options.verifiers as string | undefined)
-            ?? process.env[ANTSEED_VERIFIER_SDKS_ENV]
+            ?? process.env[TORVE_VERIFIER_SDKS_ENV]
             ?? config.seller.verifiers?.join(',')
             ?? '',
         )
@@ -722,7 +722,7 @@ export function registerSellerStartCommand(sellerCmd: Command): void {
         ...(healthCheckEnabled ? [CONNECTION_CAPABILITY_MODEL_HEALTH_V1] : []),
       ]
 
-      const node = new AntseedNode({
+      const node = new TorveNode({
         role: 'seller',
         displayName: config.identity.displayName,
         ...(config.seller.publicAddress ? { publicAddress: config.seller.publicAddress } : {}),

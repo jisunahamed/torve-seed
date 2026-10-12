@@ -13,12 +13,12 @@ describe('provider-local-llm plugin', () => {
     const keys = plugin.configSchema!.map((f) => f.key);
     expect(keys).toContain('LOCAL_LLM_BASE_URL');
     expect(keys).toContain('LOCAL_LLM_API_KEY');
-    expect(keys).toContain('ANTSEED_INPUT_USD_PER_MILLION');
-    expect(keys).toContain('ANTSEED_OUTPUT_USD_PER_MILLION');
-    expect(keys).toContain('ANTSEED_MAX_CONCURRENCY');
-    expect(keys).toContain('ANTSEED_ALLOWED_SERVICES');
-    expect(keys).toContain('ANTSEED_SERVICE_PRICING_JSON');
-    expect(keys).toContain('ANTSEED_SERVICE_CAPABILITIES_JSON');
+    expect(keys).toContain('TORVE_INPUT_USD_PER_MILLION');
+    expect(keys).toContain('TORVE_OUTPUT_USD_PER_MILLION');
+    expect(keys).toContain('TORVE_MAX_CONCURRENCY');
+    expect(keys).toContain('TORVE_ALLOWED_SERVICES');
+    expect(keys).toContain('TORVE_SERVICE_PRICING_JSON');
+    expect(keys).toContain('TORVE_SERVICE_CAPABILITIES_JSON');
   });
 
   it('creates provider with default config', () => {
@@ -40,14 +40,14 @@ describe('provider-local-llm plugin', () => {
 
   it('applies custom concurrency', () => {
     const provider = plugin.createProvider({
-      ANTSEED_MAX_CONCURRENCY: '4',
+      TORVE_MAX_CONCURRENCY: '4',
     });
     expect(provider.maxConcurrency).toBe(4);
   });
 
   it('applies per-service pricing', () => {
     const provider = plugin.createProvider({
-      ANTSEED_SERVICE_PRICING_JSON: JSON.stringify({
+      TORVE_SERVICE_PRICING_JSON: JSON.stringify({
         'qwen3.5-9b': {
           inputUsdPerMillion: 0.15,
           outputUsdPerMillion: 0.6,
@@ -62,8 +62,8 @@ describe('provider-local-llm plugin', () => {
 
   it('announces configured service capabilities', () => {
     const provider = plugin.createProvider({
-      ANTSEED_ALLOWED_SERVICES: 'llama3.2-vision',
-      ANTSEED_SERVICE_CAPABILITIES_JSON: JSON.stringify({
+      TORVE_ALLOWED_SERVICES: 'llama3.2-vision',
+      TORVE_SERVICE_CAPABILITIES_JSON: JSON.stringify({
         'llama3.2-vision': {
           contextWindow: 131072,
           inputs: ['text', 'image'],

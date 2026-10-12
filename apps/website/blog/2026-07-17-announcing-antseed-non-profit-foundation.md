@@ -1,11 +1,11 @@
 ---
-slug: announcing-antseed-non-profit-foundation
-title: "Announcing the Antseed Non-Profit Foundation"
-authors: [antseed]
+slug: announcing-torve-non-profit-foundation
+title: "Announcing the Torve Non-Profit Foundation"
+authors: [torve]
 date: 2026-07-17
-description: "We've established a non-profit Foundation to steward the Antseed ecosystem. Here's why, what it holds, and what we're committing to."
+description: "We've established a non-profit Foundation to steward the Torve ecosystem. Here's why, what it holds, and what we're committing to."
 tags: ["foundation", "governance", "ecosystem"]
-keywords: [foundation, antseed]
+keywords: [foundation, torve]
 image: /og-image.jpg
 ---
 
@@ -19,7 +19,7 @@ We established a non-profit Foundation to steward the ecosystem. Its mission is 
 
 ## The "why" is simple
 
-We don't want a company controlling the Antseed ecosystem.
+We don't want a company controlling the Torve ecosystem.
 
 It is our view that networks that matter shouldn't live or die by the incentives of a single private entity. A company answers to shareholders. A Foundation answers to the mission and the community it exists to serve. That difference shapes every decision that follows.
 
@@ -41,13 +41,13 @@ The Foundation we're creating is designed to steward the ecosystem by utilising 
 
 This shows up in the smallest, most everyday decisions.
 
-The contributors wake up every morning with one master to serve: the network. In the product world, the question that drives every decision is "what are you optimising for?" and here the answer is always the same. The Antseed ecosystem. Not the dollar value flowing back to a Labs company.
+The contributors wake up every morning with one master to serve: the network. In the product world, the question that drives every decision is "what are you optimising for?" and here the answer is always the same. The Torve ecosystem. Not the dollar value flowing back to a Labs company.
 
 That single alignment changes everything. In an ecosystem where there is no Labs entity and the network is the most important element, incentives stop being utilised in a manner that benefits the few and start benefiting the network contributors, the people who actually own and use it.
 
 ## What the Foundation holds and does
 
-- **15% of total supply.** Recognising the contribution to the network and to support its role, the Foundation shall receive 15% of the tokens: the [Ecosystem Reserve](https://antseed.com/ants-token). Importantly, this allocation is not unlocked upfront. It vests in epochs, on the same schedule as the rest of the supply. No special treatment, no head start.
+- **15% of total supply.** Recognising the contribution to the network and to support its role, the Foundation shall receive 15% of the tokens: the [Ecosystem Reserve](https://torveai.com/ants-token). Importantly, this allocation is not unlocked upfront. It vests in epochs, on the same schedule as the rest of the supply. No special treatment, no head start.
 - The brand, the website, and other assets related to the network.
 - Core development funding and direction.
 - Grants to builders, contributors, and researchers growing the ecosystem.
@@ -66,6 +66,6 @@ No "trust us." Just receipts, every month. Our first transparency report will la
 
 This is about giving the ecosystem the best possible chance to become genuinely community-owned and self-sustaining. The establishment of the Foundation isn't the finish line. The Foundation shall seek to become the enabler of a growing and flourishing ecosystem where Network Contributors, including the Foundation, build together.
 
-So from now on, call us the Antseed Foundation.
+So from now on, call us the Torve Foundation.
 
 Let's build. 🐜

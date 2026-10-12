@@ -142,7 +142,7 @@ export function registerAppIpc(): void {
       }
       const saveOptions = {
         title: 'Save signer private key',
-        defaultPath: 'antseed-signer.key',
+        defaultPath: 'torve-signer.key',
         filters: [{ name: 'Key file', extensions: ['key', 'txt'] }],
       };
       const win = getMainWindow();

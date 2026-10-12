@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Alert02Icon } from '@hugeicons/core-free-icons';
-import { Button, Modal } from '@antseed/ui';
+import { Button, Modal } from '@torveai/ui';
 import { shortAddress } from '../../../core/format';
 import styles from './SignerKeyDialogs.module.scss';
 
@@ -34,7 +34,7 @@ export function ExportSignerKeyDialog({ isOpen, onClose }: ExportProps) {
     setBusy(true);
     setError(null);
     try {
-      const result = await window.antseedDesktop?.identityExportKey?.();
+      const result = await window.torveDesktop?.identityExportKey?.();
       if (!result) {
         setError('Key export is not available in this build.');
       } else if (result.ok && result.path) {
@@ -108,7 +108,7 @@ export function ImportSignerKeyDialog({ isOpen, onClose, onImported }: ImportPro
 
   const backupCurrent = async () => {
     setError(null);
-    const result = await window.antseedDesktop?.identityExportKey?.();
+    const result = await window.torveDesktop?.identityExportKey?.();
     if (result?.ok && result.path) {
       setBackupNote(`Current key saved to ${result.path}.`);
     } else if (result && !result.canceled) {
@@ -120,7 +120,7 @@ export function ImportSignerKeyDialog({ isOpen, onClose, onImported }: ImportPro
     setBusy(true);
     setError(null);
     try {
-      const result = await window.antseedDesktop?.identityImportKey?.(key);
+      const result = await window.torveDesktop?.identityImportKey?.(key);
       if (!result) {
         setError('Key import is not available in this build.');
       } else if (result.ok && result.address) {
@@ -143,7 +143,7 @@ export function ImportSignerKeyDialog({ isOpen, onClose, onImported }: ImportPro
             New signer imported: <strong>{shortAddress(importedAddress)}</strong>.
           </p>
           <p className={styles.body}>
-            Restart Antseed to finish switching to the new key. Your previous key was backed up on
+            Restart Torve to finish switching to the new key. Your previous key was backed up on
             this machine.
           </p>
           <div className={styles.actions}>

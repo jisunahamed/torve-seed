@@ -31,18 +31,18 @@ const DEPLOYED_RELEASE = '001-recognized-usage-deployed';
 const ACTIVATED_RELEASE = '001-recognized-usage-activated';
 
 const DEPLOYED_CONTRACT_NAMES = {
-  AntseedEmissionsGate: 'emissionsGate',
-  AntseedSellerPools: 'sellerPools',
-  AntseedSellerRegistry: 'sellerRegistry',
-  AntseedPositionInit: 'positionInit',
-  AntseedWashTradingRegistry: 'washTradingRegistry',
-  AntseedWashTradingPointsPolicy: 'washTradingPointsPolicy',
-  AntseedUsageAccounting: 'usageAccounting',
-  AntseedPointsPolicyRegistry: 'pointsPolicyRegistry',
-  AntseedSellerPoolsRewards: 'sellerPoolsRewards',
-  AntseedUsageRewards: 'usageRewards',
-  AntseedLegacyEmissionsEscrow: 'legacyEmissionsEscrow',
-  AntseedLegacyRewardsPoolRegistry: 'legacyRewardsPoolRegistry',
+  TorveEmissionsGate: 'emissionsGate',
+  TorveSellerPools: 'sellerPools',
+  TorveSellerRegistry: 'sellerRegistry',
+  TorvePositionInit: 'positionInit',
+  TorveWashTradingRegistry: 'washTradingRegistry',
+  TorveWashTradingPointsPolicy: 'washTradingPointsPolicy',
+  TorveUsageAccounting: 'usageAccounting',
+  TorvePointsPolicyRegistry: 'pointsPolicyRegistry',
+  TorveSellerPoolsRewards: 'sellerPoolsRewards',
+  TorveUsageRewards: 'usageRewards',
+  TorveLegacyEmissionsEscrow: 'legacyEmissionsEscrow',
+  TorveLegacyRewardsPoolRegistry: 'legacyRewardsPoolRegistry',
 };
 
 const REQUIRED_DEPLOYED_CONTRACTS = [
@@ -72,8 +72,8 @@ const deployPhase = {
     phaseId: 'deploy',
     simulationFile: simulationPath('Deploy.s.sol', context.canonical.chainId),
     pointerChanges: {
-      'ANTSToken.registry': { before: context.expected.registry, after: 'AntseedEmissionsGate (deployed by this phase)' },
-      'legacyEmissions.registry': { before: context.expected.registry, after: 'AntseedLegacyEmissionsEscrow (deployed by this phase)' },
+      'ANTSToken.registry': { before: context.expected.registry, after: 'TorveEmissionsGate (deployed by this phase)' },
+      'legacyEmissions.registry': { before: context.expected.registry, after: 'TorveLegacyEmissionsEscrow (deployed by this phase)' },
     },
   }),
   run: deploy,
@@ -345,7 +345,7 @@ function expectedSigner(role, context, observation) {
 
 const UINT64_MAX = 2n ** 64n - 1n;
 
-/** Mirrors the AntseedWashTradingRegistry constructor so a bad range fails before signers are unlocked. */
+/** Mirrors the TorveWashTradingRegistry constructor so a bad range fails before signers are unlocked. */
 function verifyHistoricalPeriod(env) {
   const parse = (name) => {
     if (!/^\d+$/.test(env[name])) throw new Error(`${name} must be a decimal block number, got ${JSON.stringify(env[name])}`);
@@ -389,7 +389,7 @@ function migrationEnvironment(context, observation, signerAddresses = {}, extra 
     ...signerEnvironment(SIGNER_ENV, signerAddresses),
     BASE_MAINNET_RPC_URL: context.rpcUrl,
     BASE_SEPOLIA_RPC_URL: context.rpcUrl,
-    ANTSEED_REGISTRY: context.expected.registry,
+    TORVE_REGISTRY: context.expected.registry,
     EXPECTED_ANTS_TOKEN: context.expected.antsToken,
     EXPECTED_CHANNELS: context.expected.channels,
     EXPECTED_LEGACY_EMISSIONS: context.expected.legacyEmissions,
@@ -612,7 +612,7 @@ async function rehearseM001({ rpcUrl, outputRoot, network, runMigration: drive }
     HISTORICAL_PERIOD_END_BLOCK: process.env.HISTORICAL_PERIOD_END_BLOCK ?? String(BASE_MAINNET_FORK_BLOCK),
     VERIFICATION_WALLET: ANVIL_ACCOUNT_1,
     DIEM_STAKING_PROXY: BASE_MAINNET_DIEM_PROXY,
-    ANTSEED_DEPLOY_CONFIRM: network,
+    TORVE_DEPLOY_CONFIRM: network,
   };
   // Every role is an Anvil-unlocked account; the fork test signs nothing.
   const signers = {

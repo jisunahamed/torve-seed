@@ -3,22 +3,22 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
 
-import { AntseedFreeUsage } from "../payments/AntseedFreeUsage.sol";
-import { IAntseedRegistry } from "../interfaces/IAntseedRegistry.sol";
-import { ISetWriter } from "../interfaces/IAntseedWiring.sol";
+import { TorveFreeUsage } from "../payments/TorveFreeUsage.sol";
+import { ITorveRegistry } from "../interfaces/ITorveRegistry.sol";
+import { ISetWriter } from "../interfaces/ITorveWiring.sol";
 
 /**
  * @title DeployFreeUsage
- * @notice Deploys only AntseedFreeUsage against an existing AntSeed registry.
+ * @notice Deploys only TorveFreeUsage against an existing Torve registry.
  *
  * Required env:
  *   DEPLOYER_PRIVATE_KEY   Broadcaster private key.
- *   ANTSEED_REGISTRY       Deployed AntseedRegistry address.
+ *   TORVE_REGISTRY       Deployed TorveRegistry address.
  *
  * Optional env:
  *   FREE_USAGE_AUTHORIZE_STATS  Defaults to true. Grants the deployed
  *                               FreeUsage contract writer access on the
- *                               registry's AntseedStats contract.
+ *                               registry's TorveStats contract.
  *
  * Usage:
  *   cd packages/contracts
@@ -34,10 +34,10 @@ contract DeployFreeUsage is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
-        address registryAddress = vm.envAddress("ANTSEED_REGISTRY");
+        address registryAddress = vm.envAddress("TORVE_REGISTRY");
         bool authorizeStats = vm.envOr("FREE_USAGE_AUTHORIZE_STATS", true);
 
-        IAntseedRegistry registry = IAntseedRegistry(registryAddress);
+        ITorveRegistry registry = ITorveRegistry(registryAddress);
         address staking = registry.staking();
         address stats = registry.stats();
 
@@ -45,15 +45,15 @@ contract DeployFreeUsage is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        console.log("=== AntseedFreeUsage Deployment ===");
+        console.log("=== TorveFreeUsage Deployment ===");
         console.log("Deployer:             ", deployer);
-        console.log("AntseedRegistry:      ", registryAddress);
-        console.log("AntseedStaking:       ", staking);
-        console.log("AntseedStats:         ", stats);
+        console.log("TorveRegistry:      ", registryAddress);
+        console.log("TorveStaking:       ", staking);
+        console.log("TorveStats:         ", stats);
         console.log("");
 
-        AntseedFreeUsage freeUsage = new AntseedFreeUsage(registryAddress);
-        console.log("AntseedFreeUsage:     ", address(freeUsage));
+        TorveFreeUsage freeUsage = new TorveFreeUsage(registryAddress);
+        console.log("TorveFreeUsage:     ", address(freeUsage));
 
         if (authorizeStats && stats != address(0)) {
             ISetWriter(stats).setWriter(address(freeUsage), true);
@@ -65,7 +65,7 @@ contract DeployFreeUsage is Script {
         vm.stopBroadcast();
 
         console.log("");
-        console.log("=== AntseedFreeUsage deployment complete ===");
+        console.log("=== TorveFreeUsage deployment complete ===");
         console.log("Update chain config:");
         console.log("  freeUsageContractAddress:", address(freeUsage));
     }

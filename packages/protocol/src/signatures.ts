@@ -1,7 +1,7 @@
 import { type AbstractSigner, type TypedDataDomain, AbiCoder, hexlify, id, keccak256, randomBytes } from 'ethers';
 
 // =========================================================================
-// EIP-712 Types — AntSeed SpendingAuth (cumulative payment authorization)
+// EIP-712 Types — Torve SpendingAuth (cumulative payment authorization)
 // =========================================================================
 
 export const SPENDING_AUTH_TYPES = {
@@ -54,7 +54,7 @@ export const FREE_USAGE_AUTH_TYPES = {
  *     uint256 validAfter,uint256 validBefore,bytes32 nonce)
  *
  * For deposit sweeps this is the ONLY buyer signature: addressing the
- * authorization to the AntseedDepositRelay contract is consent to its
+ * authorization to the TorveDepositRelay contract is consent to its
  * public, immutable fixed FEE.
  */
 export const RECEIVE_WITH_AUTHORIZATION_TYPES = {
@@ -346,7 +346,7 @@ export const ZERO_FREE_USAGE_METADATA: FreeUsageMetadata = {
 export const ZERO_FREE_USAGE_METADATA_HASH: string = computeFreeUsageMetadataHash(ZERO_FREE_USAGE_METADATA);
 
 // =========================================================================
-// Channel ID computation (must match AntseedChannels.computeChannelId)
+// Channel ID computation (must match TorveChannels.computeChannelId)
 // =========================================================================
 
 /**
@@ -365,11 +365,11 @@ export function computeChannelId(
   ));
 }
 
-export const FREE_USAGE_CHANNEL_DOMAIN = id('ANTSEED_FREE_USAGE_CHANNEL');
+export const FREE_USAGE_CHANNEL_DOMAIN = id('TORVE_FREE_USAGE_CHANNEL');
 
 /**
  * Compute the deterministic free usage channelId.
- * Domain-separated from AntseedChannels.computeChannelId so a paid and free
+ * Domain-separated from TorveChannels.computeChannelId so a paid and free
  * channel cannot share an ID even if buyer, seller, and salt are identical.
  */
 export function computeFreeUsageChannelId(
@@ -390,7 +390,7 @@ export function computeFreeUsageChannelId(
 
 export function makeChannelsDomain(chainId: number, contractAddress: string): TypedDataDomain {
   return {
-    name: 'AntseedChannels',
+    name: 'TorveChannels',
     version: '1',
     chainId,
     verifyingContract: contractAddress,
@@ -399,7 +399,7 @@ export function makeChannelsDomain(chainId: number, contractAddress: string): Ty
 
 export function makeDepositsDomain(chainId: number, contractAddress: string): TypedDataDomain {
   return {
-    name: 'AntseedDeposits',
+    name: 'TorveDeposits',
     version: '1',
     chainId,
     verifyingContract: contractAddress,
@@ -408,7 +408,7 @@ export function makeDepositsDomain(chainId: number, contractAddress: string): Ty
 
 export function makeFreeUsageDomain(chainId: number, contractAddress: string): TypedDataDomain {
   return {
-    name: 'AntseedFreeUsage',
+    name: 'TorveFreeUsage',
     version: '1',
     chainId,
     verifyingContract: contractAddress,

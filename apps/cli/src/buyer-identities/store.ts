@@ -7,7 +7,7 @@ import {
   identityFromPrivateKeyHex,
   isValidBuyerIdentityName,
   type Identity,
-} from '@antseed/node'
+} from '@torveai/node'
 
 /**
  * Extra buyer wallets live next to the default identity, one directory each:
@@ -79,7 +79,7 @@ async function exists(path: string): Promise<boolean> {
 /**
  * Without `keyFrom`, a new key is generated and stored in the data dir.
  * Generated directly rather than through loadOrCreateIdentity, which would
- * adopt an ANTSEED_IDENTITY_HEX inherited from a parent process and give the
+ * adopt an TORVE_IDENTITY_HEX inherited from a parent process and give the
  * new identity the default wallet. With `keyFrom`, only the reference is
  * stored and the key is read from it on every load.
  */

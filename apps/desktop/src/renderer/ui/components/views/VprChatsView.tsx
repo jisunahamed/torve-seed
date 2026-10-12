@@ -138,7 +138,7 @@ export function VprChatsView({ onSelectView: _onSelectView }: Props) {
       return;
     }
     setMessage(null);
-    await window.antseedDesktop?.buyerConversationsUpdate?.({ id, pinnedModel: serviceId, peerSource: 'auto' });
+    await window.torveDesktop?.buyerConversationsUpdate?.({ id, pinnedModel: serviceId, peerSource: 'auto' });
     await refresh();
   }, [refresh, snap.discoverRows]);
 
@@ -148,7 +148,7 @@ export function VprChatsView({ onSelectView: _onSelectView }: Props) {
   // moves it; the auto toggle is the way back.
   const pinChatSeller = useCallback(async (id: string, route: DiscoverRow) => {
     setMessage(null);
-    await window.antseedDesktop?.buyerConversationsUpdate?.({
+    await window.torveDesktop?.buyerConversationsUpdate?.({
       id,
       // Dispatch carries the chosen row's own serviceId — sellers advertise
       // the same model under near-identical ids.
@@ -190,7 +190,7 @@ export function VprChatsView({ onSelectView: _onSelectView }: Props) {
 
   const saveLabel = useCallback(async () => {
     if (!selected || draftLabel === null) return;
-    await window.antseedDesktop?.buyerConversationsUpdate?.({ id: selected.id, label: draftLabel.trim() || null });
+    await window.torveDesktop?.buyerConversationsUpdate?.({ id: selected.id, label: draftLabel.trim() || null });
     setDraftLabel(null);
     await refresh();
   }, [draftLabel, refresh, selected]);
@@ -199,7 +199,7 @@ export function VprChatsView({ onSelectView: _onSelectView }: Props) {
     if (!selected) return;
     const title = conversationTitle(selected);
     if (!window.confirm(`Delete "${title}"? An active chat reappears on its next request.`)) return;
-    await window.antseedDesktop?.buyerConversationsUpdate?.({ id: selected.id, delete: true });
+    await window.torveDesktop?.buyerConversationsUpdate?.({ id: selected.id, delete: true });
     drillBack();
     await refresh();
   }, [drillBack, refresh, selected]);

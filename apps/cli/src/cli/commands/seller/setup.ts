@@ -2,16 +2,16 @@ import type { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
 import { createInterface } from 'node:readline/promises';
-import { loadOrCreateIdentity } from '@antseed/node';
-import { checkSellerReadiness } from '@antseed/node/payments';
+import { loadOrCreateIdentity } from '@torveai/node';
+import { checkSellerReadiness } from '@torveai/node/payments';
 import { getGlobalOptions } from '../types.js';
 import { loadConfig, saveConfig } from '../../../config/loader.js';
 import { ensureDerivedIdentityDisplayName } from '../../../config/identity-display-name.js';
 import { assertValidConfig } from '../../../config/validation.js';
 import { TRUSTED_PLUGINS } from '../../../plugins/registry.js';
 import { installPlugin } from '../../../plugins/manager.js';
-import type { AntseedConfig, SellerProviderConfig, SellerServiceConfig } from '../../../config/types.js';
-import { isImageModelId } from '@antseed/provider-core';
+import type { TorveConfig, SellerProviderConfig, SellerServiceConfig } from '../../../config/types.js';
+import { isImageModelId } from '@torveai/provider-core';
 import { parseServiceUnitBillingModelsInput } from '../../../config/service-metadata.js';
 import { promptServiceCapabilities } from './capability-prompts.js';
 import { createIdentityClient, createStakingClient, normalizeHttpRpcUrl } from '../../payment-utils.js';
@@ -39,7 +39,7 @@ export function buildSellerSetupProviderEntry(input: {
   };
 }
 
-export function applySellerSetupRpcUrl(config: AntseedConfig, input: string): void {
+export function applySellerSetupRpcUrl(config: TorveConfig, input: string): void {
   const value = input.trim();
   if (!value) return;
 
@@ -114,7 +114,7 @@ export function registerSellerSetupCommand(sellerCmd: Command): void {
       const rl = createInterface({ input: process.stdin, output: process.stdout });
 
       try {
-        console.log(chalk.bold('\nAntSeed Seller Setup\n'));
+        console.log(chalk.bold('\nTorve Seller Setup\n'));
 
         const currentRpcUrl = config.payments.crypto?.rpcUrl;
         const rpcPrompt = currentRpcUrl
@@ -152,7 +152,7 @@ export function registerSellerSetupCommand(sellerCmd: Command): void {
           pluginName = packageName;
         }
 
-        const defaultName = pluginName.replace(/^@antseed\/provider-/, '');
+        const defaultName = pluginName.replace(/^@torve\/provider-/, '');
         const nameInput = await rl.question(`Provider name [${defaultName}]: `);
         const providerName = nameInput.trim() || defaultName;
         if (config.seller.providers[providerName]) {
@@ -253,7 +253,7 @@ export function registerSellerSetupCommand(sellerCmd: Command): void {
               verifierSpinner.succeed(chalk.green(`Installed ${selectedVerifier.package}`));
               config.seller.verifiers = [selectedVerifier.name];
             } catch (err) {
-              verifierSpinner.fail(chalk.red(`Failed: ${(err as Error).message} — add it later with 'antseed seller start --verifiers ${selectedVerifier.name}'`));
+              verifierSpinner.fail(chalk.red(`Failed: ${(err as Error).message} — add it later with 'torve seller start --verifiers ${selectedVerifier.name}'`));
             }
           }
         }
@@ -264,9 +264,9 @@ export function registerSellerSetupCommand(sellerCmd: Command): void {
 
         console.log(chalk.bold('\nNext steps:\n'));
         console.log(`  ${chalk.cyan('1.')} Set credentials: ${chalk.dim(getSellerSetupCredentialHint(pluginName))}`);
-        console.log(`  ${chalk.cyan('2.')} Register on-chain: ${chalk.dim('antseed seller register')}`);
-        console.log(`  ${chalk.cyan('3.')} Start selling: ${chalk.dim('antseed seller start')}`);
-        console.log(chalk.dim('     Optional: stake ANTS for rewards with antseed seller stake <ants> --epochs <n>'));
+        console.log(`  ${chalk.cyan('2.')} Register on-chain: ${chalk.dim('torve seller register')}`);
+        console.log(`  ${chalk.cyan('3.')} Start selling: ${chalk.dim('torve seller start')}`);
+        console.log(chalk.dim('     Optional: stake ANTS for rewards with torve seller stake <ants> --epochs <n>'));
         console.log('');
 
         await printReadinessCheck(globalOpts.dataDir, globalOpts.config);

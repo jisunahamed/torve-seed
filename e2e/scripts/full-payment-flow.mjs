@@ -24,7 +24,7 @@ import { TextDecoder, TextEncoder } from "node:util";
 import { fileURLToPath } from "node:url";
 
 import {
-  AntseedNode,
+  TorveNode,
   loadOrCreateIdentity,
   toPeerId,
   DepositsClient,
@@ -47,7 +47,7 @@ const DEPLOYER_PRIVATE_KEY =
 // Deterministic addresses from Deploy.s.sol nonce sequence on fresh anvil
 const USDC_ADDRESS     = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // nonce 0
 const REGISTRY_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // nonce 1 — MockERC8004Registry
-// nonce 2 = ANTSToken, nonce 3 = AntseedRegistry
+// nonce 2 = ANTSToken, nonce 3 = TorveRegistry
 const STAKING_ADDRESS  = "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"; // nonce 4
 const DEPOSITS_ADDRESS = "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707"; // nonce 5
 const CHANNELS_ADDRESS = "0x0165878A594ca255338adfa4d48449f69242Eb8F"; // nonce 6
@@ -308,8 +308,8 @@ async function main() {
     phase(2, "Fund wallets and setup on-chain state");
 
     // Create temp data dirs and derive wallet addresses from secp256k1 identities
-    sellerDataDir = await mkdtemp(join(tmpdir(), "antseed-e2e-seller-"));
-    buyerDataDir = await mkdtemp(join(tmpdir(), "antseed-e2e-buyer-"));
+    sellerDataDir = await mkdtemp(join(tmpdir(), "torve-e2e-seller-"));
+    buyerDataDir = await mkdtemp(join(tmpdir(), "torve-e2e-buyer-"));
 
     const sellerIdentity = await loadOrCreateIdentity(sellerDataDir);
     const buyerIdentity = await loadOrCreateIdentity(buyerDataDir);
@@ -402,7 +402,7 @@ async function main() {
     const bootstrapConfig = [{ host: "127.0.0.1", port: bootstrap.getPort() }];
     info(`Local DHT bootstrap on port ${bootstrap.getPort()}`);
 
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: "seller",
       dataDir: sellerDataDir,
       dhtPort: 0,
@@ -439,7 +439,7 @@ async function main() {
     // -----------------------------------------------------------------------
     phase(4, "Start buyer node");
 
-    buyerNode = new AntseedNode({
+    buyerNode = new TorveNode({
       role: "buyer",
       dataDir: buyerDataDir,
       dhtPort: 0,

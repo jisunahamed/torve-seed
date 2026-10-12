@@ -3,8 +3,8 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { loadOrCreateIdentity } from '@antseed/node'
-import type { SweepRequestPayload } from '@antseed/node'
+import { loadOrCreateIdentity } from '@torveai/node'
+import type { SweepRequestPayload } from '@torveai/node'
 import {
   DepositWatcher,
   type DepositWatchEvent,
@@ -46,7 +46,7 @@ async function makeWatcher(
   chain: FakeChain,
   overrides: Partial<DepositWatcherDeps> = {},
 ): Promise<{ watcher: DepositWatcher; events: DepositWatchEvent[]; dispatched: SweepRequestPayload[]; cleanup: () => Promise<void> }> {
-  const dir = await mkdtemp(join(tmpdir(), 'antseed-deposit-watcher-'))
+  const dir = await mkdtemp(join(tmpdir(), 'torve-deposit-watcher-'))
   const identity = await loadOrCreateIdentity(dir)
   const events: DepositWatchEvent[] = []
   const dispatched: SweepRequestPayload[] = []

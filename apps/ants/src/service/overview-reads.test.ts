@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { multicallRead } from '@antseed/node/payments';
+import { multicallRead } from '@torveai/node/payments';
 import { overviewReads } from './overview-reads.js';
 import { overview } from './overview.js';
 import type { AntsContext, ResolvedStack } from './context.js';
 import { networkSnapshot } from './network.js';
 import type { NetworkSnapshot } from '../api-types.js';
 vi.mock('./network.js', () => ({ networkSnapshot: vi.fn() }));
-vi.mock('@antseed/node/payments', async original => ({ ...await original<object>(), multicallRead: vi.fn() }));
+vi.mock('@torveai/node/payments', async original => ({ ...await original<object>(), multicallRead: vi.fn() }));
 const address = '0x0000000000000000000000000000000000000001';
 const provider = { getBalance: vi.fn(async () => 99n) };
 const ctx = {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Browser layout regression test. Build @antseed/ants first; all API data is mocked.
+/** Browser layout regression test. Build @torveai/ants first; all API data is mocked.
  * node scripts/ants-rewards-layout-test.mjs [/absolute/screenshot/directory]
  * No backend, wallet, RPC, or transaction is used.
  */

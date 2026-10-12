@@ -133,7 +133,7 @@ export function AppShell() {
   const showSetup = setupVisible;
 
   useEffect(() => {
-    return window.antseedDesktop?.onNavigateView?.((viewName) => {
+    return window.torveDesktop?.onNavigateView?.((viewName) => {
       if (!(VIEW_NAMES as readonly string[]).includes(viewName)) return;
       handleSelectView(viewName as ViewName);
     });
@@ -154,10 +154,10 @@ export function AppShell() {
     // Chat supports both window sizes: wide (standard preset, conversation
     // list showing) by default, thin when the user collapses the panel.
     if (activeView === 'chat' && snap.chatPanelExpanded) {
-      void window.antseedDesktop?.applyWindowPreset?.('standard');
+      void window.torveDesktop?.applyWindowPreset?.('standard');
       return;
     }
-    void window.antseedDesktop?.applyWindowView?.(activeView);
+    void window.torveDesktop?.applyWindowView?.(activeView);
   }, [activeView, showSetup, snap.chatPanelExpanded]);
 
   if (showSetup) {

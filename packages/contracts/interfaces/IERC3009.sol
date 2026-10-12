@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 /**
  * @title IERC3009
- * @notice Minimal EIP-3009 surface used by AntseedDepositRelay.
+ * @notice Minimal EIP-3009 surface used by TorveDepositRelay.
  *         Circle's FiatToken (USDC) implements this natively; the bytes-signature
  *         overload is present in FiatTokenV2_2 (deployed on Base).
  */

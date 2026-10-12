@@ -7,7 +7,7 @@ import Database from 'better-sqlite3'
  * interprets the tag; it strips it before routing and echoes it on each
  * spend event the request produces.
  */
-export const SPEND_ATTRIBUTION_HEADER = 'x-antseed-attribution-tag'
+export const SPEND_ATTRIBUTION_HEADER = 'x-torve-attribution-tag'
 
 const TAG_PATTERN = /^[A-Za-z0-9:_-]{1,128}$/
 const MAX_BUFFERED_EVENTS = 10_000

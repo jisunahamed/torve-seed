@@ -1,5 +1,5 @@
-import type { Provider, ServiceApiProtocol, ServiceCapabilities, ServiceUnitBillingModelsV1, UnitBillingComponentV1, UnitBillingModelV1 } from '@antseed/node';
-import { MAX_SERVICES_PER_PROVIDER, MAX_SERVICE_NAME_LENGTH, isKnownServiceApiProtocol, validateServiceCapabilityFields, validateUnitBillingModelForProtocolV1 } from '@antseed/node';
+import type { Provider, ServiceApiProtocol, ServiceCapabilities, ServiceUnitBillingModelsV1, UnitBillingComponentV1, UnitBillingModelV1 } from '@torveai/node';
+import { MAX_SERVICES_PER_PROVIDER, MAX_SERVICE_NAME_LENGTH, isKnownServiceApiProtocol, validateServiceCapabilityFields, validateUnitBillingModelForProtocolV1 } from '@torveai/node';
 
 export function parseNonNegativeNumber(raw: string | undefined, key: string, fallback: number): number {
   const parsed = raw === undefined ? fallback : Number.parseFloat(raw);
@@ -16,11 +16,11 @@ export function parseServicePricingJson(raw: string | undefined): Provider['pric
   try {
     parsed = JSON.parse(raw) as unknown;
   } catch {
-    throw new Error('ANTSEED_SERVICE_PRICING_JSON must be valid JSON');
+    throw new Error('TORVE_SERVICE_PRICING_JSON must be valid JSON');
   }
 
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('ANTSEED_SERVICE_PRICING_JSON must be an object map of service -> pricing');
+    throw new Error('TORVE_SERVICE_PRICING_JSON must be an object map of service -> pricing');
   }
 
   const out: NonNullable<Provider['pricing']['services']> = {};
@@ -50,7 +50,7 @@ export function parseServicePricingJson(raw: string | undefined): Provider['pric
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-export function parseServiceUnitBillingModelsJson(raw: string | undefined, key = 'ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON'): ServiceUnitBillingModelsV1 | undefined {
+export function parseServiceUnitBillingModelsJson(raw: string | undefined, key = 'TORVE_SERVICE_UNIT_BILLING_MODELS_JSON'): ServiceUnitBillingModelsV1 | undefined {
   if (!raw) return undefined;
 
   let parsed: unknown;
@@ -125,7 +125,7 @@ export function parseCsv(raw: string | undefined): string[] {
   );
 }
 
-export function parseServiceCapabilitiesJson(raw: string | undefined, key = 'ANTSEED_SERVICE_CAPABILITIES_JSON'): Record<string, ServiceCapabilities> | undefined {
+export function parseServiceCapabilitiesJson(raw: string | undefined, key = 'TORVE_SERVICE_CAPABILITIES_JSON'): Record<string, ServiceCapabilities> | undefined {
   if (!raw) return undefined;
 
   let parsed: unknown;

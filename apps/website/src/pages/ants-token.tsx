@@ -6,7 +6,7 @@ import {TokenHeroArt} from '../components/TokenHeroArt';
 import {useAntsSupply} from '../lib/useAntsSupply';
 import {ANTS_BASESCAN_URL, INITIAL_EMISSION, MAX_SUPPLY, useEpochCountdown} from '../lib/useEpochCountdown';
 
-const STATS_URL = 'https://antseedstats.com/network';
+const STATS_URL = 'https://torvestats.com/network';
 
 const fmtM = (n: number) => `${(n / 1e6).toLocaleString('en-US', {maximumFractionDigits: 1})}M`;
 
@@ -140,7 +140,7 @@ export default function AntsToken(): JSX.Element {
   return (
     <Layout
       title="ANTS Token"
-      description="ANTS is the native token of the Antseed network and its trust and reputation layer."
+      description="ANTS is the native token of the Torve network and its trust and reputation layer."
     >
       {/* ── HERO: copy left, live supply panel right ── */}
       <header className={styles.hero}>
@@ -151,14 +151,14 @@ export default function AntsToken(): JSX.Element {
             </a>
             <h1 className={styles.heroTitle}>
               The native token of<br />
-              <em>the Antseed network.</em>
+              <em>the Torve network.</em>
             </h1>
             <span className={styles.statusPill}>
               <span className={styles.statusDot} aria-hidden="true" />
               Tokens restricted
             </span>
             <p className={styles.heroSub}>
-              ANTS is the native token of Antseed and the trust and reputation layer of the network:
+              ANTS is the native token of Torve and the trust and reputation layer of the network:
               real, payment-backed usage and locked ANTS behind provider identities turn open
               participation into reputation buyers can verify.
             </p>
@@ -241,7 +241,7 @@ export default function AntsToken(): JSX.Element {
               Evidence,<br />not labels.
             </h2>
             <p className={`${styles.splitLead} ${styles.verifyLead}`}>
-              A model name on an endpoint proves nothing. On Antseed, evidence travels with every
+              A model name on an endpoint proves nothing. On Torve, evidence travels with every
               response - and verification decides how much a provider&apos;s usage is worth.
             </p>
             <ul className={`${styles.splitPoints} ${styles.verifyPoints}`}>

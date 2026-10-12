@@ -3,7 +3,7 @@ import type {
   Provider,
   ProviderStreamCallbacks,
 } from './interfaces/seller-provider.js';
-import { ANTSEED_ATTEST_PATH, type Prover } from './interfaces/plugin.js';
+import { TORVE_ATTEST_PATH, type Prover } from './interfaces/plugin.js';
 import type { SellerSessionTracker } from './metering/seller-session-tracker.js';
 import type { PaymentMux } from './p2p/payment-mux.js';
 import type { Identity } from './p2p/identity.js';
@@ -34,18 +34,18 @@ import {
 } from './types/protocol.js';
 import { VerificationMux } from './verification/verification-mux.js';
 import { createResponseAuthPayload, createStreamingResponseHash } from './verification/response-auth.js';
-import { VIDEO_DOWNLOAD_STREAM_HEADER, VIDEO_DOWNLOAD_STREAM_VERSION } from '@antseed/protocol/http';
+import { VIDEO_DOWNLOAD_STREAM_HEADER, VIDEO_DOWNLOAD_STREAM_VERSION } from '@torveai/protocol/http';
 import { hasJsonContentType, tryParseJsonObject } from './utils/json-codec.js';
 import type { UnitBillingContext, UnitBillingModelV1, UnitBillingUsage, UnitBillingUsageReportV1 } from './types/billing.js';
 import { captureUnitBillingContext, computeFinalUnitBilling, estimateUnitRequestCost, isFreeUnitBillingModel, type BillingRequestFacts } from './billing/unit.js';
-import { nativeVideoAcceptance, nativeVideoDelivered, nativeVideoRoute, requestService, type NativeVideoRoute } from '@antseed/api-adapter';
+import { nativeVideoAcceptance, nativeVideoDelivered, nativeVideoRoute, requestService, type NativeVideoRoute } from '@torveai/api-adapter';
 import type { PendingResourceCharge, ResourceOwnershipStore } from './resources/resource-ownership-store.js';
 import type { ServiceApiProtocol } from './types/service-api.js';
 import {
   detectRequestServiceApiProtocol,
   extractRequestBodyFields,
   selectTargetProtocolForRequest,
-} from '@antseed/api-adapter';
+} from '@torveai/api-adapter';
 import { parseResponseUsage } from './utils/response-usage.js';
 
 type ProviderTokenPricing = import('./interfaces/seller-provider.js').ProviderTokenPricingUsdPerMillion;
@@ -102,7 +102,7 @@ const ATTEST_RATE_MAX_TRACKED_PEERS = 1024;
  * Handles all seller-side request processing: provider matching, execution,
  * cost tracking, payment auth checks, and load management.
  *
- * Extracted from AntseedNode to isolate seller request handling from core
+ * Extracted from TorveNode to isolate seller request handling from core
  * node orchestration.
  */
 export class SellerRequestHandler {
@@ -162,10 +162,10 @@ export class SellerRequestHandler {
         return;
       }
 
-      if (pathOnly.startsWith(ANTSEED_ATTEST_PATH + '/')) {
+      if (pathOnly.startsWith(TORVE_ATTEST_PATH + '/')) {
         let verifierId: string;
         try {
-          verifierId = decodeURIComponent(pathOnly.slice((ANTSEED_ATTEST_PATH + '/').length));
+          verifierId = decodeURIComponent(pathOnly.slice((TORVE_ATTEST_PATH + '/').length));
         } catch {
           mux.sendProxyResponse({
             requestId: request.requestId,
@@ -591,7 +591,7 @@ export class SellerRequestHandler {
       // Tell the provider who the buyer really is (from the authenticated connection).
       // Needed now that video jobs belong to one buyer: a provider that checks job
       // ownership by this header must not see a buyer-sent copy with different casing.
-      setTrustedHeader(request.headers, 'x-antseed-buyer-peer-id', buyerPeerId);
+      setTrustedHeader(request.headers, 'x-torve-buyer-peer-id', buyerPeerId);
 
       const requestedModel = this._extractRequestedService(request) ?? 'unknown';
       debugLog(`[SellerHandler] Routing to provider "${provider.name}" model="${requestedModel}"`);
@@ -1024,7 +1024,7 @@ export class SellerRequestHandler {
           statusCode: 200,
           headers: { 'content-type': 'application/json' },
           body: new TextEncoder().encode(JSON.stringify({
-            id: modelId, object: 'model', created: now, owned_by: 'antseed',
+            id: modelId, object: 'model', created: now, owned_by: 'torve',
           })),
         };
       }
@@ -1040,7 +1040,7 @@ export class SellerRequestHandler {
 
     // GET /v1/models — list all
     const models = allServices.map((id) => ({
-      id, object: 'model' as const, created: now, owned_by: 'antseed',
+      id, object: 'model' as const, created: now, owned_by: 'torve',
     }));
     return {
       requestId: request.requestId,
@@ -1136,7 +1136,7 @@ export class SellerRequestHandler {
 
   private _extractRequestedProvider(request: SerializedHttpRequest): string | null {
     const providers = Object.entries(request.headers)
-      .filter(([header]) => header.toLowerCase() === "x-antseed-provider")
+      .filter(([header]) => header.toLowerCase() === "x-torve-provider")
       .map(([, value]) => value.trim().toLowerCase())
       .filter((value) => value.length > 0);
 

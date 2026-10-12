@@ -8,14 +8,14 @@ import {
   ViewIcon,
   ViewOffSlashIcon,
 } from '@hugeicons/core-free-icons';
-import { Modal } from '@antseed/ui';
+import { Modal } from '@torveai/ui';
 import { usePublicEndpointModal } from '../tunnels/PublicEndpointModal';
 import { BrandIcon } from '../brand/BrandIcon';
 import styles from './VprToolsView.module.scss';
 import { recordUserAction } from '../../../modules/telemetry/actions';
 
 const CURSOR_WEBSITE = 'https://cursor.com/';
-const CURSOR_GUIDE = 'https://antseed.com/docs/guides/public-tunnels#use-it-with-cursor';
+const CURSOR_GUIDE = 'https://torveai.com/docs/guides/public-tunnels#use-it-with-cursor';
 const MASKED_API_KEY = '••••••••••••••••••••••••••••••••';
 type CopyKind = 'url' | 'key' | 'model';
 
@@ -32,7 +32,7 @@ export function CursorAppCard() {
 
   const loadApiKey = useCallback(async (): Promise<string | null> => {
     if (apiKey) return apiKey;
-    const result = await window.antseedDesktop?.publicTunnelGetApiKey?.();
+    const result = await window.torveDesktop?.publicTunnelGetApiKey?.();
     const key = result?.apiKey ?? null;
     setApiKey(key);
     return key;
@@ -62,7 +62,7 @@ export function CursorAppCard() {
     setOpening(true);
     setError(null);
     try {
-      const result = await window.antseedDesktop?.openTool?.('cursor');
+      const result = await window.torveDesktop?.openTool?.('cursor');
       if (!result?.ok) setError(result?.error ?? 'Could not open Cursor');
     } finally {
       setOpening(false);
@@ -118,8 +118,8 @@ export function CursorAppCard() {
         title="Cursor"
         subtitle={(
           <span className={styles.modalAppSubtitle}>
-            Connect Cursor through your authenticated Antseed public endpoint.
-            <button type="button" className={styles.settingWebsiteLink} onClick={() => void window.antseedDesktop?.openExternalUrl?.(CURSOR_WEBSITE)}>
+            Connect Cursor through your authenticated Torve public endpoint.
+            <button type="button" className={styles.settingWebsiteLink} onClick={() => void window.torveDesktop?.openExternalUrl?.(CURSOR_WEBSITE)}>
               Website / download <HugeiconsIcon icon={ArrowUpRight01Icon} size={12} strokeWidth={2} />
             </button>
           </span>
@@ -139,7 +139,7 @@ export function CursorAppCard() {
 
         <section className={styles.settingSection}>
           <div className={styles.settingHead}><span className={styles.settingTitle}>2. OpenAI API key</span></div>
-          <p className={styles.settingHint}>Enable Cursor’s OpenAI API key option and paste the Antseed key. Cursor stores API keys in its own encrypted storage.</p>
+          <p className={styles.settingHint}>Enable Cursor’s OpenAI API key option and paste the Torve key. Cursor stores API keys in its own encrypted storage.</p>
           <div className={styles.settingInputRow}>
             <input readOnly type={apiKeyVisible ? 'text' : 'password'} className={styles.settingInput} value={apiKeyVisible && apiKey ? apiKey : MASKED_API_KEY} />
             <button type="button" className={styles.configAction} onClick={() => { if (!apiKey) void loadApiKey(); setApiKeyVisible((visible) => !visible); }} aria-label={apiKeyVisible ? 'Hide Cursor API key' : 'Reveal Cursor API key'}>
@@ -153,10 +153,10 @@ export function CursorAppCard() {
 
         <section className={styles.settingSection}>
           <div className={styles.settingHead}><span className={styles.settingTitle}>3. Add the model (optional)</span></div>
-          <p className={styles.settingHint}>Optionally add <code>antseed</code> as a custom model to follow the model currently selected in the AI VPN.</p>
+          <p className={styles.settingHint}>Optionally add <code>torve</code> as a custom model to follow the model currently selected in the AI VPN.</p>
           <div className={styles.settingInputRow}>
-            <input readOnly className={styles.settingInput} value="antseed" />
-            <button type="button" className={styles.configAction} onClick={() => copy('antseed', 'model')} aria-label="Copy Cursor model name">
+            <input readOnly className={styles.settingInput} value="torve" />
+            <button type="button" className={styles.configAction} onClick={() => copy('torve', 'model')} aria-label="Copy Cursor model name">
               <HugeiconsIcon icon={copied === 'model' ? Tick02Icon : Copy01Icon} size={15} strokeWidth={2} />
             </button>
           </div>
@@ -165,7 +165,7 @@ export function CursorAppCard() {
         {error ? <p className={styles.note} role="alert">{error}</p> : null}
 
         <div className={styles.settingActions}>
-          <button type="button" className={styles.settingWebsiteLink} onClick={() => void window.antseedDesktop?.openExternalUrl?.(CURSOR_GUIDE)}>
+          <button type="button" className={styles.settingWebsiteLink} onClick={() => void window.torveDesktop?.openExternalUrl?.(CURSOR_GUIDE)}>
             Cursor tunnel guide <HugeiconsIcon icon={ArrowUpRight01Icon} size={12} strokeWidth={2} />
           </button>
           <button type="button" className={styles.configAction} onClick={openPublicEndpointModal} aria-label="Manage public endpoint" title="Manage public endpoint">

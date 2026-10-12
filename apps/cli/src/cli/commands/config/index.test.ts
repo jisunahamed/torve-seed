@@ -9,7 +9,7 @@ import {
 } from './index.js';
 
 test('resolvePluginPackage maps trusted plugin aliases to package names', () => {
-  assert.equal(resolvePluginPackage('openai'), '@antseed/provider-openai');
+  assert.equal(resolvePluginPackage('openai'), '@torveai/provider-openai');
   assert.equal(resolvePluginPackage('@custom/provider'), '@custom/provider');
 });
 

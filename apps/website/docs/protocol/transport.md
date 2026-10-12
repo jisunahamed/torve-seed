@@ -26,11 +26,11 @@ An initiator uses encrypted TCP whenever the peer supports it, WebRTC only for p
 A seller must announce an address that buyers can reach from the public internet. The default seller signaling/TCP port is `6882`; the DHT port is `6881`. `seller.publicAddress` should point to the public hostname or IP and the externally reachable signaling port, not a LAN address such as `192.168.x.x` or `10.x.x.x`.
 
 ```bash
-antseed config seller set publicAddress "seller.example.com:6882"
-antseed seller doctor
+torve config seller set publicAddress "seller.example.com:6882"
+torve seller doctor
 ```
 
-`antseed seller start` prints a prominent warning when `publicAddress` is empty or uses a loopback, private, link-local, unspecified, or multicast IP. `antseed seller doctor` classifies the configured address and attempts a bounded TCP connection from the seller machine. A successful local connection is useful but does **not** prove that inbound NAT traversal works; verify the same endpoint from a different network before considering the seller reachable.
+`torve seller start` prints a prominent warning when `publicAddress` is empty or uses a loopback, private, link-local, unspecified, or multicast IP. `torve seller doctor` classifies the configured address and attempts a bounded TCP connection from the seller machine. A successful local connection is useful but does **not** prove that inbound NAT traversal works; verify the same endpoint from a different network before considering the seller reachable.
 
 ### Home or Office NAT
 
@@ -46,7 +46,7 @@ Some routers do not support NAT loopback (hairpinning), so a local probe to the 
 
 The simplest production deployment is a VPS with a public IP: allow inbound TCP on the announced port and run the seller there. If inference must remain on a private machine, expose its signaling port through a stable TCP reverse tunnel or gateway on a VPS, then announce the VPS hostname and public port. Configure the tunnel as a supervised service so it reconnects after restarts, and restrict firewall access to only the required ports.
 
-Do not announce SSH-only tunnels, private VPN addresses, or temporary tunnel hostnames that buyers cannot reach. Re-run `antseed seller doctor` and an external connection test after changing DNS, firewall, router, or tunnel settings.
+Do not announce SSH-only tunnels, private VPN addresses, or temporary tunnel hostnames that buyers cannot reach. Re-run `torve seller doctor` and an external connection test after changing DNS, firewall, router, or tunnel settings.
 
 ## Frame Protocol
 
@@ -167,4 +167,4 @@ During serving, SellerReceipt (0x52) and BuyerAck (0x53) messages flow alongside
 
 ### Manual Mode
 
-The 402 and PaymentRequired payload propagate to the application (e.g., the desktop app). The user sees an approval card with the seller's terms. On approval, the application signs the SpendingAuth and encodes it as base64 in the `x-antseed-spending-auth` HTTP header on the retry request. The buyer node extracts the header before proxying and sends the SpendingAuth via PaymentMux (0x50). From there, the on-chain flow is identical to auto mode.
+The 402 and PaymentRequired payload propagate to the application (e.g., the desktop app). The user sees an approval card with the seller's terms. On approval, the application signs the SpendingAuth and encodes it as base64 in the `x-torve-spending-auth` HTTP header on the retry request. The buyer node extracts the header before proxying and sends the SpendingAuth via PaymentMux (0x50). From there, the on-chain flow is identical to auto mode.

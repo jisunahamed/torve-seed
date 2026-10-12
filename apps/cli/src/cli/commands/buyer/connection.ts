@@ -49,11 +49,11 @@ function isProcessAlive(pid: number): boolean {
 async function requireRunningBuyer(dataDir: string): Promise<BuyerStateFile> {
   const state = await readStateFile(dataDir)
   if (!state) {
-    console.error(chalk.red('No buyer connection found. Run `antseed buyer start` first.'))
+    console.error(chalk.red('No buyer connection found. Run `torve buyer start` first.'))
     process.exit(1)
   }
   if (state.state !== 'connected' || !isProcessAlive(state.pid)) {
-    console.error(chalk.red('Buyer proxy is not running. Run `antseed buyer start` first.'))
+    console.error(chalk.red('Buyer proxy is not running. Run `torve buyer start` first.'))
     process.exit(1)
   }
   return state
@@ -71,7 +71,7 @@ export function registerBuyerConnectionCommand(buyerCmd: Command): void {
       const globalOpts = getGlobalOptions(buyerCmd)
       const state = await readStateFile(globalOpts.dataDir)
       if (!state) {
-        console.log(chalk.yellow('No buyer connection state found. Run `antseed buyer start` first.'))
+        console.log(chalk.yellow('No buyer connection state found. Run `torve buyer start` first.'))
         return
       }
       const alive = state.state === 'connected' && isProcessAlive(state.pid)

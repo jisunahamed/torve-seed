@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import type { StatsClient } from '@antseed/node';
+import type { StatsClient } from '@torveai/node';
 import type { SqliteStore } from './store.js';
 
 export interface MetadataIndexerOptions {

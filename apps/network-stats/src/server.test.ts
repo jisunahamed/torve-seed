@@ -14,7 +14,7 @@ import assert from 'node:assert/strict';
 import { createServer, __resetAgentIdCacheForTests } from './server.js';
 import { SqliteStore } from './store.js';
 import type { NetworkPoller } from './poller.js';
-import type { StakingClient, DecodedMetadataRecorded } from '@antseed/node';
+import type { StakingClient, DecodedMetadataRecorded } from '@torveai/node';
 
 function makeEvent(overrides: Partial<DecodedMetadataRecorded> = {}): DecodedMetadataRecorded {
   return {

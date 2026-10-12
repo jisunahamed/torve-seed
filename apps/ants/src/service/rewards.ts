@@ -1,5 +1,5 @@
 import { ZeroAddress } from 'ethers';
-import { claimEpochRewards, pendingEpochRewards, previewPoolRewards, type SellerPoolsClient, type SellerPoolsRewardsClient } from '@antseed/node/payments';
+import { claimEpochRewards, pendingEpochRewards, previewPoolRewards, type SellerPoolsClient, type SellerPoolsRewardsClient } from '@torveai/node/payments';
 import { indexedWalletRewards } from './indexed-wallet.js';
 import { IndexerSyncingError } from '../read-state.js';
 import type { AbstractSigner } from 'ethers';

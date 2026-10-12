@@ -14,7 +14,7 @@ export function getDebugFilters(): readonly string[] {
     return cachedDebugFilters;
   }
 
-  const raw = readEnv('ANTSEED_LOG_FILTER') ?? readEnv('ANTSEED_DEBUG_FILTER') ?? '';
+  const raw = readEnv('TORVE_LOG_FILTER') ?? readEnv('TORVE_DEBUG_FILTER') ?? '';
   cachedDebugFilters = raw
     .split(',')
     .map((part) => part.trim().toLowerCase())
@@ -43,18 +43,18 @@ function shouldEmitDebug(args: unknown[]): boolean {
 }
 
 export function isDebugEnabled(): boolean {
-  const fromAntseed = normalizeDebugValue(readEnv('ANTSEED_DEBUG'));
+  const fromTorve = normalizeDebugValue(readEnv('TORVE_DEBUG'));
   if (
-    fromAntseed === '1' ||
-    fromAntseed === 'true' ||
-    fromAntseed === 'yes' ||
-    fromAntseed === 'on'
+    fromTorve === '1' ||
+    fromTorve === 'true' ||
+    fromTorve === 'yes' ||
+    fromTorve === 'on'
   ) {
     return true;
   }
 
   const fromDebug = normalizeDebugValue(readEnv('DEBUG'));
-  return fromDebug === '*' || fromDebug.includes('antseed');
+  return fromDebug === '*' || fromDebug.includes('torve');
 }
 
 export function debugLog(...args: unknown[]): void {

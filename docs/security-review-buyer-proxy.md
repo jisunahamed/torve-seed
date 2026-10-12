@@ -93,12 +93,12 @@
 
 - **Location**: `apps/cli/src/proxy/buyer-proxy.ts:951-994` (`_readLocalSeederFallback`)
 - **Confidence**: High
-- **Issue**: The buyer proxy reads `~/.antseed/daemon.state.json` and trusts it to construct a `PeerInfo` object that bypasses DHT discovery. If any local process (or malware with user-level access) can write to this file, it can redirect all proxy traffic to an attacker-controlled endpoint by setting a crafted `peerId` and `signalingPort`.
+- **Issue**: The buyer proxy reads `~/.torve/daemon.state.json` and trusts it to construct a `PeerInfo` object that bypasses DHT discovery. If any local process (or malware with user-level access) can write to this file, it can redirect all proxy traffic to an attacker-controlled endpoint by setting a crafted `peerId` and `signalingPort`.
 - **Impact**: Traffic hijacking. A local attacker writes a spoofed `daemon.state.json` pointing to their own server. All AI API calls are then routed there, allowing interception of prompts, responses, and any forwarded credentials (compounded by VULN-002).
 - **Evidence**:
   ```typescript
   // apps/cli/src/proxy/buyer-proxy.ts:951-994
-  const DAEMON_STATE_FILE = join(homedir(), '.antseed', 'daemon.state.json')
+  const DAEMON_STATE_FILE = join(homedir(), '.torve', 'daemon.state.json')
   // ...
   private async _readLocalSeederFallback(): Promise<PeerInfo | null> {
     const raw = await readFile(DAEMON_STATE_FILE, 'utf-8')
@@ -113,7 +113,7 @@
     }
   }
   ```
-  The file is read with no integrity check. The PID liveness check (`process.kill(pid, 0)`) only verifies *any* process exists at that PID, not that it's a legitimate Antseed seeder.
+  The file is read with no integrity check. The PID liveness check (`process.kill(pid, 0)`) only verifies *any* process exists at that PID, not that it's a legitimate Torve seeder.
 - **Fix**:
   1. Verify the daemon state file permissions (owner-only `0600`).
   2. Add an HMAC or signature over the state file, verifiable with the node's identity.
@@ -166,7 +166,7 @@
 | **Upload limits (P2P side)** | `ProxyMux` enforces per-request (32 MiB) and global (256 MiB) upload limits with stall timeouts, and zeros intermediate buffers after reassembly. ✅ |
 | **Sensitive data in RAM** | `ProxyMux` zeros chunked upload buffers after use (`chunk.fill(0)`). Good practice. ✅ |
 | **Debug logging** | Debug mode is off by default; when enabled, request/response shapes are logged but body contents are not logged directly. Request bodies are parsed for shape summaries only. Low risk. |
-| **Telemetry headers** | Response headers expose peer metadata (`x-antseed-peer-id`, `x-antseed-peer-address`, pricing, reputation). These are returned to the local client only. Acceptable for localhost. |
+| **Telemetry headers** | Response headers expose peer metadata (`x-torve-peer-id`, `x-torve-peer-address`, pricing, reputation). These are returned to the local client only. Acceptable for localhost. |
 | **ECDSA / secp256k1 signatures** | Payment signatures use `ethers` library's `signMessage` via the node identity. Signature construction uses domain-separated `solidityPackedKeccak256` with type prefixes (`0x01`, `0x02`). ✅ |
 | **Retry logic** | Retries (max 3) evict failing peers from cache and report failures to the router. No amplification risk since retries target different peers. ✅ |
 

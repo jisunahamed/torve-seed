@@ -4,10 +4,10 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { ANTSToken } from "../core/ANTSToken.sol";
-import { AntseedRegistry } from "../core/AntseedRegistry.sol";
-import { AntseedPositionInit } from "../sellers/AntseedPositionInit.sol";
-import { AntseedSellerPools } from "../sellers/AntseedSellerPools.sol";
-import { AntseedSellerRegistry } from "../sellers/AntseedSellerRegistry.sol";
+import { TorveRegistry } from "../core/TorveRegistry.sol";
+import { TorvePositionInit } from "../sellers/TorvePositionInit.sol";
+import { TorveSellerPools } from "../sellers/TorveSellerPools.sol";
+import { TorveSellerRegistry } from "../sellers/TorveSellerRegistry.sol";
 import { MockERC8004Registry } from "./mocks/MockERC8004Registry.sol";
 
 contract MockLegacySellerStaking {
@@ -39,18 +39,18 @@ contract MockSellerOperatorsForInit {
     }
 }
 
-contract AntseedPositionInitTest is Test {
+contract TorvePositionInitTest is Test {
     uint256 constant EPOCH_DURATION = 1 weeks;
     uint256 constant INIT_AMOUNT = 1 ether;
     uint256 constant INIT_END_EPOCH = 105;
 
     ANTSToken token;
-    AntseedRegistry registry;
+    TorveRegistry registry;
     MockERC8004Registry identityRegistry;
     MockLegacySellerStaking legacyStaking;
-    AntseedSellerPools pools;
-    AntseedSellerRegistry sellerRegistry;
-    AntseedPositionInit positionInit;
+    TorveSellerPools pools;
+    TorveSellerRegistry sellerRegistry;
+    TorvePositionInit positionInit;
 
     address seller = address(0x100);
     address otherSeller = address(0x200);
@@ -63,7 +63,7 @@ contract AntseedPositionInitTest is Test {
     function setUp() public {
         vm.warp(1_700_000_000);
         genesis = block.timestamp;
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         identityRegistry = new MockERC8004Registry();
         legacyStaking = new MockLegacySellerStaking();
         token = new ANTSToken();
@@ -72,11 +72,11 @@ contract AntseedPositionInitTest is Test {
         registry.setEmissions(address(this));
         registry.setIdentityRegistry(address(identityRegistry));
 
-        pools = new AntseedSellerPools(address(token), address(this), address(identityRegistry), address(0));
-        sellerRegistry = new AntseedSellerRegistry(address(identityRegistry), address(pools), address(legacyStaking));
+        pools = new TorveSellerPools(address(token), address(this), address(identityRegistry), address(0));
+        sellerRegistry = new TorveSellerRegistry(address(identityRegistry), address(pools), address(legacyStaking));
         pools.setStakingSource(address(sellerRegistry));
 
-        positionInit = new AntseedPositionInit(address(pools), address(legacyStaking), INIT_AMOUNT, INIT_END_EPOCH);
+        positionInit = new TorvePositionInit(address(pools), address(legacyStaking), INIT_AMOUNT, INIT_END_EPOCH);
 
         token.setTransferWhitelist(address(pools), true);
         token.setTransferWhitelist(address(positionInit), true);
@@ -135,7 +135,7 @@ contract AntseedPositionInitTest is Test {
         assertTrue(positionInit.agentInitialized(agentId));
 
         vm.prank(seller);
-        vm.expectRevert(AntseedPositionInit.AlreadyInitialized.selector);
+        vm.expectRevert(TorvePositionInit.AlreadyInitialized.selector);
         positionInit.initPosition();
     }
 
@@ -145,7 +145,7 @@ contract AntseedPositionInitTest is Test {
         proxy.setOperator(outsider, true);
 
         vm.expectEmit(true, true, false, true, address(positionInit));
-        emit AntseedPositionInit.PositionInitialized(
+        emit TorvePositionInit.PositionInitialized(
             address(proxy), proxyAgentId, pools.nextPositionId(), INIT_AMOUNT, 104
         );
         vm.prank(outsider);
@@ -173,7 +173,7 @@ contract AntseedPositionInitTest is Test {
         positionInit.initPosition(address(proxy));
 
         vm.prank(otherSeller);
-        vm.expectRevert(AntseedPositionInit.AlreadyInitialized.selector);
+        vm.expectRevert(TorvePositionInit.AlreadyInitialized.selector);
         positionInit.initPosition(address(proxy));
     }
 
@@ -181,13 +181,13 @@ contract AntseedPositionInitTest is Test {
         MockSellerOperatorsForInit proxy = new MockSellerOperatorsForInit();
         uint256 proxyAgentId = _registerLegacySeller(address(proxy));
         vm.prank(outsider);
-        vm.expectRevert(AntseedPositionInit.NotOperator.selector);
+        vm.expectRevert(TorvePositionInit.NotOperator.selector);
         positionInit.initPosition(address(proxy));
 
         proxy.setOperator(outsider, true);
         proxy.setOperator(outsider, false);
         vm.prank(outsider);
-        vm.expectRevert(AntseedPositionInit.NotOperator.selector);
+        vm.expectRevert(TorvePositionInit.NotOperator.selector);
         positionInit.initPosition(address(proxy));
         assertFalse(positionInit.agentInitialized(proxyAgentId));
         assertEq(positionInit.remainingInits(), 10);
@@ -199,7 +199,7 @@ contract AntseedPositionInitTest is Test {
         proxy.setOperator(seller, true);
         legacyStaking.setStakedAboveMin(address(proxy), false);
         vm.prank(seller);
-        vm.expectRevert(AntseedPositionInit.NotLegacySeller.selector);
+        vm.expectRevert(TorvePositionInit.NotLegacySeller.selector);
         positionInit.initPosition(address(proxy));
 
         assertFalse(positionInit.agentInitialized(proxyAgentId));
@@ -208,9 +208,9 @@ contract AntseedPositionInitTest is Test {
 
     function test_otherEoaAndContractWithoutOperatorGetterReject() public {
         vm.startPrank(outsider);
-        vm.expectRevert(AntseedPositionInit.NotOperator.selector);
+        vm.expectRevert(TorvePositionInit.NotOperator.selector);
         positionInit.initPosition(seller);
-        vm.expectRevert(AntseedPositionInit.NotOperator.selector);
+        vm.expectRevert(TorvePositionInit.NotOperator.selector);
         positionInit.initPosition(address(legacyStaking));
         vm.stopPrank();
     }
@@ -220,22 +220,22 @@ contract AntseedPositionInitTest is Test {
         bytes memory query = abi.encodeWithSignature("isOperator(address)", outsider);
         vm.mockCallRevert(address(proxy), query, abi.encode("unavailable"));
         vm.prank(outsider);
-        vm.expectRevert(AntseedPositionInit.NotOperator.selector);
+        vm.expectRevert(TorvePositionInit.NotOperator.selector);
         positionInit.initPosition(address(proxy));
         vm.clearMockedCalls();
 
         vm.mockCall(address(proxy), query, hex"01");
         vm.prank(outsider);
-        vm.expectRevert(AntseedPositionInit.NotOperator.selector);
+        vm.expectRevert(TorvePositionInit.NotOperator.selector);
         positionInit.initPosition(address(proxy));
         vm.mockCall(address(proxy), query, abi.encode(uint256(2)));
         vm.prank(outsider);
-        vm.expectRevert(AntseedPositionInit.NotOperator.selector);
+        vm.expectRevert(TorvePositionInit.NotOperator.selector);
         positionInit.initPosition(address(proxy));
     }
 
     function test_zeroSellerRejects() public {
-        vm.expectRevert(AntseedPositionInit.InvalidAddress.selector);
+        vm.expectRevert(TorvePositionInit.InvalidAddress.selector);
         positionInit.initPosition(address(0));
     }
 
@@ -272,7 +272,7 @@ contract AntseedPositionInitTest is Test {
 
         vm.warp(genesis + (INIT_END_EPOCH - 1) * EPOCH_DURATION);
         vm.prank(otherSeller);
-        vm.expectRevert(AntseedPositionInit.InitExpired.selector);
+        vm.expectRevert(TorvePositionInit.InitExpired.selector);
         positionInit.initPosition();
     }
 
@@ -281,13 +281,13 @@ contract AntseedPositionInitTest is Test {
         positionInit.initPosition();
 
         vm.prank(seller);
-        vm.expectRevert(AntseedPositionInit.AlreadyInitialized.selector);
+        vm.expectRevert(TorvePositionInit.AlreadyInitialized.selector);
         positionInit.initPosition();
     }
 
     function test_unknownSellerReverts() public {
         vm.prank(outsider);
-        vm.expectRevert(AntseedPositionInit.NotLegacySeller.selector);
+        vm.expectRevert(TorvePositionInit.NotLegacySeller.selector);
         positionInit.initPosition();
     }
 
@@ -295,13 +295,13 @@ contract AntseedPositionInitTest is Test {
         legacyStaking.setStakedAboveMin(seller, false);
 
         vm.prank(seller);
-        vm.expectRevert(AntseedPositionInit.NotLegacySeller.selector);
+        vm.expectRevert(TorvePositionInit.NotLegacySeller.selector);
         positionInit.initPosition();
     }
 
     function test_depletedPotBlocksInitsUntilRefunded() public {
-        AntseedPositionInit smallInit =
-            new AntseedPositionInit(address(pools), address(legacyStaking), INIT_AMOUNT, INIT_END_EPOCH);
+        TorvePositionInit smallInit =
+            new TorvePositionInit(address(pools), address(legacyStaking), INIT_AMOUNT, INIT_END_EPOCH);
         token.setTransferWhitelist(address(smallInit), true);
         token.mint(address(smallInit), INIT_AMOUNT);
 
@@ -310,7 +310,7 @@ contract AntseedPositionInitTest is Test {
         assertEq(smallInit.remainingInits(), 0);
 
         vm.prank(otherSeller);
-        vm.expectRevert(AntseedPositionInit.InitDepleted.selector);
+        vm.expectRevert(TorvePositionInit.InitDepleted.selector);
         smallInit.initPosition();
 
         token.mint(address(smallInit), INIT_AMOUNT);
@@ -320,8 +320,8 @@ contract AntseedPositionInitTest is Test {
     }
 
     function test_initRevertsWithoutTransferWhitelist() public {
-        AntseedPositionInit unlisted =
-            new AntseedPositionInit(address(pools), address(legacyStaking), INIT_AMOUNT, INIT_END_EPOCH);
+        TorvePositionInit unlisted =
+            new TorvePositionInit(address(pools), address(legacyStaking), INIT_AMOUNT, INIT_END_EPOCH);
         token.mint(address(unlisted), INIT_AMOUNT);
 
         vm.prank(seller);
@@ -330,18 +330,18 @@ contract AntseedPositionInitTest is Test {
     }
 
     function test_constructorValidation() public {
-        vm.expectRevert(AntseedPositionInit.InvalidAddress.selector);
-        new AntseedPositionInit(address(0), address(legacyStaking), INIT_AMOUNT, INIT_END_EPOCH);
+        vm.expectRevert(TorvePositionInit.InvalidAddress.selector);
+        new TorvePositionInit(address(0), address(legacyStaking), INIT_AMOUNT, INIT_END_EPOCH);
 
-        vm.expectRevert(AntseedPositionInit.InvalidAddress.selector);
-        new AntseedPositionInit(address(pools), address(0), INIT_AMOUNT, INIT_END_EPOCH);
+        vm.expectRevert(TorvePositionInit.InvalidAddress.selector);
+        new TorvePositionInit(address(pools), address(0), INIT_AMOUNT, INIT_END_EPOCH);
 
-        vm.expectRevert(AntseedPositionInit.InvalidValue.selector);
-        new AntseedPositionInit(address(pools), address(legacyStaking), 0, INIT_END_EPOCH);
+        vm.expectRevert(TorvePositionInit.InvalidValue.selector);
+        new TorvePositionInit(address(pools), address(legacyStaking), 0, INIT_END_EPOCH);
 
         // End epoch must be in the future relative to the pools' clock.
         vm.warp(genesis + 5 * EPOCH_DURATION);
-        vm.expectRevert(AntseedPositionInit.InvalidValue.selector);
-        new AntseedPositionInit(address(pools), address(legacyStaking), INIT_AMOUNT, 5);
+        vm.expectRevert(TorvePositionInit.InvalidValue.selector);
+        new TorvePositionInit(address(pools), address(legacyStaking), INIT_AMOUNT, 5);
     }
 }

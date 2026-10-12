@@ -2,11 +2,11 @@
 pragma solidity ^0.8.24;
 
 import {ProtocolFixture} from "./ProtocolFixture.sol";
-import {AntseedChannels} from "../../payments/AntseedChannels.sol";
+import {TorveChannels} from "../../payments/TorveChannels.sol";
 
 /**
  * @title ChannelsStateMachineInvariants
- * @notice State-machine safety invariants for AntseedChannels, driven by the same lifecycle
+ * @notice State-machine safety invariants for TorveChannels, driven by the same lifecycle
  *         handler as the custody suite. These are structural (status, accounting, counters) and
  *         independent of the economic/incentive parameters under revision.
  */
@@ -26,13 +26,13 @@ contract ChannelsStateMachineInvariants is ProtocolFixture {
         uint256 n = handler.chanCount();
         for (uint256 i = 0; i < n; i++) {
             (bytes32 id,,,,,) = handler.chans(i);
-            (,,,,,,,, AntseedChannels.ChannelStatus status) = channels.channels(id);
-            assertTrue(status != AntseedChannels.ChannelStatus.None, "opened channel is None");
+            (,,,,,,,, TorveChannels.ChannelStatus status) = channels.channels(id);
+            assertTrue(status != TorveChannels.ChannelStatus.None, "opened channel is None");
         }
     }
 
     /// @notice activeChannelCount[seller] equals the number of channels in Active status for
-    ///         that seller — the counter that gates AntseedStaking.unstake must stay exact.
+    ///         that seller — the counter that gates TorveStaking.unstake must stay exact.
     function invariant_activeChannelCountReconciles() public view {
         uint256 n = handler.chanCount();
         for (uint256 si = 0; si < handler.sellerCount(); si++) {
@@ -41,8 +41,8 @@ contract ChannelsStateMachineInvariants is ProtocolFixture {
             for (uint256 i = 0; i < n; i++) {
                 (bytes32 id,, uint256 sellerPk,,,) = handler.chans(i);
                 if (vm.addr(sellerPk) != seller) continue;
-                (,,,,,,,, AntseedChannels.ChannelStatus status) = channels.channels(id);
-                if (status == AntseedChannels.ChannelStatus.Active) liveActive++;
+                (,,,,,,,, TorveChannels.ChannelStatus status) = channels.channels(id);
+                if (status == TorveChannels.ChannelStatus.Active) liveActive++;
             }
             assertEq(channels.activeChannelCount(seller), liveActive, "activeChannelCount desync");
         }
@@ -54,8 +54,8 @@ contract ChannelsStateMachineInvariants is ProtocolFixture {
         uint256 n = handler.chanCount();
         for (uint256 i = 0; i < n; i++) {
             (bytes32 id,,,,, bool mirrorActive) = handler.chans(i);
-            (,,,,,,,, AntseedChannels.ChannelStatus status) = channels.channels(id);
-            bool liveActive = status == AntseedChannels.ChannelStatus.Active;
+            (,,,,,,,, TorveChannels.ChannelStatus status) = channels.channels(id);
+            bool liveActive = status == TorveChannels.ChannelStatus.Active;
             assertEq(mirrorActive, liveActive, "mirror/live active mismatch");
         }
     }

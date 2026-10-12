@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { maxLock } from '@antseed/ants';
+import { maxLock } from '@torveai/ants';
 import { runAction } from './shared.js';
 
 export function registerAntsMaxLockCommand(antsCmd: Command): void {

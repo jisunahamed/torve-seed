@@ -66,16 +66,16 @@ const CDP_HOST = 'api.cdp.coinbase.com'
 
 /**
  * x402 top-ups are on when a facilitator is configured, by flag or
- * ANTSEED_X402_FACILITATOR_URL: a URL, or `cdp` / `payai`. Credentials only
+ * TORVE_X402_FACILITATOR_URL: a URL, or `cdp` / `payai`. Credentials only
  * come from the environment: CDP_API_KEY_ID + CDP_API_KEY_SECRET for
- * Coinbase CDP, or ANTSEED_X402_FACILITATOR_AUTHORIZATION for a facilitator
+ * Coinbase CDP, or TORVE_X402_FACILITATOR_AUTHORIZATION for a facilitator
  * with a static token.
  */
 export function topupConfig(options: { x402Facilitator?: string; topupMinUsd?: string; topupMaxUsd?: string } = {}): GatewayTopupConfig | undefined {
-  const requested = (options.x402Facilitator ?? process.env['ANTSEED_X402_FACILITATOR_URL'] ?? '').trim()
+  const requested = (options.x402Facilitator ?? process.env['TORVE_X402_FACILITATOR_URL'] ?? '').trim()
   if (!requested) return undefined
   const facilitatorUrl = FACILITATOR_PRESETS[requested.toLowerCase()] ?? requested
-  const facilitatorAuthorization = process.env['ANTSEED_X402_FACILITATOR_AUTHORIZATION']?.trim()
+  const facilitatorAuthorization = process.env['TORVE_X402_FACILITATOR_AUTHORIZATION']?.trim()
   let cdp: GatewayTopupConfig['cdp']
   if (new URL(facilitatorUrl).host === CDP_HOST) {
     const keyId = process.env['CDP_API_KEY_ID']?.trim()

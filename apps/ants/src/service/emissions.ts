@@ -1,4 +1,4 @@
-import { GATE_MINTERS, gateMinterId } from '@antseed/node/payments';
+import { GATE_MINTERS, gateMinterId } from '@torveai/node/payments';
 import type { AntsContext } from './context.js';
 import type { EmissionsView, MinterView } from '../api-types.js';
 import { toJson } from './json.js';

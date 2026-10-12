@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://antseed.network/schemas/contract-deployment-state.json",
-  "title": "AntSeed contract deployment state",
+  "$id": "https://torve.network/schemas/contract-deployment-state.json",
+  "title": "Torve contract deployment state",
   "type": "object",
   "required": ["network", "chainId", "release", "status", "sourceCommit", "transactions", "contracts"],
   "properties": {

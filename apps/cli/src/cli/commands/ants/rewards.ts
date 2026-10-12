@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { parsePositiveInteger } from '../parse-positive-integer.js';
 import chalk from 'chalk';
-import { rewards, claim, restake, stakeUsageRewards, compound, formatAnts, type RewardBucket, type CompoundResult } from '@antseed/ants';
+import { rewards, claim, restake, stakeUsageRewards, compound, formatAnts, type RewardBucket, type CompoundResult } from '@torveai/ants';
 import { ants, parseIds, printJson, runAction, runRead } from './shared.js';
 
 export const REWARD_BUCKETS: readonly RewardBucket[] = ['staker', 'seller', 'buyer', 'legacy', 'locked'];
@@ -52,7 +52,7 @@ export function registerAntsRewardsCommand(antsCmd: Command): void {
       for (const position of view.staker.positions.filter((entry) => BigInt(entry.amount) > 0n)) {
         console.log(chalk.dim(`    position ${position.id} (agent ${position.agentId}): ${formatAnts(position.amount)}${position.closed ? ', closed' : ''}`));
       }
-      console.log(chalk.dim('\nClaim with: antseed ants rewards claim [--staker|--seller|--buyer|--legacy|--locked]. Compound with: antseed ants rewards restake --epochs <n>.'));
+      console.log(chalk.dim('\nClaim with: torve ants rewards claim [--staker|--seller|--buyer|--legacy|--locked]. Compound with: torve ants rewards restake --epochs <n>.'));
     }));
 
   rewardsCmd

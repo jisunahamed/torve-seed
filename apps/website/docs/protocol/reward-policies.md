@@ -17,9 +17,9 @@ Rewards](./recognized-usage.md) for staking, allocations, and contract addresses
 
 ## Where policies apply
 
-`AntseedUsageAccounting` checks that the seller has a pool with enough epoch
+`TorveUsageAccounting` checks that the seller has a pool with enough epoch
 power, then sends the usage's raw points through its configured points policy.
-The deployed policy is `AntseedPointsPolicyRegistry`, which runs a list of
+The deployed policy is `TorvePointsPolicyRegistry`, which runs a list of
 modifiers. Accounting records the resulting buyer and seller points and derives
 pool-weighted points; separate reward contracts calculate and pay ANTS.
 
@@ -53,8 +53,8 @@ rules and its ability to execute reliably.
 
 ## Historical wash-trading policy
 
-M001 registers `AntseedWashTradingPointsPolicy`. For each usage record, it asks
-the pinned `AntseedWashTradingRegistry` whether the seller is a proven wash
+M001 registers `TorveWashTradingPointsPolicy`. For each usage record, it asks
+the pinned `TorveWashTradingRegistry` whether the seller is a proven wash
 trader. If yes, it returns zero buyer and seller points. Otherwise, it leaves
 both amounts unchanged.
 
@@ -71,7 +71,7 @@ finalized proven wash volume / authenticated total seller volume >= 25%
 ```
 
 The denominator is the seller's period-end volume counter from
-`AntseedChannels`, authenticated inside the proof. The configured historical
+`TorveChannels`, authenticated inside the proof. The configured historical
 period starts at protocol genesis, so no opening counter is subtracted. Later
 trading cannot dilute this fixed historical ratio. A replacement proof must
 increase the proven wash volume and keep the same total; volumes from separate

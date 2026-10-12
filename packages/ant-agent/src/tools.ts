@@ -8,7 +8,7 @@ export function detectRequestFormat(path?: string): RequestFormat {
   return 'anthropic';
 }
 
-export const TOOL_PREFIX = 'antseed_';
+export const TOOL_PREFIX = 'torve_';
 
 /** Result of executing an internal tool call. */
 export interface ToolResult {
@@ -31,10 +31,10 @@ export type LoopAction =
 
 /**
  * A tool that the ant agent can use during the agent loop.
- * The tool name is automatically prefixed with `antseed_` when injected.
+ * The tool name is automatically prefixed with `torve_` when injected.
  */
 export interface AntAgentTool {
-  /** Tool name (without the antseed_ prefix — it's added automatically). */
+  /** Tool name (without the torve_ prefix — it's added automatically). */
   name: string;
   /** Description shown to the LLM. */
   description: string;
@@ -97,7 +97,7 @@ function toApiFormat(tool: AntAgentTool, format: RequestFormat): Record<string, 
 }
 
 /**
- * Inject antseed_* tools into the request body alongside buyer tools.
+ * Inject torve_* tools into the request body alongside buyer tools.
  * Returns the body unchanged if no tools or tool_choice is forced.
  */
 export function injectTools(
@@ -282,7 +282,7 @@ export function appendToolLoop(
 // ─── Response stripping ─────────────────────────────────────────
 
 /**
- * Strip antseed_* tool-call blocks from a response body.
+ * Strip torve_* tool-call blocks from a response body.
  */
 export function stripInternalToolCalls(
   responseBody: Record<string, unknown>,

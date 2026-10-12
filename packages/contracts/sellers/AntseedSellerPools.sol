@@ -8,13 +8,13 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
-import { IAntseedEmissionsGate } from "../interfaces/IAntseedEmissionsGate.sol";
-import { IAntseedSellerPools } from "../interfaces/IAntseedSellerPools.sol";
-import { IAntseedStaking } from "../interfaces/IAntseedStaking.sol";
+import { ITorveEmissionsGate } from "../interfaces/ITorveEmissionsGate.sol";
+import { ITorveSellerPools } from "../interfaces/ITorveSellerPools.sol";
+import { ITorveStaking } from "../interfaces/ITorveStaking.sol";
 import { IERC8004Registry } from "../interfaces/IERC8004Registry.sol";
 
 /**
- * @title AntseedSellerPools
+ * @title TorveSellerPools
  * @notice ANTS stake pools keyed by ERC-8004 agent id.
  *
  *         Sellers are not special stakers in this contract. Every position has
@@ -39,7 +39,7 @@ import { IERC8004Registry } from "../interfaces/IERC8004Registry.sol";
  *           - Moving stake keeps principal but may reduce `weightAmount` via
  *             `moveWeightPenaltyBps`; early withdrawal may slash principal.
  */
-contract AntseedSellerPools is IAntseedSellerPools, ERC721, Ownable2Step, ReentrancyGuard {
+contract TorveSellerPools is ITorveSellerPools, ERC721, Ownable2Step, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Checkpoints for Checkpoints.Trace256;
 
@@ -51,7 +51,7 @@ contract AntseedSellerPools is IAntseedSellerPools, ERC721, Ownable2Step, Reentr
     address public constant DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     // ─── External Contracts ──────────────────────────────────────────
-    IAntseedEmissionsGate public immutable emissionsGate;
+    ITorveEmissionsGate public immutable emissionsGate;
     address public immutable identityRegistry;
     address public stakingSource;
     IERC20 public immutable antsToken;
@@ -111,14 +111,14 @@ contract AntseedSellerPools is IAntseedSellerPools, ERC721, Ownable2Step, Reentr
 
     // ─── Constructor ─────────────────────────────────────────────────
     constructor(address _antsToken, address _emissionsGate, address _identityRegistry, address _stakingSource)
-        ERC721("Locked Antseed Stake", "lANTS")
+        ERC721("Locked Torve Stake", "lANTS")
         Ownable(msg.sender)
     {
         if (_antsToken == address(0) || _emissionsGate == address(0) || _identityRegistry == address(0)) {
             revert InvalidAddress();
         }
         antsToken = IERC20(_antsToken);
-        emissionsGate = IAntseedEmissionsGate(_emissionsGate);
+        emissionsGate = ITorveEmissionsGate(_emissionsGate);
         identityRegistry = _identityRegistry;
         stakingSource = _stakingSource;
     }
@@ -564,7 +564,7 @@ contract AntseedSellerPools is IAntseedSellerPools, ERC721, Ownable2Step, Reentr
         return _earlyExitSlashBps(positionId, closeEpoch);
     }
 
-    function ownerOf(uint256 positionId) public view override(ERC721, IAntseedSellerPools) returns (address) {
+    function ownerOf(uint256 positionId) public view override(ERC721, ITorveSellerPools) returns (address) {
         return super.ownerOf(positionId);
     }
 
@@ -572,7 +572,7 @@ contract AntseedSellerPools is IAntseedSellerPools, ERC721, Ownable2Step, Reentr
         if (seller == address(0)) return 0;
         address staking = stakingSource;
         if (staking == address(0)) return 0;
-        return IAntseedStaking(staking).getAgentId(seller);
+        return ITorveStaking(staking).getAgentId(seller);
     }
 
     function hasPoolAtEpoch(uint256 agentId, uint256 epoch) public view returns (bool) {
@@ -814,7 +814,7 @@ contract AntseedSellerPools is IAntseedSellerPools, ERC721, Ownable2Step, Reentr
         address staking = stakingSource;
         if (staking == address(0)) revert InvalidAddress();
 
-        try IAntseedStaking(staking).getAgentId(owner) returns (uint256 registeredAgentId) {
+        try ITorveStaking(staking).getAgentId(owner) returns (uint256 registeredAgentId) {
             if (registeredAgentId != agentId) revert InvalidValue();
         } catch {
             revert InvalidValue();

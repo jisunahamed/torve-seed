@@ -1,4 +1,4 @@
-import type { SerializedHttpRequest } from '@antseed/node';
+import type { SerializedHttpRequest } from '@torveai/node';
 
 /** Set of all known auth header names (lowercase). */
 export const KNOWN_AUTH_HEADERS: Set<string> = new Set([

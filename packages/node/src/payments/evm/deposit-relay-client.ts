@@ -170,7 +170,7 @@ export class DepositRelayClient extends BaseEvmClient {
 
   /**
    * Check whether USDC has consumed the EIP-3009 authorization nonce. Because
-   * sweep authorizations are signed with `to = AntseedDepositRelay`, and the
+   * sweep authorizations are signed with `to = TorveDepositRelay`, and the
    * relay call is atomic, a consumed nonce is a strong fallback confirmation
    * that the sweep transaction landed even when no relayer tx hash was reported.
    */

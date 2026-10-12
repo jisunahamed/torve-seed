@@ -8,49 +8,49 @@ export interface TrustedPlugin {
 }
 
 export const TRUSTED_PROVIDER_PLUGINS: TrustedPlugin[] = [
-  { name: 'venice-video', type: 'provider', description: 'Venice video API', package: '@antseed/provider-venice-video' },
-  { name: 'fal-video', type: 'provider', description: 'fal.ai video models (queue API)', package: '@antseed/provider-fal-video' },
+  { name: 'venice-video', type: 'provider', description: 'Venice video API', package: '@torveai/provider-venice-video' },
+  { name: 'fal-video', type: 'provider', description: 'fal.ai video models (queue API)', package: '@torveai/provider-fal-video' },
   {
     name: 'anthropic',
     type: 'provider',
     description: 'Anthropic API provider (API key)',
-    package: '@antseed/provider-anthropic',
+    package: '@torveai/provider-anthropic',
   },
   {
     name: 'claude-code',
     type: 'provider',
     description: 'Claude Code keychain provider (testing only)',
-    package: '@antseed/provider-claude-code',
+    package: '@torveai/provider-claude-code',
   },
   {
     name: 'claude-oauth',
     type: 'provider',
     description: 'Claude OAuth provider (testing only)',
-    package: '@antseed/provider-claude-oauth',
+    package: '@torveai/provider-claude-oauth',
   },
   {
     name: 'openai',
     type: 'provider',
     description: 'OpenAI-compatible provider (OpenAI, Together, OpenRouter, API key)',
-    package: '@antseed/provider-openai',
+    package: '@torveai/provider-openai',
   },
   {
     name: 'openai-responses',
     type: 'provider',
     description: 'OpenAI Responses provider via Codex auth (testing only)',
-    package: '@antseed/provider-openai-responses',
+    package: '@torveai/provider-openai-responses',
   },
   {
     name: 'local-llm',
     type: 'provider',
     description: 'Local LLM provider (Ollama, llama.cpp)',
-    package: '@antseed/provider-local-llm',
+    package: '@torveai/provider-local-llm',
   },
   {
     name: 'typesafe',
     type: 'provider',
     description: 'TypeSafe System One decision-model provider (API key)',
-    package: '@antseed/provider-typesafe',
+    package: '@torveai/provider-typesafe',
   },
 ]
 
@@ -59,16 +59,16 @@ export const TRUSTED_ROUTER_PLUGINS: TrustedPlugin[] = [
     name: 'local',
     type: 'router',
     description: 'Local router for Claude Code, Codex',
-    package: '@antseed/router-local',
+    package: '@torveai/router-local',
   },
 ]
 
 export const TRUSTED_VERIFIER_PLUGINS: TrustedPlugin[] = [
   {
-    name: 'antseed-verifier',
+    name: 'torve-verifier',
     type: 'verifier',
     description: 'TEE attestation verifier + prover (Intel TDX, DCAP)',
-    package: '@antseed/antseed-verifier',
+    package: '@torveai/torve-verifier',
     version: '0.1.0',
   },
 ]

@@ -19,12 +19,12 @@ trust = washFlagged ? 0 : min(100, history + usage + power + identity + freeMode
 
 | Part | Weight | On-chain source | What it means |
 |---|---|---|---|
-| `history` | 50 | `AntseedChannels.getAgentStats` lifetime settled channel count and volume | Demonstrated service history. Channel count and settled USDC volume each use a bounded log curve, saturating at 100 settled sessions and 100 USDC, then contribute equally to this part. |
-| `usage` | 20 | `AntseedUsageAccounting.sellerPointsByEpoch / totalPoolPointsByEpoch` for the last complete weekly epoch | The seller pool's share of all pools' recognized-usage points: what it actually delivered last week relative to the network. Points only accrue for sellers with a pool and have already passed the on-chain [reward policies](./reward-policies.md), so a proven wash trader's share is already zero. |
-| `power` | 10 | `AntseedSellerPools.poolWeightAtEpoch / totalPowerWeightAtEpoch` for the current epoch (lock-weighted ANTS) | The pool's share of all pools' staking power this week, which is what decides what a buyer's spend with this seller earns. |
+| `history` | 50 | `TorveChannels.getAgentStats` lifetime settled channel count and volume | Demonstrated service history. Channel count and settled USDC volume each use a bounded log curve, saturating at 100 settled sessions and 100 USDC, then contribute equally to this part. |
+| `usage` | 20 | `TorveUsageAccounting.sellerPointsByEpoch / totalPoolPointsByEpoch` for the last complete weekly epoch | The seller pool's share of all pools' recognized-usage points: what it actually delivered last week relative to the network. Points only accrue for sellers with a pool and have already passed the on-chain [reward policies](./reward-policies.md), so a proven wash trader's share is already zero. |
+| `power` | 10 | `TorveSellerPools.poolWeightAtEpoch / totalPowerWeightAtEpoch` for the current epoch (lock-weighted ANTS) | The pool's share of all pools' staking power this week, which is what decides what a buyer's spend with this seller earns. |
 | `identity` | 20 | None (buyer-local lookups of verified GitHub accounts and domains, see below) | Public history of an identity the seller has proven it owns, so an established operator earns credit before it has a pool record. |
 | `freeModels` | +5 bonus | None (the seller's signed pricing metadata) | Added on top of the weighted parts, with the total capped at 100, when the seller offers at least one model at $0 input and output (and $0 cached input, when it prices cached input). It only adds to a seller that is already scored: a free model alone does not make an unknown seller trusted. |
-| `washFlagged` | true/false | `AntseedWashTradingRegistry.isProvenWashTrader` | A proven wash trader scores 0 whatever the other parts say. |
+| `washFlagged` | true/false | `TorveWashTradingRegistry.isProvenWashTrader` | A proven wash trader scores 0 whatever the other parts say. |
 
 Each part is a 0-1 value times its weight. History averages `log10(1 + channelCount) / log10(101)` and `log10(1 + settledVolumeUsdc) / log10(101)`, with each term capped at 1. Both network shares are unitless and go through the same log curve, `log10(1 + 999 · share) / 3`: a 100% share maps to 1, 10% to 0.67, and 1% to 0.35, so shares self-normalize as the network grows or as more ANTS is staked. Identity maps its points (GitHub up to 70, domain up to 12, below) onto 0-1 over 70. The free-model bonus is all or nothing: 5 points or 0, outside the weights. The weights sum to 100 and live in one table (`TRUST_WEIGHTS`); a future model-verification part will take its weight from there.
 
@@ -45,7 +45,7 @@ These stay separate router rules and never change the number: the local sybil he
 
 ## Routing
 
-The buyer proxy and desktop share the route ranking exported by `@antseed/node/model-routing`, and `/v1/models/:id` returns peer offers in that same order. The default model routing preferences are:
+The buyer proxy and desktop share the route ranking exported by `@torveai/node/model-routing`, and `/v1/models/:id` returns peer offers in that same order. The default model routing preferences are:
 
 ```typescript
 {
@@ -61,7 +61,7 @@ The buyer proxy and desktop share the route ranking exported by `@antseed/node/m
 
 Eligible offers are ranked by trust, token or image price, cached-input pricing coverage, free-peer preference, recent failures, and cooldown state. If at least one seller for a model advertises cached-input pricing, offers that omit it receive a model-specific reputation reduction; if none advertise it, no seller is penalized. A recognized conversation softly prefers its previous successful seller while that offer remains healthy and eligible. Latency is tracked as an exponential moving average (alpha: 0.3), and peers with consecutive failures enter exponential backoff cooldown.
 
-The lower-level `@antseed/router-core` package also exposes generic router weights for plugin authors; its reputation factor is the trust score when available:
+The lower-level `@torveai/router-core` package also exposes generic router weights for plugin authors; its reputation factor is the trust score when available:
 
 | Factor | Weight |
 |---|---|
@@ -74,9 +74,9 @@ The lower-level `@antseed/router-core` package also exposes generic router weigh
 
 ## On-Chain Stats
 
-AntSeed derives core on-chain seller stats directly from `AntseedChannels`. Completed channels, ghost channels, and settled volume live in the Channels contract itself. An optional `AntseedStats` contract can additionally ingest buyer-signed metadata during settlement to aggregate token and request counters. Buyers still read these counters for display and for the local sybil warning; they are not part of the trust score.
+Torve derives core on-chain seller stats directly from `TorveChannels`. Completed channels, ghost channels, and settled volume live in the Channels contract itself. An optional `TorveStats` contract can additionally ingest buyer-signed metadata during settlement to aggregate token and request counters. Buyers still read these counters for display and for the local sybil warning; they are not part of the trust score.
 
-Each seller's ERC-8004 agentId maintains the following core counters in `AntseedChannels`:
+Each seller's ERC-8004 agentId maintains the following core counters in `TorveChannels`:
 
 | Counter | Updated During | Description |
 |---|---|---|
@@ -85,7 +85,7 @@ Each seller's ERC-8004 agentId maintains the following core counters in `Antseed
 | `totalVolumeUsdc` | `settle()` / `close()` | Cumulative USDC volume settled |
 | `lastSettledAt` | `settle()` / `close()` | Timestamp of most recent settlement |
 
-If the optional `AntseedStats` contract is configured, it can also track:
+If the optional `TorveStats` contract is configured, it can also track:
 
 | Counter | Updated During | Description |
 |---|---|---|
@@ -98,7 +98,7 @@ No counter can be incremented without a corresponding on-chain state transition 
 ## Staking
 
 From **September 10, 2026 at 09:54:21 UTC (epoch 22)**, seller eligibility is
-resolved through AntseedSellerRegistry and ANTS pool positions contribute epoch
+resolved through TorveSellerRegistry and ANTS pool positions contribute epoch
 power. Legacy USDC stake can remain an eligibility fallback while enabled;
 recognized-usage rewards require pool power, and the same pool power share is
 the `power` part of the trust score. See [Recognized Usage](./recognized-usage.md)

@@ -334,7 +334,7 @@ describe("unit billing runtime", () => {
   });
 
   it("captures unit context from a multipart image edits request", () => {
-    const boundary = "----antseedEditBoundary";
+    const boundary = "----torveEditBoundary";
     const request: SerializedHttpRequest = {
       requestId: "req-image-edit",
       method: "POST",

@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { GATE_MINTERS, gateMinterId, multicallRead, type MulticallRequest } from '@antseed/node/payments';
+import { GATE_MINTERS, gateMinterId, multicallRead, type MulticallRequest } from '@torveai/node/payments';
 import type { AntsContext } from './context.js';
 import { invalidateNetwork, networkSnapshot } from './network.js';
 
-vi.mock('@antseed/node/payments', async original => ({ ...await original<object>(), multicallRead: vi.fn() }));
+vi.mock('@torveai/node/payments', async original => ({ ...await original<object>(), multicallRead: vi.fn() }));
 const gate = '0x0000000000000000000000000000000000000001';
 const pools = '0x0000000000000000000000000000000000000002';
 const staker = '0x0000000000000000000000000000000000000003';

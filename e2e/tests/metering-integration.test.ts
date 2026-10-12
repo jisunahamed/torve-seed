@@ -3,8 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import type { TokenCount, UsageReceipt, MeteringEvent, SessionMetrics } from '@antseed/node';
-import { MeteringStorage } from '@antseed/node';
+import type { TokenCount, UsageReceipt, MeteringEvent, SessionMetrics } from '@torveai/node';
+import { MeteringStorage } from '@torveai/node';
 import {
   ReceiptGenerator,
   ReceiptVerifier,
@@ -14,7 +14,7 @@ import {
   UsageAggregator,
   type Signer,
   type SignatureVerifier,
-} from '@antseed/node/metering';
+} from '@torveai/node/metering';
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -208,7 +208,7 @@ describe('Metering: MeteringStorage persistence', () => {
   let storage: MeteringStorage;
 
   beforeEach(async () => {
-    dataDir = await mkdtemp(join(tmpdir(), 'antseed-metering-test-'));
+    dataDir = await mkdtemp(join(tmpdir(), 'torve-metering-test-'));
     storage = new MeteringStorage(join(dataDir, 'metering.db'));
   });
 

@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest';
-import type { Provider, ProviderStreamCallbacks, SerializedHttpRequest } from '@antseed/node';
+import type { Provider, ProviderStreamCallbacks, SerializedHttpRequest } from '@torveai/node';
 import plugin, { falAppId } from './index.js';
 
 afterEach(() => vi.unstubAllGlobals());
@@ -7,15 +7,15 @@ afterEach(() => vi.unstubAllGlobals());
 const MODEL = 'fal-ai/kling-video/v2.1/standard/text-to-video';
 const config = {
   FAL_VIDEO_API_KEY: 'seller-secret',
-  ANTSEED_ALLOWED_SERVICES: MODEL,
-  ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON: JSON.stringify({ [MODEL]: { 'fal-video': { version: 1, components: [{ unit: 'video_seconds', priceUsd: 0.1 }] } } }),
+  TORVE_ALLOWED_SERVICES: MODEL,
+  TORVE_SERVICE_UNIT_BILLING_MODELS_JSON: JSON.stringify({ [MODEL]: { 'fal-video': { version: 1, components: [{ unit: 'video_seconds', priceUsd: 0.1 }] } } }),
 };
 const json = (body: object) => Buffer.from(JSON.stringify(body));
 const request = (path: string, body: object, headers: Record<string, string> = {}): SerializedHttpRequest => ({
   requestId: 'r', method: 'POST', path, headers: { 'content-type': 'application/json', ...headers }, body: json(body),
 });
 const retrieve = (body: object = { model: MODEL, request_id: 'req-1' }) =>
-  request('/fal/v1/video/retrieve', body, { 'x-antseed-service': MODEL, 'x-antseed-video-download': 'video-stream-v1' });
+  request('/fal/v1/video/retrieve', body, { 'x-torve-service': MODEL, 'x-torve-video-download': 'video-stream-v1' });
 const stream = (provider: Provider, req = retrieve(), callbacks: Partial<ProviderStreamCallbacks> = {}) =>
   provider.handleRequestStream!(req, { signal: new AbortController().signal, onResponseStart() {}, onResponseChunk() {}, ...callbacks });
 const parse = (body: Uint8Array) => JSON.parse(Buffer.from(body).toString());
@@ -28,9 +28,9 @@ it('derives fal app IDs for queue status and result URLs', () => {
 it('advertises fal video services and validates seller configuration', () => {
   expect(plugin.name).toBe('fal-video');
   expect(() => plugin.createProvider({ ...config, FAL_VIDEO_API_KEY: ' ' })).toThrow('FAL_VIDEO_API_KEY');
-  expect(() => plugin.createProvider({ ...config, ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON: '{}' })).toThrow('Missing fal-video unit pricing');
-  expect(() => plugin.createProvider({ ...config, ANTSEED_ALLOWED_SERVICES: 'kling' })).toThrow('Invalid fal endpoint ID');
-  expect(() => plugin.createProvider({ ...config, ANTSEED_ALLOWED_SERVICES: 'fal-ai/../admin' })).toThrow('Invalid fal endpoint ID');
+  expect(() => plugin.createProvider({ ...config, TORVE_SERVICE_UNIT_BILLING_MODELS_JSON: '{}' })).toThrow('Missing fal-video unit pricing');
+  expect(() => plugin.createProvider({ ...config, TORVE_ALLOWED_SERVICES: 'kling' })).toThrow('Invalid fal endpoint ID');
+  expect(() => plugin.createProvider({ ...config, TORVE_ALLOWED_SERVICES: 'fal-ai/../admin' })).toThrow('Invalid fal endpoint ID');
   const provider = plugin.createProvider(config) as Provider;
   expect(provider.serviceApiProtocols).toEqual({ [MODEL]: ['fal-video'] });
   expect(provider.serviceCapabilities?.[MODEL]).toMatchObject({ outputs: ['video'] });
@@ -45,14 +45,14 @@ it('submits the input to the fal queue with seller auth and hides fal URLs', asy
   vi.stubGlobal('fetch', fetchMock);
   const input = { prompt: 'cat', duration: '5', image_url: 'data:image/png;base64,aW1hZ2U=' };
   const response = await (plugin.createProvider(config) as Provider).handleRequest(
-    request('/fal/v1/video/queue', { model: MODEL, service: MODEL, ...input }, { authorization: 'buyer-key', 'x-antseed-buyer-peer-id': 'buyer' }),
+    request('/fal/v1/video/queue', { model: MODEL, service: MODEL, ...input }, { authorization: 'buyer-key', 'x-torve-buyer-peer-id': 'buyer' }),
   );
   expect(response.statusCode).toBe(200);
   expect(parse(response.body)).toEqual({ model: MODEL, request_id: 'req-1', status: 'IN_QUEUE' });
   const [url, init] = fetchMock.mock.calls[0]!;
   expect(url).toBe(`https://queue.fal.run/${MODEL}`);
   expect(init).toMatchObject({ method: 'POST', redirect: 'error', headers: { authorization: 'Key seller-secret' } });
-  expect(Object.keys(init.headers).some((key: string) => key.startsWith('x-antseed-'))).toBe(false);
+  expect(Object.keys(init.headers).some((key: string) => key.startsWith('x-torve-'))).toBe(false);
   expect(parse(init.body)).toEqual(input);
 });
 
@@ -121,7 +121,7 @@ it('streams the finished video from the fal media URL without the seller key', a
     onResponseChunk(chunk) { expect(chunk.data.length).toBeLessThanOrEqual(65536); received += chunk.data.length; },
   });
   expect(response.statusCode).toBe(200);
-  expect(headers).toMatchObject({ 'content-type': 'video/mp4', 'x-antseed-video-download': 'video-stream-v1' });
+  expect(headers).toMatchObject({ 'content-type': 'video/mp4', 'x-torve-video-download': 'video-stream-v1' });
   expect(received).toBe(bytes.length);
   expect(fetchMock.mock.calls[1]![0]).toBe('https://queue.fal.run/fal-ai/kling-video/requests/req-1');
   const [url, init] = fetchMock.mock.calls[2]!;

@@ -58,7 +58,7 @@ if (useChainlinkBlockhashStore) {
     ));
   }
 }
-const registry = await deploy("AntseedWashTradingRegistry.sol/AntseedWashTradingRegistry.json", [
+const registry = await deploy("TorveWashTradingRegistry.sol/TorveWashTradingRegistry.json", [
   await verifier.getAddress(),
   await verifier.VERIFIER_HASH(),
   blockhashStoreAddress,
@@ -134,7 +134,7 @@ async function deploy(relativeArtifact, constructorArguments) {
 }
 
 function validateArtifact(candidate) {
-  if (candidate?.version !== 3 || candidate.kind !== "antseed-wash-trading-seller-proof"
+  if (candidate?.version !== 3 || candidate.kind !== "torve-wash-trading-seller-proof"
     || candidate.proofArchitecture !== "direct-seller-v1" || candidate.securityMode !== "development"
     || candidate.proved !== true || candidate.verified !== true) {
     throw new Error("artifact is not a development seller proof");

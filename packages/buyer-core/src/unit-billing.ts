@@ -2,7 +2,7 @@ import type {
   ImageRequestFacts,
   ProviderResponseFacts,
   TokenUsage,
-} from '@antseed/api-adapter';
+} from '@torveai/api-adapter';
 import {
   extractImageRequestFacts,
   extractProviderResponseFacts,
@@ -11,8 +11,8 @@ import {
   nativeVideoFacts,
   nativeVideoAcceptance,
   type NativeVideoFacts,
-} from '@antseed/api-adapter';
-import type { SerializedHttpRequest, SerializedHttpResponse } from '@antseed/protocol/http';
+} from '@torveai/api-adapter';
+import type { SerializedHttpRequest, SerializedHttpResponse } from '@torveai/protocol/http';
 import type {
   UnitBillingContext,
   UnitBillingMatchKeyV1,
@@ -20,13 +20,13 @@ import type {
   UnitBillingUnitV1,
   UnitBillingUsage,
   UnitBillingUsageReportV1,
-} from '@antseed/protocol/billing';
+} from '@torveai/protocol/billing';
 import {
   evaluateUnitBilling,
   unitUsageToBillingReport,
   validateUnitBillingModelV1,
-} from '@antseed/protocol/billing';
-import { NATIVE_VIDEO_PROTOCOLS, type ServiceApiProtocol } from '@antseed/protocol/service-api';
+} from '@torveai/protocol/billing';
+import { NATIVE_VIDEO_PROTOCOLS, type ServiceApiProtocol } from '@torveai/protocol/service-api';
 
 const ZERO_TOKEN_USAGE: TokenUsage = {
   inputTokens: 0,

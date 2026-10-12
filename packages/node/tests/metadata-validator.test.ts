@@ -800,7 +800,7 @@ describe('validateMetadata', () => {
       verifications: {
         github: [
           { username: "octocat" },
-          { username: "octocat", repository: "antseed-proofs" },
+          { username: "octocat", repository: "torve-proofs" },
         ],
       },
     }));

@@ -48,7 +48,7 @@ describe('injectTools', () => {
     const tools = result.tools as Record<string, unknown>[];
     expect(tools).toHaveLength(2);
     expect(tools[0]).toEqual({ name: 'buyer_tool' });
-    expect(tools[1].name).toBe('antseed_load_knowledge');
+    expect(tools[1].name).toBe('torve_load_knowledge');
   });
 
   it('injects multiple tools', () => {
@@ -62,8 +62,8 @@ describe('injectTools', () => {
     const result = injectTools(body, [...testTools, customTool], 'anthropic');
     const tools = result.tools as Record<string, unknown>[];
     expect(tools).toHaveLength(2);
-    expect(tools[0].name).toBe('antseed_load_knowledge');
-    expect(tools[1].name).toBe('antseed_fetch_price');
+    expect(tools[0].name).toBe('torve_load_knowledge');
+    expect(tools[1].name).toBe('torve_fetch_price');
   });
 
   it('returns body unchanged when no tools', () => {
@@ -103,7 +103,7 @@ describe('injectTools', () => {
     const result = injectTools(body, testTools, 'anthropic');
     const tools = result.tools as Record<string, unknown>[];
     expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('antseed_load_knowledge');
+    expect(tools[0].name).toBe('torve_load_knowledge');
   });
 
   it('uses OpenAI format when specified', () => {
@@ -112,7 +112,7 @@ describe('injectTools', () => {
     const tools = result.tools as Record<string, unknown>[];
     expect(tools[0].type).toBe('function');
     const fn = tools[0].function as Record<string, unknown>;
-    expect(fn.name).toBe('antseed_load_knowledge');
+    expect(fn.name).toBe('torve_load_knowledge');
   });
 
   it('uses OpenAI Responses format (flat function)', () => {
@@ -120,7 +120,7 @@ describe('injectTools', () => {
     const result = injectTools(body, testTools, 'openai-responses');
     const tools = result.tools as Record<string, unknown>[];
     expect(tools[0].type).toBe('function');
-    expect(tools[0].name).toBe('antseed_load_knowledge');
+    expect(tools[0].name).toBe('torve_load_knowledge');
     expect(tools[0].function).toBeUndefined(); // flat, not nested
   });
 });
@@ -152,9 +152,9 @@ describe('inspectResponse', () => {
     expect(inspectResponse(response, 'openai').type).toBe('done');
   });
 
-  it('returns continue for antseed_* calls (Anthropic)', () => {
+  it('returns continue for torve_* calls (Anthropic)', () => {
     const response = {
-      content: [{ type: 'tool_use', id: 'tc1', name: 'antseed_load_knowledge', input: { name: 'pricing' } }],
+      content: [{ type: 'tool_use', id: 'tc1', name: 'torve_load_knowledge', input: { name: 'pricing' } }],
     };
     const action = inspectResponse(response, 'anthropic');
     expect(action.type).toBe('continue');
@@ -163,10 +163,10 @@ describe('inspectResponse', () => {
     }
   });
 
-  it('returns continue for antseed_* calls (OpenAI)', () => {
+  it('returns continue for torve_* calls (OpenAI)', () => {
     const response = {
       choices: [{
-        message: { tool_calls: [{ id: 'tc1', function: { name: 'antseed_load_knowledge', arguments: '{"name":"pricing"}' } }] },
+        message: { tool_calls: [{ id: 'tc1', function: { name: 'torve_load_knowledge', arguments: '{"name":"pricing"}' } }] },
       }],
     };
     const action = inspectResponse(response, 'openai');
@@ -177,7 +177,7 @@ describe('inspectResponse', () => {
     const response = {
       content: [
         { type: 'tool_use', id: 'tc1', name: 'buyer_search', input: {} },
-        { type: 'tool_use', id: 'tc2', name: 'antseed_load_knowledge', input: { name: 'faq' } },
+        { type: 'tool_use', id: 'tc2', name: 'torve_load_knowledge', input: { name: 'faq' } },
       ],
     };
     expect(inspectResponse(response, 'anthropic').type).toBe('done');
@@ -189,7 +189,7 @@ describe('inspectResponse', () => {
         message: {
           tool_calls: [
             { id: 'tc1', function: { name: 'buyer_search', arguments: '{}' } },
-            { id: 'tc2', function: { name: 'antseed_load_knowledge', arguments: '{"name":"faq"}' } },
+            { id: 'tc2', function: { name: 'torve_load_knowledge', arguments: '{"name":"faq"}' } },
           ],
         },
       }],
@@ -204,12 +204,12 @@ describe('inspectResponse', () => {
     expect(inspectResponse(response, 'openai-responses').type).toBe('done');
   });
 
-  it('returns continue for antseed_* calls (Responses)', () => {
+  it('returns continue for torve_* calls (Responses)', () => {
     const response = {
       output: [{
         type: 'function_call',
         call_id: 'call-1',
-        name: 'antseed_load_knowledge',
+        name: 'torve_load_knowledge',
         arguments: '{"name":"pricing"}',
       }],
     };
@@ -233,7 +233,7 @@ describe('inspectResponse', () => {
     const response = {
       output: [
         { type: 'function_call', call_id: 'call-1', name: 'search_web', arguments: '{}' },
-        { type: 'function_call', call_id: 'call-2', name: 'antseed_load_knowledge', arguments: '{"name":"faq"}' },
+        { type: 'function_call', call_id: 'call-2', name: 'torve_load_knowledge', arguments: '{"name":"faq"}' },
       ],
     };
     expect(inspectResponse(response, 'openai-responses').type).toBe('done');
@@ -242,7 +242,7 @@ describe('inspectResponse', () => {
 
 describe('executeTools', () => {
   it('returns module content for valid knowledge load', async () => {
-    const calls = [{ id: 'tc1', name: 'antseed_load_knowledge', arguments: { name: 'pricing' } }];
+    const calls = [{ id: 'tc1', name: 'torve_load_knowledge', arguments: { name: 'pricing' } }];
     const results = await executeTools(calls, testTools);
     expect(results).toHaveLength(1);
     expect(results[0].content).toBe('Price is $10/mo');
@@ -250,7 +250,7 @@ describe('executeTools', () => {
   });
 
   it('returns error for unknown module', async () => {
-    const calls = [{ id: 'tc1', name: 'antseed_load_knowledge', arguments: { name: 'nonexistent' } }];
+    const calls = [{ id: 'tc1', name: 'torve_load_knowledge', arguments: { name: 'nonexistent' } }];
     const results = await executeTools(calls, testTools);
     expect(results).toHaveLength(1);
     expect(results[0].isError).toBe(true);
@@ -258,7 +258,7 @@ describe('executeTools', () => {
   });
 
   it('returns error for unknown tool name', async () => {
-    const calls = [{ id: 'tc1', name: 'antseed_unknown', arguments: {} }];
+    const calls = [{ id: 'tc1', name: 'torve_unknown', arguments: {} }];
     const results = await executeTools(calls, testTools);
     expect(results).toHaveLength(1);
     expect(results[0].isError).toBe(true);
@@ -272,7 +272,7 @@ describe('executeTools', () => {
       parameters: { type: 'object', properties: {} },
       execute: async () => 'fetched result',
     };
-    const calls = [{ id: 'tc1', name: 'antseed_fetch_data', arguments: {} }];
+    const calls = [{ id: 'tc1', name: 'torve_fetch_data', arguments: {} }];
     const results = await executeTools(calls, [customTool]);
     expect(results).toHaveLength(1);
     expect(results[0].content).toBe('fetched result');
@@ -286,7 +286,7 @@ describe('executeTools', () => {
       parameters: { type: 'object', properties: {} },
       execute: async () => { throw new Error('connection failed'); },
     };
-    const calls = [{ id: 'tc1', name: 'antseed_broken', arguments: {} }];
+    const calls = [{ id: 'tc1', name: 'torve_broken', arguments: {} }];
     const results = await executeTools(calls, [failingTool]);
     expect(results).toHaveLength(1);
     expect(results[0].isError).toBe(true);
@@ -300,7 +300,7 @@ describe('appendToolLoop', () => {
     const assistantResponse = {
       content: [
         { type: 'text', text: 'Let me check.' },
-        { type: 'tool_use', id: 'tc1', name: 'antseed_load_knowledge', input: { name: 'pricing' } },
+        { type: 'tool_use', id: 'tc1', name: 'torve_load_knowledge', input: { name: 'pricing' } },
       ],
     };
     const results = [{ id: 'tc1', content: 'Price is $10/mo', isError: false }];
@@ -318,7 +318,7 @@ describe('appendToolLoop', () => {
       choices: [{
         message: {
           role: 'assistant',
-          tool_calls: [{ id: 'tc1', function: { name: 'antseed_load_knowledge', arguments: '{}' } }],
+          tool_calls: [{ id: 'tc1', function: { name: 'torve_load_knowledge', arguments: '{}' } }],
         },
       }],
     };
@@ -333,7 +333,7 @@ describe('appendToolLoop', () => {
     const body = { input: [{ role: 'user', content: 'hello' }] };
     const assistantResponse = {
       output: [
-        { type: 'function_call', call_id: 'call-1', name: 'antseed_load_knowledge', arguments: '{"name":"pricing"}' },
+        { type: 'function_call', call_id: 'call-1', name: 'torve_load_knowledge', arguments: '{"name":"pricing"}' },
       ],
     };
     const results = [{ id: 'call-1', content: 'Price is $10/mo', isError: false }];
@@ -346,12 +346,12 @@ describe('appendToolLoop', () => {
 });
 
 describe('stripInternalToolCalls', () => {
-  it('strips antseed_* calls, keeps buyer calls (Anthropic)', () => {
+  it('strips torve_* calls, keeps buyer calls (Anthropic)', () => {
     const response = {
       content: [
         { type: 'text', text: 'Here you go' },
         { type: 'tool_use', id: 'tc1', name: 'buyer_search', input: {} },
-        { type: 'tool_use', id: 'tc2', name: 'antseed_load_knowledge', input: { name: 'faq' } },
+        { type: 'tool_use', id: 'tc2', name: 'torve_load_knowledge', input: { name: 'faq' } },
       ],
     };
     const stripped = stripInternalToolCalls(response, 'anthropic');
@@ -360,13 +360,13 @@ describe('stripInternalToolCalls', () => {
     expect((content[1] as Record<string, unknown>).name).toBe('buyer_search');
   });
 
-  it('strips antseed_* calls, keeps buyer calls (OpenAI)', () => {
+  it('strips torve_* calls, keeps buyer calls (OpenAI)', () => {
     const response = {
       choices: [{
         message: {
           tool_calls: [
             { id: 'tc1', function: { name: 'buyer_search', arguments: '{}' } },
-            { id: 'tc2', function: { name: 'antseed_load_knowledge', arguments: '{}' } },
+            { id: 'tc2', function: { name: 'torve_load_knowledge', arguments: '{}' } },
           ],
         },
       }],
@@ -396,7 +396,7 @@ describe('stripInternalToolCalls', () => {
   it('sets finish_reason to stop when all tool_calls removed (OpenAI)', () => {
     const response = {
       choices: [{
-        message: { tool_calls: [{ id: 'tc1', function: { name: 'antseed_load_knowledge', arguments: '{}' } }] },
+        message: { tool_calls: [{ id: 'tc1', function: { name: 'torve_load_knowledge', arguments: '{}' } }] },
         finish_reason: 'tool_calls',
       }],
     };
@@ -408,19 +408,19 @@ describe('stripInternalToolCalls', () => {
 
   it('sets stop_reason to end_turn when all tool_use removed (Anthropic)', () => {
     const response = {
-      content: [{ type: 'tool_use', id: 'tc1', name: 'antseed_load_knowledge', input: {} }],
+      content: [{ type: 'tool_use', id: 'tc1', name: 'torve_load_knowledge', input: {} }],
       stop_reason: 'tool_use',
     };
     const stripped = stripInternalToolCalls(response, 'anthropic');
     expect(stripped.stop_reason).toBe('end_turn');
   });
 
-  it('strips antseed_* calls, keeps buyer calls (Responses)', () => {
+  it('strips torve_* calls, keeps buyer calls (Responses)', () => {
     const response = {
       output: [
         { type: 'message', content: [{ type: 'output_text', text: 'Here you go' }] },
         { type: 'function_call', call_id: 'call-1', name: 'search_web', arguments: '{}' },
-        { type: 'function_call', call_id: 'call-2', name: 'antseed_load_knowledge', arguments: '{}' },
+        { type: 'function_call', call_id: 'call-2', name: 'torve_load_knowledge', arguments: '{}' },
       ],
     };
     const stripped = stripInternalToolCalls(response, 'openai-responses');
@@ -431,7 +431,7 @@ describe('stripInternalToolCalls', () => {
 
   it('sets status to completed when all function_calls removed (Responses)', () => {
     const response = {
-      output: [{ type: 'function_call', call_id: 'call-1', name: 'antseed_load_knowledge', arguments: '{}' }],
+      output: [{ type: 'function_call', call_id: 'call-1', name: 'torve_load_knowledge', arguments: '{}' }],
       status: 'requires_action',
     };
     const stripped = stripInternalToolCalls(response, 'openai-responses');

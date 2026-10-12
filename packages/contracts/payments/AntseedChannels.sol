@@ -7,16 +7,16 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {IAntseedRegistry} from "../interfaces/IAntseedRegistry.sol";
-import {IAntseedDeposits} from "../interfaces/IAntseedDeposits.sol";
-import {IAntseedStaking} from "../interfaces/IAntseedStaking.sol";
-import {IAntseedEmissions} from "../interfaces/IAntseedEmissions.sol";
-import {IAntseedStats} from "../interfaces/IAntseedStats.sol";
+import {ITorveRegistry} from "../interfaces/ITorveRegistry.sol";
+import {ITorveDeposits} from "../interfaces/ITorveDeposits.sol";
+import {ITorveStaking} from "../interfaces/ITorveStaking.sol";
+import {ITorveEmissions} from "../interfaces/ITorveEmissions.sol";
+import {ITorveStats} from "../interfaces/ITorveStats.sol";
 
 /**
- * @title AntseedChannels
+ * @title TorveChannels
  * @notice Channel lifecycle with built-in cumulative payment channels.
- *         USDC stays in AntseedDeposits — this contract holds none.
+ *         USDC stays in TorveDeposits — this contract holds none.
  *
  *         The buyer signs a single EIP-712 SpendingAuth on every request:
  *         - cumulativeAmount: total USDC authorized so far
@@ -30,9 +30,9 @@ import {IAntseedStats} from "../interfaces/IAntseedStats.sol";
  *           close:    Deposits charges buyer, credits seller, releases remaining
  *           timeout:  Deposits releases locked funds back to buyer
  *
- *         Contract is swappable: deploy a new version and re-point via AntseedRegistry.
+ *         Contract is swappable: deploy a new version and re-point via TorveRegistry.
  */
-contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
+contract TorveChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
 
     // ─── EIP-712 ─────────────────────────────────────────────────────
     bytes32 public constant SPENDING_AUTH_TYPEHASH = keccak256(
@@ -74,7 +74,7 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
     }
 
     // ─── State Variables ────────────────────────────────────────────
-    IAntseedRegistry public registry;
+    ITorveRegistry public registry;
 
     mapping(bytes32 => Channel) public channels;
     mapping(address => uint256) public activeChannelCount;
@@ -107,11 +107,11 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
 
     // ─── Constructor ────────────────────────────────────────────────
     constructor(address _registry)
-        EIP712("AntseedChannels", "1")
+        EIP712("TorveChannels", "1")
         Ownable(msg.sender)
     {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     // ─── Domain Separator Helper ────────────────────────────────────
@@ -155,7 +155,7 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
         bytes calldata buyerSig
     ) external nonReentrant whenNotPaused {
         if (block.timestamp > deadline) revert ChannelExpired();
-        if (!IAntseedStaking(registry.staking()).isStakedAboveMin(msg.sender)) revert SellerNotStaked();
+        if (!ITorveStaking(registry.staking()).isStakedAboveMin(msg.sender)) revert SellerNotStaked();
         if (maxAmount == 0) revert InvalidAmount();
 
         bytes32 channelId = computeChannelId(buyer, msg.sender, salt);
@@ -181,7 +181,7 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
         activeChannelCount[msg.sender]++;
 
         // External call last (checks-effects-interactions)
-        IAntseedDeposits(registry.deposits()).lockForChannel(buyer, maxAmount);
+        ITorveDeposits(registry.deposits()).lockForChannel(buyer, maxAmount);
 
         emit Reserved(channelId, buyer, msg.sender, maxAmount);
     }
@@ -236,7 +236,7 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
 
         // Lock the additional amount in Deposits
         uint128 additionalAmount = newMaxAmount - channel.deposit;
-        IAntseedDeposits(registry.deposits()).lockForChannel(channel.buyer, additionalAmount);
+        ITorveDeposits(registry.deposits()).lockForChannel(channel.buyer, additionalAmount);
 
         // Update channel
         channel.deposit = newMaxAmount;
@@ -301,14 +301,14 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
         channel.status = ChannelStatus.Settled;
         activeChannelCount[channel.seller]--;
 
-        uint256 agentId = IAntseedStaking(registry.staking()).getAgentId(channel.seller);
+        uint256 agentId = ITorveStaking(registry.staking()).getAgentId(channel.seller);
         if (agentId > 0) {
             _agentStats[agentId].channelCount++;
         }
 
         // Release remaining reserved funds back to buyer
         if (unsettled > 0) {
-            IAntseedDeposits(registry.deposits()).releaseLock(channel.buyer, unsettled);
+            ITorveDeposits(registry.deposits()).releaseLock(channel.buyer, unsettled);
         }
 
         emit ChannelClosed(channelId, channel.buyer, channel.seller, channel.settled, unsettled);
@@ -351,7 +351,7 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
         channel.status = ChannelStatus.TimedOut;
         activeChannelCount[channel.seller]--;
 
-        uint256 agentId = IAntseedStaking(registry.staking()).getAgentId(channel.seller);
+        uint256 agentId = ITorveStaking(registry.staking()).getAgentId(channel.seller);
         if (agentId > 0) {
             if (channel.settled == 0) {
                 _agentStats[agentId].ghostCount++;
@@ -362,7 +362,7 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
 
         // External call last (checks-effects-interactions)
         if (remainingReserved > 0) {
-            IAntseedDeposits(registry.deposits()).releaseLock(channel.buyer, remainingReserved);
+            ITorveDeposits(registry.deposits()).releaseLock(channel.buyer, remainingReserved);
         }
 
         emit ChannelWithdrawn(channelId, channel.buyer, channel.seller, remainingReserved);
@@ -373,7 +373,7 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
 
     /// @dev Check that msg.sender is the buyer's authorized operator (stored in Deposits).
     function _requireOperator(address buyer) internal view {
-        if (msg.sender != IAntseedDeposits(registry.deposits()).getOperator(buyer)) revert NotAuthorized();
+        if (msg.sender != ITorveDeposits(registry.deposits()).getOperator(buyer)) revert NotAuthorized();
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -404,7 +404,7 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
         channel.metadataHash = metadataHash;
         channel.settledAt = block.timestamp;
 
-        uint256 agentId = IAntseedStaking(registry.staking()).getAgentId(channel.seller);
+        uint256 agentId = ITorveStaking(registry.staking()).getAgentId(channel.seller);
         if (agentId > 0) {
             AgentStats storage s = _agentStats[agentId];
             s.totalVolumeUsdc += delta;
@@ -414,12 +414,12 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
 
         address _emissions = registry.emissions();
         if (_emissions != address(0)) {
-            IAntseedEmissions(_emissions).accrueSellerPoints(channel.seller, delta);
-            IAntseedEmissions(_emissions).accrueBuyerPoints(channel.buyer, delta);
+            ITorveEmissions(_emissions).accrueSellerPoints(channel.seller, delta);
+            ITorveEmissions(_emissions).accrueBuyerPoints(channel.buyer, delta);
         }
 
         // External calls last (checks-effects-interactions)
-        IAntseedDeposits(registry.deposits()).chargeAndCreditPayouts(
+        ITorveDeposits(registry.deposits()).chargeAndCreditPayouts(
             channel.buyer,
             channel.seller,
             delta,
@@ -437,7 +437,7 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
     ) internal {
         address statsContract = registry.stats();
         if (statsContract == address(0)) return;
-        try IAntseedStats(statsContract).recordMetadata(agentId, buyer, channelId, metadata) {}
+        try ITorveStats(statsContract).recordMetadata(agentId, buyer, channelId, metadata) {}
         catch {}
     }
 
@@ -493,7 +493,7 @@ contract AntseedChannels is EIP712, Pausable, Ownable, ReentrancyGuard {
 
     function setRegistry(address _registry) external onlyOwner {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     function setFirstSignCap(uint256 value) external onlyOwner {

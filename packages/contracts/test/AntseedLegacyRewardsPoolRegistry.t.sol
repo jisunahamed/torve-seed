@@ -4,28 +4,28 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { ANTSToken } from "../core/ANTSToken.sol";
-import { AntseedRegistry } from "../core/AntseedRegistry.sol";
-import { AntseedLegacyRewardsPoolRegistry } from "../rewards/AntseedLegacyRewardsPoolRegistry.sol";
-import { AntseedSellerRewardsPool } from "../rewards/AntseedSellerRewardsPool.sol";
-import { IAntseedSellerClaimPolicy } from "../interfaces/IAntseedSellerClaimPolicy.sol";
+import { TorveRegistry } from "../core/TorveRegistry.sol";
+import { TorveLegacyRewardsPoolRegistry } from "../rewards/TorveLegacyRewardsPoolRegistry.sol";
+import { TorveSellerRewardsPool } from "../rewards/TorveSellerRewardsPool.sol";
+import { ITorveSellerClaimPolicy } from "../interfaces/ITorveSellerClaimPolicy.sol";
 
-contract MockFullClaimPolicy is IAntseedSellerClaimPolicy {
+contract MockFullClaimPolicy is ITorveSellerClaimPolicy {
     function claimableSellerRewards(address, uint256 locked) external pure returns (uint256) {
         return locked;
     }
 }
 
 /// @notice The pinned facade exists for one scenario: the deployed
-///         AntseedSellerRewardsPool authorizes recordLockedReward against its
+///         TorveSellerRewardsPool authorizes recordLockedReward against its
 ///         registry's LIVE emissions() pointer, so the cutover flip
 ///         (registry.setEmissions -> UsageAccounting) would break every
 ///         locked-path legacy claim. These tests drive the real pool through
 ///         that exact sequence.
-contract AntseedLegacyRewardsPoolRegistryTest is Test {
+contract TorveLegacyRewardsPoolRegistryTest is Test {
     ANTSToken internal token;
-    AntseedRegistry internal registry;
-    AntseedSellerRewardsPool internal pool;
-    AntseedLegacyRewardsPoolRegistry internal facade;
+    TorveRegistry internal registry;
+    TorveSellerRewardsPool internal pool;
+    TorveLegacyRewardsPoolRegistry internal facade;
 
     address internal legacyEmissions = address(0xE1);
     address internal newEmissions = address(0xE2);
@@ -33,20 +33,20 @@ contract AntseedLegacyRewardsPoolRegistryTest is Test {
 
     function setUp() public {
         token = new ANTSToken();
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         registry.setAntsToken(address(token));
         registry.setEmissions(legacyEmissions);
         token.setRegistry(address(registry));
 
-        pool = new AntseedSellerRewardsPool(address(registry));
-        facade = new AntseedLegacyRewardsPoolRegistry(legacyEmissions, address(token));
+        pool = new TorveSellerRewardsPool(address(registry));
+        facade = new TorveLegacyRewardsPoolRegistry(legacyEmissions, address(token));
     }
 
     function test_constructor_revert_zeroAddresses() public {
-        vm.expectRevert(AntseedLegacyRewardsPoolRegistry.InvalidAddress.selector);
-        new AntseedLegacyRewardsPoolRegistry(address(0), address(token));
-        vm.expectRevert(AntseedLegacyRewardsPoolRegistry.InvalidAddress.selector);
-        new AntseedLegacyRewardsPoolRegistry(legacyEmissions, address(0));
+        vm.expectRevert(TorveLegacyRewardsPoolRegistry.InvalidAddress.selector);
+        new TorveLegacyRewardsPoolRegistry(address(0), address(token));
+        vm.expectRevert(TorveLegacyRewardsPoolRegistry.InvalidAddress.selector);
+        new TorveLegacyRewardsPoolRegistry(legacyEmissions, address(0));
     }
 
     function test_pinnedGetters() public view {
@@ -58,7 +58,7 @@ contract AntseedLegacyRewardsPoolRegistryTest is Test {
         registry.setEmissions(newEmissions);
 
         vm.prank(legacyEmissions);
-        vm.expectRevert(AntseedSellerRewardsPool.NotEmissionsContract.selector);
+        vm.expectRevert(TorveSellerRewardsPool.NotEmissionsContract.selector);
         pool.recordLockedReward(seller, 1 ether);
     }
 
@@ -72,7 +72,7 @@ contract AntseedLegacyRewardsPoolRegistryTest is Test {
 
         // The pinned auth must not transfer to the new emissions endpoint.
         vm.prank(newEmissions);
-        vm.expectRevert(AntseedSellerRewardsPool.NotEmissionsContract.selector);
+        vm.expectRevert(TorveSellerRewardsPool.NotEmissionsContract.selector);
         pool.recordLockedReward(seller, 1 ether);
     }
 

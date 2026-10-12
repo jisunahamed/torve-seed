@@ -1,7 +1,7 @@
 {
-  "name": "antseed-router-lowest-latency",
+  "name": "torve-router-lowest-latency",
   "version": "0.1.0",
-  "description": "Template for building a Antseed router plugin",
+  "description": "Template for building a Torve router plugin",
   "type": "module",
   "engines": { "node": ">=20.0.0" },
   "main": "dist/index.js",
@@ -17,11 +17,11 @@
     "verify": "tsx scripts/verify.ts"
   },
   "peerDependencies": {
-    "@antseed/node": ">=0.1.0"
+    "@torveai/node": ">=0.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
-    "@antseed/node": "*",
+    "@torveai/node": "*",
     "tsx": "^4.7.0",
     "typescript": "^5.3.0"
   }

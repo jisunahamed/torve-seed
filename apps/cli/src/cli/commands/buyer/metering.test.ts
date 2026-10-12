@@ -3,8 +3,8 @@ import test from 'node:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { ChannelStore } from '@antseed/node';
-import type { StoredChannel } from '@antseed/node';
+import { ChannelStore } from '@torveai/node';
+import type { StoredChannel } from '@torveai/node';
 
 function seedChannel(store: ChannelStore, overrides: Partial<StoredChannel> = {}): StoredChannel {
   const now = Date.now();

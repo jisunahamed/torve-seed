@@ -11,7 +11,7 @@ import { resolveBuyerProxyPort } from '../runtime/active-config.js';
 import { isCompatibleSharedBuyer, refreshSharedBuyerAttachment } from '../runtime/shared-buyer.js';
 import { resolveConnectDataDir } from '../runtime/process-manager.js';
 import { requestTeeSnapshot } from '../runtime/tee-verification.js';
-import type { DesktopTeeStatus } from '@antseed/node/tee-status';
+import type { DesktopTeeStatus } from '@torveai/node/tee-status';
 
 /** Shape every dashboard-style handler answers with. */
 export type ApiResult = {
@@ -161,12 +161,12 @@ export function registerRuntimeIpc(deps: RuntimeIpcDeps): void {
       ...(isDesktopDebugEnabled() ? { verbose: true } : {}),
       env: {
         ...(options.env ?? {}),
-        ...(isDesktopDebugEnabled() ? { ANTSEED_DEBUG: '1' } : {}),
+        ...(isDesktopDebugEnabled() ? { TORVE_DEBUG: '1' } : {}),
         ...secureIdentityEnv(),
       },
     };
     if (isDesktopDebugEnabled()) {
-      appendLog(startOptions.mode, 'system', 'Desktop debug mode enabled (ANTSEED_DEBUG=1, --verbose).');
+      appendLog(startOptions.mode, 'system', 'Desktop debug mode enabled (TORVE_DEBUG=1, --verbose).');
     }
 
     const state = await processManager.start(startOptions);

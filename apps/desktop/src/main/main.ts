@@ -133,7 +133,7 @@ async function recordTelemetryCleanShutdown(): Promise<void> {
   await telemetry?.recordCleanShutdown();
 }
 
-// The `antseed-attachment://` scheme must be registered as privileged
+// The `torve-attachment://` scheme must be registered as privileged
 // *before* `app.whenReady()` fires. The actual request handler is wired
 // inside whenReady() once Electron's protocol module is usable.
 registerAttachmentScheme();
@@ -149,7 +149,7 @@ let lastRuntimeActivityHash = '';
  * listener instead of failing on EADDRINUSE, so an orphaned runtime from an
  * earlier session can keep the proxy alive — chats keep working and the UI
  * reads as connected even though Stop was pressed. Only processes from our
- * own runtime family (node/antseed/electron) are reaped.
+ * own runtime family (node/torve/electron) are reaped.
  */
 async function killOrphanBuyerProxy(): Promise<void> {
   if (process.platform === 'win32') return;
@@ -173,7 +173,7 @@ async function killOrphanBuyerProxy(): Promise<void> {
       } catch {
         continue; // Already gone.
       }
-      if (!/node|antseed|electron/i.test(command)) continue;
+      if (!/node|torve|electron/i.test(command)) continue;
       try {
         process.kill(pid, 'SIGTERM');
       } catch {
@@ -191,7 +191,7 @@ async function requestBuyerPeerRefresh(): Promise<void> {
   const timer = setTimeout(() => controller.abort(), 60_000);
 
   try {
-    const response = await fetch(`${LOCALHOST_URL}:${port}/_antseed/peers/refresh`, {
+    const response = await fetch(`${LOCALHOST_URL}:${port}/_torve/peers/refresh`, {
       method: 'POST',
       signal: controller.signal,
     });
@@ -322,7 +322,7 @@ registerRuntimeIpc({
 // The buyer daemon owns the hot-wallet watcher: it polls the USDC balance,
 // treats any increase as an incoming deposit (QR transfer or Coinbase Onramp
 // delivery), signs an EIP-3009 authorization addressed to the
-// AntseedDepositRelay contract, and offers it to connected peers; a
+// TorveDepositRelay contract, and offers it to connected peers; a
 // permissionless relayer submits it on-chain and earns the contract's fixed
 // USDC fee (docs/protocol/spec/09-deposit-sweep.md). The hot wallet never
 // needs ETH. While the in-app deposit panel is open, the renderer promotes
@@ -353,7 +353,7 @@ const piChatEngine = registerPiChatHandlers({
       router: 'local',
       ...(isDesktopDebugEnabled() ? { verbose: true } : {}),
       env: {
-        ...(isDesktopDebugEnabled() ? { ANTSEED_DEBUG: '1' } : {}),
+        ...(isDesktopDebugEnabled() ? { TORVE_DEBUG: '1' } : {}),
         ...secureIdentityEnv(),
       },
     };
@@ -553,7 +553,7 @@ app.whenReady().then(async () => {
 
   // Payments portal starts lazily on first open (via payments:open-portal IPC)
 
-  void ensureDefaultPlugin('@antseed/router-local', {
+  void ensureDefaultPlugin('@torveai/router-local', {
     getAppSetupNeeded: () => getAppSetupStatus().needed,
     setAppSetupNeeded: (v) => { setAppSetupStatus({ needed: v }); },
     getAppSetupComplete: () => getAppSetupStatus().complete,
@@ -794,7 +794,7 @@ app.whenReady().then(async () => {
   // installs. Running the very same helper manually works every time, so:
   // spawn a detached watchdog before quitting that waits for the app to
   // exit and starts ShipIt itself if launchd didn't.
-  const SHIPIT_LABEL = 'com.antseed.desktop.ShipIt';
+  const SHIPIT_LABEL = 'com.torveai.desktop.ShipIt';
   const clearStaleMacUpdateJob = (): void => {
     if (process.platform !== 'darwin') return;
     const uid = process.getuid?.();
@@ -821,7 +821,7 @@ app.whenReady().then(async () => {
       // padding the user-visible gap before the relaunch.
       'i=0; while kill -0 "$APP_PID" 2>/dev/null && [ "$i" -lt 180 ]; do sleep 1; i=$((i+1)); done',
       // The install gap has no UI at all — reassure via a system notification.
-      'osascript -e \'display notification "Installing the update — the app will reopen shortly." with title "Antseed AI VPN"\' >/dev/null 2>&1 || true',
+      'osascript -e \'display notification "Installing the update — the app will reopen shortly." with title "Torve AI VPN"\' >/dev/null 2>&1 || true',
       'j=0; while [ "$j" -lt 3 ]; do',
       '  sleep 2',
       '  launchctl print "gui/$(id -u)/$LABEL" 2>/dev/null | grep -q "state = running" && exit 0',
@@ -832,7 +832,7 @@ app.whenReady().then(async () => {
       'if launchctl kickstart "gui/$(id -u)/$LABEL" 2>/dev/null; then exit 0; fi',
       'exec "$SHIPIT" "$LABEL" "$STATE"',
     ].join('\n');
-    const child = spawn('/bin/sh', ['-c', script, 'antseed-update-watchdog', String(process.pid), shipIt, SHIPIT_LABEL, statePath, appProcessName], {
+    const child = spawn('/bin/sh', ['-c', script, 'torve-update-watchdog', String(process.pid), shipIt, SHIPIT_LABEL, statePath, appProcessName], {
       detached: true,
       stdio: 'ignore',
     });

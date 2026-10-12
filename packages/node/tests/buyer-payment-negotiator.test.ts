@@ -690,8 +690,8 @@ describe('BuyerPaymentNegotiator', () => {
       // suggestedAmount=100_000 → 0.1 USDC reserve ceiling hint.
       expect(message).toContain('reserve ceiling the seller will lock (0.1 USDC)');
       expect(message).toContain("reserve() reverts");
-      expect(message).toContain('antseed buyer status');
-      expect(message).toContain('antseed buyer deposit');
+      expect(message).toContain('torve buyer status');
+      expect(message).toContain('torve buyer deposit');
       expect(message).toContain('overloaded or gated on subscription');
     });
 

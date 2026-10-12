@@ -2,7 +2,7 @@
 
 ## Overview
 
-The discovery protocol enables buyers to find sellers offering AI inference capacity on the Antseed Network. It uses a DHT network (built on BEP 5) combined with an HTTP metadata endpoint for retrieving provider details, and a scoring system for selecting the best peer from the candidate pool.
+The discovery protocol enables buyers to find sellers offering AI inference capacity on the Torve Network. It uses a DHT network (built on BEP 5) combined with an HTTP metadata endpoint for retrieving provider details, and a scoring system for selecting the best peer from the candidate pool.
 
 ---
 
@@ -17,11 +17,11 @@ The network uses the BitTorrent Mainline DHT (BEP 5) as a decentralised director
 Sellers announce a small set of topics on the DHT: one subnet, the wildcard, the per-peer topic, and any configured capability topics. Service-level topics were intentionally removed: the signed metadata document carries the full service catalog (`providers[].services`, pricing, categories, protocols), so service filtering is metadata-driven and the announce cycle stays O(1) in the seller's service count regardless of how many services a provider exposes.
 
 ```
-ANTSEED_WILDCARD_TOPIC           = "antseed:*"
-subnetTopic(index)               = "antseed:subnet:" + index
-peerTopic(peerId)                = "antseed:peer:" + normalizeHex(peerId)
-capabilityTopic(capability)      = "antseed:" + normalize(capability)
-capabilityTopic(capability,id)   = "antseed:" + normalize(capability) + ":" + normalize(id)
+TORVE_WILDCARD_TOPIC           = "torve:*"
+subnetTopic(index)               = "torve:subnet:" + index
+peerTopic(peerId)                = "torve:peer:" + normalizeHex(peerId)
+capabilityTopic(capability)      = "torve:" + normalize(capability)
+capabilityTopic(capability,id)   = "torve:" + normalize(capability) + ":" + normalize(id)
 
 normalize(x) = trim(lowercase(x))
 normalizeHex(x) = trim(lowercase(x)).removeLeading("0x")
@@ -37,8 +37,8 @@ The announcer always publishes the peer's `subnetTopic`, the wildcard topic (kep
 
 | Host                  | Port | Label      |
 |-----------------------|------|------------|
-| dht1.antseed.com      | 6881 | AntSeed-1  |
-| dht2.antseed.com      | 6881 | AntSeed-2  |
+| dht1.torveai.com      | 6881 | Torve-1  |
+| dht2.torveai.com      | 6881 | Torve-2  |
 
 Custom bootstrap nodes can be supplied and are merged (deduplicated by `host:port`) with the official list via `mergeBootstrapNodes()`.
 
@@ -295,20 +295,20 @@ A domain claim has this metadata shape:
 
 Supported methods:
 
-- `dns-txt`: resolve `_antseed.<domain>` and look for `antseed-peer=<peerId>`.
-- `https-well-known`: fetch `https://<domain>/.well-known/antseed.json` without following redirects.
+- `dns-txt`: resolve `_torve.<domain>` and look for `torve-peer=<peerId>`.
+- `https-well-known`: fetch `https://<domain>/.well-known/torve.json` without following redirects.
 
 The DNS TXT proof is:
 
 ```text
-_antseed.provider.example.com TXT "antseed-peer=a1b2c3d4...40hex"
+_torve.provider.example.com TXT "torve-peer=a1b2c3d4...40hex"
 ```
 
 The HTTPS well-known proof body is:
 
 ```json
 {
-  "type": "antseed-domain-verification",
+  "type": "torve-domain-verification",
   "peerId": "a1b2c3d4...40hex",
   "domain": "provider.example.com"
 }
@@ -321,14 +321,14 @@ A GitHub claim has this metadata shape:
 ```json
 {
   "username": "example-org",
-  "repository": "antseed-verification"
+  "repository": "torve-verification"
 }
 ```
 
 The verifier fetches the proof from:
 
 ```text
-https://raw.githubusercontent.com/<username>/<repository>/HEAD/antseed.json
+https://raw.githubusercontent.com/<username>/<repository>/HEAD/torve.json
 ```
 
 If `repository` is omitted, the profile repository named after the username is used. Redirects are rejected, so renamed or transferred repositories must republish the proof under the claimed account path.
@@ -337,7 +337,7 @@ The proof body is:
 
 ```json
 {
-  "type": "antseed-github-verification",
+  "type": "torve-github-verification",
   "peerId": "a1b2c3d4...40hex",
   "username": "example-org"
 }
@@ -389,8 +389,8 @@ All peers returned by a DHT lookup are resolved in parallel, so a single slow or
 The `PeerLookup` class orchestrates the full discovery flow:
 
 1. Build lookup topic(s):
-   - all-peer lookup: `SHA1(ANTSEED_WILDCARD_TOPIC)` first, then `SHA1(subnetTopic(i))` for each subnet sequentially
-   - service "lookup": there is no DHT-level service lookup. Service filtering happens against the signed metadata returned by `findAll()`. See `AntseedNode.discoverPeers(service)`.
+   - all-peer lookup: `SHA1(TORVE_WILDCARD_TOPIC)` first, then `SHA1(subnetTopic(i))` for each subnet sequentially
+   - service "lookup": there is no DHT-level service lookup. Service filtering happens against the signed metadata returned by `findAll()`. See `TorveNode.discoverPeers(service)`.
    - capability lookup: `SHA1(capabilityTopic(capability[, name]))`
    - per-peer lookup (`findByPeerId`): `SHA1(peerTopic(peerId))`
 2. Query the DHT for the topic hash(es) to obtain `{host, port}` peer endpoints.
@@ -429,7 +429,7 @@ The `PeerAnnouncer` class handles the seller-side announcement lifecycle:
 5. Sign the body with the seller's secp256k1 private key (via EIP-191 personal_sign).
 6. Announce DHT topics in parallel at the configured signaling port (constant in service count):
    - subnet topic (`subnetTopic(subnetOf(peerId))`)
-   - wildcard topic (`ANTSEED_WILDCARD_TOPIC`), kept during the subnet rollout so older buyers still find this peer
+   - wildcard topic (`TORVE_WILDCARD_TOPIC`), kept during the subnet rollout so older buyers still find this peer
    - per-peer topic (`peerTopic(peerId)`)
    - capability topics when offerings are configured (one per offering plus one per unique capability name)
 
@@ -439,9 +439,9 @@ Periodic re-announcement is managed by `startPeriodicAnnounce()`, which calls `a
 
 ## Peer Scoring and Model Route Planning
 
-**Source:** `@antseed/router-core/src/peer-scorer.ts`
+**Source:** `@torveai/router-core/src/peer-scorer.ts`
 
-Discovery returns signed metadata and on-chain stats. Router plugins enforce general buyer policy and provide generic request selection. For requests that name only a model, the CLI buyer proxy adds a shared model-route planning layer: it canonicalizes the requested model, resolves each peer's matching advertised service, rejects candidates disallowed by router policy, and ranks the remaining offers with `@antseed/node/model-routing`. The same ranking orders each model's `peers` array in the locally answered `/v1/models` catalog.
+Discovery returns signed metadata and on-chain stats. Router plugins enforce general buyer policy and provide generic request selection. For requests that name only a model, the CLI buyer proxy adds a shared model-route planning layer: it canonicalizes the requested model, resolves each peer's matching advertised service, rejects candidates disallowed by router policy, and ranks the remaining offers with `@torveai/node/model-routing`. The same ranking orders each model's `peers` array in the locally answered `/v1/models` catalog.
 
 The default model-only preferences are:
 

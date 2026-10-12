@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import Table from 'cli-table3';
-import { singlePool, formatAnts, formatBps } from '@antseed/ants';
+import { singlePool, formatAnts, formatBps } from '@torveai/ants';
 import { ants, printJson, runRead, usdc } from './shared.js';
 
 export function registerAntsPoolCommand(antsCmd: Command): void {

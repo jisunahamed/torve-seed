@@ -4,7 +4,7 @@ import path, { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { getPluginsDir, installPlugin } from './manager.js'
 import { TRUSTED_PLUGINS } from './registry.js'
-import type { AntseedProviderPlugin, AntseedRouterPlugin, AntseedVerifierPlugin, Prover, PluginConfigKey } from '@antseed/node'
+import type { TorveProviderPlugin, TorveRouterPlugin, TorveVerifierPlugin, Prover, PluginConfigKey } from '@torveai/node'
 
 const NODE_BUILTINS = new Set([
   ...builtinModules,
@@ -33,7 +33,7 @@ type PluginKind = 'provider' | 'router' | 'verifier' | 'prover'
 async function loadPlugin<T>(
   nameOrPackage: string,
   kind: PluginKind,
-  methodName: keyof AntseedProviderPlugin | keyof AntseedRouterPlugin | keyof AntseedVerifierPlugin | keyof Prover,
+  methodName: keyof TorveProviderPlugin | keyof TorveRouterPlugin | keyof TorveVerifierPlugin | keyof Prover,
   opts?: { install?: boolean }
 ): Promise<T> {
   const pkgName = resolvePackageName(nameOrPackage)
@@ -132,7 +132,7 @@ async function ensureTrustedPluginInstallReady(
     || pinMismatch
     || hasMissingDeclaredDependencyTree(pkgName, pluginsDir)
   if (!shouldInstall) return
-  if (isTruthyEnv(process.env['ANTSEED_SKIP_PLUGIN_UPDATE_CHECK'])) return
+  if (isTruthyEnv(process.env['TORVE_SKIP_PLUGIN_UPDATE_CHECK'])) return
 
   const action = existsSync(entryPath)
     ? 'appears incomplete or stale. Reinstalling...'
@@ -168,7 +168,7 @@ function hasMissingDeclaredDependencyTree(
     const manifestName = typeof parsed.name === 'string' ? parsed.name : pkgName
     const deps = {
       ...(parsed.dependencies ?? {}),
-      ...(manifestName.startsWith('@antseed/') ? parsed.peerDependencies ?? {} : {}),
+      ...(manifestName.startsWith('@torveai/') ? parsed.peerDependencies ?? {} : {}),
     }
     for (const depName of Object.keys(deps)) {
       if (NODE_BUILTINS.has(depName)) continue
@@ -180,19 +180,19 @@ function hasMissingDeclaredDependencyTree(
   }
 }
 
-export async function loadProviderPlugin(nameOrPackage: string): Promise<AntseedProviderPlugin> {
-  return loadPlugin<AntseedProviderPlugin>(nameOrPackage, 'provider', 'createProvider')
+export async function loadProviderPlugin(nameOrPackage: string): Promise<TorveProviderPlugin> {
+  return loadPlugin<TorveProviderPlugin>(nameOrPackage, 'provider', 'createProvider')
 }
 
-export async function loadRouterPlugin(nameOrPackage: string): Promise<AntseedRouterPlugin> {
-  return loadPlugin<AntseedRouterPlugin>(nameOrPackage, 'router', 'createRouter')
+export async function loadRouterPlugin(nameOrPackage: string): Promise<TorveRouterPlugin> {
+  return loadPlugin<TorveRouterPlugin>(nameOrPackage, 'router', 'createRouter')
 }
 
 export async function loadVerifierPlugin(
   nameOrPackage: string,
   opts?: { install?: boolean },
-): Promise<AntseedVerifierPlugin> {
-  return loadPlugin<AntseedVerifierPlugin>(nameOrPackage, 'verifier', 'verify', opts)
+): Promise<TorveVerifierPlugin> {
+  return loadPlugin<TorveVerifierPlugin>(nameOrPackage, 'verifier', 'verify', opts)
 }
 
 export async function loadProverPlugin(nameOrPackage: string): Promise<Prover> {
@@ -245,7 +245,7 @@ function readPluginPackageVersion(pkgName: string, pluginsDir = getPluginsDir())
  */
 export function getPackageVersions(pluginName?: string): Record<string, string> {
   const versions: Record<string, string> = {}
-  const corePackages = ['@antseed/node', '@antseed/provider-core', '@antseed/router-core']
+  const corePackages = ['@torveai/node', '@torveai/provider-core', '@torveai/router-core']
   for (const pkg of corePackages) {
     const v = readPluginPackageVersion(pkg)
     if (v) versions[pkg] = v
@@ -260,6 +260,6 @@ export function getPackageVersions(pluginName?: string): Record<string, string> 
 
 /** Map legacy package names to current names */
 export const LEGACY_PACKAGE_MAP: Record<string, string> = {
-  'antseed-provider-anthropic': '@antseed/provider-anthropic',
-  'antseed-router-claude-code': '@antseed/router-local',
+  'torve-provider-anthropic': '@torveai/provider-anthropic',
+  'torve-router-claude-code': '@torveai/router-local',
 }

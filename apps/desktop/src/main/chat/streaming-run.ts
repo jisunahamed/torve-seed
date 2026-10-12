@@ -89,7 +89,7 @@ import {
   publicModelId,
   type TelemetryEventProperties,
 } from '../telemetry/events.js';
-import { isNativeVideoProtocol } from '@antseed/node';
+import { isNativeVideoProtocol } from '@torveai/node';
 import { classifyChatRequestFailure } from '../telemetry/classify.js';
 import {
   generateConversationTitleWithModel,
@@ -200,7 +200,7 @@ export function createStreamingRunner(ctx: StreamingRunContext) {
     }
 
     const proxyPort = await resolveProxyPort(configPath);
-    process.env['ANTSEED_PROXY_URL'] = `http://127.0.0.1:${String(proxyPort)}`;
+    process.env['TORVE_PROXY_URL'] = `http://127.0.0.1:${String(proxyPort)}`;
     const runtimeRunning = isBuyerRuntimeRunning();
     let proxyAvailable = await isProxyAvailable(proxyPort);
     if (!proxyAvailable && ensureBuyerRuntimeStarted) {

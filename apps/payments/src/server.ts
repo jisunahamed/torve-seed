@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 import { readFile } from 'node:fs/promises';
-import { resolveChainConfig } from '@antseed/node';
+import { resolveChainConfig } from '@torveai/node';
 import { registerRoutes } from './routes.js';
 import { loadCryptoContext, type CryptoContext, type PaymentCryptoConfig } from './crypto-context.js';
 
@@ -85,7 +85,7 @@ export async function createServer(options: PaymentsServerOptions) {
   try {
     const cfgPath = options.configPath ?? (options.dataDir
       ? path.join(options.dataDir, 'config.json')
-      : path.join(homedir(), '.antseed', 'config.json'));
+      : path.join(homedir(), '.torve', 'config.json'));
     const raw = await readFile(cfgPath, 'utf-8');
     const config = JSON.parse(raw) as Record<string, unknown>;
     const payments = (config.payments ?? {}) as Record<string, unknown>;
@@ -129,7 +129,7 @@ export async function createServer(options: PaymentsServerOptions) {
   registerRoutes(fastify, { cryptoCtx, cryptoConfig, chainConfig, proxyPort });
 
   fastify.post('/api/pay/open-rewards', async (_request, reply) => {
-    if (!options.onOpenRewards) return reply.status(409).send({ ok: false, error: 'Open the ANTS dashboard with antseed ants, using this account’s data directory, then select Rewards.' });
+    if (!options.onOpenRewards) return reply.status(409).send({ ok: false, error: 'Open the ANTS dashboard with torve ants, using this account’s data directory, then select Rewards.' });
     try { await options.onOpenRewards(); return { ok: true }; }
     catch (error) { return reply.status(500).send({ ok: false, error: error instanceof Error ? error.message : String(error) }); }
   });

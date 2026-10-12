@@ -1,6 +1,6 @@
-import type { TokenProvider } from '@antseed/node';
-import type { SerializedHttpRequest, SerializedHttpResponse, SerializedHttpResponseChunk } from '@antseed/node';
-import { ANTSEED_STREAMING_RESPONSE_HEADER } from '@antseed/node';
+import type { TokenProvider } from '@torveai/node';
+import type { SerializedHttpRequest, SerializedHttpResponse, SerializedHttpResponseChunk } from '@torveai/node';
+import { TORVE_STREAMING_RESPONSE_HEADER } from '@torveai/node';
 import { swapAuthHeader, validateRequestService } from './auth-swap.js';
 import Bottleneck from 'bottleneck';
 import { stripRelayRequestHeaders, stripRelayResponseHeaders } from './http-headers.js';
@@ -243,7 +243,7 @@ export class HttpRelay {
       if (swappedRequest.method !== 'GET' && swappedRequest.method !== 'HEAD') {
         const contentType = getHeader(swappedRequest.headers, 'content-type');
         if (/^multipart\/form-data/i.test(contentType.trim())) {
-          const requestedService = getHeader(swappedRequest.headers, 'x-antseed-service').trim()
+          const requestedService = getHeader(swappedRequest.headers, 'x-torve-service').trim()
             || readMultipartTextField(swappedRequest.body, contentType, 'service')
             || readMultipartTextField(swappedRequest.body, contentType, 'model')
             || '';
@@ -412,7 +412,7 @@ export class HttpRelay {
       const responseHeaders = stripRelayResponseHeaders(fetchResponse);
 
       if (isSSE && fetchResponse.body) {
-        responseHeaders[ANTSEED_STREAMING_RESPONSE_HEADER] = '1';
+        responseHeaders[TORVE_STREAMING_RESPONSE_HEADER] = '1';
         this._callbacks.onResponse({
           requestId: request.requestId,
           statusCode: fetchResponse.status,

@@ -64,7 +64,7 @@ export function registerSystemProxyStartCommand(cmd: Command): void {
 
       if (profileNames.length === 0) {
         console.error(chalk.red('No System Proxy profiles configured.'))
-        console.error(chalk.dim('Set ANTSEED_SYSTEM_PROXY_PROFILES_JSON or ANTSEED_SYSTEM_PROXY_PROFILES_FILE before starting System Proxy.'))
+        console.error(chalk.dim('Set TORVE_SYSTEM_PROXY_PROFILES_JSON or TORVE_SYSTEM_PROXY_PROFILES_FILE before starting System Proxy.'))
         process.exit(1)
       }
 
@@ -74,7 +74,7 @@ export function registerSystemProxyStartCommand(cmd: Command): void {
         genSpinner.succeed(chalk.green('CA certificate generated'))
         console.log('')
         console.log(chalk.yellow('ACTION REQUIRED — install the CA so your browser/tools trust it:'))
-        console.log(`  antseed system-proxy install-ca`)
+        console.log(`  torve system-proxy install-ca`)
         console.log('')
         console.log(chalk.yellow('For Node.js tools set:'))
         console.log(`  export NODE_EXTRA_CA_CERTS="${caManager.certFilePath}"`)

@@ -13,21 +13,21 @@ const flashPeerId = 'f'.repeat(40);
 test('TEE advertisements survive live, persisted, normalization and discovery projections', async () => {
   const offer = {
     peerId: venicePeerId, provider: 'openai', serviceId: 'gpt-test', protocol: 'openai-chat-completions',
-    advertisedVerifierIds: [' Antseed-Verifier ', 'antseed-verifier', null, 'bad id'],
+    advertisedVerifierIds: [' Torve-Verifier ', 'torve-verifier', null, 'bad id'],
   };
   const live = buildChatServiceCatalogFromNetworkModels({ data: [{ peers: [offer] }] });
   const persisted = buildChatServiceCatalogFromPersistedPeers({ discoveredPeers: [{
     peerId: venicePeerId, providers: ['openai'], services: ['gpt-test'],
-    capabilities: ['verifier.antseed-verifier'],
+    capabilities: ['verifier.torve-verifier'],
   }] });
   for (const entries of [live, persisted]) {
-    assert.deepEqual(entries[0]?.advertisedVerifierIds, ['antseed-verifier']);
+    assert.deepEqual(entries[0]?.advertisedVerifierIds, ['torve-verifier']);
     const normalized = normalizeChatServiceCatalogEntries(entries);
-    assert.deepEqual(normalized[0]?.advertisedVerifierIds, ['antseed-verifier']);
+    assert.deepEqual(normalized[0]?.advertisedVerifierIds, ['torve-verifier']);
     const rows = await buildDiscoverRows(normalized, new Map(), {}, new Map());
-    assert.deepEqual(rows[0]?.advertisedVerifierIds, ['antseed-verifier']);
+    assert.deepEqual(rows[0]?.advertisedVerifierIds, ['torve-verifier']);
   }
-  for (const advertisedVerifierIds of [undefined, null, 'antseed-verifier', ['bad id', null]]) {
+  for (const advertisedVerifierIds of [undefined, null, 'torve-verifier', ['bad id', null]]) {
     const entries = buildChatServiceCatalogFromNetworkModels({ data: [{ peers: [{ ...offer, advertisedVerifierIds }] }] });
     assert.deepEqual(entries[0]?.advertisedVerifierIds, []);
   }

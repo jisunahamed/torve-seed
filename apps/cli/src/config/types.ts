@@ -2,8 +2,8 @@ import type {
   ServiceApiProtocol,
   ServiceCapabilities,
   UnitBillingModelV1,
-} from '@antseed/node';
-import type { ModelRoutingPreferences } from '@antseed/node/model-routing';
+} from '@torveai/node';
+import type { ModelRoutingPreferences } from '@torveai/node/model-routing';
 
 /**
  * Dual token pricing in USD per 1M tokens.
@@ -49,7 +49,7 @@ export interface SellerServiceConfig {
  * Per-provider seller configuration.
  */
 export interface SellerProviderConfig {
-  /** Plugin name or npm package that powers this provider (e.g. "openai", "@antseed/provider-openai"). */
+  /** Plugin name or npm package that powers this provider (e.g. "openai", "@torveai/provider-openai"). */
   plugin: string;
   /** Optional upstream API base URL override (e.g. "https://api.together.ai"). */
   baseUrl?: string;
@@ -86,7 +86,7 @@ export interface GithubVerificationConfig {
   /** GitHub username to prove. */
   username: string;
   /**
-   * Public repository holding `antseed.json` at its root. Defaults to the
+   * Public repository holding `torve.json` at its root. Defaults to the
    * profile repository `<username>/<username>` when omitted.
    */
   repository?: string;
@@ -140,7 +140,7 @@ export interface SellerFreeTierCLIConfig {
 }
 
 /**
- * Seller-specific configuration within the Antseed config.
+ * Seller-specific configuration within the Torve config.
  */
 export interface SellerCLIConfig {
   /** Reserve floor in messages per hour to keep for yourself */
@@ -171,8 +171,8 @@ export interface SellerCLIConfig {
   maxUploadBodyBytes?: number;
   /**
    * Verifier SDK ids this seller advertises and runs provers for (first is the
-   * default). Chosen in `antseed seller setup`; overridden at launch by
-   * `--verifiers` or the ANTSEED_VERIFIER_SDKS env var.
+   * default). Chosen in `torve seller setup`; overridden at launch by
+   * `--verifiers` or the TORVE_VERIFIER_SDKS env var.
    */
   verifiers?: string[];
   /**
@@ -198,7 +198,7 @@ export interface SellerCLIConfig {
 }
 
 /**
- * Buyer-specific configuration within the Antseed config.
+ * Buyer-specific configuration within the Torve config.
  */
 export interface BuyerCLIConfig {
   /** Buyer max willing-to-pay rules in USD per 1M tokens */
@@ -223,7 +223,7 @@ export interface BuyerCLIConfig {
    * Automatically sweep incoming hot-wallet USDC into the deposits balance
    * while the buyer daemon runs (gasless, via the relayer network).
    * Default: true. `false` limits sweeping to explicit requests
-   * (`antseed deposit`, the desktop deposit view, `antseed buyer sweep`).
+   * (`torve deposit`, the desktop deposit view, `torve buyer sweep`).
    */
   autoSweep?: boolean;
   /** Buyer-side response-auth evidence sampling settings. */
@@ -231,7 +231,7 @@ export interface BuyerCLIConfig {
 }
 
 /**
- * Payment configuration within the Antseed config.
+ * Payment configuration within the Torve config.
  */
 export interface PaymentsCLIConfig {
   /** Preferred payment method */
@@ -279,21 +279,21 @@ export interface PaymentsCLIConfig {
     rpcUrl?: string;
     /** Additional RPC endpoints tried in order via ethers FallbackProvider. */
     fallbackRpcUrls?: string[];
-    /** Deployed AntseedDeposits contract address override */
+    /** Deployed TorveDeposits contract address override */
     depositsContractAddress?: string;
-    /** Deployed AntseedChannels contract address override */
+    /** Deployed TorveChannels contract address override */
     channelsContractAddress?: string;
-    /** Deployed AntseedRegistry contract address */
+    /** Deployed TorveRegistry contract address */
     registryContractAddress?: string;
-    /** Deployed AntseedFreeUsage contract address override */
+    /** Deployed TorveFreeUsage contract address override */
     freeUsageContractAddress?: string;
-    /** Deployed AntseedStaking contract address */
+    /** Deployed TorveStaking contract address */
     stakingContractAddress?: string;
     /** USDC token contract address override */
     usdcContractAddress?: string;
-    /** Deployed AntseedIdentity (ERC-8004 registry) contract address */
+    /** Deployed TorveIdentity (ERC-8004 registry) contract address */
     identityRegistryAddress?: string;
-    /** Deployed AntseedEmissions contract address */
+    /** Deployed TorveEmissions contract address */
     emissionsContractAddress?: string;
     legacyEmissionsContractAddress?: string;
     legacyStakingContractAddress?: string;
@@ -309,9 +309,9 @@ export interface PaymentsCLIConfig {
     legacyEmissionsEscrowAddress?: string;
     washTradingRegistryAddress?: string;
     pointsPolicyRegistryAddress?: string;
-    /** Explorer REST base for seller profiles in `antseed ants`; empty string disables the lookup. */
+    /** Explorer REST base for seller profiles in `torve ants`; empty string disables the lookup. */
     explorerApiUrl?: string;
-    /** Deployed AntseedDepositRelay contract address (gasless deposit sweeps) */
+    /** Deployed TorveDepositRelay contract address (gasless deposit sweeps) */
     depositRelayAddress?: string;
     /** Default lock amount per session in human-readable USDC (e.g. "1" = 1 USDC) */
     defaultLockAmountUSDC?: string;
@@ -334,7 +334,7 @@ export interface RelayerCLIConfig {
 }
 
 /**
- * Network configuration within the Antseed config.
+ * Network configuration within the Torve config.
  */
 export interface NetworkCLIConfig {
   /** Additional bootstrap nodes for DHT discovery (host:port pairs) */
@@ -342,9 +342,9 @@ export interface NetworkCLIConfig {
 }
 
 /**
- * Top-level Antseed configuration structure.
+ * Top-level Torve configuration structure.
  */
-export interface AntseedConfig {
+export interface TorveConfig {
   /** Node identity information (peer ID, display name) */
   identity: {
     displayName: string;

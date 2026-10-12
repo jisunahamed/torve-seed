@@ -32,7 +32,7 @@ export async function buildArtifactIndex() {
 /** Ledger keys are camelCase; Solidity artifacts are PascalCase file names. */
 export function candidateContractNames(ledgerKey) {
   const pascal = ledgerKey.charAt(0).toUpperCase() + ledgerKey.slice(1);
-  return [`Antseed${pascal}`, pascal, ledgerKey];
+  return [`Torve${pascal}`, pascal, ledgerKey];
 }
 
 export async function findArtifact(index, ledgerKey) {

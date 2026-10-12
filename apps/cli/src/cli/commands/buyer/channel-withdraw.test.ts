@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Command } from 'commander';
-import { ChannelsClient, loadOrCreateIdentity, type StoredChannel } from '@antseed/node';
+import { ChannelsClient, loadOrCreateIdentity, type StoredChannel } from '@torveai/node';
 import { openChannelStore } from '../../payment-utils.js';
 import { registerBuyerChannelsCommand } from './channels.js';
 import {
@@ -74,7 +74,7 @@ test('secondsUntilChannelWithdrawReady tracks 15 minute timeout grace period', (
 
 for (const operation of ['list', 'request-close', 'withdraw', 'close'] as const) {
   test(`${operation} includes one-off channels from the current buyer's store`, async (context) => {
-    const dataDir = mkdtempSync(join(tmpdir(), 'antseed-channel-recovery-'));
+    const dataDir = mkdtempSync(join(tmpdir(), 'torve-channel-recovery-'));
     context.after(() => rmSync(dataDir, { recursive: true, force: true }));
     const identity = await loadOrCreateIdentity(dataDir);
     const videoChannel = {

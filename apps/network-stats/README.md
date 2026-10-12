@@ -1,6 +1,6 @@
-# @antseed/network-stats
+# @torveai/network-stats
 
-Standalone service that polls the AntSeed network as an anonymous buyer and exposes live peer/model stats over HTTP.
+Standalone service that polls the Torve network as an anonymous buyer and exposes live peer/model stats over HTTP.
 
 ## What it does
 

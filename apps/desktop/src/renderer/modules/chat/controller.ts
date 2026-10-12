@@ -926,7 +926,7 @@ export function initChatModule({
         ltTokens: uiState.chatLifetimeTotalTokens,
         ltSessions: uiState.chatLifetimeSessions,
       };
-      const url = `${LOCALHOST_URL}:${port}/_antseed/metering/${encodeURIComponent(sellerPeerId)}`;
+      const url = `${LOCALHOST_URL}:${port}/_torve/metering/${encodeURIComponent(sellerPeerId)}`;
       const resp = await fetch(url);
       if (!resp.ok) return;
       const stats = (await resp.json()) as MeteringPeerStats;
@@ -2321,7 +2321,7 @@ export function initChatModule({
         error: attachment.error,
         truncated: attachment.truncated,
         // Carry the stable disk-store ID onto the block so the renderer
-        // can later open a native preview via `antseed-attachment://`.
+        // can later open a native preview via `torve-attachment://`.
         ...(attachment.attachmentId ? { attachmentId: attachment.attachmentId } : {}),
         attachment,
       });
@@ -3469,7 +3469,7 @@ export function initChatModule({
 
     // Expose API for triggering browser preview programmatically (dev/testing only)
     if (import.meta.env?.DEV) {
-      (window as unknown as Record<string, unknown>).__antseedOpenPreview = (url: string) => {
+      (window as unknown as Record<string, unknown>).__torveOpenPreview = (url: string) => {
         uiState.browserPreviewUrl = url;
         uiState.browserPreviewRequestId += 1;
         notifyUiStateChanged();

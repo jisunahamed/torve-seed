@@ -1,4 +1,4 @@
-import type { BuyerCLIConfig, AntseedConfig, SellerCLIConfig } from './types.js';
+import type { BuyerCLIConfig, TorveConfig, SellerCLIConfig } from './types.js';
 import { MIN_BUYER_MAX_STREAM_DURATION_MS, MIN_BUYER_METADATA_FETCH_TIMEOUT_MS } from './validation.js';
 
 export interface SellerRuntimeOverrides {
@@ -17,7 +17,7 @@ export interface BuyerRuntimeOverrides {
 }
 
 export interface ResolveEffectiveConfigInput {
-  config: AntseedConfig;
+  config: TorveConfig;
   env?: NodeJS.ProcessEnv;
   sellerOverrides?: SellerRuntimeOverrides;
   buyerOverrides?: BuyerRuntimeOverrides;
@@ -63,7 +63,7 @@ function applyProviderPricingOverride(
   if (providers.length === 0) {
     console.warn(
       `Warning: ${field} override (${value}) has no effect — no providers configured yet. ` +
-      `Add a provider first via 'antseed config seller add-provider'.`,
+      `Add a provider first via 'torve config seller add-provider'.`,
     );
     return;
   }
@@ -79,8 +79,8 @@ export function resolveEffectiveSellerConfig(input: ResolveEffectiveConfigInput)
   const env = input.env ?? process.env;
   const seller = structuredClone(input.config.seller);
 
-  const envInputUsdPerMillion = parseEnvNumber(env, 'ANTSEED_SELLER_INPUT_USD_PER_MILLION');
-  const envOutputUsdPerMillion = parseEnvNumber(env, 'ANTSEED_SELLER_OUTPUT_USD_PER_MILLION');
+  const envInputUsdPerMillion = parseEnvNumber(env, 'TORVE_SELLER_INPUT_USD_PER_MILLION');
+  const envOutputUsdPerMillion = parseEnvNumber(env, 'TORVE_SELLER_OUTPUT_USD_PER_MILLION');
 
   if (envInputUsdPerMillion !== undefined) {
     applyProviderPricingOverride(seller, 'inputUsdPerMillion', envInputUsdPerMillion);
@@ -107,20 +107,20 @@ export function resolveEffectiveBuyerConfig(input: ResolveEffectiveConfigInput):
   const env = input.env ?? process.env;
   const buyer = structuredClone(input.config.buyer);
 
-  const envMinReputation = parseEnvNumber(env, 'ANTSEED_BUYER_MIN_REPUTATION');
-  const envMaxInputUsdPerMillion = parseEnvNumber(env, 'ANTSEED_BUYER_MAX_INPUT_USD_PER_MILLION');
-  const envMaxOutputUsdPerMillion = parseEnvNumber(env, 'ANTSEED_BUYER_MAX_OUTPUT_USD_PER_MILLION');
-  const envMetadataFetchTimeoutKey = 'ANTSEED_BUYER_METADATA_FETCH_TIMEOUT_MS';
+  const envMinReputation = parseEnvNumber(env, 'TORVE_BUYER_MIN_REPUTATION');
+  const envMaxInputUsdPerMillion = parseEnvNumber(env, 'TORVE_BUYER_MAX_INPUT_USD_PER_MILLION');
+  const envMaxOutputUsdPerMillion = parseEnvNumber(env, 'TORVE_BUYER_MAX_OUTPUT_USD_PER_MILLION');
+  const envMetadataFetchTimeoutKey = 'TORVE_BUYER_METADATA_FETCH_TIMEOUT_MS';
   const envMetadataFetchTimeoutMs = parseEnvNumber(env, envMetadataFetchTimeoutKey);
   if (env[envMetadataFetchTimeoutKey] !== undefined && envMetadataFetchTimeoutMs === undefined) {
     throw new Error(`${envMetadataFetchTimeoutKey} must be a finite number`);
   }
-  const envMaxStreamDurationKey = 'ANTSEED_BUYER_MAX_STREAM_DURATION_MS';
+  const envMaxStreamDurationKey = 'TORVE_BUYER_MAX_STREAM_DURATION_MS';
   const envMaxStreamDurationMs = parseEnvNumber(env, envMaxStreamDurationKey);
   if (env[envMaxStreamDurationKey] !== undefined && envMaxStreamDurationMs === undefined) {
     throw new Error(`${envMaxStreamDurationKey} must be a finite number`);
   }
-  const envDisableMetadataV2Services = parseEnvBoolean(env, 'ANTSEED_BUYER_DISABLE_METADATA_V2_SERVICES');
+  const envDisableMetadataV2Services = parseEnvBoolean(env, 'TORVE_BUYER_DISABLE_METADATA_V2_SERVICES');
 
   if (envMinReputation !== undefined) {
     buyer.minPeerReputation = envMinReputation;

@@ -10,23 +10,23 @@ hide_title: true
 Provider plugins expose AI services to the network. They advertise services, pricing, optional service categories, capabilities, and Skills via discovery metadata, and handle incoming requests from buyers.
 
 :::warning Provider Compliance
-Antseed is designed for providers who build differentiated services — such as TEE-secured inference, domain-specific skills or agents, fine-tuned models, or managed product experiences. Simply reselling raw API access or subscription credentials is not the intended use and may violate your upstream provider's terms of service. Providers are solely responsible for complying with their upstream API provider's terms.
+Torve is designed for providers who build differentiated services — such as TEE-secured inference, domain-specific skills or agents, fine-tuned models, or managed product experiences. Simply reselling raw API access or subscription credentials is not the intended use and may violate your upstream provider's terms of service. Providers are solely responsible for complying with their upstream API provider's terms.
 :::
 
 ## Quick Start
 
 ```bash
 # 1. Install and configure
-npm install -g @antseed/cli
-antseed seller setup
+npm install -g @torveai/cli
+torve seller setup
 
 # 2. Set your identity key
-export ANTSEED_IDENTITY_HEX=<your-secp256k1-private-key-hex>
+export TORVE_IDENTITY_HEX=<your-secp256k1-private-key-hex>
 
 # 3. Fund your wallet with ETH (gas) on Base Mainnet
 
 # 4. Register on-chain (staking is optional)
-antseed seller register
+torve seller register
 
 # 5. Set your upstream API key
 export ANTHROPIC_API_KEY=<your-key>        # for anthropic provider
@@ -35,7 +35,7 @@ export OPENAI_API_KEY=<your-key>           # for openai provider
 export OPENAI_BASE_URL=https://api.together.ai  # optional: OpenAI-compatible endpoint
 
 # 6. Start providing
-antseed seller start --provider anthropic
+torve seller start --provider anthropic
 ```
 
 Your node is now discoverable on the network. Buyers can find you via DHT, connect, and send requests. You earn USDC per request based on your published pricing.
@@ -76,7 +76,7 @@ interface Provider {
 ## Example: OpenAI-Compatible Provider
 
 ```typescript title="openai-compatible-provider.ts"
-import type { Provider } from '@antseed/node'
+import type { Provider } from '@torveai/node'
 import OpenAI from 'openai'
 
 export default {
@@ -118,21 +118,21 @@ export default {
 
 `healthCheckAvailable` is managed by the node's model health checker. Text services that repeatedly fail are removed from `services`; image services are skipped because probing them would generate a billable image.
 
-Built-in provider plugins should declare `ANTSEED_SERVICE_CAPABILITIES_JSON` in `configSchema` and parse it with `parseServiceCapabilitiesJson`. Plugins supporting unit billing must also declare `ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON` and parse it with `parseServiceUnitBillingModelsJson`. The built-in `openai` provider currently supports image unit billing.
+Built-in provider plugins should declare `TORVE_SERVICE_CAPABILITIES_JSON` in `configSchema` and parse it with `parseServiceCapabilitiesJson`. Plugins supporting unit billing must also declare `TORVE_SERVICE_UNIT_BILLING_MODELS_JSON` and parse it with `parseServiceUnitBillingModelsJson`. The built-in `openai` provider currently supports image unit billing.
 
 `services` should represent the service IDs buyers will request on the network. A provider can still rewrite to different upstream model IDs internally (for example, announce `kimi2.5` and forward upstream as `together/kimi2.5`).
 
 :::note How the CLI fills these in
-End users don't set `services`, `pricing.services`, `serviceCategories`, capabilities, unit billing, or upstream model mapping directly on the plugin object. They set them once in `~/.antseed/config.json` under `seller.providers[name].services[id]`, and the CLI translates that into flat plugin keys such as `ANTSEED_ALLOWED_SERVICES`, `ANTSEED_SERVICE_PRICING_JSON`, `ANTSEED_SERVICE_ALIAS_MAP_JSON`, `ANTSEED_SERVICE_CAPABILITIES_JSON`, and `ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON`. See [Configuration](/docs/config) for the user-facing shape.
+End users don't set `services`, `pricing.services`, `serviceCategories`, capabilities, unit billing, or upstream model mapping directly on the plugin object. They set them once in `~/.torve/config.json` under `seller.providers[name].services[id]`, and the CLI translates that into flat plugin keys such as `TORVE_ALLOWED_SERVICES`, `TORVE_SERVICE_PRICING_JSON`, `TORVE_SERVICE_ALIAS_MAP_JSON`, `TORVE_SERVICE_CAPABILITIES_JSON`, and `TORVE_SERVICE_UNIT_BILLING_MODELS_JSON`. See [Configuration](/docs/config) for the user-facing shape.
 
 If a seller configures unit billing but the loaded plugin does not declare the corresponding schema key, the CLI warns that the setting is ignored. Custom plugins can opt in by declaring and consuming the key.
 :::
 
 ## Ant Agent
 
-Providers can differentiate their service by wrapping it with a **ant agent** — a knowledge-augmented AI service that injects a persona, guardrails, on-demand knowledge, and custom tools into buyer requests. No plugin code required; the CLI handles it via `@antseed/ant-agent`.
+Providers can differentiate their service by wrapping it with a **ant agent** — a knowledge-augmented AI service that injects a persona, guardrails, on-demand knowledge, and custom tools into buyer requests. No plugin code required; the CLI handles it via `@torveai/ant-agent`.
 
-```json title="antseed.config.json"
+```json title="torve.config.json"
 {
   "seller": {
     "agentDir": "./my-agent"
@@ -161,9 +161,9 @@ The agent directory contains an `agent.json` manifest:
 }
 ```
 
-The LLM receives the persona, guardrails, and `antseed_*` prefixed tools. It decides when to load knowledge or call custom tools during the conversation. Buyers only see the final response — no internal tools or loop artifacts are exposed.
+The LLM receives the persona, guardrails, and `torve_*` prefixed tools. It decides when to load knowledge or call custom tools during the conversation. Buyers only see the final response — no internal tools or loop artifacts are exposed.
 
-See the [`@antseed/ant-agent` README](https://github.com/AntSeed/antseed/tree/main/packages/ant-agent) for the full manifest reference and custom tool documentation.
+See the [`@torveai/ant-agent` README](https://github.com/Torve/torve/tree/main/packages/ant-agent) for the full manifest reference and custom tool documentation.
 
 ## Peer Offering
 

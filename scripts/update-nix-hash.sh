@@ -41,4 +41,4 @@ echo "Updated pnpmDeps hash in $FLAKE: $got"
 echo "Verifying with a full build..."
 nix build .#
 echo "OK — smoke test:"
-./result/bin/antseed --version
+./result/bin/torve --version

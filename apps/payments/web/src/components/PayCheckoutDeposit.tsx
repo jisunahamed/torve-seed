@@ -11,7 +11,7 @@ import { getErrorMessage, usePaymentNetwork } from '../payment-network';
 import { formatUsd, parseUsd, truncateAddress } from '../utils/format';
 import { ConnectWalletAction } from './ConnectWalletAction';
 
-const MIN_FIRST_DEPOSIT = 1; // USDC — matches AntseedDeposits.MIN_BUYER_DEPOSIT
+const MIN_FIRST_DEPOSIT = 1; // USDC — matches TorveDeposits.MIN_BUYER_DEPOSIT
 
 const DEPOSITS_ABI = [
   {

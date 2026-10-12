@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  ANTSEED_WILDCARD_TOPIC,
+  TORVE_WILDCARD_TOPIC,
   SUBNET_COUNT,
   capabilityTopic,
   peerTopic,
@@ -9,26 +9,26 @@ import {
 } from '../src/discovery/dht-node.js';
 
 describe('DHT topic helpers', () => {
-  it('wildcard topic is antseed:*', () => {
-    expect(ANTSEED_WILDCARD_TOPIC).toBe('antseed:*');
+  it('wildcard topic is torve:*', () => {
+    expect(TORVE_WILDCARD_TOPIC).toBe('torve:*');
   });
 
   it('normalizes capability topics to lowercase', () => {
-    expect(capabilityTopic('  TASK  ', '  My-Worker  ')).toBe('antseed:task:my-worker');
+    expect(capabilityTopic('  TASK  ', '  My-Worker  ')).toBe('torve:task:my-worker');
   });
 
   it('builds per-peer topics with the peerId normalized to lowercase hex (no 0x)', () => {
     expect(peerTopic('0E49122E76BD8B9CCB2FE10C0088C41CEB608927')).toBe(
-      'antseed:peer:0e49122e76bd8b9ccb2fe10c0088c41ceb608927',
+      'torve:peer:0e49122e76bd8b9ccb2fe10c0088c41ceb608927',
     );
     expect(peerTopic('  0x0E49122E76BD8B9CCB2FE10C0088C41CEB608927  ')).toBe(
-      'antseed:peer:0e49122e76bd8b9ccb2fe10c0088c41ceb608927',
+      'torve:peer:0e49122e76bd8b9ccb2fe10c0088c41ceb608927',
     );
   });
 
-  it('builds subnet topics as antseed:subnet:<index>', () => {
-    expect(subnetTopic(0)).toBe('antseed:subnet:0');
-    expect(subnetTopic(15)).toBe('antseed:subnet:15');
+  it('builds subnet topics as torve:subnet:<index>', () => {
+    expect(subnetTopic(0)).toBe('torve:subnet:0');
+    expect(subnetTopic(15)).toBe('torve:subnet:15');
   });
 
   it('subnetOf maps the same peerId to the same subnet regardless of casing or 0x prefix', () => {

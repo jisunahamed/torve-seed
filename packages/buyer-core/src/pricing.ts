@@ -4,7 +4,7 @@ import { estimateTokenCount } from 'tokenx';
 import {
   isFreeUnitBillingModel,
   validateUnitBillingModelV1,
-} from '@antseed/protocol/billing';
+} from '@torveai/protocol/billing';
 
 /** Token pricing for a service (USDC per million tokens). */
 export interface ServicePricing {

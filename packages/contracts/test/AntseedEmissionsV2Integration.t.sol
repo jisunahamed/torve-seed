@@ -4,21 +4,21 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { ANTSToken } from "../core/ANTSToken.sol";
-import { AntseedChannels } from "../payments/AntseedChannels.sol";
-import { AntseedDeposits } from "../payments/AntseedDeposits.sol";
-import { AntseedEmissions } from "../legacy/AntseedEmissions.sol";
-import { AntseedEmissionsV2 } from "../legacy/AntseedEmissionsV2.sol";
-import { AntseedRegistry } from "../core/AntseedRegistry.sol";
-import { AntseedSellerRewardsPool } from "../rewards/AntseedSellerRewardsPool.sol";
-import { AntseedSellerUnlockPolicy } from "../policies/AntseedSellerUnlockPolicy.sol";
-import { AntseedStaking } from "../staking/AntseedStaking.sol";
+import { TorveChannels } from "../payments/TorveChannels.sol";
+import { TorveDeposits } from "../payments/TorveDeposits.sol";
+import { TorveEmissions } from "../legacy/TorveEmissions.sol";
+import { TorveEmissionsV2 } from "../legacy/TorveEmissionsV2.sol";
+import { TorveRegistry } from "../core/TorveRegistry.sol";
+import { TorveSellerRewardsPool } from "../rewards/TorveSellerRewardsPool.sol";
+import { TorveSellerUnlockPolicy } from "../policies/TorveSellerUnlockPolicy.sol";
+import { TorveStaking } from "../staking/TorveStaking.sol";
 import { DiemStakingProxy } from "../staking/DiemStakingProxy.sol";
 import { MockERC8004Registry } from "./mocks/MockERC8004Registry.sol";
 import { MockUSDC } from "./mocks/MockUSDC.sol";
 
 import { MockDiem } from "./mocks/MockDiem.sol";
 
-contract AntseedEmissionsV2IntegrationTest is Test {
+contract TorveEmissionsV2IntegrationTest is Test {
     uint256 constant BUYER_PK = 0xA11CE;
     uint256 constant SELLER_PK = 0xB0B;
     uint256 constant OWNER_PK = 0x0A;
@@ -48,14 +48,14 @@ contract AntseedEmissionsV2IntegrationTest is Test {
     MockUSDC usdc;
     ANTSToken ants;
     MockERC8004Registry identityRegistry;
-    AntseedRegistry antseedRegistry;
-    AntseedDeposits deposits;
-    AntseedStaking staking;
-    AntseedChannels channels;
-    AntseedEmissions legacyEmissions;
-    AntseedEmissionsV2 emissionsV2;
-    AntseedSellerRewardsPool rewardsPool;
-    AntseedSellerUnlockPolicy unlockPolicy;
+    TorveRegistry torveRegistry;
+    TorveDeposits deposits;
+    TorveStaking staking;
+    TorveChannels channels;
+    TorveEmissions legacyEmissions;
+    TorveEmissionsV2 emissionsV2;
+    TorveSellerRewardsPool rewardsPool;
+    TorveSellerUnlockPolicy unlockPolicy;
 
     function setUp() public {
         buyer = vm.addr(BUYER_PK);
@@ -69,23 +69,23 @@ contract AntseedEmissionsV2IntegrationTest is Test {
         usdc = new MockUSDC();
         ants = new ANTSToken();
         identityRegistry = new MockERC8004Registry();
-        antseedRegistry = new AntseedRegistry();
-        deposits = new AntseedDeposits(address(usdc));
-        staking = new AntseedStaking(address(usdc), address(antseedRegistry));
-        channels = new AntseedChannels(address(antseedRegistry));
-        legacyEmissions = new AntseedEmissions(address(antseedRegistry), INITIAL_EMISSION, EPOCH_DURATION);
+        torveRegistry = new TorveRegistry();
+        deposits = new TorveDeposits(address(usdc));
+        staking = new TorveStaking(address(usdc), address(torveRegistry));
+        channels = new TorveChannels(address(torveRegistry));
+        legacyEmissions = new TorveEmissions(address(torveRegistry), INITIAL_EMISSION, EPOCH_DURATION);
 
-        antseedRegistry.setChannels(address(channels));
-        antseedRegistry.setDeposits(address(deposits));
-        antseedRegistry.setStaking(address(staking));
-        antseedRegistry.setEmissions(address(legacyEmissions));
-        antseedRegistry.setAntsToken(address(ants));
-        antseedRegistry.setIdentityRegistry(address(identityRegistry));
-        antseedRegistry.setProtocolReserve(protocolReserve);
-        antseedRegistry.setTeamWallet(teamWallet);
+        torveRegistry.setChannels(address(channels));
+        torveRegistry.setDeposits(address(deposits));
+        torveRegistry.setStaking(address(staking));
+        torveRegistry.setEmissions(address(legacyEmissions));
+        torveRegistry.setAntsToken(address(ants));
+        torveRegistry.setIdentityRegistry(address(identityRegistry));
+        torveRegistry.setProtocolReserve(protocolReserve);
+        torveRegistry.setTeamWallet(teamWallet);
 
-        deposits.setRegistry(address(antseedRegistry));
-        ants.setRegistry(address(antseedRegistry));
+        deposits.setRegistry(address(torveRegistry));
+        ants.setRegistry(address(torveRegistry));
         channels.setFirstSignCap(10_000_000_000);
 
         // Mirror the real upgrade condition: deploy V2 during an already-touched legacy epoch.
@@ -95,11 +95,11 @@ contract AntseedEmissionsV2IntegrationTest is Test {
         vm.prank(address(channels));
         legacyEmissions.accrueBuyerPoints(address(0xBEEF), 1);
 
-        rewardsPool = new AntseedSellerRewardsPool(address(antseedRegistry));
-        unlockPolicy = new AntseedSellerUnlockPolicy();
-        emissionsV2 = new AntseedEmissionsV2(address(antseedRegistry), address(legacyEmissions), address(rewardsPool));
+        rewardsPool = new TorveSellerRewardsPool(address(torveRegistry));
+        unlockPolicy = new TorveSellerUnlockPolicy();
+        emissionsV2 = new TorveEmissionsV2(address(torveRegistry), address(legacyEmissions), address(rewardsPool));
         emissionsV2.setSellerUnlockPolicy(address(unlockPolicy));
-        antseedRegistry.setEmissions(address(emissionsV2));
+        torveRegistry.setEmissions(address(emissionsV2));
     }
 
     function test_channelsSettlementAccruesIntoEmissionsV2() public {
@@ -128,7 +128,7 @@ contract AntseedEmissionsV2IntegrationTest is Test {
         DiemStakingProxy proxy;
 
         vm.prank(owner);
-        proxy = new DiemStakingProxy(address(diem), address(usdc), address(antseedRegistry), operator);
+        proxy = new DiemStakingProxy(address(diem), address(usdc), address(torveRegistry), operator);
         unlockPolicy.setSellerEligibility(address(proxy), true);
         ants.setTransferWhitelist(address(proxy), true);
 

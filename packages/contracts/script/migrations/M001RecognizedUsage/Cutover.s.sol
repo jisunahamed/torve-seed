@@ -3,10 +3,10 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
 
-import { IAntseedRegistry } from "../../../interfaces/IAntseedRegistry.sol";
-import { AntseedLegacyRewardsPoolRegistry } from "../../../rewards/AntseedLegacyRewardsPoolRegistry.sol";
+import { ITorveRegistry } from "../../../interfaces/ITorveRegistry.sol";
+import { TorveLegacyRewardsPoolRegistry } from "../../../rewards/TorveLegacyRewardsPoolRegistry.sol";
 
-interface IAntseedRegistryFlipAdmin is IAntseedRegistry {
+interface ITorveRegistryFlipAdmin is ITorveRegistry {
     function owner() external view returns (address);
     function setEmissions(address emissions) external;
     function setStaking(address staking) external;
@@ -64,12 +64,12 @@ interface IDiemStakingProxyFlip {
  *              REAL ANTS amount, paid from the legacy escrow. Once funded,
  *              the pot is stored forever — the pointer flip below can no
  *              longer affect it, and the zero-pot freeze is impossible.
- *           2. POOL OWNER: pins the deployed AntseedSellerRewardsPool
+ *           2. POOL OWNER: pins the deployed TorveSellerRewardsPool
  *              at a registry facade so locked legacy claims keep working
  *              after the flip.
  *           3. REGISTRY OWNER: flips registry.setEmissions to
- *              AntseedUsageAccounting and registry.setStaking to
- *              AntseedSellerRegistry.
+ *              TorveUsageAccounting and registry.setStaking to
+ *              TorveSellerRegistry.
  *
  *         The whole run simulates before anything broadcasts, so every guard
  *         below aborts the flip with nothing sent.
@@ -87,10 +87,10 @@ interface IDiemStakingProxyFlip {
  * --ledger, --trezor, or --interactive N).
  *
  * Required env:
- *   REGISTRY_OWNER               AntseedRegistry owner address (signs the flips).
- *   ANTSEED_REGISTRY             Legacy AntseedRegistry address.
- *   USAGE_ACCOUNTING             AntseedUsageAccounting from broadcast #1.
- *   SELLER_REGISTRY              AntseedSellerRegistry from broadcast #1.
+ *   REGISTRY_OWNER               TorveRegistry owner address (signs the flips).
+ *   TORVE_REGISTRY             Legacy TorveRegistry address.
+ *   USAGE_ACCOUNTING             TorveUsageAccounting from broadcast #1.
+ *   SELLER_REGISTRY              TorveSellerRegistry from broadcast #1.
  *   EXPECTED_LEGACY_EMISSIONS    Registry emissions pointer before M001.
  *   EXPECTED_LEGACY_STAKING      Registry staking pointer before M001.
  *   VERIFICATION_WALLET          M001 verification bucket controller.
@@ -104,7 +104,7 @@ interface IDiemStakingProxyFlip {
  *   DIEM_STAKER                  Address with DIEM staked on the proxy (signs
  *                                the claims). Required when the proxy is set.
  *   SELLER_REWARDS_POOL_OWNER    Owner address of the deployed
- *                                AntseedSellerRewardsPool (auto-discovered via
+ *                                TorveSellerRewardsPool (auto-discovered via
  *                                the legacy emissions contract). Required when
  *                                the proxy is set. Signs the pinned registry
  *                                facade wiring below.
@@ -119,11 +119,11 @@ interface IDiemStakingProxyFlip {
  *     --via-ir
  */
 contract M001CutoverRecognizedUsage is Script {
-    bytes32 public constant VERIFICATION_MINTER_ID = keccak256("antseed.emissions.verification.v1");
+    bytes32 public constant VERIFICATION_MINTER_ID = keccak256("torve.emissions.verification.v1");
 
     function run() external {
         address registryOwner = vm.envAddress("REGISTRY_OWNER");
-        IAntseedRegistryFlipAdmin registry = IAntseedRegistryFlipAdmin(vm.envAddress("ANTSEED_REGISTRY"));
+        ITorveRegistryFlipAdmin registry = ITorveRegistryFlipAdmin(vm.envAddress("TORVE_REGISTRY"));
         address usageAccounting = vm.envAddress("USAGE_ACCOUNTING");
         address sellerRegistry = vm.envAddress("SELLER_REGISTRY");
         address proxyAddress = vm.envOr("DIEM_STAKING_PROXY", address(0));
@@ -164,7 +164,7 @@ contract M001CutoverRecognizedUsage is Script {
         // cutover epoch is still in flight and this whole flip must wait.
         require(gate.currentEpoch() >= effectiveEpoch, "cutover epoch not finalized yet");
 
-        console.log("=== AntSeed Recognized Usage Cutover Flip ===");
+        console.log("=== Torve Recognized Usage Cutover Flip ===");
         console.log("Registry:               ", address(registry));
         console.log("Registry emissions:     ", currentEmissions);
         console.log("UsageAccounting (to):   ", usageAccounting);
@@ -219,19 +219,19 @@ contract M001CutoverRecognizedUsage is Script {
         console.log("  (usage of pool-less agents is not accounted).");
     }
 
-    /// @dev Re-point the deployed AntseedSellerRewardsPool at a pinned
+    /// @dev Re-point the deployed TorveSellerRewardsPool at a pinned
     ///      registry facade before the flip. The pool's recordLockedReward
     ///      auth reads its registry's emissions() live, so leaving it on the
     ///      real registry would break every locked-path legacy claim the
     ///      moment the flip lands. The pool is auto-discovered from the
     ///      legacy emissions contract; contracts without one (testnets)
     ///      skip silently.
-    function _pinRewardsPoolRegistry(IAntseedRegistryFlipAdmin registry, address legacyEmissions) internal {
+    function _pinRewardsPoolRegistry(ITorveRegistryFlipAdmin registry, address legacyEmissions) internal {
         (bool ok, bytes memory data) = legacyEmissions.staticcall(abi.encodeWithSignature("sellerRewardsPool()"));
         address pool = (ok && data.length == 32) ? abi.decode(data, (address)) : address(0);
         if (pool == address(0)) {
             console.log("");
-            console.log("No AntseedSellerRewardsPool on the legacy emissions contract - skipping.");
+            console.log("No TorveSellerRewardsPool on the legacy emissions contract - skipping.");
             return;
         }
 
@@ -246,8 +246,8 @@ contract M001CutoverRecognizedUsage is Script {
         require(ISellerRewardsPoolAdmin(pool).owner() == poolOwner, "SELLER_REWARDS_POOL_OWNER is not the pool owner");
 
         vm.startBroadcast(poolOwner);
-        AntseedLegacyRewardsPoolRegistry facade =
-            new AntseedLegacyRewardsPoolRegistry(legacyEmissions, registry.antsToken());
+        TorveLegacyRewardsPoolRegistry facade =
+            new TorveLegacyRewardsPoolRegistry(legacyEmissions, registry.antsToken());
         ISellerRewardsPoolAdmin(pool).setRegistry(address(facade));
         vm.stopBroadcast();
 

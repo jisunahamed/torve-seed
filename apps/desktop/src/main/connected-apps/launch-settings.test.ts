@@ -13,7 +13,7 @@ import {
 } from './launch-settings.js';
 
 function tempDataDir(): string {
-  return mkdtempSync(path.join(tmpdir(), 'antseed-app-settings-'));
+  return mkdtempSync(path.join(tmpdir(), 'torve-app-settings-'));
 }
 
 test('normalizeToolSlug mirrors the buyer proxy identity slug rules', () => {

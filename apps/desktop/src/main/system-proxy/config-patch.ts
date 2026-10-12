@@ -1,4 +1,4 @@
-import { ANTSEED_MODEL_CONTEXT_WINDOW, ANTSEED_MODEL_MAX_OUTPUT_TOKENS } from '@antseed/node/types';
+import { TORVE_MODEL_CONTEXT_WINDOW, TORVE_MODEL_MAX_OUTPUT_TOKENS } from '@torveai/node/types';
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -19,11 +19,11 @@ import {
  * currently selected in the desktop (floating pill / AI VPN). Must match
  * ROUTED_MODEL_ALIAS in apps/cli/src/proxy/request-utils.ts.
  */
-export const ROUTED_MODEL_ALIAS = 'antseed';
-const ROUTED_MODEL_ALIAS_LABEL = 'Antseed Auto';
+export const ROUTED_MODEL_ALIAS = 'torve';
+const ROUTED_MODEL_ALIAS_LABEL = 'Torve Auto';
 // Droid requires the `custom:` namespace to resolve this through `customModels`;
 // an unprefixed value is treated as a Factory-managed model and triggers Factory authentication.
-const DROID_ROUTED_MODEL_ID = 'custom:Antseed-Auto-0';
+const DROID_ROUTED_MODEL_ID = 'custom:Torve-Auto-0';
 
 /**
  * Config patches point a tool's own configuration at the buyer proxy. Each
@@ -189,10 +189,10 @@ export type ConfigPatchDef =
  * claude-desktop-gateway.ts) so this electron-free module stays the single
  * import direction: the gateway imports from config-patch, never the reverse.
  */
-export const CLAUDE_GATEWAY_DEFAULT_PORT = Number(process.env['ANTSEED_CLAUDE_GATEWAY_PORT']) || 8380;
+export const CLAUDE_GATEWAY_DEFAULT_PORT = Number(process.env['TORVE_CLAUDE_GATEWAY_PORT']) || 8380;
 /** Fixed id of the managed third-party profile entry in Claude's configLibrary. */
 export const CLAUDE_DESKTOP_PROFILE_ID = '00000000-0000-4000-8000-0000a4753eed';
-const CLAUDE_DESKTOP_PROFILE_NAME = 'Antseed';
+const CLAUDE_DESKTOP_PROFILE_NAME = 'Torve';
 
 export function readString(raw: Record<string, unknown>, key: string): string | undefined {
   const value = raw[key];
@@ -479,7 +479,7 @@ function writeJsonFile(filePath: string, data: JsonObject): void {
 
 function backupConfigFile(filePath: string): void {
   if (!existsSync(filePath)) return;
-  const backupPath = `${filePath}.antseed.bak`;
+  const backupPath = `${filePath}.torve.bak`;
   if (existsSync(backupPath)) return;
   copyFileSync(filePath, backupPath);
 }
@@ -665,14 +665,14 @@ function applyOpencodeProviderToFile(filePath: string, patch: OpencodeConfigPatc
     npm: patch.npm,
     options: {
       baseURL,
-      apiKey: 'antseed',
+      apiKey: 'torve',
     },
     models: {
       [ROUTED_MODEL_ALIAS]: {
         name: ROUTED_MODEL_ALIAS_LABEL,
         attachment: true,
         modalities: { input: ['text', 'image'], output: ['text'] },
-        limit: { context: ANTSEED_MODEL_CONTEXT_WINDOW, output: ANTSEED_MODEL_MAX_OUTPUT_TOKENS },
+        limit: { context: TORVE_MODEL_CONTEXT_WINDOW, output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
       },
     },
   };
@@ -752,7 +752,7 @@ function writeTextFile(filePath: string, content: string): void {
 // --- Droid CLI + Factory Desktop (`~/.factory/settings.json`) ---
 //
 // Both clients watch this file and share its `customModels` catalog. The
-// sidecar remembers only the fields Antseed temporarily owns so disconnect
+// sidecar remembers only the fields Torve temporarily owns so disconnect
 // can restore the user's prior default without rolling back unrelated edits.
 
 type DroidPatchState = {
@@ -767,7 +767,7 @@ type DroidPatchState = {
 };
 
 function droidPatchStatePath(filePath: string): string {
-  return `${filePath}.antseed.state.json`;
+  return `${filePath}.torve.state.json`;
 }
 
 function readDroidPatchState(filePath: string): DroidPatchState | null {
@@ -781,7 +781,7 @@ function readDroidPatchState(filePath: string): DroidPatchState | null {
       typeof state['sessionDefaultSettingsPresent'] !== 'boolean'
       || typeof state['sessionDefaultModelPresent'] !== 'boolean'
     ))) {
-    throw new Error(`Invalid Antseed Droid restore state at ${droidPatchStatePath(filePath)}`);
+    throw new Error(`Invalid Torve Droid restore state at ${droidPatchStatePath(filePath)}`);
   }
   return {
     version: state['version'],
@@ -900,7 +900,7 @@ function applyDroidModelToFile(filePath: string, patch: DroidConfigPatchDef, bas
       displayName: patch.providerName,
       baseUrl: baseURL,
       provider: 'generic-chat-completion-api',
-      maxOutputTokens: ANTSEED_MODEL_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: TORVE_MODEL_MAX_OUTPUT_TOKENS,
       ...(Object.keys(extraHeaders).length > 0 ? { extraHeaders } : {}),
     },
   ];
@@ -1061,7 +1061,7 @@ function applyCodexProviderToFile(filePath: string, patch: CodexConfigPatchDef, 
   lines = removeCodexProviderTable(lines, patch.providerKey).lines;
   lines = setTomlTopLevelString(lines, 'model_provider', patch.providerKey);
   lines = setTomlTopLevelString(lines, 'model', ROUTED_MODEL_ALIAS);
-  lines = setTomlTopLevelValue(lines, 'model_context_window', String(ANTSEED_MODEL_CONTEXT_WINDOW));
+  lines = setTomlTopLevelValue(lines, 'model_context_window', String(TORVE_MODEL_CONTEXT_WINDOW));
   while (lines.length > 0 && lines[lines.length - 1]!.trim() === '') lines.pop();
   lines.push(
     '',
@@ -1134,14 +1134,14 @@ function applyPiProviderToFiles(modelsPath: string, settingsPath: string, patch:
   providers[patch.providerKey] = {
     baseUrl: baseURL,
     api: patch.api,
-    apiKey: 'antseed',
+    apiKey: 'torve',
     ...(patch.originator ? { headers: { originator: patch.originator } } : {}),
     models: [
       {
         id: ROUTED_MODEL_ALIAS,
         name: ROUTED_MODEL_ALIAS_LABEL,
-        contextWindow: ANTSEED_MODEL_CONTEXT_WINDOW,
-        maxTokens: ANTSEED_MODEL_MAX_OUTPUT_TOKENS,
+        contextWindow: TORVE_MODEL_CONTEXT_WINDOW,
+        maxTokens: TORVE_MODEL_MAX_OUTPUT_TOKENS,
       },
     ],
   };
@@ -1220,9 +1220,9 @@ function applyCrushProviderToFile(filePath: string, patch: CrushConfigPatchDef, 
     type: 'openai-compat',
     name: patch.providerName,
     base_url: baseURL,
-    api_key: 'antseed',
+    api_key: 'torve',
     models: [
-      { id: ROUTED_MODEL_ALIAS, name: ROUTED_MODEL_ALIAS_LABEL, context_window: ANTSEED_MODEL_CONTEXT_WINDOW, default_max_tokens: ANTSEED_MODEL_MAX_OUTPUT_TOKENS },
+      { id: ROUTED_MODEL_ALIAS, name: ROUTED_MODEL_ALIAS_LABEL, context_window: TORVE_MODEL_CONTEXT_WINDOW, default_max_tokens: TORVE_MODEL_MAX_OUTPUT_TOKENS },
     ],
   };
   config['providers'] = providers;
@@ -1345,7 +1345,7 @@ function applyGooseProviderToFile(filePath: string, patch: GooseConfigPatchDef, 
   lines = setYamlTopLevelString(lines, 'GOOSE_PROVIDER', patch.providerKey);
   lines = setYamlTopLevelString(lines, 'GOOSE_MODEL', ROUTED_MODEL_ALIAS);
   lines = setYamlTopLevelString(lines, 'OPENAI_HOST', baseURL);
-  lines = setYamlTopLevelString(lines, 'OPENAI_API_KEY', 'antseed');
+  lines = setYamlTopLevelString(lines, 'OPENAI_API_KEY', 'torve');
   writeTextFile(filePath, `${lines.join('\n')}\n`);
 }
 
@@ -1367,7 +1367,7 @@ function removeGooseProviderFromFile(filePath: string, patch: GooseConfigPatchDe
     lines = removeYamlTopLevelKey(lines, 'OPENAI_HOST');
     changed = true;
   }
-  if (readYamlTopLevelString(lines, 'OPENAI_API_KEY') === 'antseed') {
+  if (readYamlTopLevelString(lines, 'OPENAI_API_KEY') === 'torve') {
     lines = removeYamlTopLevelKey(lines, 'OPENAI_API_KEY');
     changed = true;
   }
@@ -1408,7 +1408,7 @@ function applyHermesConfigPatch(patch: HermesConfigPatchDef, buyerPort: number):
   const document = readHermesConfigDocument(filePath);
   backupConfigFile(filePath);
   document.setIn(['providers', patch.providerKey], {
-    name: 'Antseed',
+    name: 'Torve',
     api: patch.baseURL.replace('{buyerPort}', String(buyerPort)),
     transport: 'chat_completions',
     extra_headers: {
@@ -1417,7 +1417,7 @@ function applyHermesConfigPatch(patch: HermesConfigPatchDef, buyerPort: number):
     default_model: ROUTED_MODEL_ALIAS,
     models: {
       [ROUTED_MODEL_ALIAS]: {
-        context_length: ANTSEED_MODEL_CONTEXT_WINDOW,
+        context_length: TORVE_MODEL_CONTEXT_WINDOW,
       },
     },
   });
@@ -1466,7 +1466,7 @@ function applyZedConfigPatch(patch: ZedConfigPatchDef, buyerPort: number): void 
   compatible[patch.providerName] = {
     api_url: patch.baseURL.replace('{buyerPort}', String(buyerPort)),
     available_models: [
-      { name: ROUTED_MODEL_ALIAS, display_name: ROUTED_MODEL_ALIAS_LABEL, max_tokens: ANTSEED_MODEL_CONTEXT_WINDOW },
+      { name: ROUTED_MODEL_ALIAS, display_name: ROUTED_MODEL_ALIAS_LABEL, max_tokens: TORVE_MODEL_CONTEXT_WINDOW },
     ],
   };
   languageModels['openai_compatible'] = compatible;
@@ -1515,11 +1515,11 @@ function removeZedConfigPatch(patch: ZedConfigPatchDef): boolean {
 // --- Claude Code CLI (`~/.claude/settings.json`) ---
 //
 // Claude Code reads gateway settings from its user settings `env` block. The
-// sidecar records only the env/model values Antseed replaces so disconnect
+// sidecar records only the env/model values Torve replaces so disconnect
 // restores the user's prior state without rolling back unrelated settings.
 
 const CLAUDE_CODE_SOURCE = 'claude-code';
-const CLAUDE_CODE_SOURCE_HEADER = `x-antseed-system-proxy-source: ${CLAUDE_CODE_SOURCE}`;
+const CLAUDE_CODE_SOURCE_HEADER = `x-torve-system-proxy-source: ${CLAUDE_CODE_SOURCE}`;
 const CLAUDE_CODE_MANAGED_ENV_KEYS = [
   'ANTHROPIC_BASE_URL',
   'ANTHROPIC_AUTH_TOKEN',
@@ -1543,7 +1543,7 @@ type ClaudeCodePatchState = {
 };
 
 function claudeCodePatchStatePath(filePath: string): string {
-  return `${filePath}.antseed.state.json`;
+  return `${filePath}.torve.state.json`;
 }
 
 function savedValue(source: JsonObject, key: string): ClaudeCodeSavedValue {
@@ -1554,7 +1554,7 @@ function savedValue(source: JsonObject, key: string): ClaudeCodeSavedValue {
 
 function readSavedValue(raw: unknown, statePath: string, key: string): ClaudeCodeSavedValue {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) || typeof (raw as JsonObject)['present'] !== 'boolean') {
-    throw new Error(`Invalid Antseed Claude Code restore value ${key} at ${statePath}`);
+    throw new Error(`Invalid Torve Claude Code restore value ${key} at ${statePath}`);
   }
   const value = raw as JsonObject;
   return value['present'] ? { present: true, value: value['value'] } : { present: false };
@@ -1569,7 +1569,7 @@ function readClaudeCodePatchState(filePath: string): ClaudeCodePatchState | null
     || typeof state['configExisted'] !== 'boolean'
     || typeof state['envPresent'] !== 'boolean'
     || !env || typeof env !== 'object' || Array.isArray(env)) {
-    throw new Error(`Invalid Antseed Claude Code restore state at ${statePath}`);
+    throw new Error(`Invalid Torve Claude Code restore state at ${statePath}`);
   }
   const savedEnv = Object.fromEntries(CLAUDE_CODE_MANAGED_ENV_KEYS.map((key) => [
     key,
@@ -1722,8 +1722,8 @@ function applyT3CodeConfigPatch(patch: T3CodeConfigPatchDef, buyerPort: number):
     displayName: patch.providerName,
     environment: [
       { name: 'ANTHROPIC_BASE_URL', value: patch.baseURL.replace('{buyerPort}', String(buyerPort)), sensitive: false },
-      { name: 'ANTHROPIC_API_KEY', value: 'antseed', sensitive: false },
-      { name: 'ANTHROPIC_CUSTOM_HEADERS', value: 'x-antseed-system-proxy-source: t3code', sensitive: false },
+      { name: 'ANTHROPIC_API_KEY', value: 'torve', sensitive: false },
+      { name: 'ANTHROPIC_CUSTOM_HEADERS', value: 'x-torve-system-proxy-source: t3code', sensitive: false },
       { name: 'HTTP_PROXY', value: '', sensitive: false },
       { name: 'HTTPS_PROXY', value: '', sensitive: false },
       { name: 'http_proxy', value: '', sensitive: false },
@@ -1877,7 +1877,7 @@ function applyClaudeDesktopConfigPatch(patch: ClaudeDesktopConfigPatchDef): void
   profile['inferenceGatewayBaseUrl'] = gatewayBaseUrl;
   // The gateway is loopback-only and ignores credentials; Claude just needs a
   // non-empty key for its gateway auth scheme.
-  profile['inferenceGatewayApiKey'] = 'antseed';
+  profile['inferenceGatewayApiKey'] = 'torve';
   profile['inferenceGatewayAuthScheme'] = 'bearer';
   profile['deploymentDisplayName'] = CLAUDE_DESKTOP_PROFILE_NAME;
   profile['chatTabEnabled'] = true;
@@ -1890,7 +1890,7 @@ function applyClaudeDesktopConfigPatch(patch: ClaudeDesktopConfigPatchDef): void
   // would shadow it.
   delete profile['inferenceModels'];
   // Claude's published model catalog (fetched from downloads.claude.ai on 3p
-  // boots) relabels picker entries by id, so "Antseed Auto" behind
+  // boots) relabels picker entries by id, so "Torve Auto" behind
   // claude-fable-5 would show as "Fable 5" and every curated slot as the
   // Claude model whose id it borrows. The gateway's display names are the
   // real labels; keep the catalog off so they win.

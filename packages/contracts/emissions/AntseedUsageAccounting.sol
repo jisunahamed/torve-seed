@@ -4,18 +4,18 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
-import { IAntseedPointsPolicy } from "../interfaces/IAntseedPointsPolicy.sol";
-import { IAntseedPoolWeightPolicy } from "../interfaces/IAntseedPoolWeightPolicy.sol";
-import { IAntseedEmissionsGate } from "../interfaces/IAntseedEmissionsGate.sol";
-import { IAntseedSellerPools } from "../interfaces/IAntseedSellerPools.sol";
-import { IAntseedUsageAccounting } from "../interfaces/IAntseedUsageAccounting.sol";
-import { IAntseedUsageRewards } from "../interfaces/IAntseedUsageRewards.sol";
+import { ITorvePointsPolicy } from "../interfaces/ITorvePointsPolicy.sol";
+import { ITorvePoolWeightPolicy } from "../interfaces/ITorvePoolWeightPolicy.sol";
+import { ITorveEmissionsGate } from "../interfaces/ITorveEmissionsGate.sol";
+import { ITorveSellerPools } from "../interfaces/ITorveSellerPools.sol";
+import { ITorveUsageAccounting } from "../interfaces/ITorveUsageAccounting.sol";
+import { ITorveUsageRewards } from "../interfaces/ITorveUsageRewards.sol";
 
 /**
- * @title AntseedUsageAccounting
+ * @title TorveUsageAccounting
  * @notice Facts-only recognized-usage ledger.
  *
- *         Existing AntseedChannels still emits the legacy two-call sequence
+ *         Existing TorveChannels still emits the legacy two-call sequence
  *         (`accrueSellerPoints`, then `accrueBuyerPoints`) to whatever the
  *         global registry exposes as `emissions()`. This contract is that
  *         settlement-facing endpoint. It records settled usage facts by buyer
@@ -46,24 +46,24 @@ import { IAntseedUsageRewards } from "../interfaces/IAntseedUsageRewards.sol";
  *             pairs it with the next buyer accrual. Newer callers should prefer
  *             `accruePoints` with buyer, seller, and channel id in one call.
  */
-contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausable {
+contract TorveUsageAccounting is ITorveUsageAccounting, Ownable2Step, Pausable {
     // ─── External Contracts ──────────────────────────────────────────
-    IAntseedEmissionsGate public immutable emissionsGate;
+    ITorveEmissionsGate public immutable emissionsGate;
     /// @notice First epoch the gate will ever mint (its immutable
     ///         `effectiveEpoch`). Usage settled before it — the tail of the
     ///         cutover epoch — is accounted under this epoch instead, so it
     ///         stays claimable rather than landing in a pre-effective epoch
     ///         the gate refuses forever.
     uint256 public immutable firstRewardedEpoch;
-    IAntseedSellerPools public sellerPools;
-    IAntseedPointsPolicy public pointsPolicy;
-    IAntseedPoolWeightPolicy public poolWeightPolicy;
+    ITorveSellerPools public sellerPools;
+    ITorvePointsPolicy public pointsPolicy;
+    ITorvePoolWeightPolicy public poolWeightPolicy;
     uint256 public minimumAccountedPoolPower = 1;
 
     /// @notice Usage rewards controller behind the seller delegation adapter
     ///         below. Unset disables the adapter (views return zero, claims
     ///         revert).
-    IAntseedUsageRewards public usageRewards;
+    ITorveUsageRewards public usageRewards;
 
     // ─── Legacy Two-Call Settlement Pairing ──────────────────────────
     /// @notice Seller stashed by the legacy `accrueSellerPoints` leg, paired
@@ -99,9 +99,9 @@ contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausab
     constructor(address _sellerPools, address _initialRecorder, address _emissionsGate) Ownable(msg.sender) {
         if (_initialRecorder == address(0) || _emissionsGate == address(0)) revert InvalidAddress();
 
-        emissionsGate = IAntseedEmissionsGate(_emissionsGate);
-        firstRewardedEpoch = IAntseedEmissionsGate(_emissionsGate).effectiveEpoch();
-        sellerPools = IAntseedSellerPools(_sellerPools);
+        emissionsGate = ITorveEmissionsGate(_emissionsGate);
+        firstRewardedEpoch = ITorveEmissionsGate(_emissionsGate).effectiveEpoch();
+        sellerPools = ITorveSellerPools(_sellerPools);
         usageRecorders[_initialRecorder] = true;
 
         emit UsageRecorderSet(_initialRecorder, true);
@@ -116,7 +116,7 @@ contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausab
     //                        CORE — RECORD USAGE
     // ═══════════════════════════════════════════════════════════════════
 
-    // The accrual entrypoints are called inline by the deployed AntseedChannels
+    // The accrual entrypoints are called inline by the deployed TorveChannels
     // settlement path with no try/catch. They must never revert for reasons
     // outside the recorder's control, or pausing/misconfiguring this contract
     // would block all USDC settlements and seller payouts network-wide. While
@@ -168,12 +168,12 @@ contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausab
     // ═══════════════════════════════════════════════════════════════════
 
     function setSellerPools(address _sellerPools) external onlyOwner {
-        sellerPools = IAntseedSellerPools(_sellerPools);
+        sellerPools = ITorveSellerPools(_sellerPools);
         emit SellerPoolsSet(_sellerPools);
     }
 
     function setPointsPolicy(address policy) external onlyOwner {
-        pointsPolicy = IAntseedPointsPolicy(policy);
+        pointsPolicy = ITorvePointsPolicy(policy);
         emit PointsPolicySet(policy);
     }
 
@@ -181,12 +181,12 @@ contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausab
     ///         effective weight applied to usage points. Unset preserves the
     ///         default linear behavior (weight = raw pool power).
     function setPoolWeightPolicy(address policy) external onlyOwner {
-        poolWeightPolicy = IAntseedPoolWeightPolicy(policy);
+        poolWeightPolicy = ITorvePoolWeightPolicy(policy);
         emit PoolWeightPolicySet(policy);
     }
 
     function setUsageRewards(address rewards) external onlyOwner {
-        usageRewards = IAntseedUsageRewards(rewards);
+        usageRewards = ITorveUsageRewards(rewards);
         emit UsageRewardsSet(rewards);
     }
 
@@ -215,13 +215,13 @@ contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausab
     // ═══════════════════════════════════════════════════════════════════
 
     // Already-deployed seller delegation contracts (e.g. DiemStakingProxy)
-    // resolve registry.emissions() live and call the legacy IAntseedEmissions
+    // resolve registry.emissions() live and call the legacy ITorveEmissions
     // selectors on it. These adapters keep that surface answering: seller
-    // emission amounts come from the AntseedUsageRewards agent bucket, keyed
+    // emission amounts come from the TorveUsageRewards agent bucket, keyed
     // by the caller's seller-pool agent id, and claims pay the caller (the
     // agent owner) through `claimAgentRewardFor`.
 
-    /// @notice Legacy `IAntseedEmissions.pendingEmissions` view. `totalSeller`
+    /// @notice Legacy `ITorveEmissions.pendingEmissions` view. `totalSeller`
     ///         is the account's unclaimed agent usage reward for `epochs`;
     ///         `totalBuyer` is always zero (delegation contracts only consume
     ///         the seller side).
@@ -231,7 +231,7 @@ contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausab
         returns (uint256 totalSeller, uint256 totalBuyer)
     {
         totalBuyer = 0;
-        IAntseedUsageRewards rewards = usageRewards;
+        ITorveUsageRewards rewards = usageRewards;
         if (address(rewards) == address(0)) return (0, 0);
         uint256 agentId = _sellerPoolAgentId(account);
         if (agentId == 0) return (0, 0);
@@ -245,15 +245,15 @@ contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausab
         }
     }
 
-    /// @notice Legacy `IAntseedEmissions.claimSellerEmissions`. Claims the
-    ///         caller's agent usage rewards from AntseedUsageRewards; rewards
+    /// @notice Legacy `ITorveEmissions.claimSellerEmissions`. Claims the
+    ///         caller's agent usage rewards from TorveUsageRewards; rewards
     ///         are paid to the caller (verified as the agent owner by the
     ///         rewards controller). Epochs already claimed, with nothing to
     ///         claim, predating the gate, or belonging to an agent the caller
     ///         no longer owns are skipped so a batch never reverts partway,
     ///         mirroring the legacy claim semantics.
     function claimSellerEmissions(uint256[] calldata epochs) external {
-        IAntseedUsageRewards rewards = usageRewards;
+        ITorveUsageRewards rewards = usageRewards;
         if (address(rewards) == address(0)) revert UsageRewardsNotSet();
         uint256 agentId = _sellerPoolAgentId(msg.sender);
         if (agentId == 0) return;
@@ -272,7 +272,7 @@ contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausab
     }
 
     function _sellerPoolAgentId(address seller) internal view returns (uint256) {
-        IAntseedSellerPools pools = sellerPools;
+        ITorveSellerPools pools = sellerPools;
         if (address(pools) == address(0)) return 0;
         return pools.agentIdForSeller(seller);
     }
@@ -280,7 +280,7 @@ contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausab
     /// @dev A stale seller→agent binding (agent NFT moved to a new owner who
     ///      hasn't re-registered) must degrade to a no-op, not a revert:
     ///      deployed delegation contracts batch these calls with no try/catch.
-    function _isAgentRewardRecipient(IAntseedUsageRewards rewards, uint256 agentId, address account)
+    function _isAgentRewardRecipient(ITorveUsageRewards rewards, uint256 agentId, address account)
         internal
         view
         returns (bool)
@@ -306,7 +306,7 @@ contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausab
         // effective epoch) would be permanently unmintable through the gate;
         // account it under the first gate-mintable epoch instead.
         if (epoch < firstRewardedEpoch) epoch = firstRewardedEpoch;
-        IAntseedSellerPools pools = sellerPools;
+        ITorveSellerPools pools = sellerPools;
         if (address(pools) == address(0)) return;
 
         uint256 agentId = pools.agentIdForSeller(seller);
@@ -485,12 +485,12 @@ contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausab
     ///      policy set the curve stays linear (weight = raw pool power). A
     ///      broken or reverting policy must not block settlement: the usage
     ///      record is skipped (no emissions credit) instead of bubbling the
-    ///      revert into AntseedChannels' settle path.
+    ///      revert into TorveChannels' settle path.
     function _policyPoolWeight(uint256 agentId, uint256 epoch, uint256 poolPower)
         internal
         returns (uint256 poolWeight, bool ok)
     {
-        IAntseedPoolWeightPolicy policy = poolWeightPolicy;
+        ITorvePoolWeightPolicy policy = poolWeightPolicy;
         if (address(policy) == address(0)) return (poolPower, true);
         try policy.poolWeight(agentId, epoch, poolPower) returns (uint256 weight) {
             return (weight, true);
@@ -504,11 +504,11 @@ contract AntseedUsageAccounting is IAntseedUsageAccounting, Ownable2Step, Pausab
         internal
         returns (uint256 sellerPoints, uint256 buyerPoints)
     {
-        IAntseedPointsPolicy policy = pointsPolicy;
+        ITorvePointsPolicy policy = pointsPolicy;
         if (address(policy) == address(0)) return (rawPoints, rawPoints);
         // A broken or reverting policy must not block settlement. Skip the
         // usage record (no emissions credit) rather than bubbling the revert
-        // into AntseedChannels' settle path.
+        // into TorveChannels' settle path.
         try policy.points(channelId, buyer, seller, rawPoints) returns (
             uint256 policySellerPoints, uint256 policyBuyerPoints
         ) {

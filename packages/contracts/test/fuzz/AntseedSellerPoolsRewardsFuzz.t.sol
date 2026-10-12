@@ -4,11 +4,11 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { ANTSToken } from "../../core/ANTSToken.sol";
-import { AntseedRegistry } from "../../core/AntseedRegistry.sol";
-import { AntseedEmissionsGate } from "../../emissions/AntseedEmissionsGate.sol";
-import { AntseedSellerPools } from "../../sellers/AntseedSellerPools.sol";
-import { AntseedUsageAccounting } from "../../emissions/AntseedUsageAccounting.sol";
-import { AntseedSellerPoolsRewards } from "../../emissions/AntseedSellerPoolsRewards.sol";
+import { TorveRegistry } from "../../core/TorveRegistry.sol";
+import { TorveEmissionsGate } from "../../emissions/TorveEmissionsGate.sol";
+import { TorveSellerPools } from "../../sellers/TorveSellerPools.sol";
+import { TorveUsageAccounting } from "../../emissions/TorveUsageAccounting.sol";
+import { TorveSellerPoolsRewards } from "../../emissions/TorveSellerPoolsRewards.sol";
 import { MockERC8004Registry } from "../mocks/MockERC8004Registry.sol";
 
 contract MockAgentLookup {
@@ -24,7 +24,7 @@ contract MockAgentLookup {
 }
 
 /**
- * @title AntseedSellerPoolsRewardsFuzz
+ * @title TorveSellerPoolsRewardsFuzz
  * @notice End-to-end reward-conservation fuzz for the lazy seller-pool reward
  *         controller. Exercises the real stack: EmissionsGate mints, SellerPools
  *         holds stake, UsageAccounting records usage, SellerPoolsRewards settles
@@ -39,14 +39,14 @@ contract MockAgentLookup {
  *           4. Each individual position's claim is proportional to its weight and
  *              double-claim is impossible (cursor advances).
  */
-contract AntseedSellerPoolsRewardsFuzzTest is Test {
+contract TorveSellerPoolsRewardsFuzzTest is Test {
     ANTSToken token;
-    AntseedRegistry registry;
-    AntseedEmissionsGate gate;
+    TorveRegistry registry;
+    TorveEmissionsGate gate;
     MockERC8004Registry identityRegistry;
-    AntseedSellerPools pools;
-    AntseedUsageAccounting usageAccounting;
-    AntseedSellerPoolsRewards rewards;
+    TorveSellerPools pools;
+    TorveUsageAccounting usageAccounting;
+    TorveSellerPoolsRewards rewards;
     MockAgentLookup agentLookup;
 
     address constant KNOWN_ANTS_TOKEN = 0xa87EE81b2C0Bc659307ca2D9ffdC38514DD85263;
@@ -54,7 +54,7 @@ contract AntseedSellerPoolsRewardsFuzzTest is Test {
     uint256 constant GATE_EPOCH_DURATION = 7 days;
     uint256 constant BPS = 100_000;
     uint32 constant SELLER_POOLS_SHARE_BPS = 40_000;
-    bytes32 constant SELLER_POOLS_MINTER_ID = keccak256("antseed.emissions.seller-pools.v1");
+    bytes32 constant SELLER_POOLS_MINTER_ID = keccak256("torve.emissions.seller-pools.v1");
 
     address legacyController = address(0xCAFE);
     address teamWallet = address(0x7EA3);
@@ -72,7 +72,7 @@ contract AntseedSellerPoolsRewardsFuzzTest is Test {
         deployCodeTo("ANTSToken.sol:ANTSToken", KNOWN_ANTS_TOKEN);
         token = ANTSToken(KNOWN_ANTS_TOKEN);
 
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         identityRegistry = new MockERC8004Registry();
         agentLookup = new MockAgentLookup();
         registry.setAntsToken(address(token));
@@ -89,19 +89,19 @@ contract AntseedSellerPoolsRewardsFuzzTest is Test {
         // Deploy the gate at epoch 4 so legacy epochs exist and claims for
         // finalized epochs are allowed.
         vm.warp(GATE_GENESIS + GATE_EPOCH_DURATION * 4 + 1);
-        gate = new AntseedEmissionsGate(teamWallet, reserve, 15_000, 15_000);
+        gate = new TorveEmissionsGate(teamWallet, reserve, 15_000, 15_000);
         token.setRegistry(address(gate));
         // No bucket mints until the legacy escrow is settled; any recipient
         // address marks the pot funded.
         gate.fundLegacyEscrow(address(0xE5C0));
 
-        pools = new AntseedSellerPools(address(token), address(gate), address(identityRegistry), address(agentLookup)); // uncapped APY
+        pools = new TorveSellerPools(address(token), address(gate), address(identityRegistry), address(agentLookup)); // uncapped APY
         token.setTransferWhitelist(address(pools), true);
 
-        usageAccounting = new AntseedUsageAccounting(address(pools), address(this), address(gate));
+        usageAccounting = new TorveUsageAccounting(address(pools), address(this), address(gate));
         registry.setEmissions(address(usageAccounting)); // pools.currentEpoch() -> gate clock
 
-        rewards = new AntseedSellerPoolsRewards(address(gate), address(pools), address(usageAccounting));
+        rewards = new TorveSellerPoolsRewards(address(gate), address(pools), address(usageAccounting));
         pools.setRewardStaker(address(rewards), true);
         gate.setMinter(SELLER_POOLS_MINTER_ID, address(rewards), SELLER_POOLS_SHARE_BPS, true);
 
@@ -189,7 +189,7 @@ contract AntseedSellerPoolsRewardsFuzzTest is Test {
         // ── Invariant 4: double-claim is impossible ──
         for (uint256 i = 0; i < positionIds.length; i++) {
             vm.prank(stakers[i]);
-            vm.expectRevert(AntseedSellerPoolsRewards.NothingToClaim.selector);
+            vm.expectRevert(TorveSellerPoolsRewards.NothingToClaim.selector);
             rewards.claimStakerRewards(positionIds[i], stakers[i]);
         }
     }

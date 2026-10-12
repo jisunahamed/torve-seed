@@ -1,8 +1,8 @@
-import type { ServiceUnitBillingModelsV1 } from '@antseed/node';
+import type { ServiceUnitBillingModelsV1 } from '@torveai/node';
 import {
   parseServiceCapabilitiesJson,
   parseServiceUnitBillingModelsJson,
-} from '@antseed/provider-core';
+} from '@torveai/provider-core';
 import type { SellerServiceConfig } from './types.js';
 
 const SYNTHETIC_SERVICE_ID = '__service__';

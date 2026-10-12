@@ -1,6 +1,6 @@
 # 00 - Conventions
 
-This document defines the conventions and data formats used across all Antseed Network specification documents.
+This document defines the conventions and data formats used across all Torve Network specification documents.
 
 ## PeerId
 

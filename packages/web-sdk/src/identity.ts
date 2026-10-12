@@ -1,6 +1,6 @@
 /**
  * Browser-side connection auth: builds the signed hello envelope using the
- * shared wire format from @antseed/protocol.
+ * shared wire format from @torveai/protocol.
  */
 
 import { Wallet, type Signer } from 'ethers';
@@ -8,7 +8,7 @@ import {
   MSG_SIGNING_DOMAIN,
   buildConnectionAuthPayload,
   type ConnectionAuthEnvelope,
-} from '@antseed/protocol/connection-auth';
+} from '@torveai/protocol/connection-auth';
 
 export type { ConnectionAuthEnvelope };
 

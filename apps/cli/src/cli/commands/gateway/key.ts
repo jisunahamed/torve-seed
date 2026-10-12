@@ -1,7 +1,7 @@
 import type { Command } from 'commander'
 import chalk from 'chalk'
 import Table from 'cli-table3'
-import { DEFAULT_BUYER_IDENTITY } from '@antseed/node'
+import { DEFAULT_BUYER_IDENTITY } from '@torveai/node'
 import { buyerIdentityAddress, buyerIdentityDir, buyerIdentityExists, createBuyerIdentity } from '../../../buyer-identities/store.js'
 import { LIMIT_PERIODS, periodStart, type LimitPeriod, type SpendLimits } from '../../../gateway/limits.js'
 import { formatUsdc, optionalUsdcToDecimalString, usdcToDecimalString } from '../../../gateway/money.js'
@@ -21,7 +21,7 @@ const PERIOD_SPEND_LABELS: Record<LimitPeriod, string> = { daily: 'Today', month
 
 function requireKey(store: GatewayStore, id: string): ApiKeyRecord {
   const key = store.getKey(id)
-  if (!key) throw new Error(`Unknown key "${id}". Run \`antseed gateway key list\` to see key ids.`)
+  if (!key) throw new Error(`Unknown key "${id}". Run \`torve gateway key list\` to see key ids.`)
   return key
 }
 
@@ -85,7 +85,7 @@ export function registerGatewayKeyCommands(gateway: Command): void {
         identityName = (await createBuyerIdentity(dataDir, requested)).name
         createdIdentity = true
       } else if (identityName !== DEFAULT_BUYER_IDENTITY && !await buyerIdentityExists(dataDir, identityName)) {
-        throw new Error(`Unknown buyer identity "${identityName}". Create it with \`antseed buyer identity create ${identityName}\` or use --new-identity.`)
+        throw new Error(`Unknown buyer identity "${identityName}". Create it with \`torve buyer identity create ${identityName}\` or use --new-identity.`)
       }
       const topupEnabled = options['allowTopup'] === true
       if (topupEnabled && identityName === DEFAULT_BUYER_IDENTITY) {
@@ -117,7 +117,7 @@ export function registerGatewayKeyCommands(gateway: Command): void {
         console.log('')
         console.log(chalk.dim('This key has its own buyer wallet. Fund it by sending USDC on Base to the address above;'))
         console.log(chalk.dim('a running buyer deposits it into the identity\'s credits automatically. As a QR code:'))
-        console.log(chalk.dim(`  antseed --data-dir ${buyerIdentityDir(dataDir, identityName)} buyer deposit --no-watch`))
+        console.log(chalk.dim(`  torve --data-dir ${buyerIdentityDir(dataDir, identityName)} buyer deposit --no-watch`))
       }
     } finally {
       store.close()
@@ -137,7 +137,7 @@ export function registerGatewayKeyCommands(gateway: Command): void {
           return
         }
         if (keys.length === 0) {
-          console.log(chalk.dim('No API keys. Create one with `antseed gateway key create --label <name>`.'))
+          console.log(chalk.dim('No API keys. Create one with `torve gateway key create --label <name>`.'))
           return
         }
         const table = new Table({ head: ['Id', 'Label', 'Identity', 'Status', 'Today', 'Month', 'Total', 'Limits', 'Last used'] })
@@ -240,7 +240,7 @@ export function registerGatewayKeyCommands(gateway: Command): void {
         const record = store.revokeKey(id)
         console.log(`Revoked ${record.id} (${record.label}).`)
         if (record.source === 'tunnel-env') {
-          console.log(chalk.yellow('This key comes from ANTSEED_TUNNEL_API_KEY and is re-activated if the tunnel starts with it again.'))
+          console.log(chalk.yellow('This key comes from TORVE_TUNNEL_API_KEY and is re-activated if the tunnel starts with it again.'))
         }
       } finally {
         store.close()

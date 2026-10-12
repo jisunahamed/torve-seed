@@ -1,6 +1,6 @@
 # 06 - Security Overview (Buyer-Seller Flow)
 
-This document provides a system-level security overview of the buyer-seller flow implemented in `@antseed/node`.
+This document provides a system-level security overview of the buyer-seller flow implemented in `@torveai/node`.
 
 ## 1. Security Objectives
 
@@ -66,7 +66,7 @@ The buyer-seller flow enforces:
 - Seller submits latest SpendingAuth to settle() or close() on-chain.
 - On buyer disconnect: seller calls close() with last SpendingAuth to finalize.
 - On seller disappearance: buyer/operator requestClose() + withdraw() after 15min grace.
-- Channels contract holds no USDC — all funds managed by AntseedDeposits.
+- Channels contract holds no USDC — all funds managed by TorveDeposits.
 
 ## 4. Cryptographic Control Plane
 

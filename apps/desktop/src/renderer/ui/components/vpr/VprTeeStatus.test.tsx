@@ -2,14 +2,14 @@ import assert from 'node:assert/strict';
 import { test, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { TEE_BADGE_MAX_AGE_MS, TEE_MAX_AGE_MS, type TeeEvidence } from '@antseed/node/tee-status';
+import { TEE_BADGE_MAX_AGE_MS, TEE_MAX_AGE_MS, type TeeEvidence } from '@torveai/node/tee-status';
 import { VprTeeStatus } from './VprTeeStatus';
 import modelRowStyles from './VprModelRows.module.scss';
 import kitStyles from './VprKit.module.scss';
 
 vi.mock('../InfoTooltip', () => ({ InfoTooltip: ({ content, children, align }: { content: ReactNode; children: ReactNode; align?: 'left' | 'right' }) => <div data-tooltip-align={align}>{children}{content}</div> }));
 
-const evidence: TeeEvidence = { peerId: 'seller', verifierId: 'antseed-verifier', fingerprint: 'caps', checkedAt: 100, expiresAt: 200, claims: [], sellerNodeVerified: true };
+const evidence: TeeEvidence = { peerId: 'seller', verifierId: 'torve-verifier', fingerprint: 'caps', checkedAt: 100, expiresAt: 200, claims: [], sellerNodeVerified: true };
 const props = { now: 150, checking: false, available: true };
 
 test('a cached seller badge remains visible for a day but disappears at expiry', () => {

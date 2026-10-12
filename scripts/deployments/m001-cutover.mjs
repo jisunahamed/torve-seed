@@ -52,7 +52,7 @@ async function sendAndRecord({ rpcUrl, contract, signature, wallet, receiptFile 
 function recoveryInstructions({ channels, rpcUrl }) {
   return [
     '',
-    '!! AntseedChannels REMAINS PAUSED: the cutover did not reach its verified end state.',
+    '!! TorveChannels REMAINS PAUSED: the cutover did not reach its verified end state.',
     '!! Fix the failure and rerun the migration - the phase is idempotent and',
     '!! finishes whatever is left.',
     '!! To recover manually instead:',
@@ -74,8 +74,8 @@ export function verifyPointers({ emissions, staking, expectedEmissions, expected
 function operationalTransactions({ channels, pauseOwner, pauseAt }) {
   return {
     beforeTransactions: [{
-      action: 'pause AntseedChannels',
-      contractName: 'AntseedChannels',
+      action: 'pause TorveChannels',
+      contractName: 'TorveChannels',
       to: channels,
       from: pauseOwner,
       function: 'pause()',
@@ -83,8 +83,8 @@ function operationalTransactions({ channels, pauseOwner, pauseAt }) {
       condition: `Broadcast at unix ${pauseAt}, unless Channels is already paused`,
     }],
     afterTransactions: [{
-      action: 'unpause AntseedChannels',
-      contractName: 'AntseedChannels',
+      action: 'unpause TorveChannels',
+      contractName: 'TorveChannels',
       to: channels,
       from: pauseOwner,
       function: 'unpause()',

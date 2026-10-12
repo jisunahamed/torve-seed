@@ -2,15 +2,15 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import {IAntseedRegistry} from "../interfaces/IAntseedRegistry.sol";
+import {ITorveRegistry} from "../interfaces/ITorveRegistry.sol";
 
 /**
- * @title AntseedRegistry
- * @notice Central address book for all AntSeed protocol contracts.
+ * @title TorveRegistry
+ * @notice Central address book for all Torve protocol contracts.
  *         Each protocol contract stores only a pointer to this registry
  *         and looks up sibling addresses on demand.
  */
-contract AntseedRegistry is IAntseedRegistry, Ownable {
+contract TorveRegistry is ITorveRegistry, Ownable {
 
     address public override channels;
     address public override stats;

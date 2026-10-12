@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IAntseedEmissionsGate {
+interface ITorveEmissionsGate {
     struct Minter {
         address controller;
         uint32 shareBps;

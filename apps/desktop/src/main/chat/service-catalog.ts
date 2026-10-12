@@ -4,15 +4,15 @@ import type {
   NativeVideoProtocol,
   NetworkServiceCatalogPeer,
   PeerInfo,
-} from '@antseed/node';
-import { normalizeAdvertisedVerifierIds } from '@antseed/node/verifier-capabilities';
+} from '@torveai/node';
+import { normalizeAdvertisedVerifierIds } from '@torveai/node/verifier-capabilities';
 import {
   NATIVE_VIDEO_PROTOCOLS,
   buildNetworkServiceOffers,
   isNativeVideoProtocol,
   normalizedModelReputationScore,
   preferredModelDisplayName,
-} from '@antseed/node';
+} from '@torveai/node';
 
 export type ChatServiceProtocol = Exclude<CatalogServiceProtocol, 'openai-images' | 'typesafe-systemone' | NativeVideoProtocol>;
 export type { CatalogServiceCapabilities, CatalogServiceProtocol };

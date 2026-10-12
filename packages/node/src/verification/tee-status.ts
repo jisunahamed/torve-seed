@@ -1,9 +1,9 @@
-export const TEE_VERIFIER_ID = 'antseed-verifier'
+export const TEE_VERIFIER_ID = 'torve-verifier'
 export const TEE_MAX_AGE_MS = 5 * 60_000
 export const TEE_BADGE_MAX_AGE_MS = 24 * 60 * 60_000
 export const TEE_REQUIRED_CLAIMS = [
-  'antseed-verifier:seller-node-tee-genuine',
-  'antseed-verifier:seller-bound',
+  'torve-verifier:seller-node-tee-genuine',
+  'torve-verifier:seller-bound',
 ] as const
 
 export interface TeeClaim {

@@ -14,7 +14,7 @@ const KEY_ALG = { name: 'ECDSA', namedCurve: 'P-256' } as const
 const SIGN_ALG = { name: 'ECDSA', hash: 'SHA-256' } as const
 
 /** Subject/issuer common name of the generated CA — must match `generate()`. */
-const CA_COMMON_NAME = 'AntSeed Local CA'
+const CA_COMMON_NAME = 'Torve Local CA'
 
 export interface CAKeys {
   certPem: string
@@ -31,10 +31,10 @@ export interface CAInstallResult {
 /**
  * Whether the OS trust store already trusts *this* CA.
  * - `trusted`: the current ca.crt's fingerprint is present in the trust store.
- * - `stale`:   an AntSeed CA is trusted, but with a different fingerprint — the
+ * - `stale`:   an Torve CA is trusted, but with a different fingerprint — the
  *              cause of CERT_SIGNATURE_FAILURE (leaf signed by the current key,
  *              verified against the old key). Re-trusting must purge it first.
- * - `absent`:  no AntSeed CA is trusted (or the cert hasn't been generated).
+ * - `absent`:  no Torve CA is trusted (or the cert hasn't been generated).
  */
 export type CATrustState = 'trusted' | 'stale' | 'absent'
 
@@ -45,7 +45,7 @@ function normalizeFingerprint(value: string): string {
 
 /**
  * Classify trust from the current CA fingerprint and the fingerprints of every
- * AntSeed CA the OS currently trusts. Pure so it can be unit-tested without a
+ * Torve CA the OS currently trusts. Pure so it can be unit-tested without a
  * real keychain.
  */
 export function classifyCATrust(currentFingerprint: string, installedFingerprints: readonly string[]): CATrustState {
@@ -141,7 +141,7 @@ export class CAManager {
     ]
   }
 
-  /** SHA-1 fingerprints of every AntSeed CA the OS trust store currently holds. */
+  /** SHA-1 fingerprints of every Torve CA the OS trust store currently holds. */
   private listInstalledFingerprints(): string[] {
     const platform = process.platform
     if (platform === 'darwin') {
@@ -172,7 +172,7 @@ export class CAManager {
     }
     // Linux: the CA is installed as a single file; compare its fingerprint.
     try {
-      const installed = new X509Certificate(readFileSync('/usr/local/share/ca-certificates/antseed-ca.crt'))
+      const installed = new X509Certificate(readFileSync('/usr/local/share/ca-certificates/torve-ca.crt'))
       return [normalizeFingerprint(installed.fingerprint)]
     } catch {
       return []
@@ -187,7 +187,7 @@ export class CAManager {
   }
 
   /**
-   * SHA-1 hashes of AntSeed CAs in one macOS keychain whose fingerprint differs
+   * SHA-1 hashes of Torve CAs in one macOS keychain whose fingerprint differs
    * from the current ca.crt. These are the certs that cause
    * CERT_SIGNATURE_FAILURE: trusted under the same subject name, but the proxy
    * now signs leaves with a different key.
@@ -216,7 +216,7 @@ export class CAManager {
 
     const cert = await x509.X509CertificateGenerator.createSelfSigned({
       serialNumber: '01',
-      name: 'CN=AntSeed Local CA, O=AntSeed',
+      name: 'CN=Torve Local CA, O=Torve',
       notBefore: new Date(),
       notAfter: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000),
       signingAlgorithm: SIGN_ALG,
@@ -248,7 +248,7 @@ export class CAManager {
     } else if (platform === 'win32') {
       return this.installWindows()
     } else {
-      execFileSync('sudo', ['cp', this.certPath, '/usr/local/share/ca-certificates/antseed-ca.crt'], { stdio: 'pipe' })
+      execFileSync('sudo', ['cp', this.certPath, '/usr/local/share/ca-certificates/torve-ca.crt'], { stdio: 'pipe' })
       execFileSync('sudo', ['update-ca-certificates'], { stdio: 'pipe' })
       return { target: 'linux-system' }
     }
@@ -308,7 +308,7 @@ export class CAManager {
           target: 'login-keychain',
           warning: [
             `The certificate is trusted for your user account, but system-wide trust was skipped because ${adminFailure.reason}.`,
-            'If a connected app can\'t reach AntSeed, connect it again and approve the administrator prompt.',
+            'If a connected app can\'t reach Torve, connect it again and approve the administrator prompt.',
           ].join(' '),
           detail: adminFailure.detail,
         }
@@ -360,7 +360,7 @@ export class CAManager {
    * surfaces.
    */
   private runElevatedCertutil(commands: string[]): void {
-    const outFile = join(tmpdir(), `antseed-ca-install-${randomUUID()}.log`)
+    const outFile = join(tmpdir(), `torve-ca-install-${randomUUID()}.log`)
     const innerCmd = `${commands.join(' & ')} > "${outFile}" 2>&1`
     const psCommand = [
       `$p = Start-Process -FilePath cmd.exe -ArgumentList '/d','/c',${psQuote(innerCmd)} -Verb RunAs -Wait -PassThru -WindowStyle Hidden`,

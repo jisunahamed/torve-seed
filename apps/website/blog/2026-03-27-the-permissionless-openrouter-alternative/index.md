@@ -1,15 +1,15 @@
 ---
 slug: the-permissionless-openrouter-alternative
-title: "Antseed: The Permissionless OpenRouter Alternative"
-authors: [antseed]
+title: "Torve: The Permissionless OpenRouter Alternative"
+authors: [torve]
 tags: [decentralized-ai, P2P AI, OpenRouter alternative, AI infrastructure, permissionless, AI agents, AI marketplace]
-description: OpenRouter decides what you're allowed to route to. Antseed doesn't. A permissionless, peer-to-peer AI network with the same OpenAI-compatible interface — no gatekeeper, no platform fee, no single point of failure.
-keywords: [OpenRouter alternative, permissionless AI, decentralized AI inference, P2P LLM routing, AI API gateway alternative, OpenRouter vs Antseed, decentralized AI marketplace, AI agent marketplace, permissionless AI marketplace, Bittensor alternative]
+description: OpenRouter decides what you're allowed to route to. Torve doesn't. A permissionless, peer-to-peer AI network with the same OpenAI-compatible interface — no gatekeeper, no platform fee, no single point of failure.
+keywords: [OpenRouter alternative, permissionless AI, decentralized AI inference, P2P LLM routing, AI API gateway alternative, OpenRouter vs Torve, decentralized AI marketplace, AI agent marketplace, permissionless AI marketplace, Bittensor alternative]
 image: /og-image.jpg
 date: 2026-03-28
 ---
 
-Antseed is a peer-to-peer AI services network — like OpenRouter, but permissionless. Same OpenAI-compatible interface, no central gatekeeper, no editorial control over what you can route to.
+Torve is a peer-to-peer AI services network — like OpenRouter, but permissionless. Same OpenAI-compatible interface, no central gatekeeper, no editorial control over what you can route to.
 
 OpenRouter solved a real problem. Developers don't want to manage API keys for ten different model providers. They want one endpoint, one billing relationship, and access to everything.
 
@@ -47,13 +47,13 @@ Projects like Bittensor, Akash, and Render are doing important work. Bittensor i
 
 But they're solving a different problem. They're decentralizing compute — the raw GPU layer. Some, like Chutes on Bittensor, have built impressive OpenAI-compatible inference services with real production traffic. But even Chutes routes through a centralized API and requires a Bittensor wallet to register. You can't upload a specialized workflow to Akash and have buyers discover it through an open marketplace. These projects brought decentralized compute to production. The layer above — where anyone can publish any AI service and have it discovered, priced, and paid for peer-to-peer — is what's still missing.
 
-More importantly, none of them are truly peer-to-peer at the application layer. They each require their own tokens, staking mechanisms, or marketplace structures. That's fine for what they do. But the gap they leave open is the one Antseed fills: a permissionless network where anyone can serve any AI capability — not just raw compute — and anyone can consume it without navigating token economics.
+More importantly, none of them are truly peer-to-peer at the application layer. They each require their own tokens, staking mechanisms, or marketplace structures. That's fine for what they do. But the gap they leave open is the one Torve fills: a permissionless network where anyone can serve any AI capability — not just raw compute — and anyone can consume it without navigating token economics.
 
-## Antseed: Same Interface, No Gatekeeper
+## Torve: Same Interface, No Gatekeeper
 
-Antseed is a peer-to-peer network for AI services. Not just inference — expertise. Providers offer what they build. Buyers route requests to the best available provider. No central server sits between them. No one decides what's allowed.
+Torve is a peer-to-peer network for AI services. Not just inference — expertise. Providers offer what they build. Buyers route requests to the best available provider. No central server sits between them. No one decides what's allowed.
 
-The interface is OpenAI-compatible. If your app works with OpenRouter today, it works with Antseed. One endpoint, all models, automatic routing. The developer experience is the same.
+The interface is OpenAI-compatible. If your app works with OpenRouter today, it works with Torve. One endpoint, all models, automatic routing. The developer experience is the same.
 
 The architecture is completely different.
 
@@ -73,7 +73,7 @@ AI Agents are the unit of value on the network. You wrap your expertise in AI, s
 
 ## How It Actually Works
 
-Antseed's protocol has five layers, each handling a piece of what centralized gateways do behind closed doors:
+Torve's protocol has five layers, each handling a piece of what centralized gateways do behind closed doors:
 
 **Discovery** uses a BitTorrent-style DHT. Providers announce their capabilities — models, skills, agents, pricing, capacity, latency. Buyers query the DHT to find providers that match their needs. No central registry required.
 
@@ -87,7 +87,7 @@ Antseed's protocol has five layers, each handling a piece of what centralized ga
 
 ## The Comparison
 
-| | OpenRouter | Decentralized Compute | Antseed |
+| | OpenRouter | Decentralized Compute | Torve |
 |---|---|---|---|
 | Architecture | Centralized gateway | Blockchain + subnets | Peer-to-peer |
 | What it routes | Model inference | Raw compute | AI services + expertise |
@@ -102,7 +102,7 @@ Antseed's protocol has five layers, each handling a piece of what centralized ga
 
 ## Who This Is For
 
-Antseed is for people who care about having the option to choose. Not a curated menu of models that one company approved — but the full variety of what providers actually build, ranked by reputation earned through real deliveries.
+Torve is for people who care about having the option to choose. Not a curated menu of models that one company approved — but the full variety of what providers actually build, ranked by reputation earned through real deliveries.
 
 It's for people who care about privacy — not as a feature toggle, but as a structural property of the network they use. No accounts, no logging, no third-party proxy sitting between you and inference.
 
@@ -116,16 +116,16 @@ And it's for agents — software that doesn't care about brands or polished UIs,
 
 ## Frequently Asked Questions
 
-**Is Antseed free to use?**
+**Is Torve free to use?**
 There's a 4% protocol fee per request, flowing to the Protocol Reserve. No subscription, no account, no platform rake on top of that.
 
-**Does Antseed work with my existing tools?**
-Yes. Claude Code, Cursor, Aider, Continue.dev, and any app using the OpenAI SDK work without modification — just point them at Antseed instead of your current endpoint.
+**Does Torve work with my existing tools?**
+Yes. Claude Code, Cursor, Aider, Continue.dev, and any app using the OpenAI SDK work without modification — just point them at Torve instead of your current endpoint.
 
-**How is Antseed different from Bittensor for AI inference?**
-Bittensor decentralizes the compute layer with its own subnet economy and token. Antseed is a peer-to-peer layer for AI services and expertise — OpenAI-compatible, no separate token required to participate as a buyer or provider.
+**How is Torve different from Bittensor for AI inference?**
+Bittensor decentralizes the compute layer with its own subnet economy and token. Torve is a peer-to-peer layer for AI services and expertise — OpenAI-compatible, no separate token required to participate as a buyer or provider.
 
-**Can I use Antseed without crypto knowledge?**
+**Can I use Torve without crypto knowledge?**
 Yes. Providers and buyers can pay and settle in USDC or by card. The protocol handles the on-chain mechanics automatically.
 
 ---

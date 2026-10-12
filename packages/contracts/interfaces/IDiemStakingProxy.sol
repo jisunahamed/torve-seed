@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 /// @notice Minimal external surface consumed by off-chain buyers resolving
 ///         the peer→seller binding and surfacing reward balances.
 interface IDiemStakingProxy {
-    /// @notice Mapping getter from AntseedSellerDelegation. Returns true if
+    /// @notice Mapping getter from TorveSellerDelegation. Returns true if
     ///         `account` is an authorized operator for this seller facade.
     function isOperator(address account) external view returns (bool);
 

@@ -1,2 +1,2 @@
-AntseedUsageAccountingGasTest:test_minimumAccountedPoolPowerFiltersUsage() (gas: 526892)
-AntseedUsageAccountingGasTest:test_usageAccountingGasSnapshotsRecordUsageCases() (gas: 889988)
+TorveUsageAccountingGasTest:test_minimumAccountedPoolPowerFiltersUsage() (gas: 526892)
+TorveUsageAccountingGasTest:test_usageAccountingGasSnapshotsRecordUsageCases() (gas: 889988)

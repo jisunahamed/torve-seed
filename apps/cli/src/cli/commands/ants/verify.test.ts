@@ -4,7 +4,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Command } from 'commander';
-import { AntsContext } from '@antseed/ants';
+import { AntsContext } from '@torveai/ants';
 import { registerAntsVerifyCommand } from './verify.js';
 
 test('verify inspects a seller by default and exposes submit and proof', () => {
@@ -28,7 +28,7 @@ test('verify submit asks for confirmation unless --yes is given', () => {
 });
 
 test('proof prints JSON when the parent consumes the nested --json flag', async () => {
-  const dataDir = await mkdtemp(join(tmpdir(), 'antseed-proof-json-'));
+  const dataDir = await mkdtemp(join(tmpdir(), 'torve-proof-json-'));
   const config = join(dataDir, 'config.json');
   await writeFile(config, JSON.stringify({ payments: { crypto: { chainId: 'base-local' } } }));
   const ants = new Command('ants').option('--config <path>', 'config', config).option('--data-dir <path>', 'wallet', dataDir);

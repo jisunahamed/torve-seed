@@ -6,8 +6,8 @@ import {
   ConnectionManager,
   FrameDecoder,
   encodeFrame,
-} from '@antseed/node/p2p';
-import { ProxyMux, toPeerId } from '@antseed/node';
+} from '@torveai/node/p2p';
+import { ProxyMux, toPeerId } from '@torveai/node';
 import {
   MessageType,
   RESERVE_AUTH_TYPES,
@@ -18,7 +18,7 @@ import {
   encodePaymentRequired,
   makeChannelsDomain,
   type SpendingAuthPayload,
-} from '@antseed/protocol';
+} from '@torveai/protocol';
 import { RelayServer } from '../../../apps/relay/dist/server.js';
 import { SellerCache } from '../../../apps/relay/dist/seller-cache.js';
 
@@ -86,7 +86,7 @@ test('native browser WebRTC reaches an unchanged seller through relay signaling'
   const buyer = Wallet.createRandom();
   await page.goto(pageUrl);
   const result = await page.evaluate(async (config) => {
-    return window.runAntseedAcceptance(config);
+    return window.runTorveAcceptance(config);
   }, {
     relayUrl,
     sellerPeerId,
@@ -106,10 +106,10 @@ test('two tabs cannot sign as one buyer and a crashed owner releases the lock', 
   const buyer = Wallet.createRandom();
   const config = { relayUrl, sellerPeerId, buyerPrivateKey: buyer.privateKey };
 
-  await owner.evaluate((value) => window.openAntseedBuyer(value), config);
+  await owner.evaluate((value) => window.openTorveBuyer(value), config);
   const blocked = await contender.evaluate(async (value) => {
     try {
-      await window.openAntseedBuyer(value);
+      await window.openTorveBuyer(value);
       return { opened: true };
     } catch (error) {
       return {
@@ -129,11 +129,11 @@ test('two tabs cannot sign as one buyer and a crashed owner releases the lock', 
   // Lock even though client.close() never ran.
   await owner.close();
   const successorPeerId = await contender.evaluate(
-    (value) => window.openAntseedBuyer({ ...value, waitForLock: true }),
+    (value) => window.openTorveBuyer({ ...value, waitForLock: true }),
     config,
   );
   expect(successorPeerId).toBe(buyer.address.slice(2).toLowerCase());
-  await contender.evaluate(() => window.closeAntseedBuyer());
+  await contender.evaluate(() => window.closeTorveBuyer());
   await context.close();
 });
 
@@ -152,7 +152,7 @@ test('paid browser authorization survives reload and recovers the existing chann
   await page.goto(pageUrl);
 
   const first = await page.evaluate(
-    (value) => window.runPaidAntseedAcceptance(value),
+    (value) => window.runPaidTorveAcceptance(value),
     config,
   );
   expect(first.statusCode).toBe(200);
@@ -164,7 +164,7 @@ test('paid browser authorization survives reload and recovers the existing chann
   paidState.recognized = false;
   await page.reload();
   const recovered = await page.evaluate(
-    (value) => window.runPaidAntseedAcceptance(value),
+    (value) => window.runPaidTorveAcceptance(value),
     config,
   );
   expect(recovered.statusCode).toBe(200);

@@ -35,4 +35,4 @@ Allow: /
 User-agent: Meta-ExternalAgent
 Allow: /
 
-Sitemap: https://antseed.com/sitemap.xml
+Sitemap: https://torveai.com/sitemap.xml

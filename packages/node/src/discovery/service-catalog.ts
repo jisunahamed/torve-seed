@@ -1,7 +1,7 @@
 import { CODING_ONLY_SUFFIX_RE, canonicalModelKey } from '../model-identity.js';
 import { parseVerifierCapabilities } from './verifier-capabilities.js';
-import { NATIVE_VIDEO_PROTOCOLS, isNativeVideoProtocol, type NativeVideoProtocol } from '@antseed/protocol/service-api';
-import type { VideoOptions } from '@antseed/protocol/peer-metadata';
+import { NATIVE_VIDEO_PROTOCOLS, isNativeVideoProtocol, type NativeVideoProtocol } from '@torveai/protocol/service-api';
+import type { VideoOptions } from '@torveai/protocol/peer-metadata';
 
 export type CatalogServiceProtocol =
   | 'anthropic-messages'

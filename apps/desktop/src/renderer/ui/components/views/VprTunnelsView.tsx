@@ -13,15 +13,15 @@ const AGENTS = [
     name: 'Hermes Agent',
     brand: 'hermes',
     description: 'Connect Hermes to the AI VPN with the OpenAI-compatible endpoint.',
-    integrationUrl: 'https://antseed.com/integrations/hermes/',
-    skillUrl: 'https://github.com/AntSeed/antseed/tree/main/skills/hermes-antseed',
+    integrationUrl: 'https://torveai.com/integrations/hermes/',
+    skillUrl: 'https://github.com/Torve/torve/tree/main/skills/hermes-torve',
   },
   {
     name: 'OpenClaw',
     icon: OPENCLAW_ICON,
-    description: 'Register Antseed as an Anthropic Messages provider for OpenClaw.',
-    integrationUrl: 'https://antseed.com/integrations/openclaw/',
-    skillUrl: 'https://github.com/AntSeed/antseed/tree/main/skills/openclaw-antseed',
+    description: 'Register Torve as an Anthropic Messages provider for OpenClaw.',
+    integrationUrl: 'https://torveai.com/integrations/openclaw/',
+    skillUrl: 'https://github.com/Torve/torve/tree/main/skills/openclaw-torve',
   },
 ] as const;
 
@@ -61,10 +61,10 @@ export function VprTunnelsView() {
                   <h2 className={tunnelStyles.agentName}>{agent.name}</h2>
                   <p className={tunnelStyles.agentDescription}>{agent.description}</p>
                   <span className={tunnelStyles.agentLinks}>
-                    <button type="button" className={tunnelStyles.docsLink} onClick={() => void window.antseedDesktop?.openExternalUrl?.(agent.integrationUrl)}>
+                    <button type="button" className={tunnelStyles.docsLink} onClick={() => void window.torveDesktop?.openExternalUrl?.(agent.integrationUrl)}>
                       Setup guide <HugeiconsIcon icon={ArrowUpRight01Icon} size={12} strokeWidth={2} />
                     </button>
-                    <button type="button" className={tunnelStyles.docsLink} onClick={() => void window.antseedDesktop?.openExternalUrl?.(agent.skillUrl)}>
+                    <button type="button" className={tunnelStyles.docsLink} onClick={() => void window.torveDesktop?.openExternalUrl?.(agent.skillUrl)}>
                       Agent skill <HugeiconsIcon icon={ArrowUpRight01Icon} size={12} strokeWidth={2} />
                     </button>
                   </span>

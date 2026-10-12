@@ -23,7 +23,7 @@ test('enrichDomainVerificationLinks adds desktop-only domain page metadata', asy
 
   const links = await enrichDomainVerificationLinks([
     { kind: 'domain', label: 'example.com', href: 'https://example.com' },
-    { kind: 'github', label: '@antseed/test', href: 'https://github.com/antseed/test' },
+    { kind: 'github', label: '@torveai/test', href: 'https://github.com/torve/test' },
   ], { fetch: fetchImpl, nowMs: 1000 });
 
   assert.deepEqual(calls, ['https://example.com/']);
@@ -36,7 +36,7 @@ test('enrichDomainVerificationLinks adds desktop-only domain page metadata', asy
       description: 'A verified example domain.',
       faviconUrl: 'https://example.com/assets/icon.png',
     },
-    { kind: 'github', label: '@antseed/test', href: 'https://github.com/antseed/test' },
+    { kind: 'github', label: '@torveai/test', href: 'https://github.com/torve/test' },
   ]);
 });
 

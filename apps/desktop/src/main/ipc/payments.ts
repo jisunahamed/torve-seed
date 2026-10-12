@@ -68,7 +68,7 @@ import {
   makeChannelsDomain,
   peerIdToAddress,
   signSpendingAuth,
-} from '@antseed/node';
+} from '@torveai/node';
 
 export function registerPaymentsIpc(): void {
   // Slim payment pages: only actions that need an external wallet signature
@@ -99,7 +99,7 @@ export function registerPaymentsIpc(): void {
       if (kind === 'close-channel' && typeof opts?.channelId === 'string' && BYTES32_RE.test(opts.channelId)) {
         params.set('channel', opts.channelId);
       }
-      const devUrl = isDev ? process.env['ANTSEED_PAYMENTS_DEV_URL']?.trim() : undefined;
+      const devUrl = isDev ? process.env['TORVE_PAYMENTS_DEV_URL']?.trim() : undefined;
       const base = devUrl || `${LOCALHOST_URL}:${PAYMENTS_PORT}`;
 
       // No popup param → regular browser tab (extensions available);
@@ -137,7 +137,7 @@ export function registerPaymentsIpc(): void {
       const identity = getSecureIdentity();
       if (!identity) return { ok: false, error: 'Identity not available' };
       const providers = await readCardProviders();
-      // The chooser's fixed lineup (Meridian, Antseed Pay) must resolve even
+      // The chooser's fixed lineup (Meridian, Torve Pay) must resolve even
       // when a legacy config overrides the provider list with other entries.
       const provider = opts?.providerId
         ? providers.find((entry) => entry.id === opts.providerId)
@@ -168,20 +168,20 @@ export function registerPaymentsIpc(): void {
         }
       }
 
-      // Antseed Pay authenticates the request: the page expects the buyer
+      // Torve Pay authenticates the request: the page expects the buyer
       // address, currency and amount plus a personal-sign signature over the
       // canonical message below, proving the params came from this wallet.
       // The signed message carries the LOWERCASED address (the URL param stays
       // checksummed) — verified against the reference sig their page accepts.
       // The header line is a wire-format constant that must match the page's
-      // `buildFundingMessage` byte for byte ("AntSeed Pay", capital S); it is
+      // `buildFundingMessage` byte for byte ("Torve Pay", capital S); it is
       // not display copy and must not follow product-name renames.
       const payPage = payPageProvider(provider.id);
       if (payPage) {
         const cur = 'USD';
         const amountStr = hasAmount ? String(amount) : '';
         const message = [
-          'AntSeed Pay',
+          'Torve Pay',
           `address: ${identity.wallet.address.toLowerCase()}`,
           `currency: ${cur}`,
           `amount: ${amountStr}`,
@@ -196,7 +196,7 @@ export function registerPaymentsIpc(): void {
       }
       const url = parsed.toString();
 
-      // Antseed Pay needs no wallet extension (the link is pre-signed), so it
+      // Torve Pay needs no wallet extension (the link is pre-signed), so it
       // opens as an app-owned checkout popup: the deposit watcher closes it
       // the moment the bought USDC lands, instead of stranding a browser tab.
       if (payPage) {
@@ -204,7 +204,7 @@ export function registerPaymentsIpc(): void {
         // the URL by design), and having it in the dev log makes testing the
         // hosted page outside the popup trivial. Dev only: production output
         // shouldn't carry the buyer's address.
-        if (isDev) console.log('[payments] antseed-pay funding link:', url);
+        if (isDev) console.log('[payments] torve-pay funding link:', url);
         openCheckoutPopup(url, getMainWindow());
         return { ok: true, url };
       }
@@ -321,7 +321,7 @@ export function registerPaymentsIpc(): void {
 
       const wallet = identity.wallet;
 
-      // Sign SpendingAuth (Antseed Channels domain)
+      // Sign SpendingAuth (Torve Channels domain)
       const channelsDomain = makeChannelsDomain(cc.chainId, cc.channelsAddress);
       const spendingAuthSig = await signSpendingAuth(wallet, channelsDomain, {
         channelId: params.channelId,
@@ -374,7 +374,7 @@ export function registerPaymentsIpc(): void {
   });
 
   ipcMain.handle('payments:get-buyer-usage', async (): Promise<{ ok: boolean; data: DesktopBuyerUsageTotals | null; error: string | null; lastActivityAt: number | null }> => {
-    const body = await fetchBuyerProxyJson('/_antseed/buyer-usage');
+    const body = await fetchBuyerProxyJson('/_torve/buyer-usage');
     if (!body) {
       return { ok: false, data: null, error: 'buyer proxy unreachable', lastActivityAt: null };
     }

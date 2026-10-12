@@ -1,6 +1,6 @@
 # AI VPN Desktop Telemetry
 
-The Antseed AI VPN desktop app collects privacy-conscious product telemetry to
+The Torve AI VPN desktop app collects privacy-conscious product telemetry to
 understand the activation funnel (first open → setup → deposit → first chat),
 network readiness, model selection, and app reliability. Events are associated
 with the buyer's public on-chain address. This document lists every event and
@@ -179,7 +179,7 @@ builds contain no default and therefore send nothing unless configured locally.
 - While the app runs, a local-only heartbeat updates the crash marker once per
   minute. Crash recovery uses the last heartbeat, so time spent offline before
   the next launch is not counted as session duration.
-- Contact: hello@antseed.com
+- Contact: hello@torveai.com
 
 The PostHog hosting region and retention period are deployment policy, not
 application defaults. They must be approved and documented here before the

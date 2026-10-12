@@ -1,4 +1,4 @@
-import { canonicalModelKey } from '@antseed/node/model-identity';
+import { canonicalModelKey } from '@torveai/node/model-identity';
 import type {
   DesktopBuyerServiceUsage,
   DesktopBridge,
@@ -29,19 +29,19 @@ import {
   MIN_NETWORK_DISCOUNT,
 } from './reminder-constants.js';
 
-const INSTALL_DATE_KEY = 'antseed.desktop.reminder.installDate';
-const INSTALLED_AT_KEY = 'antseed.desktop.reminder.installedAt';
-const STATE_KEY = 'antseed.desktop.reminder.state';
-const COUNTERS_KEY = 'antseed.desktop.reminder.counters';
+const INSTALL_DATE_KEY = 'torve.desktop.reminder.installDate';
+const INSTALLED_AT_KEY = 'torve.desktop.reminder.installedAt';
+const STATE_KEY = 'torve.desktop.reminder.state';
+const COUNTERS_KEY = 'torve.desktop.reminder.counters';
 const EXISTING_PROFILE_KEYS = [
-  'antseed.desktop.vpr.hasChats',
-  'antseed.desktop.vpr.preferences',
-  'antseed.desktop.vpr.routeSelection',
-  'antseed.desktop.vpr.modelPins',
-  'antseed.desktop.vpr.favoriteModels',
-  'antseed.desktop.vpr.floatAutoOpen',
-  'antseed.desktop.vpr.floatShowRoutedPeer',
-  'antseed.desktop.vpr.addBalanceDismissed',
+  'torve.desktop.vpr.hasChats',
+  'torve.desktop.vpr.preferences',
+  'torve.desktop.vpr.routeSelection',
+  'torve.desktop.vpr.modelPins',
+  'torve.desktop.vpr.favoriteModels',
+  'torve.desktop.vpr.floatAutoOpen',
+  'torve.desktop.vpr.floatShowRoutedPeer',
+  'torve.desktop.vpr.addBalanceDismissed',
 ] as const;
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;

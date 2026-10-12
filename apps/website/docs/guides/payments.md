@@ -7,23 +7,23 @@ hide_title: true
 
 # Payments
 
-Antseed uses USDC on Base Mainnet for all payments. Buyers pre-deposit USDC, providers earn per request, and everything settles on-chain automatically.
+Torve uses USDC on Base Mainnet for all payments. Buyers pre-deposit USDC, providers earn per request, and everything settles on-chain automatically.
 
 ## For Buyers
 
 ### Depositing USDC
 
-The recommended way to deposit is `antseed buyer deposit`:
+The recommended way to deposit is `torve buyer deposit`:
 
 ```bash
-antseed buyer deposit
+torve buyer deposit
 ```
 
 It prints your node's funding address and a QR code (an EIP-681 payment request any mobile wallet can scan). Send USDC on Base to that address from anywhere — another wallet, an exchange withdrawal, a card on-ramp — and the incoming funds are deposited into your credits automatically: your node signs a gasless authorization and a permissionless relayer submits the transaction for a fixed USDC fee ($0.05 on Base Mainnet). Your node's hot wallet never needs ETH.
 
 Prefer a browser wallet? While watching, the command also serves the connected-wallet checkout page and prints its link (`http://127.0.0.1:3118?token=…`). Open it, connect MetaMask / Coinbase Wallet / Rabby, and the deposit goes straight into the Deposits contract — the command detects the credit and finishes either way.
 
-While `antseed buyer start` is running, this sweeping also happens automatically in the background whenever USDC lands in the hot wallet (disable with `buyer.autoSweep: false` in your config).
+While `torve buyer start` is running, this sweeping also happens automatically in the background whenever USDC lands in the hot wallet (disable with `buyer.autoSweep: false` in your config).
 
 | Option | Purpose |
 |---|---|
@@ -37,13 +37,13 @@ Anyone can fund a buyer — a team treasury, a hardware wallet, or another contr
 
 ### Sweeping Hot-Wallet USDC Manually
 
-`antseed buyer deposit` and the running buyer sweep incoming USDC for you; `antseed buyer sweep` triggers the same gasless sweep once, on demand:
+`torve buyer deposit` and the running buyer sweep incoming USDC for you; `torve buyer sweep` triggers the same gasless sweep once, on demand:
 
 ```bash
-antseed buyer sweep
+torve buyer sweep
 ```
 
-The CLI signs an EIP-3009 authorization offline and broadcasts it over the P2P network. A permissionless relayer submits the transaction, pays the gas, and keeps a fixed USDC fee ($0.05 on Base Mainnet); the rest is credited to your deposits balance. If a buyer daemon (`antseed buyer start`) is running, the request goes out over its existing seller connections — otherwise the CLI joins the network with a temporary node.
+The CLI signs an EIP-3009 authorization offline and broadcasts it over the P2P network. A permissionless relayer submits the transaction, pays the gas, and keeps a fixed USDC fee ($0.05 on Base Mainnet); the rest is credited to your deposits balance. If a buyer daemon (`torve buyer start`) is running, the request goes out over its existing seller connections — otherwise the CLI joins the network with a temporary node.
 
 | Option | Purpose |
 |---|---|
@@ -55,28 +55,28 @@ The swept amount must exceed the fixed relay fee, and a first-ever deposit must 
 ### Checking Balance and Activity
 
 ```bash
-antseed buyer balance    # wallet + deposits balances
-antseed buyer activity   # tokens, spending history, measured savings, active channels
+torve buyer balance    # wallet + deposits balances
+torve buyer activity   # tokens, spending history, measured savings, active channels
 ```
 
-`antseed buyer activity` mirrors the desktop app's Activity view: lifetime tokens/spent/saved, a per-day spending chart (`--days 7|30|90`), active channels with their locked amounts and channel IDs, and ANTS emissions available to claim (`antseed buyer emissions claim`). It needs the buyer connection running (`antseed buyer start`).
+`torve buyer activity` mirrors the desktop app's Activity view: lifetime tokens/spent/saved, a per-day spending chart (`--days 7|30|90`), active channels with their locked amounts and channel IDs, and ANTS emissions available to claim (`torve buyer emissions claim`). It needs the buyer connection running (`torve buyer start`).
 
 ### Setting an Authorized Wallet
 
 The authorized wallet controls withdrawals, channel recovery, and buyer reward claims. The recommended setup opens a secure localhost page where you connect the external wallet that should receive this authority:
 
 ```bash
-antseed buyer set-authorized-wallet
+torve buyer set-authorized-wallet
 ```
 
-The buyer identity signs the initial EIP-712 authorization, while the connected wallet submits the transaction and pays Base gas. Pass `--no-open` to print the local URL without launching a browser. To deliberately use the buyer hot wallet for both roles instead, run `antseed buyer set-authorized-wallet --self`; the buyer wallet then needs ETH for gas.
+The buyer identity signs the initial EIP-712 authorization, while the connected wallet submits the transaction and pays Base gas. Pass `--no-open` to print the local URL without launching a browser. To deliberately use the buyer hot wallet for both roles instead, run `torve buyer set-authorized-wallet --self`; the buyer wallet then needs ETH for gas.
 
 The command does not accept an arbitrary wallet address. Connecting the external wallet proves control and avoids granting withdrawal authority to a mistyped or inaccessible address. Once set, only the current authorized wallet can transfer that authority to another wallet.
 
 ### Withdrawing
 
 ```bash
-antseed buyer withdraw 5
+torve buyer withdraw 5
 ```
 
 The CLI withdrawal command signs with the buyer wallet and therefore works only when that wallet was authorized with `--self`. When an external wallet is authorized, connect that wallet through the AI VPN payments flow to withdraw.
@@ -108,7 +108,7 @@ Each session starts with a ReserveAuth that locks a budget from your deposit. As
 Providers earn USDC automatically on each `settle()` or `close()` call. Earnings are paid directly to your wallet address — no claim step needed.
 
 Settlement happens:
-- **Periodically** — the node settles after 10 minutes of idle time (configurable via `ANTSEED_SETTLEMENT_IDLE_MS`)
+- **Periodically** — the node settles after 10 minutes of idle time (configurable via `TORVE_SETTLEMENT_IDLE_MS`)
 - **On budget exhaustion** — when a session's reserved amount is used up
 - **On disconnect** — when a buyer disconnects
 
@@ -117,11 +117,11 @@ Settlement happens:
 Production providers should use a dedicated Base JSON-RPC endpoint so reserve, settle, close, register, and stake calls are not dependent on public RPC rate limits.
 
 ```bash
-export ANTSEED_BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/<key>
-antseed seller start
+export TORVE_BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/<key>
+torve seller start
 ```
 
-For a one-off run, use `antseed seller start --base-rpc-url <url>`. For durable config, set `payments.crypto.rpcUrl` in `~/.antseed/config.json`.
+For a one-off run, use `torve seller start --base-rpc-url <url>`. For durable config, set `payments.crypto.rpcUrl` in `~/.torve/config.json`.
 
 ### Relaying Deposit Sweeps
 
@@ -140,24 +140,24 @@ currently 0, so any registered seller can serve requests. Stake affects ANTS
 rewards, not eligibility.
 
 ```bash
-antseed seller legacy stake 10
+torve seller legacy stake 10
 ```
 
 After the configured network completes the recognized-usage upgrade, the CLI rejects new legacy USDC stakes and directs sellers to ANTS positions instead:
 
 ```bash
-antseed seller register
-antseed seller legacy claim-starter
-antseed seller stake 100 --epochs 4
-antseed seller pool positions
+torve seller register
+torve seller legacy claim-starter
+torve seller stake 100 --epochs 4
+torve seller pool positions
 ```
 
-`seller stake` always stakes ANTS and never falls back to USDC. The CLI verifies `AntseedRegistry.emissions()` and `staking()` before commands that depend on the upgrade state. A mismatch between the registry and `payments.crypto` address overrides fails loudly instead of silently selecting the wrong contracts.
+`seller stake` always stakes ANTS and never falls back to USDC. The CLI verifies `TorveRegistry.emissions()` and `staking()` before commands that depend on the upgrade state. A mismatch between the registry and `payments.crypto` address overrides fails loudly instead of silently selecting the wrong contracts.
 
-After the upgrade, `antseed seller register` explicitly binds your wallet to its on-chain agent identity (ERC-8004); staking requires this registration and never performs it silently. To withdraw your legacy USDC stake:
+After the upgrade, `torve seller register` explicitly binds your wallet to its on-chain agent identity (ERC-8004); staking requires this registration and never performs it silently. To withdraw your legacy USDC stake:
 
 ```bash
-antseed seller legacy unstake
+torve seller legacy unstake
 ```
 
 Rewards depend on eligibility, pool power, usage, and the configured
@@ -182,11 +182,11 @@ includes pools, reward contracts, and starter positions. Historical claims use
 | Contract | Address |
 |---|---|
 | USDC (Circle) | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
-| AntseedDeposits | `0x0F7a3a8f4Da01637d1202bb5443fcF7F88F99fD2` |
-| AntseedChannels | `0xBA66d3b4fbCf472F6F11D6F9F96aaCE96516F09d` |
-| AntseedSellerRegistry | `0x99c533BCc6Ca646E543dbA835Fdbb9C2ee02Cb60` |
-| AntseedDepositRelay | `0x34a44542e76f9b4cff3a31902eDF14AbF2C3B3DD` |
-| AntseedUsageAccounting | `0xAdd2D85316153D7bfaF7921EE9Bf1Bb6c7A1cBc9` |
+| TorveDeposits | `0x0F7a3a8f4Da01637d1202bb5443fcF7F88F99fD2` |
+| TorveChannels | `0xBA66d3b4fbCf472F6F11D6F9F96aaCE96516F09d` |
+| TorveSellerRegistry | `0x99c533BCc6Ca646E543dbA835Fdbb9C2ee02Cb60` |
+| TorveDepositRelay | `0x34a44542e76f9b4cff3a31902eDF14AbF2C3B3DD` |
+| TorveUsageAccounting | `0xAdd2D85316153D7bfaF7921EE9Bf1Bb6c7A1cBc9` |
 | ANTSToken | `0xa87EE81b2C0Bc659307ca2D9ffdC38514DD85263` |
 
 All contracts verified on [BaseScan](https://basescan.org). For testnet (Base Sepolia), set `payments.crypto.chainId` to `base-sepolia` in your config.
@@ -195,7 +195,7 @@ All contracts verified on [BaseScan](https://basescan.org). For testnet (Base Se
 
 If a provider disappears mid-session, the buyer's funds are not lost:
 
-1. The buyer (or their deposits operator) calls `requestClose()` on AntseedChannels — callable anytime while the channel is active
+1. The buyer (or their deposits operator) calls `requestClose()` on TorveChannels — callable anytime while the channel is active
 2. After a 15-minute grace period (so the seller can still submit a final SpendingAuth), the buyer calls `withdraw()` to release remaining locked funds back to their deposit
 
 If the seller is still online, the buyer can instead request a cooperative close and skip the grace period. Desktop and CLI expose both paths.

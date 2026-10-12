@@ -1,13 +1,13 @@
 # join-buyer
 
-Set up an Antseed buyer on the agent's machine: install the CLI, start the local buyer proxy, fund it, and point any OpenAI- or Anthropic-compatible tool at `http://localhost:8377`.
+Set up an Torve buyer on the agent's machine: install the CLI, start the local buyer proxy, fund it, and point any OpenAI- or Anthropic-compatible tool at `http://localhost:8377`.
 
 ## Install
 
 With the [GitHub CLI](https://cli.github.com/) (v2.90.0+):
 
 ```bash
-gh skill install Antseed/antseed join-buyer
+gh skill install Torve/torve join-buyer
 ```
 
 Add `--scope user` to install it for every project supported by your agent, or use `--agent <agent>` to target one agent.
@@ -27,12 +27,12 @@ Provide the skill with any of these; it asks for what it cannot infer:
 - `proxy_url` — buyer URL; default `http://localhost:8377`
 - `data_dir` — optional dedicated data directory for an isolated buyer
 
-The skill installs `@antseed/cli`, writes the chain config, starts `antseed buyer start`, verifies `/v1/models`, funds the buyer with `antseed buyer deposit` when paid models are wanted, then configures the chosen tool.
+The skill installs `@torveai/cli`, writes the chain config, starts `torve buyer start`, verifies `/v1/models`, funds the buyer with `torve buyer deposit` when paid models are wanted, then configures the chosen tool.
 
 ## Example prompt
 
 ```text
-Use the join-buyer skill to set this machine up as an Antseed buyer and
+Use the join-buyer skill to set this machine up as an Torve buyer and
 route Claude Code through it.
 ```
 

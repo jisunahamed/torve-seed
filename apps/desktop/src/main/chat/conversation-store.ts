@@ -12,7 +12,7 @@ import type { AssistantMessage, Message, UserMessage } from '@mariozechner/pi-ai
 import { SessionManager } from '@mariozechner/pi-coding-agent';
 import { CHAT_DATA_DIR, getCurrentChatWorkspaceDir } from './workspace.js';
 import {
-  ANTSEED_PEER_CUSTOM_TYPE,
+  TORVE_PEER_CUSTOM_TYPE,
   resolveLatestPeerBinding,
   type ChatRouteMode,
 } from './peer-selection.js';
@@ -43,13 +43,13 @@ type CachedSummary = {
   summary: AiConversationSummary | null;
 };
 
-export type AntseedPeerData = { peerId: string; peerLabel?: string; routeMode?: ChatRouteMode };
+export type TorvePeerData = { peerId: string; peerLabel?: string; routeMode?: ChatRouteMode };
 
-export function isPersistedPeerBindingPinned(peerData: AntseedPeerData | null): peerData is AntseedPeerData {
+export function isPersistedPeerBindingPinned(peerData: TorvePeerData | null): peerData is TorvePeerData {
   return Boolean(peerData?.peerId) && peerData?.routeMode === 'pinned';
 }
 
-export function projectPeerBinding(peerData: AntseedPeerData | null): Pick<
+export function projectPeerBinding(peerData: TorvePeerData | null): Pick<
   AiConversation,
   'peerId' | 'peerLabel' | 'routeMode'
 > {
@@ -69,7 +69,7 @@ export function projectPersistedConversationRoute<T extends {
     : { ...conversation, peerId: undefined, routeMode: 'auto' };
 }
 
-export function extractPeerFromEntries(manager: SessionManager): AntseedPeerData | null {
+export function extractPeerFromEntries(manager: SessionManager): TorvePeerData | null {
   return resolveLatestPeerBinding(
     manager.getEntries() as Array<{ type?: string; customType?: string; data?: unknown }>,
   );
@@ -303,17 +303,17 @@ export class PiConversationStore {
     const manager = SessionManager.create(workspaceDir, this.sessionsDir);
     // Persist '' (not the local proxy sentinel) when no real upstream
     // provider is known. The sentinel used to leak through to the
-    // `x-antseed-provider` header on send and trip the buyer proxy's
+    // `x-torve-provider` header on send and trip the buyer proxy's
     // pinned-peer provider check, returning a confusing 502.
     const providerId = sanitizeProviderHint(provider) ?? '';
     manager.appendModelChange(providerId, normalizeServiceId(service));
     const trimmedPeerId = peerId?.trim() ?? '';
     if (trimmedPeerId) {
-      manager.appendCustomEntry(ANTSEED_PEER_CUSTOM_TYPE, {
+      manager.appendCustomEntry(TORVE_PEER_CUSTOM_TYPE, {
         peerId: trimmedPeerId,
         ...(peerLabel ? { peerLabel } : {}),
         ...(routeMode ? { routeMode } : {}),
-      } satisfies AntseedPeerData);
+      } satisfies TorvePeerData);
     }
     const sessionPath = manager.getSessionFile();
     if (!sessionPath) {
@@ -341,7 +341,7 @@ export class PiConversationStore {
       role: 'assistant',
       content: [{ type: 'text', text: assistantContent }],
       api: 'openai-completions',
-      provider: 'antseed',
+      provider: 'torve',
       model: service,
       usage: {
         input: 0,
@@ -366,8 +366,8 @@ export class PiConversationStore {
     if (!manager) return;
     const effectiveMode = routeMode ?? extractPeerFromEntries(manager)?.routeMode;
     manager.appendCustomEntry(
-      ANTSEED_PEER_CUSTOM_TYPE,
-      { peerId, peerLabel, ...(effectiveMode ? { routeMode: effectiveMode } : {}) } satisfies AntseedPeerData,
+      TORVE_PEER_CUSTOM_TYPE,
+      { peerId, peerLabel, ...(effectiveMode ? { routeMode: effectiveMode } : {}) } satisfies TorvePeerData,
     );
   }
 
@@ -383,7 +383,7 @@ export class PiConversationStore {
   async clearPeer(id: string): Promise<void> {
     const manager = await this.openSessionManager(id);
     if (!manager) return;
-    manager.appendCustomEntry(ANTSEED_PEER_CUSTOM_TYPE, {});
+    manager.appendCustomEntry(TORVE_PEER_CUSTOM_TYPE, {});
   }
 
   async delete(id: string): Promise<void> {

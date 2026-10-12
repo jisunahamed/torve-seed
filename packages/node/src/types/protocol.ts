@@ -1,2 +1,2 @@
-// Moved to @antseed/protocol; re-exported here for compatibility.
-export * from '@antseed/protocol/messages';
+// Moved to @torveai/protocol; re-exported here for compatibility.
+export * from '@torveai/protocol/messages';

@@ -5,15 +5,15 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import { IAntseedSellerPools } from "../interfaces/IAntseedSellerPools.sol";
-import { IAntseedStaking } from "../interfaces/IAntseedStaking.sol";
+import { ITorveSellerPools } from "../interfaces/ITorveSellerPools.sol";
+import { ITorveStaking } from "../interfaces/ITorveStaking.sol";
 
 interface ISellerDelegation {
     function isOperator(address account) external view returns (bool);
 }
 
 /**
- * @title AntseedPositionInit
+ * @title TorvePositionInit
  * @notice One-shot ANTS starter positions that bootstrap seller-pool
  *         accounting.
  *
@@ -39,12 +39,12 @@ interface ISellerDelegation {
  *         the activation epoch. Leftover balance strands here forever, so
  *         fund it in small increments.
  */
-contract AntseedPositionInit is ReentrancyGuard {
+contract TorvePositionInit is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // ─── External Contracts ──────────────────────────────────────────
-    IAntseedSellerPools public immutable sellerPools;
-    IAntseedStaking public immutable legacyStaking;
+    ITorveSellerPools public immutable sellerPools;
+    ITorveStaking public immutable legacyStaking;
     IERC20 public immutable antsToken;
 
     // ─── Position Terms ──────────────────────────────────────────────
@@ -74,15 +74,15 @@ contract AntseedPositionInit is ReentrancyGuard {
             revert InvalidAddress();
         }
         if (_initAmount == 0) revert InvalidValue();
-        if (_initEndEpoch <= IAntseedSellerPools(_sellerPools).currentEpoch()) revert InvalidValue();
+        if (_initEndEpoch <= ITorveSellerPools(_sellerPools).currentEpoch()) revert InvalidValue();
 
-        sellerPools = IAntseedSellerPools(_sellerPools);
-        legacyStaking = IAntseedStaking(_legacyStaking);
+        sellerPools = ITorveSellerPools(_sellerPools);
+        legacyStaking = ITorveStaking(_legacyStaking);
         initAmount = _initAmount;
         initEndEpoch = _initEndEpoch;
 
         // Approve the token pools actually pulls — its pinned immutable.
-        IERC20 token = IAntseedSellerPools(_sellerPools).antsToken();
+        IERC20 token = ITorveSellerPools(_sellerPools).antsToken();
         if (address(token) == address(0)) revert InvalidAddress();
         antsToken = token;
         token.forceApprove(_sellerPools, type(uint256).max);

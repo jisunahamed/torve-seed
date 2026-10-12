@@ -4,7 +4,7 @@
     {
       "name": "website",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@antseed/website", "run", "dev"],
+      "runtimeArgs": ["--filter", "@torveai/website", "run", "dev"],
       "port": 3000,
       "autoPort": true
     }

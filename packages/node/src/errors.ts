@@ -1,1 +1,1 @@
-export * from '@antseed/buyer-core/errors';
+export * from '@torveai/buyer-core/errors';

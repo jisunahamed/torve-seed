@@ -1,6 +1,6 @@
 /**
- * Guards the shared-protocol wiring: @antseed/node must re-export the exact
- * same implementations the SDK uses from @antseed/protocol, and the SDK's
+ * Guards the shared-protocol wiring: @torveai/node must re-export the exact
+ * same implementations the SDK uses from @torveai/protocol, and the SDK's
  * hello envelope must be accepted by the node-side verifier.
  */
 
@@ -11,14 +11,14 @@ import {
   encodeFrame as nodeEncodeFrame,
   FrameDecoder as NodeFrameDecoder,
   decodeSpendingAuth as nodeDecodeSpendingAuth,
-} from '@antseed/node/p2p';
-import { toPeerId, MessageType as NodeMessageType } from '@antseed/node';
+} from '@torveai/node/p2p';
+import { toPeerId, MessageType as NodeMessageType } from '@torveai/node';
 import {
   computeChannelId as nodeComputeChannelId,
   computeMetadataHash as nodeComputeMetadataHash,
   signSpendingAuth as nodeSignSpendingAuth,
   ZERO_METADATA_HASH as NODE_ZERO_METADATA_HASH,
-} from '@antseed/node/payments';
+} from '@torveai/node/payments';
 import {
   MessageType,
   FrameDecoder,
@@ -29,7 +29,7 @@ import {
   signSpendingAuth,
   ZERO_METADATA_HASH,
   buildConnectionAuthPayload,
-} from '@antseed/protocol';
+} from '@torveai/protocol';
 import { buildHelloEnvelope } from './identity.js';
 
 const wallet = new Wallet('0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d');

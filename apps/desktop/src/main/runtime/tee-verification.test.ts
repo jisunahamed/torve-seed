@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { teeControlFileName } from '@antseed/node/tee-status';
+import { teeControlFileName } from '@torveai/node/tee-status';
 import { requestTeeSnapshot } from './tee-verification.js';
 
 test('missing credentials explain the existing directory setting without searching other directories', async (context) => {
@@ -14,7 +14,7 @@ test('missing credentials explain the existing directory setting without searchi
   await mkdir(configured);
   const port = 8377;
   await writeFile(join(directory, teeControlFileName(port)), 'not a credential', { mode: 0o600 });
-  await assert.rejects(requestTeeSnapshot(configured, port), /credentials are missing.*ANTSEED_DESKTOP_CONNECT_DATA_DIR/);
+  await assert.rejects(requestTeeSnapshot(configured, port), /credentials are missing.*TORVE_DESKTOP_CONNECT_DATA_DIR/);
 });
 
 test('main-process requests keep credentials private and reject unexpected buyer sessions', async (context) => {

@@ -1,5 +1,5 @@
-import type { TeeEvidence, TeeSnapshot } from '@antseed/node/tee-status';
-import { advertisesTeeSupport, normalizeAdvertisedVerifierIds } from '@antseed/node/verifier-capabilities';
+import type { TeeEvidence, TeeSnapshot } from '@torveai/node/tee-status';
+import { advertisesTeeSupport, normalizeAdvertisedVerifierIds } from '@torveai/node/verifier-capabilities';
 
 type Peer = { peerId: string; advertisedVerifierIds?: string[] };
 type Entry = { fingerprint: string; attempted: boolean; failures: number; retryAt: number; observedCheckedAt?: number };

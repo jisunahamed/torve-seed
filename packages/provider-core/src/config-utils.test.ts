@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_SERVICES_PER_PROVIDER } from '@antseed/node';
+import { MAX_SERVICES_PER_PROVIDER } from '@torveai/node';
 import { isImageModelId, parseServiceCapabilitiesJson, parseServiceUnitBillingModelsJson } from './config-utils.js';
 
 describe('isImageModelId', () => {

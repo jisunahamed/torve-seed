@@ -1,2 +1,2 @@
-// Moved to @antseed/protocol; re-exported for compatibility.
-export { hexToBytes, bytesToHex } from '@antseed/protocol/signing';
+// Moved to @torveai/protocol; re-exported for compatibility.
+export { hexToBytes, bytesToHex } from '@torveai/protocol/signing';

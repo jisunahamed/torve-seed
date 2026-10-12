@@ -2,47 +2,47 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { Provider, ProviderStreamCallbacks, SerializedHttpRequest } from '@antseed/node';
+import type { Provider, ProviderStreamCallbacks, SerializedHttpRequest } from '@torveai/node';
 import plugin from './index.js';
 
 afterEach(() => vi.unstubAllGlobals());
 
 const config = {
   VENICE_VIDEO_API_KEY: 'seller-secret',
-  ANTSEED_ALLOWED_SERVICES: 'wan-2.5',
-  ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON: JSON.stringify({ 'wan-2.5': { 'venice-video': { version: 1, components: [{ unit: 'video_generations', priceUsd: 0.1 }] } } }),
+  TORVE_ALLOWED_SERVICES: 'wan-2.5',
+  TORVE_SERVICE_UNIT_BILLING_MODELS_JSON: JSON.stringify({ 'wan-2.5': { 'venice-video': { version: 1, components: [{ unit: 'video_generations', priceUsd: 0.1 }] } } }),
 };
 const json = (body: object) => Buffer.from(JSON.stringify(body));
 const request = (path: string, body: object, headers: Record<string, string> = {}): SerializedHttpRequest => ({
   requestId: 'r', method: 'POST', path, headers: { 'content-type': 'application/json', ...headers }, body: json(body),
 });
 const retrieve = (body: object = { model: 'other', queue_id: 'queue-1', delete_media_on_completion: true }) =>
-  request('/api/v1/video/retrieve', body, { 'x-antseed-service': 'wan-2.5', 'x-antseed-video-download': 'video-stream-v1' });
+  request('/api/v1/video/retrieve', body, { 'x-torve-service': 'wan-2.5', 'x-torve-video-download': 'video-stream-v1' });
 const stream = (provider: Provider, req = retrieve(), callbacks: Partial<ProviderStreamCallbacks> = {}) =>
   provider.handleRequestStream!(req, { signal: new AbortController().signal, onResponseStart() {}, onResponseChunk() {}, ...callbacks });
 
 it('advertises Venice video services and requires seller configuration', () => {
   expect(plugin.name).toBe('venice-video');
   expect(() => plugin.createProvider({ ...config, VENICE_VIDEO_API_KEY: ' ' })).toThrow('VENICE_VIDEO_API_KEY');
-  expect(() => plugin.createProvider({ ...config, ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON: '{}' })).toThrow('Missing venice-video unit pricing');
+  expect(() => plugin.createProvider({ ...config, TORVE_SERVICE_UNIT_BILLING_MODELS_JSON: '{}' })).toThrow('Missing venice-video unit pricing');
   const provider = plugin.createProvider(config) as Provider;
   expect(provider.serviceApiProtocols).toEqual({ 'wan-2.5': ['venice-video'] });
   expect(provider.serviceCapabilities?.['wan-2.5']).toMatchObject({ outputs: ['video'] });
 });
 
-it('relays queue bodies without the AntSeed service field, with seller auth and without AntSeed headers', async () => {
+it('relays queue bodies without the Torve service field, with seller auth and without Torve headers', async () => {
   const fetchMock = vi.fn().mockResolvedValue(Response.json({ model: 'wan-2.5', queue_id: 'queue-1' }));
   vi.stubGlobal('fetch', fetchMock);
   const fields = { model: 'wan-2.5', prompt: 'cat', image_url: 'data:image/png;base64,aW1hZ2U=' };
   const body = Buffer.from(JSON.stringify({ ...fields, service: 'wan-2.5' }));
   const response = await (plugin.createProvider(config) as Provider).handleRequest({
-    ...request('/api/v1/video/queue?api_key=buyer', {}, { authorization: 'buyer-key', 'x-antseed-buyer-peer-id': 'buyer' }), body,
+    ...request('/api/v1/video/queue?api_key=buyer', {}, { authorization: 'buyer-key', 'x-torve-buyer-peer-id': 'buyer' }), body,
   });
   expect(response.statusCode).toBe(200);
   const [url, init] = fetchMock.mock.calls[0]!;
   expect(url).toBe('https://api.venice.ai/api/v1/video/queue');
   expect(init.headers).toMatchObject({ authorization: 'Bearer seller-secret' });
-  expect(Object.keys(init.headers).some(key => key.startsWith('x-antseed-'))).toBe(false);
+  expect(Object.keys(init.headers).some(key => key.startsWith('x-torve-'))).toBe(false);
   expect(JSON.parse(Buffer.from(init.body).toString())).toEqual(fields);
 });
 
@@ -78,7 +78,7 @@ it('streams finished MP4s in bounded chunks', async () => {
     onResponseChunk(chunk) { expect(chunk.data.length).toBeLessThanOrEqual(65536); received += chunk.data.length; },
   });
   expect(response.statusCode).toBe(200);
-  expect(headers).toMatchObject({ 'content-type': 'video/mp4', 'x-antseed-video-download': 'video-stream-v1' });
+  expect(headers).toMatchObject({ 'content-type': 'video/mp4', 'x-torve-video-download': 'video-stream-v1' });
   expect(received).toBe(bytes.length);
 });
 
@@ -112,10 +112,10 @@ it('keeps private-model download URLs across a seller restart', async () => {
       .mockResolvedValueOnce(Response.json({ status: 'COMPLETED' }))
       .mockResolvedValueOnce(new Response(bytes, { headers: { 'content-type': 'video/mp4', 'content-length': String(bytes.length) } }));
     vi.stubGlobal('fetch', fetchMock);
-    await (plugin.createProvider({ ...config, ANTSEED_DATA_DIR: dataDir }) as Provider)
+    await (plugin.createProvider({ ...config, TORVE_DATA_DIR: dataDir }) as Provider)
       .handleRequest(request('/api/v1/video/queue', { model: 'wan-2.5', prompt: 'cat' }));
 
-    const restarted = plugin.createProvider({ ...config, ANTSEED_DATA_DIR: dataDir }) as Provider;
+    const restarted = plugin.createProvider({ ...config, TORVE_DATA_DIR: dataDir }) as Provider;
     const response = await stream(restarted);
 
     expect(response.headers).toMatchObject({ 'content-type': 'video/mp4' });

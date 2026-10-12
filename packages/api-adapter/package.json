@@ -1,5 +1,5 @@
 {
-  "name": "@antseed/api-adapter",
+  "name": "@torveai/api-adapter",
   "version": "0.1.50",
   "description": "HTTP-level format translation between LLM API protocols (Anthropic Messages, OpenAI Chat Completions, OpenAI Responses)",
   "type": "module",

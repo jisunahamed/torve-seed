@@ -74,10 +74,10 @@ type CardItem = {
   outputUsdPerMillion: number | null;
   cachedInputUsdPerMillion: number | null;
   reputationScore: number | null; // 0-100 trust score (model-adjusted when available)
-  channelCount: number;       // on-chain, from AntseedChannels.getAgentStats
+  channelCount: number;       // on-chain, from TorveChannels.getAgentStats
   volumeUsdc: number;         // settled on-chain USDC volume
   poolStakeAnts: number;      // ANTS staked in the seller pool this epoch
-  washFlagged: boolean | null; // AntseedWashTradingRegistry verdict; null when unavailable
+  washFlagged: boolean | null; // TorveWashTradingRegistry verdict; null when unavailable
   sybilRisk: number | null;
   sybilFlags: string[];
   lifetimeRequests: number;   // network-wide (mainnet) or local buyer total (fallback)

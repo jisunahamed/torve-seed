@@ -1,8 +1,8 @@
 {
-  "name": "@antseed/download-proxy",
+  "name": "@torveai/download-proxy",
   "version": "0.1.0",
   "private": true,
-  "description": "Cloudflare Worker that serves desktop installer downloads from GitHub Releases through download.antseed.com with download started/completed/aborted telemetry",
+  "description": "Cloudflare Worker that serves desktop installer downloads from GitHub Releases through download.torveai.com with download started/completed/aborted telemetry",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",

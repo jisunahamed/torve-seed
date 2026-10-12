@@ -14,7 +14,7 @@ const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0
 const MP4 = Buffer.from([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d, 0, 0, 0, 0]);
 
 async function withTempDir(fn: (dir: string) => Promise<void>): Promise<void> {
-  const dir = await mkdtemp(path.join(tmpdir(), 'antseed-media-tools-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'torve-media-tools-'));
   try {
     await fn(dir);
   } finally {
@@ -70,13 +70,13 @@ test('get_chat_image_path returns only image attachments from the current chat',
 
 test('resolveBundledChatSkillPaths returns the bundled image and video skills', async () => {
   await withTempDir(async (dir) => {
-    for (const name of ['antseed-images', 'antseed-videos']) {
+    for (const name of ['torve-images', 'torve-videos']) {
       await mkdir(path.join(dir, name), { recursive: true });
       await writeFile(path.join(dir, name, 'SKILL.md'), '---\nname: test\ndescription: test\n---\n');
     }
     assert.deepEqual(resolveBundledChatSkillPaths([dir]), [
-      path.join(dir, 'antseed-images'),
-      path.join(dir, 'antseed-videos'),
+      path.join(dir, 'torve-images'),
+      path.join(dir, 'torve-videos'),
     ]);
   });
 });

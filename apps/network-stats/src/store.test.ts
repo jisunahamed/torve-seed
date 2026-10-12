@@ -8,7 +8,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { SqliteStore } from './store.js';
-import type { DecodedMetadataRecorded } from '@antseed/node';
+import type { DecodedMetadataRecorded } from '@torveai/node';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 

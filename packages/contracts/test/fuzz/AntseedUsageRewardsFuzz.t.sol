@@ -4,11 +4,11 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { ANTSToken } from "../../core/ANTSToken.sol";
-import { AntseedRegistry } from "../../core/AntseedRegistry.sol";
-import { AntseedEmissionsGate } from "../../emissions/AntseedEmissionsGate.sol";
-import { AntseedSellerPools } from "../../sellers/AntseedSellerPools.sol";
-import { AntseedUsageAccounting } from "../../emissions/AntseedUsageAccounting.sol";
-import { AntseedUsageRewards } from "../../emissions/AntseedUsageRewards.sol";
+import { TorveRegistry } from "../../core/TorveRegistry.sol";
+import { TorveEmissionsGate } from "../../emissions/TorveEmissionsGate.sol";
+import { TorveSellerPools } from "../../sellers/TorveSellerPools.sol";
+import { TorveUsageAccounting } from "../../emissions/TorveUsageAccounting.sol";
+import { TorveUsageRewards } from "../../emissions/TorveUsageRewards.sol";
 import { MockERC8004Registry } from "../mocks/MockERC8004Registry.sol";
 
 contract MockAgentLookup {
@@ -36,7 +36,7 @@ contract MockDeposits {
 }
 
 /**
- * @title AntseedUsageRewardsFuzz
+ * @title TorveUsageRewardsFuzz
  * @notice Fuzz tests for the direct seller/operator + buyer usage reward
  *         controller. Invariants:
  *           1. Reward split conserves: claimable + reserve == gross, gross is
@@ -48,13 +48,13 @@ contract MockDeposits {
  *              Deposits operator, and the claim reverts (rolling back the
  *              claimed flag) when no operator is set.
  */
-contract AntseedUsageRewardsFuzzTest is Test {
+contract TorveUsageRewardsFuzzTest is Test {
     ANTSToken token;
-    AntseedRegistry registry;
-    AntseedEmissionsGate gate;
-    AntseedSellerPools pools;
-    AntseedUsageAccounting usageAccounting;
-    AntseedUsageRewards usageRewards;
+    TorveRegistry registry;
+    TorveEmissionsGate gate;
+    TorveSellerPools pools;
+    TorveUsageAccounting usageAccounting;
+    TorveUsageRewards usageRewards;
     MockAgentLookup agentLookup;
     MockERC8004Registry identity;
     MockDeposits depositsMock;
@@ -65,7 +65,7 @@ contract AntseedUsageRewardsFuzzTest is Test {
     uint256 constant BPS = 100_000;
     uint256 constant MAX_REWARD_SHARE_BPS = 500; // 5% in 1e4 bps
     uint32 constant USAGE_SHARE_BPS = 20_000;
-    bytes32 constant USAGE_MINTER_ID = keccak256("antseed.emissions.usage.v1");
+    bytes32 constant USAGE_MINTER_ID = keccak256("torve.emissions.usage.v1");
 
     address legacyController = address(0xCAFE);
     address teamWallet = address(0x7EA3);
@@ -82,7 +82,7 @@ contract AntseedUsageRewardsFuzzTest is Test {
         deployCodeTo("ANTSToken.sol:ANTSToken", KNOWN_ANTS_TOKEN);
         token = ANTSToken(KNOWN_ANTS_TOKEN);
 
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         agentLookup = new MockAgentLookup();
         identity = new MockERC8004Registry();
         depositsMock = new MockDeposits();
@@ -99,19 +99,19 @@ contract AntseedUsageRewardsFuzzTest is Test {
         token.enableTransfers();
 
         vm.warp(GATE_GENESIS + GATE_EPOCH_DURATION * 4 + 1);
-        gate = new AntseedEmissionsGate(teamWallet, reserve, 15_000, 15_000);
+        gate = new TorveEmissionsGate(teamWallet, reserve, 15_000, 15_000);
         token.setRegistry(address(gate));
         // No bucket mints until the legacy escrow is settled; any recipient
         // address marks the pot funded.
         gate.fundLegacyEscrow(address(0xE5C0));
 
-        pools = new AntseedSellerPools(address(token), address(gate), address(identity), address(agentLookup));
+        pools = new TorveSellerPools(address(token), address(gate), address(identity), address(agentLookup));
         token.setTransferWhitelist(address(pools), true);
 
-        usageAccounting = new AntseedUsageAccounting(address(pools), address(this), address(gate));
+        usageAccounting = new TorveUsageAccounting(address(pools), address(this), address(gate));
         registry.setEmissions(address(usageAccounting));
 
-        usageRewards = new AntseedUsageRewards(address(gate), address(usageAccounting), address(identity), address(depositsMock));
+        usageRewards = new TorveUsageRewards(address(gate), address(usageAccounting), address(identity), address(depositsMock));
         gate.setMinter(USAGE_MINTER_ID, address(usageRewards), USAGE_SHARE_BPS, true);
 
         // Register agent and seed pool power.
@@ -163,7 +163,7 @@ contract AntseedUsageRewardsFuzzTest is Test {
 
         // Double-claim impossible.
         vm.prank(seller);
-        vm.expectRevert(AntseedUsageRewards.AlreadyClaimed.selector);
+        vm.expectRevert(TorveUsageRewards.AlreadyClaimed.selector);
         usageRewards.claimAgentReward(agentId, 5);
     }
 
@@ -177,7 +177,7 @@ contract AntseedUsageRewardsFuzzTest is Test {
 
         if (!hasOperator) {
             // No operator set -> claim must revert and NOT mark claimed.
-            vm.expectRevert(AntseedUsageRewards.RewardRecipientUnavailable.selector);
+            vm.expectRevert(TorveUsageRewards.RewardRecipientUnavailable.selector);
             usageRewards.claimBuyerReward(buyer, 5);
             assertEq(usageRewards.buyerEpochClaimed(buyer, 5), false, "claimed flag stuck after revert");
             assertEq(token.balanceOf(buyer), 0, "buyer hot wallet received funds");

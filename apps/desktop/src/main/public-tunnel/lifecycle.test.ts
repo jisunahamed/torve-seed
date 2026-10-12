@@ -51,7 +51,7 @@ function configuredSettings(enabled = false): PublicTunnelSettings {
       cloudflare: { tunnelToken: 'cloudflare-token', publicUrl: 'https://llm.example.com' },
       ngrok: { tunnelToken: 'ngrok-token', publicUrl: '' },
     },
-    apiKey: 'antseed_key',
+    apiKey: 'torve_key',
     enabled,
   };
 }
@@ -68,7 +68,7 @@ test('successful start persists enabled state and selected provider', async () =
     buyerPort: 8377,
     tunnelToken: 'ngrok-token',
     publicUrl: '',
-    apiKey: 'antseed_key',
+    apiKey: 'torve_key',
   });
   assert.equal(harness.getSettings().activeProvider, 'ngrok');
   assert.equal(harness.getSettings().enabled, true);

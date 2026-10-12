@@ -5,7 +5,7 @@ Move the Electron renderer from JavaScript to TypeScript with zero runtime regre
 
 ## Phase 1 (Completed)
 - Convert renderer entrypoint and modules from `.js` to `.ts`.
-- Add renderer bridge typings and global `window.antseedDesktop` declaration.
+- Add renderer bridge typings and global `window.torveDesktop` declaration.
 - Keep behavior unchanged while making build/typecheck pass.
 - Validate with:
   - `npm run typecheck:renderer`

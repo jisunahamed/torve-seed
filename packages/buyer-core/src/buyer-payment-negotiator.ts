@@ -1,13 +1,13 @@
 import type { BuyerIdentity } from './interfaces.js';
 import type { BuyerConnection } from './interfaces.js';
 import { PaymentMux } from './payment-mux.js';
-import type { PeerId } from '@antseed/protocol/peer-id';
+import type { PeerId } from '@torveai/protocol/peer-id';
 import type { BuyerPeerView } from './interfaces.js';
 import {
-  ANTSEED_FAULT_ATTRIBUTION_HEADER,
+  TORVE_FAULT_ATTRIBUTION_HEADER,
   type SerializedHttpRequest,
   type SerializedHttpResponse,
-} from '@antseed/protocol/http';
+} from '@torveai/protocol/http';
 import {
   computeOneOffChannelPlan,
   PAYMENT_CODE_CHANNEL_EXHAUSTED,
@@ -15,8 +15,8 @@ import {
   type PaymentRequiredPayload,
   type CloseChannelResultPayload,
   type OneOffChannelPlan,
-} from '@antseed/protocol/messages';
-import { decodeOneOffChannelPlan } from '@antseed/protocol/payment-codec';
+} from '@torveai/protocol/messages';
+import { decodeOneOffChannelPlan } from '@torveai/protocol/payment-codec';
 import type { BuyerPaymentManager } from './buyer-payment-manager.js';
 import type { BuyerFreeUsageManager } from './buyer-free-usage-manager.js';
 import type { DepositsClient } from './deposits-client.js';
@@ -28,17 +28,17 @@ import {
   type StoredChannel,
 } from './channel-store-types.js';
 import { classifyOnChainChannel } from './channel-session-state.js';
-import { peerIdToAddress } from '@antseed/protocol/peer-id';
+import { peerIdToAddress } from '@torveai/protocol/peer-id';
 import { debugLog, debugWarn } from './debug.js';
 import type { SellerAddressResolver } from './seller-address-resolver.js';
 import { SellerAuthorizationError } from './seller-address-resolver.js';
 import { parseResponseUsage } from './response-usage.js';
 import { computeCostUsdc, type ServicePricing } from './pricing.js';
 import { formatUsdc } from './usdc-utils.js';
-import { parseJsonObject, tryParseJsonObject } from '@antseed/protocol/json-codec';
-import { nativeVideoAcceptance, nativeVideoRoute } from '@antseed/api-adapter';
-import type { UnitBillingModelV1, UnitBillingUsage } from '@antseed/protocol/billing';
-import type { ServiceApiProtocol } from '@antseed/protocol/service-api';
+import { parseJsonObject, tryParseJsonObject } from '@torveai/protocol/json-codec';
+import { nativeVideoAcceptance, nativeVideoRoute } from '@torveai/api-adapter';
+import type { UnitBillingModelV1, UnitBillingUsage } from '@torveai/protocol/billing';
+import type { ServiceApiProtocol } from '@torveai/protocol/service-api';
 import {
   captureUnitBillingContext,
   computeFinalUnitBilling,
@@ -141,7 +141,7 @@ function sameOneOffPlan(a: OneOffChannelPlan, b: OneOffChannelPlan): boolean {
 /**
  * Manages all buyer-side payment negotiation state and logic.
  *
- * Extracted from AntseedNode to separate buyer payment concerns
+ * Extracted from TorveNode to separate buyer payment concerns
  * (402 handling, SpendingAuth negotiation, per-request auth, cost tracking)
  * from core node orchestration.
  */
@@ -169,9 +169,9 @@ export class BuyerPaymentNegotiator {
   private readonly _bufferedPaymentRequired = new Map<string, PaymentRequiredPayload>();
   /** Per-peer mutex to prevent concurrent payment negotiations. */
   private readonly _negotiationLocks = new Map<string, Promise<void>>();
-  /** Cached AntseedChannels TOP_UP_SETTLED_THRESHOLD_BPS. */
+  /** Cached TorveChannels TOP_UP_SETTLED_THRESHOLD_BPS. */
   private _topUpThresholdBps: bigint | null = null;
-  /** Cached AntseedChannels FIRST_SIGN_CAP. */
+  /** Cached TorveChannels FIRST_SIGN_CAP. */
   private _firstSignCapValue: bigint | null = null;
   /** Serializes one-off channel openings per request so a request never opens two channels. */
   private readonly _oneOffLocks = new Map<string, Promise<unknown>>();
@@ -452,7 +452,7 @@ export class BuyerPaymentNegotiator {
     return videoCost;
   }
 
-  /** AntseedChannels FIRST_SIGN_CAP, the largest reserve a fresh channel may open with; null when unreadable. */
+  /** TorveChannels FIRST_SIGN_CAP, the largest reserve a fresh channel may open with; null when unreadable. */
   private async _firstSignCap(): Promise<bigint | null> {
     if (this._firstSignCapValue != null) return this._firstSignCapValue;
     try {
@@ -744,7 +744,7 @@ export class BuyerPaymentNegotiator {
         peerId: peer.peerId,
         ...(req?.minBudgetPerRequest != null ? { minBudgetPerRequest: req.minBudgetPerRequest } : {}),
         ...(req?.suggestedAmount != null ? { suggestedAmount: req.suggestedAmount } : {}),
-        message: 'You are out of AntSeed credits for this request. Add funds in the AntSeed app, or run "antseed buyer deposit <amount>" from the CLI, then retry.',
+        message: 'You are out of Torve credits for this request. Add funds in the Torve app, or run "torve buyer deposit <amount>" from the CLI, then retry.',
       });
       return {
         action: 'return',
@@ -753,7 +753,7 @@ export class BuyerPaymentNegotiator {
           headers: {
             ...response.headers,
             'content-type': 'application/json',
-            [ANTSEED_FAULT_ATTRIBUTION_HEADER]: 'buyer',
+            [TORVE_FAULT_ATTRIBUTION_HEADER]: 'buyer',
           },
           body: new TextEncoder().encode(enrichedBody),
         },
@@ -1081,7 +1081,7 @@ export class BuyerPaymentNegotiator {
       payload = parseJsonObject(decoded) as typeof payload;
     } catch {
       throw buyerFault(
-        'Invalid x-antseed-spending-auth header: failed to decode',
+        'Invalid x-torve-spending-auth header: failed to decode',
         'invalid-spending-auth-header',
       );
     }
@@ -1653,12 +1653,12 @@ export class BuyerPaymentNegotiator {
         `- Deposits may be below the reserve ceiling the seller will lock ` +
         `(${formatUsdc(reserve)} USDC). The seller's on-chain reserve() reverts ` +
         `with InsufficientBalance before AuthAck. ` +
-        `Check with "antseed buyer status"; top up with "antseed buyer deposit <amount>".`,
+        `Check with "torve buyer status"; top up with "torve buyer deposit <amount>".`,
       );
     } else if (min != null && min > 0n) {
       lines.push(
         `- Deposits may be below seller minBudgetPerRequest (${formatUsdc(min)} USDC). ` +
-        `Check with "antseed buyer status"; top up with "antseed buyer deposit <amount>".`,
+        `Check with "torve buyer status"; top up with "torve buyer deposit <amount>".`,
       );
     }
     lines.push('- Seller may be overloaded or gated on subscription (try another peer).');

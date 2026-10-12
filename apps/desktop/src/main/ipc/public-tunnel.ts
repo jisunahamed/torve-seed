@@ -63,12 +63,12 @@ export function registerPublicTunnelIpc(deps: { processManager: ProcessManager }
         mode: 'tunnel',
         tunnelBuyerPort: buyerPort,
         env: {
-          ANTSEED_TUNNEL_PROVIDER: provider,
-          ANTSEED_TUNNEL_TOKEN: tunnelToken,
+          TORVE_TUNNEL_PROVIDER: provider,
+          TORVE_TUNNEL_TOKEN: tunnelToken,
           CLOUDFLARED_TUNNEL_TOKEN: provider === 'cloudflare' ? tunnelToken : '',
           NGROK_AUTHTOKEN: provider === 'ngrok' ? tunnelToken : '',
-          ANTSEED_TUNNEL_PUBLIC_URL: publicUrl,
-          ANTSEED_TUNNEL_API_KEY: apiKey,
+          TORVE_TUNNEL_PUBLIC_URL: publicUrl,
+          TORVE_TUNNEL_API_KEY: apiKey,
         },
       });
     },
@@ -99,7 +99,7 @@ export function registerPublicTunnelIpc(deps: { processManager: ProcessManager }
       return { ok: false, error: 'Enter the public https:// hostname configured for this Cloudflare tunnel.' };
     }
     const existing = await loadPublicTunnelSettings();
-    const apiKey = existing?.apiKey ?? `antseed_${randomBytes(24).toString('base64url')}`;
+    const apiKey = existing?.apiKey ?? `torve_${randomBytes(24).toString('base64url')}`;
     await savePublicTunnelSettings({
       activeProvider: provider,
       providers: { ...existing?.providers, [provider]: { tunnelToken, publicUrl } },

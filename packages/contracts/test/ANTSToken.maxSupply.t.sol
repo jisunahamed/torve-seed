@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import {ANTSToken} from "../core/ANTSToken.sol";
-import {AntseedRegistry} from "../core/AntseedRegistry.sol";
+import {TorveRegistry} from "../core/TorveRegistry.sol";
 
 /**
  * @title ANTSTokenMaxSupplyFuzz
@@ -12,12 +12,12 @@ import {AntseedRegistry} from "../core/AntseedRegistry.sol";
  *         exercise. The test contract registers itself as `emissions` so it can mint.
  */
 contract ANTSTokenMaxSupplyFuzz is Test {
-    AntseedRegistry registry;
+    TorveRegistry registry;
     ANTSToken ants;
     address alice = address(0xA11CE);
 
     function setUp() public {
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         ants = new ANTSToken();
         ants.setRegistry(address(registry));
         registry.setEmissions(address(this)); // test == emissions minter

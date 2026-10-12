@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { Wallet } from 'ethers';
 import { PeerAnnouncer, type AnnouncerConfig } from '../src/discovery/announcer.js';
 import { encodeMetadataForSigning } from '../src/discovery/metadata-codec.js';
-import { ANTSEED_WILDCARD_TOPIC, peerTopic, subnetOf, subnetTopic, topicToInfoHash } from '../src/discovery/dht-node.js';
+import { TORVE_WILDCARD_TOPIC, peerTopic, subnetOf, subnetTopic, topicToInfoHash } from '../src/discovery/dht-node.js';
 import { verifySignature, bytesToHex, hexToBytes } from '../src/p2p/identity.js';
 import { toPeerId } from '../src/types/peer.js';
 
@@ -127,7 +127,7 @@ describe('PeerAnnouncer live load metadata', () => {
     );
     expect(announcedHashes).toEqual(new Set([
       topicToInfoHash(subnetTopic(subnetOf(config.identity.peerId))).toString('hex'),
-      topicToInfoHash(ANTSEED_WILDCARD_TOPIC).toString('hex'),
+      topicToInfoHash(TORVE_WILDCARD_TOPIC).toString('hex'),
       topicToInfoHash(peerTopic(config.identity.peerId)).toString('hex'),
     ]));
     // Sanity-check the strings: nothing announced should look like a service topic.

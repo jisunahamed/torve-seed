@@ -4,10 +4,10 @@ import ora from 'ora';
 import crypto from 'node:crypto';
 import { getGlobalOptions } from './types.js';
 import { loadConfig } from '../../config/loader.js';
-import { AntseedNode } from '@antseed/node';
-import { DHTNode } from '@antseed/node/discovery';
-import { toPeerId } from '@antseed/node';
-import { parseBootstrapList, toBootstrapConfig } from '@antseed/node/discovery';
+import { TorveNode } from '@torveai/node';
+import { DHTNode } from '@torveai/node/discovery';
+import { toPeerId } from '@torveai/node';
+import { parseBootstrapList, toBootstrapConfig } from '@torveai/node/discovery';
 import { setupShutdownHandler } from '../shutdown.js';
 
 export function registerDevCommand(program: Command): void {
@@ -49,7 +49,7 @@ export function registerDevCommand(program: Command): void {
       const localBootstrap = toBootstrapConfig(parseBootstrapList([`127.0.0.1:${bootstrapPort}`]));
 
       // 3. Start seller node
-      const seller = new AntseedNode({
+      const seller = new TorveNode({
         role: 'seller',
         bootstrapNodes: localBootstrap,
       });
@@ -65,7 +65,7 @@ export function registerDevCommand(program: Command): void {
       spinner.text = 'Starting buyer node...';
 
       // 4. Start buyer node
-      const buyer = new AntseedNode({
+      const buyer = new TorveNode({
         role: 'buyer',
         bootstrapNodes: localBootstrap,
       });

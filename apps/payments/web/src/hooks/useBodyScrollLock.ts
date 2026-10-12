@@ -1,1 +1,1 @@
-export { useBodyScrollLock } from '@antseed/ui';
+export { useBodyScrollLock } from '@torveai/ui';

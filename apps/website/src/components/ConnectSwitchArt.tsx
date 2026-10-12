@@ -5,7 +5,7 @@ import styles from './ConnectSwitchArt.module.css';
 /**
  * "Connect your favorite coding app" animation. Left: the AI VPN's
  * Connected apps list, where the Codex toggle flips on. Right: the Codex
- * window, whose provider footer switches from OpenAI to Antseed as the
+ * window, whose provider footer switches from OpenAI to Torve as the
  * AI VPN connects it (apps/desktop connected-apps, kind: config-patch). Loops.
  */
 
@@ -33,7 +33,7 @@ export function ConnectSwitchArt({layout = 'row'}: {layout?: 'row' | 'stack'}) {
   const connected = phase === 'connected';
 
   return (
-    <div className={`${styles.wrap} ${layout === 'stack' ? styles.stack : ''} ${reduced ? styles.reduced : ''} ${on ? styles.on : ''} ${connected ? styles.connected : ''}`} role="img" aria-label="Turning on Codex in the AI VPN switches its model provider to Antseed">
+    <div className={`${styles.wrap} ${layout === 'stack' ? styles.stack : ''} ${reduced ? styles.reduced : ''} ${on ? styles.on : ''} ${connected ? styles.connected : ''}`} role="img" aria-label="Turning on Codex in the AI VPN switches its model provider to Torve">
       {/* AI VPN — Connected apps */}
       <div className={styles.vpn}>
         <div className={styles.vpnHead}>
@@ -81,7 +81,7 @@ export function ConnectSwitchArt({layout = 'row'}: {layout?: 'row' | 'stack'}) {
         <div className={styles.appFoot}>
           <span className={styles.provider}>
             <span className={styles.providerNative}><OpenAI size={14} /> OpenAI · gpt-5</span>
-            <span className={styles.providerAntseed}><img src="/logo.svg" alt="" /> Antseed · Claude Fable 5.1</span>
+            <span className={styles.providerTorve}><img src="/logo.svg" alt="" /> Torve · Claude Fable 5.1</span>
           </span>
           <span className={styles.route}>via localhost:8377</span>
         </div>

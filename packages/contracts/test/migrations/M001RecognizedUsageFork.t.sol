@@ -3,9 +3,9 @@ pragma solidity ^0.8.24;
 
 import { Test } from "forge-std/Test.sol";
 
-import { IAntseedRegistry } from "../../interfaces/IAntseedRegistry.sol";
+import { ITorveRegistry } from "../../interfaces/ITorveRegistry.sol";
 
-interface IAntseedRegistryForkAdmin is IAntseedRegistry {
+interface ITorveRegistryForkAdmin is ITorveRegistry {
     function owner() external view returns (address);
     function setEmissions(address emissions) external;
     function setStaking(address staking) external;
@@ -26,7 +26,7 @@ contract M001RecognizedUsageForkTest is Test {
         if (!_selectFork()) return;
         assertEq(block.chainid, BASE_MAINNET_CHAIN_ID);
 
-        IAntseedRegistry registry = IAntseedRegistry(REGISTRY);
+        ITorveRegistry registry = ITorveRegistry(REGISTRY);
         assertGt(REGISTRY.code.length, 0);
         assertEq(registry.antsToken(), ANTS_TOKEN);
         assertEq(registry.channels(), CHANNELS);
@@ -44,7 +44,7 @@ contract M001RecognizedUsageForkTest is Test {
     function testFork_registryOwnerCanApplyM001PointerFlip() public {
         if (!_selectFork()) return;
 
-        IAntseedRegistryForkAdmin registry = IAntseedRegistryForkAdmin(REGISTRY);
+        ITorveRegistryForkAdmin registry = ITorveRegistryForkAdmin(REGISTRY);
         address registryOwner = registry.owner();
         address usageAccounting = address(new ForkCutoverTarget());
         address sellerRegistry = address(new ForkCutoverTarget());

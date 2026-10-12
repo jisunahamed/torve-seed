@@ -5,9 +5,9 @@ import {
   CONNECTION_CAPABILITY_RESPONSE_AUTH_V1,
   ConnectionState,
   type PeerMetadata,
-} from '@antseed/protocol';
-import { CHANNEL_ROLE, CHANNEL_STATUS } from '@antseed/buyer-core';
-import { AntseedWebClient, SellerSession, sellerSummaryFromMetadata } from './client.js';
+} from '@torveai/protocol';
+import { CHANNEL_ROLE, CHANNEL_STATUS } from '@torveai/buyer-core';
+import { TorveWebClient, SellerSession, sellerSummaryFromMetadata } from './client.js';
 import { SellerConnection } from './connection.js';
 import { MemoryChannelStore } from './channel-store.js';
 import {
@@ -18,11 +18,11 @@ import {
 
 afterEach(() => vi.restoreAllMocks());
 
-describe('AntseedWebClient.create', () => {
+describe('TorveWebClient.create', () => {
   it('fails a second tab closed and permits takeover after close', async () => {
     const locks = new FakeLockManager();
     const wallet = Wallet.createRandom();
-    const databaseName = `antseed-client-${crypto.randomUUID()}`;
+    const databaseName = `torve-client-${crypto.randomUUID()}`;
     const options = {
       relayUrl: 'http://relay.invalid',
       wallet,
@@ -34,13 +34,13 @@ describe('AntseedWebClient.create', () => {
       },
     };
 
-    const first = await AntseedWebClient.create(options);
-    await expect(AntseedWebClient.create(options)).rejects.toBeInstanceOf(
+    const first = await TorveWebClient.create(options);
+    await expect(TorveWebClient.create(options)).rejects.toBeInstanceOf(
       BuyerAlreadyActiveError,
     );
     await first.close();
 
-    const successor = await AntseedWebClient.create(options);
+    const successor = await TorveWebClient.create(options);
     expect(successor.peerId).toBe(wallet.address.slice(2).toLowerCase());
     await successor.close();
     await deleteDatabase(databaseName);
@@ -58,7 +58,7 @@ describe('AntseedWebClient.create', () => {
       onClose: () => {},
     } as unknown as SellerConnection;
     const connect = vi.spyOn(SellerConnection, 'connect').mockResolvedValue(connection);
-    const client = AntseedWebClient.ephemeral({
+    const client = TorveWebClient.ephemeral({
       relayUrl: 'http://relay.invalid',
       wallet: Wallet.createRandom(),
       payment: { rpcUrl: '' },
@@ -95,7 +95,7 @@ describe('AntseedWebClient.create', () => {
       static: [{ peerId: staticPeerId, host: 'static.example', port: 8917 }],
       updatedAt: new Date(Date.now() - 60_000).toISOString(),
     }), { status: 200 }));
-    const client = AntseedWebClient.ephemeral({
+    const client = TorveWebClient.ephemeral({
       relayUrl: 'http://relay.invalid',
       wallet: Wallet.createRandom(),
       payment: { rpcUrl: '' },
@@ -120,7 +120,7 @@ describe('AntseedWebClient.create', () => {
     vi.spyOn(SellerConnection, 'connect')
       .mockResolvedValueOnce(oldConnection.connection)
       .mockResolvedValueOnce(newConnection.connection);
-    const client = AntseedWebClient.ephemeral({
+    const client = TorveWebClient.ephemeral({
       relayUrl: 'http://relay.invalid',
       wallet: Wallet.createRandom(),
       payment: { rpcUrl: '' },
@@ -153,7 +153,7 @@ describe('AntseedWebClient.create', () => {
       onClose: () => {},
     } as unknown as SellerConnection;
     vi.spyOn(SellerConnection, 'connect').mockResolvedValue(connection);
-    const client = AntseedWebClient.ephemeral({
+    const client = TorveWebClient.ephemeral({
       relayUrl: 'http://relay.invalid',
       wallet: Wallet.createRandom(),
       payment: { rpcUrl: '' },
@@ -198,7 +198,7 @@ describe('AntseedWebClient.create', () => {
     vi.spyOn(SellerConnection, 'connect').mockReturnValue(new Promise((resolve) => {
       resolveConnect = resolve;
     }));
-    const client = AntseedWebClient.ephemeral({
+    const client = TorveWebClient.ephemeral({
       relayUrl: 'http://relay.invalid',
       wallet: Wallet.createRandom(),
       payment: { rpcUrl: '' },
@@ -209,7 +209,7 @@ describe('AntseedWebClient.create', () => {
     });
 
     const opening = client.connect('88'.repeat(20));
-    const rejected = expect(opening).rejects.toThrow('AntseedWebClient is closed');
+    const rejected = expect(opening).rejects.toThrow('TorveWebClient is closed');
     await client.close();
     resolveConnect(connection);
     await rejected;
@@ -223,7 +223,7 @@ describe('AntseedWebClient.create', () => {
     const drainGate = new Promise<void>((resolve) => {
       releaseDrain = resolve;
     });
-    const client = AntseedWebClient.ephemeral({
+    const client = TorveWebClient.ephemeral({
       relayUrl: 'http://relay.invalid',
       wallet: Wallet.createRandom(),
       payment: { rpcUrl: '' },
@@ -283,7 +283,7 @@ describe('AntseedWebClient.create', () => {
       requestClose: vi.fn().mockResolvedValue('0xrequest'),
       withdraw: vi.fn().mockResolvedValue('0xwithdraw'),
     };
-    const client = AntseedWebClient.ephemeral({
+    const client = TorveWebClient.ephemeral({
       relayUrl: 'http://relay.invalid',
       wallet,
       payment: { rpcUrl: '' },
@@ -346,7 +346,7 @@ describe('AntseedWebClient.create', () => {
     const channelsClient = {
       requestClose: vi.fn().mockResolvedValue('0xrequest'),
     };
-    const client = AntseedWebClient.ephemeral({
+    const client = TorveWebClient.ephemeral({
       relayUrl: 'http://relay.invalid',
       wallet,
       payment: { rpcUrl: '' },

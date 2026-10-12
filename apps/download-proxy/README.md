@@ -1,6 +1,6 @@
-# @antseed/download-proxy
+# @torveai/download-proxy
 
-Cloudflare Worker on **download.antseed.com** that serves the desktop
+Cloudflare Worker on **download.torveai.com** that serves the desktop
 installers from GitHub Releases through our own domain, closing the visibility
 gap between "user clicked the download button" (the website's `download_vpr`
 GA4 event) and "user actually received the installer".
@@ -35,7 +35,7 @@ events from a 206 response are flagged `partial=1` in telemetry.
 
 Events: `download_started`, `download_completed`, `download_aborted`,
 `download_unresolved`. Each is logged as a JSON console line (see them with
-`pnpm --filter @antseed/download-proxy tail`, or in Workers Logs) and, when
+`pnpm --filter @torveai/download-proxy tail`, or in Workers Logs) and, when
 GA4 credentials are configured, sent to GA4 via the Measurement Protocol —
 the same property that records the website's `download_vpr` clicks, so the
 full funnel reads in one place.
@@ -71,7 +71,7 @@ funnel and the click event is best read for page/section breakdowns only.
 ## Deploy
 
 ```bash
-pnpm --filter @antseed/download-proxy deploy       # wrangler deploy
+pnpm --filter @torveai/download-proxy deploy       # wrangler deploy
 wrangler secret put GA4_API_SECRET                 # GA4 MP API secret (Admin → Data Streams → Measurement Protocol)
 wrangler secret put GITHUB_TOKEN                   # optional: raises the release-lookup rate limit
 ```
@@ -79,8 +79,8 @@ wrangler secret put GITHUB_TOKEN                   # optional: raises the releas
 Also set `GA4_MEASUREMENT_ID` in `wrangler.toml` (`G-…`, not a secret).
 Leaving it empty disables GA4 delivery; console logging still works.
 
-The custom domain in `wrangler.toml` requires `antseed.com` to be a zone on
-the same Cloudflare account (Workers → antseed-download-proxy → Domains &
+The custom domain in `wrangler.toml` requires `torveai.com` to be a zone on
+the same Cloudflare account (Workers → torve-download-proxy → Domains &
 Routes shows the binding after deploy). Remove the `[[routes]]` block to test
 on workers.dev first.
 

@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { positions, formatAnts, type PositionView } from '@antseed/ants';
+import { positions, formatAnts, type PositionView } from '@torveai/ants';
 import { ants, pct, printJson, runRead } from './shared.js';
 
 /** Exit-slash column: on-chain value when the contract reports one, otherwise the local estimate. */
@@ -21,7 +21,7 @@ export function registerAntsPositionsCommand(antsCmd: Command): void {
       if (view.rewardSource?.error) console.log(chalk.yellow(`Staking rewards unavailable: ${view.rewardSource.error}`));
       if (view.positions.length === 0) {
         console.log(chalk.yellow('No staking positions for this wallet.'));
-        console.log(chalk.dim('Stake with: antseed ants stake <amount> --agent <agentId> --epochs <n>'));
+        console.log(chalk.dim('Stake with: torve ants stake <amount> --agent <agentId> --epochs <n>'));
         return;
       }
       const table = new Table({ head: ['ID', 'Agent', 'Amount', 'Weight', 'Start', 'End', 'Left', 'State', 'Max lock', 'Pending', 'Exit slash'] });

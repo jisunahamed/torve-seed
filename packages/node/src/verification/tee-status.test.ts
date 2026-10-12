@@ -12,7 +12,7 @@ describe('seller-node TEE evidence', () => {
     expect(passedSellerNodeClaims([...claims, { ...claims[0]!, ok: false }])).toBe(false);
   });
   it('accepts only fresh successful evidence that is neither checking nor unavailable', () => {
-    const evidence: TeeEvidence = { peerId: 'seller', verifierId: 'antseed-verifier', fingerprint: 'caps', checkedAt: 100, expiresAt: 200, sellerNodeVerified: true, claims };
+    const evidence: TeeEvidence = { peerId: 'seller', verifierId: 'torve-verifier', fingerprint: 'caps', checkedAt: 100, expiresAt: 200, sellerNodeVerified: true, claims };
     expect(isFreshSellerNodeEvidence(undefined, 100)).toBe(false);
     expect(isFreshSellerNodeEvidence(evidence, 199)).toBe(true);
     expect(isFreshSellerNodeEvidence(evidence, 200)).toBe(false);

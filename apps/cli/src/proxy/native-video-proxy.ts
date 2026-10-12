@@ -1,4 +1,4 @@
-import { nativeVideoAcceptance, type NativeVideoRoute, type SerializedHttpResponse } from '@antseed/api-adapter'
+import { nativeVideoAcceptance, type NativeVideoRoute, type SerializedHttpResponse } from '@torveai/api-adapter'
 import type { ResourceRoute, ResourceRoutes } from './resource-routes.js'
 
 export interface VideoRequestError {
@@ -30,9 +30,9 @@ export function prepareVideoRequest(
 
 function pinHeaders(route: ResourceRoute): Record<string, string> {
   return {
-    'x-antseed-pin-peer': route.sellerPeerId,
-    'x-antseed-provider': route.provider,
-    'x-antseed-service': route.service,
+    'x-torve-pin-peer': route.sellerPeerId,
+    'x-torve-provider': route.provider,
+    'x-torve-service': route.service,
   }
 }
 
@@ -47,7 +47,7 @@ export function recordVideoAcceptance(
   seller: { peerId: string; provider: string; service: string | null },
   routes: ResourceRoutes,
 ): boolean {
-  response.headers['x-antseed-seller-peer'] = seller.peerId
+  response.headers['x-torve-seller-peer'] = seller.peerId
   if (route.action === 'retrieve') return false
   const resourceId = nativeVideoAcceptance(route.protocol, response)
   if (!resourceId || !seller.service) return false

@@ -7,11 +7,11 @@ export interface GateMinter { controller: string; shareBps: number; editable: bo
 
 /** Gate minter ids are `keccak256(id string)`. These are the M001 buckets. */
 export const GATE_MINTERS = [
-  { name: 'seller-pools', id: 'antseed.emissions.seller-pools.v1' },
-  { name: 'usage', id: 'antseed.emissions.usage.v1' },
-  { name: 'team', id: 'antseed.emissions.team.v1' },
-  { name: 'reserve', id: 'antseed.emissions.reserve.v1' },
-  { name: 'verification', id: 'antseed.emissions.verification.v1' },
+  { name: 'seller-pools', id: 'torve.emissions.seller-pools.v1' },
+  { name: 'usage', id: 'torve.emissions.usage.v1' },
+  { name: 'team', id: 'torve.emissions.team.v1' },
+  { name: 'reserve', id: 'torve.emissions.reserve.v1' },
+  { name: 'verification', id: 'torve.emissions.verification.v1' },
 ] as const;
 
 export function gateMinterId(id: string): string {

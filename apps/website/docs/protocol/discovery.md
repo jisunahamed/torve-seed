@@ -8,7 +8,7 @@ hide_title: true
 
 # Peer Discovery
 
-The discovery protocol uses a DHT network (built on BEP 5) as a decentralized directory of seller nodes, combined with an HTTP metadata endpoint for retrieving provider details and Skills. All nodes bootstrap through dedicated Antseed infrastructure.
+The discovery protocol uses a DHT network (built on BEP 5) as a decentralized directory of seller nodes, combined with an HTTP metadata endpoint for retrieving provider details and Skills. All nodes bootstrap through dedicated Torve infrastructure.
 
 ## DHT Topic Hashing
 
@@ -16,10 +16,10 @@ Sellers announce multiple topic types. Each topic is SHA1-hashed for DHT lookup.
 
 | Topic Type | Plain Topic String | Key Normalization |
 |---|---|---|
-| Wildcard | `antseed:*` | Fixed topic; also supports older buyers |
-| Subnet | `antseed:subnet:{index}` | First byte of normalized peer ID modulo 16 |
-| Peer | `antseed:peer:{peerId}` | Lowercase hex without the `0x` prefix |
-| Optional capability | `antseed:{capability}` or `antseed:{capability}:{name}` | `trim + lowercase`; announced for configured offerings |
+| Wildcard | `torve:*` | Fixed topic; also supports older buyers |
+| Subnet | `torve:subnet:{index}` | First byte of normalized peer ID modulo 16 |
+| Peer | `torve:peer:{peerId}` | Lowercase hex without the `0x` prefix |
+| Optional capability | `torve:{capability}` or `torve:{capability}:{name}` | `trim + lowercase`; announced for configured offerings |
 
 Each seller announces the wildcard, exactly one subnet topic, its per-peer topic,
 and any configured capability topics. There are no per-service, model-search, or
@@ -28,7 +28,7 @@ catalog, keeping the announcement count independent of the number of services.
 
 ### Enumeration and local service matching
 
-1. Query `SHA1("antseed:*")` to enumerate endpoints and warm the routing table.
+1. Query `SHA1("torve:*")` to enumerate endpoints and warm the routing table.
 2. Query subnet topics sequentially, not in parallel. A foreground time budget
    can limit the scan; subsequent scans rotate through the remaining subnets.
    The background sweep completes all subnets and can emit incremental results.
@@ -38,7 +38,7 @@ catalog, keeping the announcement count independent of the number of services.
 5. Match the requested service against the metadata catalog locally, then apply
    routing eligibility and ranking.
 
-A known peer can be resolved directly through `antseed:peer:{peerId}`.
+A known peer can be resolved directly through `torve:peer:{peerId}`.
 Capability-specific lookup is also available separately. Neither requires
 reintroducing per-model announcements.
 
@@ -46,8 +46,8 @@ reintroducing per-model announcements.
 
 | Host | Port |
 |---|---|
-| `dht1.antseed.com` | 6881 |
-| `dht2.antseed.com` | 6881 |
+| `dht1.torveai.com` | 6881 |
+| `dht2.torveai.com` | 6881 |
 
 ## DHT Configuration
 
@@ -111,7 +111,7 @@ By default, metadata is fetched from `http://{host}:{port}/metadata` (`metadataP
       { "domain": "provider.example.com", "methods": ["dns-txt"] }
     ],
     "github": [
-      { "username": "example-org", "repository": "antseed-verification" }
+      { "username": "example-org", "repository": "torve-verification" }
     ]
   },
   "signature": "eip191...130 hex chars"
@@ -163,8 +163,8 @@ Buyers reject metadata versions newer than they understand. A v10/v11 buyer ther
 
 Domain verification supports two proof transports:
 
-- DNS TXT at `_antseed.<domain>` with value `antseed-peer=<peer-id-without-0x>`
-- HTTPS well-known JSON at `https://<domain>/.well-known/antseed.json`
+- DNS TXT at `_torve.<domain>` with value `torve-peer=<peer-id-without-0x>`
+- HTTPS well-known JSON at `https://<domain>/.well-known/torve.json`
 
 A DNS-backed claim looks like:
 
@@ -178,14 +178,14 @@ A DNS-backed claim looks like:
 The matching DNS record is:
 
 ```text
-_antseed.provider.example.com TXT "antseed-peer=a1b2c3d4...40hex"
+_torve.provider.example.com TXT "torve-peer=a1b2c3d4...40hex"
 ```
 
 An HTTPS well-known proof uses this JSON shape:
 
 ```json
 {
-  "type": "antseed-domain-verification",
+  "type": "torve-domain-verification",
   "peerId": "a1b2c3d4...40hex",
   "domain": "provider.example.com"
 }
@@ -194,14 +194,14 @@ An HTTPS well-known proof uses this JSON shape:
 GitHub verification fetches a public file from:
 
 ```text
-https://raw.githubusercontent.com/<username>/<repository>/HEAD/antseed.json
+https://raw.githubusercontent.com/<username>/<repository>/HEAD/torve.json
 ```
 
 The proof file shape is:
 
 ```json
 {
-  "type": "antseed-github-verification",
+  "type": "torve-github-verification",
   "peerId": "a1b2c3d4...40hex",
   "username": "example-org"
 }

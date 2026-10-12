@@ -18,10 +18,10 @@ import {
   type NetworkServiceOffer,
   type ModelRoutingPreferences,
   type PeerInfo,
-} from '@antseed/node'
-import { canonicalModelKey, preferredModelDisplayName } from '@antseed/node/model-identity'
+} from '@torveai/node'
+import { canonicalModelKey, preferredModelDisplayName } from '@torveai/node/model-identity'
 
-export { effectiveModelReputationScore } from '@antseed/node'
+export { effectiveModelReputationScore } from '@torveai/node'
 
 export type NetworkModelType = 'text' | 'image' | 'decision' | 'video'
 
@@ -65,7 +65,7 @@ export type NetworkModelEntry = {
   aliases: string[]
   object: 'model'
   created: number
-  owned_by: 'antseed'
+  owned_by: 'torve'
   type: NetworkModelType
   supported_protocols: string[]
   context_length?: number
@@ -233,7 +233,7 @@ export function buildNetworkModels(
         aliases: [],
         object: 'model',
         created,
-        owned_by: 'antseed',
+        owned_by: 'torve',
         type: offer.type,
         supported_protocols: [],
         capability_coverage: {

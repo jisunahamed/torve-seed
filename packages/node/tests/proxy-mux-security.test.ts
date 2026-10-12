@@ -69,7 +69,7 @@ describe('ProxyMux security handling', () => {
         statusCode: 200,
         headers: {
           'content-type': 'text/event-stream',
-          'x-antseed-streaming': '1',
+          'x-torve-streaming': '1',
         },
         body: new Uint8Array(0),
       }),

@@ -17,7 +17,7 @@ import {
   parseAntsToBaseUnits,
   resolveCliContractStack,
 } from '../../payment-utils.js';
-import { estimateEarlyExit, type SellerPoolPosition } from '@antseed/node/payments';
+import { estimateEarlyExit, type SellerPoolPosition } from '@torveai/node/payments';
 
 export function positionState(position: SellerPoolPosition, currentEpoch: number): string {
   if (position.withdrawn) return 'withdrawn';
@@ -192,7 +192,7 @@ export async function runPoolStake(
     const [minEpochs, maxEpochs] = await Promise.all([pools.minStakeEpochs(), pools.maxStakeEpochs()]);
     validateStakeEpochs(options.epochs, minEpochs, maxEpochs);
     const agentId = await registry.getRegisteredAgentId(address);
-    if (!agentId) throw new Error('Registration needs updating before you can stake. Run: antseed seller register. Your existing identity will be kept.');
+    if (!agentId) throw new Error('Registration needs updating before you can stake. Run: torve seller register. Your existing identity will be kept.');
     const token = createAntsTokenClient(config);
     const balance = await token.balanceOf(address);
     if (balance < amountBaseUnits) throw new Error(`Insufficient ANTS balance: have ${formatAnts(balance)}, need ${formatAnts(amountBaseUnits)}.`);

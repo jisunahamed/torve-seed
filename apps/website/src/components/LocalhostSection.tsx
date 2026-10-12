@@ -178,7 +178,7 @@ function TerminalCard({blocks}: {blocks: TBlock[]}) {
 
 const FLOW_CHIPS = [
   {icon: 'flow-flash', label: 'REQUEST'},
-  {icon: 'flow-internet', label: 'ANTSEED NETWORK'},
+  {icon: 'flow-internet', label: 'TORVE NETWORK'},
   {icon: 'flow-user', label: 'BEST PROVIDER'},
   {icon: 'flow-check', label: 'RESPONSE'},
 ];

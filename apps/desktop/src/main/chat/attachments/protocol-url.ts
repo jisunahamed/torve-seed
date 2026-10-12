@@ -6,7 +6,7 @@
  * pulling in the Electron runtime.
  */
 
-export const ATTACHMENT_SCHEME = 'antseed-attachment';
+export const ATTACHMENT_SCHEME = 'torve-attachment';
 
 export type ParsedAttachmentUrl = {
   conversationId: string;

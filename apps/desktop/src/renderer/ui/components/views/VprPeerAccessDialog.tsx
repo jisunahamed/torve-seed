@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, Modal } from '@antseed/ui';
+import { Button, Modal } from '@torveai/ui';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 import type { VprPeerListing, VprRoutingPreferences } from '../../../core/state';

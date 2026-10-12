@@ -1,10 +1,10 @@
-appId: com.antseed.desktop
-productName: Antseed AI VPN
+appId: com.torveai.desktop
+productName: Torve AI VPN
 # Keep the installed bundle/executable path stable across the visible rename.
 # The running old version performs the first update, so changing this in the
 # same release could strand macOS relaunches or move the Windows install path.
-executableName: AntSeed VPR
-copyright: Copyright © 2025-2026 Antseed
+executableName: Torve VPR
+copyright: Copyright © 2025-2026 Torve
 electronVersion: 31.7.7
 npmRebuild: false
 
@@ -71,46 +71,46 @@ extraResources:
   # extraResources blocks below). The tiny model is no longer bundled — the app
   # downloads it into userData on first transcription (voice-transcription.ts),
   # which cuts ~74 MB from every installer.
-  - from: ../../skills/antseed-images
-    to: skills/antseed-images
-  - from: ../../skills/antseed-videos
-    to: skills/antseed-videos
+  - from: ../../skills/torve-images
+    to: skills/torve-images
+  - from: ../../skills/torve-videos
+    to: skills/torve-videos
   - from: cli-dist/
     to: cli-dist/
     filter:
       - "**/*"
-  - from: ../../packages/antseed-verifier/dist
-    to: bundled-plugins/@antseed/antseed-verifier/dist
+  - from: ../../packages/torve-verifier/dist
+    to: bundled-plugins/@torveai/torve-verifier/dist
     filter:
       - "**/*.js"
-  - from: ../../packages/antseed-verifier/package.json
-    to: bundled-plugins/@antseed/antseed-verifier/package.json
+  - from: ../../packages/torve-verifier/package.json
+    to: bundled-plugins/@torveai/torve-verifier/package.json
   - from: ../../plugins/router-local/dist
-    to: bundled-plugins/@antseed/router-local/dist
+    to: bundled-plugins/@torveai/router-local/dist
     filter:
       - "**/*.js"
   - from: ../../plugins/router-local/package.json
-    to: bundled-plugins/@antseed/router-local/package.json
-  - from: ../../plugins/router-local/node_modules/@antseed/router-core/dist
-    to: bundled-plugins/@antseed/router-core/dist
+    to: bundled-plugins/@torveai/router-local/package.json
+  - from: ../../plugins/router-local/node_modules/@torveai/router-core/dist
+    to: bundled-plugins/@torveai/router-core/dist
     filter:
       - "**/*.js"
-  - from: ../../plugins/router-local/node_modules/@antseed/router-core/package.json
-    to: bundled-plugins/@antseed/router-core/package.json
+  - from: ../../plugins/router-local/node_modules/@torveai/router-core/package.json
+    to: bundled-plugins/@torveai/router-core/package.json
   - from: ../../packages/node/dist
-    to: bundled-plugins/@antseed/node/dist
+    to: bundled-plugins/@torveai/node/dist
     filter:
       - "**/*.js"
   - from: ../../packages/node/package.json
-    to: bundled-plugins/@antseed/node/package.json
+    to: bundled-plugins/@torveai/node/package.json
   - from: ../../packages/api-adapter/dist
-    to: bundled-plugins/@antseed/api-adapter/dist
+    to: bundled-plugins/@torveai/api-adapter/dist
     filter:
       - "**/*.js"
   - from: ../../packages/api-adapter/package.json
-    to: bundled-plugins/@antseed/api-adapter/package.json
+    to: bundled-plugins/@torveai/api-adapter/package.json
   # bundled-runtime contains the full transitive runtime dependency tree of
-  # @antseed/node (ethers, @silentbot1/nat-api, tokenx, ...) materialized as
+  # @torveai/node (ethers, @silentbot1/nat-api, tokenx, ...) materialized as
   # real files by scripts/prepare-dist.mjs. We expose it under bundled-plugins
   # so plugins.ts.installPluginFromBundle can copy everything offline without
   # going through npm.
@@ -137,7 +137,7 @@ mac:
       filter:
         - "bin/darwin-*/**"
   category: public.app-category.developer-tools
-  icon: assets/antseed-dock-icon.png
+  icon: assets/torve-dock-icon.png
   extendInfo:
     NSMicrophoneUsageDescription: AntStation uses your microphone to record voice messages for local transcription.
   identity: "Shahaf Antwarg (H3M5BXXQR2)"
@@ -163,7 +163,7 @@ win:
       to: whisper/
       filter:
         - "bin/win32-*/**"
-  icon: assets/antseed-dock-icon.png
+  icon: assets/torve-dock-icon.png
   # Custom sign hook: cloud code signing over the CA's HTTPS API (see the
   # script header for the flow). No-ops when the WIN_SIGN_* env vars are
   # absent (unsigned local builds). sha256 only — the sha1 pass adds
@@ -177,7 +177,7 @@ win:
   # arm64 half shipped x64 native modules and could not start anyway.
   # Windows-on-ARM runs the x64 build under emulation. If we ever ship real
   # arm64, mirror release-mac.mjs: one electron-builder pass per arch with
-  # ANTSEED_PACK_ARCH set and ${arch} in the artifact name.
+  # TORVE_PACK_ARCH set and ${arch} in the artifact name.
   target:
     - target: nsis
       arch:
@@ -194,10 +194,10 @@ linux:
       to: whisper/
       filter:
         - "bin/linux-*/**"
-  icon: assets/antseed-dock-icon.png
+  icon: assets/torve-dock-icon.png
   category: Development
   # Deterministic names (default deb naming uses the package name + amd64):
-  # Antseed-AI VPN-<version>-<x64|arm64>.<AppImage|deb>. The website download
+  # Torve-AI VPN-<version>-<x64|arm64>.<AppImage|deb>. The website download
   # matcher and the alpha mirror both rely on this shape.
   artifactName: "${productName}-${version}-${arch}.${ext}"
   # NOTE: arch is intentionally NOT pinned here (same reasoning as mac above).
@@ -210,5 +210,5 @@ linux:
 
 publish:
   provider: github
-  owner: AntSeed
-  repo: antseed
+  owner: Torve
+  repo: torve

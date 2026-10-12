@@ -108,7 +108,7 @@ function PrivateByDesign() {
 }
 
 /* ============================================================
-   PILLARS — the five things Antseed is, one line each. Replaces the
+   PILLARS — the five things Torve is, one line each. Replaces the
    localhost terminal on the homepage; the audience pages carry the
    long versions.
    ============================================================ */
@@ -228,19 +228,19 @@ const FAQ_LD = faqJsonLd(HOME_FAQ);
 const ORG_LD = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
-  name: 'Antseed',
-  url: 'https://antseed.com/',
-  logo: 'https://antseed.com/logo.svg',
+  name: 'Torve',
+  url: 'https://torveai.com/',
+  logo: 'https://torveai.com/logo.svg',
   description:
-    'Antseed is a decentralized peer-to-peer marketplace for AI inference. Providers compete on price to run any AI model, with no central account.',
+    'Torve is a decentralized peer-to-peer marketplace for AI inference. Providers compete on price to run any AI model, with no central account.',
   sameAs: [
-    'https://github.com/AntSeed/antseed',
-    'https://x.com/antseed',
-    'https://t.me/antseed',
+    'https://github.com/Torve/torve',
+    'https://x.com/torve',
+    'https://t.me/torve',
   ],
 };
 
-const HOME_TITLE = 'Antseed | The Open Market for AI Inference';
+const HOME_TITLE = 'Torve | The Open Market for AI Inference';
 const HOME_DESCRIPTION =
   'Run your agents on your terms. Save on every AI model. No usage limits, no middleman, always anonymous.';
 

@@ -2,12 +2,12 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { buildVerifierCapabilities, normalizeVerifierIds, parseVerifierCapabilities, resolveVerifierPolicy, selectVerifier, verifierSupportFingerprint, withVerifyTimeout } from './verifier.js'
 
-const TEE = 'antseed-verifier'
+const TEE = 'torve-verifier'
 
 test('buildVerifierCapabilities: first id is the default; dot-separated (PEER_CAPABILITY_PATTERN-safe)', () => {
   assert.deepEqual(buildVerifierCapabilities([TEE, 'acme-x']), [
-    'verifier.antseed-verifier',
-    'verifier-default.antseed-verifier',
+    'verifier.torve-verifier',
+    'verifier-default.torve-verifier',
     'verifier.acme-x',
   ])
 })
@@ -44,8 +44,8 @@ test('selectVerifier: prefers requested trusted SDKs, otherwise trusted seller d
 
 test('normalizeVerifierIds: lowercases/dedupes/drops-blanks and rejects invalid chars', () => {
   assert.deepEqual(
-    normalizeVerifierIds(' Antseed-Verifier , acme-x , antseed-verifier , '),
-    ['antseed-verifier', 'acme-x'],
+    normalizeVerifierIds(' Torve-Verifier , acme-x , torve-verifier , '),
+    ['torve-verifier', 'acme-x'],
   )
   for (const bad of ['@scope/pkg', 'has space', 'up/slash']) {
     assert.throws(() => normalizeVerifierIds(bad), /invalid verifier id/)
@@ -72,8 +72,8 @@ test('withVerifyTimeout: resolves in time, times out, and surfaces an outer abor
 })
 
 test('verifierSupportFingerprint: changes when advertised verifiers change (cache invalidation)', () => {
-  const a = verifierSupportFingerprint(['verifier.antseed-verifier', 'verifier-default.antseed-verifier'])
+  const a = verifierSupportFingerprint(['verifier.torve-verifier', 'verifier-default.torve-verifier'])
   const b = verifierSupportFingerprint(['verifier.acme-x'])
   assert.notEqual(a, b)
-  assert.equal(a, verifierSupportFingerprint(['verifier-default.antseed-verifier', 'verifier.antseed-verifier']))
+  assert.equal(a, verifierSupportFingerprint(['verifier-default.torve-verifier', 'verifier.torve-verifier']))
 })

@@ -17,8 +17,8 @@ export const rendererUrl = process.env['VITE_DEV_SERVER_URL'] ?? `file://${RENDE
 
 export const INTERNAL_APP_NAME = 'AntStation Desktop';
 const devInstanceName = isMultiInstanceDevelopment() ? desktopInstanceName() : '';
-export const APP_NAME = devInstanceName ? `Antseed AI VPN [${devInstanceName}]` : 'Antseed AI VPN';
-export const DESKTOP_DEBUG_ENV = 'ANTSEED_DESKTOP_DEBUG';
+export const APP_NAME = devInstanceName ? `Torve AI VPN [${devInstanceName}]` : 'Torve AI VPN';
+export const DESKTOP_DEBUG_ENV = 'TORVE_DESKTOP_DEBUG';
 export const DESKTOP_DEBUG_FLAGS = new Set(['--debug-runtime', '--desktop-debug']);
 
 export type UpdateStatus =
@@ -72,13 +72,13 @@ export function getMacUpdateInstallHint(): string | undefined {
 
   const executablePath = process.execPath;
   if (executablePath.includes('/AppTranslocation/')) {
-    return 'Quit Antseed, move it to Applications, reopen, and try again.';
+    return 'Quit Torve, move it to Applications, reopen, and try again.';
   }
   if (executablePath.startsWith('/Volumes/')) {
-    return 'Quit Antseed, move it from the disk image to Applications, reopen, and try again.';
+    return 'Quit Torve, move it from the disk image to Applications, reopen, and try again.';
   }
   if (executablePath.includes('.app/') && !executablePath.startsWith('/Applications/')) {
-    return 'Quit Antseed, move it to Applications, reopen, and try again.';
+    return 'Quit Torve, move it to Applications, reopen, and try again.';
   }
   return undefined;
 }
@@ -101,8 +101,8 @@ export function resolveAssetPath(...names: string[]): string | undefined {
   return undefined;
 }
 
-export const APP_ICON_PATH = resolveAssetPath('antseed-dock-icon.png', 'antseed-mark.png');
-export const TRAY_ICON_PATH = resolveAssetPath('antseed-mark.png', 'antseed-dock-icon.png');
+export const APP_ICON_PATH = resolveAssetPath('torve-dock-icon.png', 'torve-mark.png');
+export const TRAY_ICON_PATH = resolveAssetPath('torve-mark.png', 'torve-dock-icon.png');
 
 // Set the internal app name as early as possible — before any safeStorage use,
 // since it determines the macOS keychain entry. On macOS dev runs some surfaces

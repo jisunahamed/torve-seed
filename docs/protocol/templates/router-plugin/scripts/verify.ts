@@ -2,12 +2,12 @@
  * Router plugin verification script.
  *
  * Checks that:
- *  1. The plugin default export satisfies AntseedRouterPlugin
+ *  1. The plugin default export satisfies TorveRouterPlugin
  *  2. createRouter() returns a valid Router
  *  3. selectPeer returns null for empty peer list, a peer for non-empty
  *  4. onResult completes without error
  */
-import type { AntseedRouterPlugin } from '@antseed/node';
+import type { TorveRouterPlugin } from '@torveai/node';
 import plugin from '../src/index.js';
 
 let passed = 0;
@@ -27,8 +27,8 @@ async function main(): Promise<void> {
   console.log('Verifying router plugin...\n');
 
   // --- 1. Plugin shape ---
-  console.log('1. Plugin shape (AntseedRouterPlugin)');
-  const p = plugin as AntseedRouterPlugin;
+  console.log('1. Plugin shape (TorveRouterPlugin)');
+  const p = plugin as TorveRouterPlugin;
   assert(p.type === 'router', 'plugin.type is "router"');
   assert(typeof p.name === 'string' && p.name.length > 0, 'plugin.name is a non-empty string');
   assert(typeof p.displayName === 'string', 'plugin.displayName is a string');

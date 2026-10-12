@@ -1,5 +1,5 @@
 import { Button, Card } from './ui';
-import { Modal } from '@antseed/ui';
+import { Modal } from '@torveai/ui';
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../app-context';

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { QueryClient } from '@tanstack/query-core'
-import { TEE_BADGE_MAX_AGE_MS, TEE_MAX_AGE_MS, TEE_VERIFIER_ID, type TeeEvidence, type TeeSnapshot } from '@antseed/node/tee-status'
-import { parseVerifierCapabilities } from '@antseed/node/verifier-capabilities'
+import { TEE_BADGE_MAX_AGE_MS, TEE_MAX_AGE_MS, TEE_VERIFIER_ID, type TeeEvidence, type TeeSnapshot } from '@torveai/node/tee-status'
+import { parseVerifierCapabilities } from '@torveai/node/verifier-capabilities'
 import { selectVerifier, verifierSupportFingerprint, type VerifierPolicy, type VerifyOutcome } from '../plugins/verifier.js'
 
 type Peer = { peerId: string; capabilities?: string[] }

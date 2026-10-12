@@ -7,11 +7,11 @@ hide_title: true
 
 # Configuration
 
-Antseed stores configuration at `~/.antseed/config.json`. This file is the normal source of truth for your node.
+Torve stores configuration at `~/.torve/config.json`. This file is the normal source of truth for your node.
 
 The intended workflow is:
 
-1. Create or update `config.json` with `antseed seller setup` or `antseed config ...`
+1. Create or update `config.json` with `torve seller setup` or `torve config ...`
 2. Keep non-secret settings there: providers, services, pricing, capabilities, billing models, ports, bootstrap nodes
 3. Keep secrets in environment variables: API keys, identity key
 4. Start your node with the grouped runtime commands
@@ -19,33 +19,33 @@ The intended workflow is:
 Once your config file is populated, the normal seller startup path is just:
 
 ```bash
-antseed seller start
+torve seller start
 ```
 
 And the normal buyer startup path is:
 
 ```bash
-antseed buyer start
+torve buyer start
 ```
 
 You only need extra flags when you want to override the saved config for a specific run.
 
 ## How the Config File Gets Created
 
-You do not need to hand-write `~/.antseed/config.json` unless you want to.
+You do not need to hand-write `~/.torve/config.json` unless you want to.
 
 Common ways to create it:
 
 ```bash
 # Interactive seller onboarding
-antseed seller setup
+torve seller setup
 
 # Add or update config entries directly
-antseed config seller add-provider together --plugin openai --base-url https://api.together.ai
-antseed config seller add-service together deepseek-v3.1 \
+torve config seller add-provider together --plugin openai --base-url https://api.together.ai
+torve config seller add-service together deepseek-v3.1 \
   --upstream "deepseek-ai/DeepSeek-V3.1" \
   --input 0.6 --cached 0.06 --output 1.7
-antseed config set identity.displayName "Acme Inference"
+torve config set identity.displayName "Acme Inference"
 ```
 
 `--cached` is optional. Set it (on either `add-provider --cached ...` for defaults or `add-service --cached ...` per service) when your upstream charges a reduced rate for cached-input tokens (e.g. Anthropic prompt caching, OpenAI prompt caching).
@@ -59,12 +59,12 @@ Use `config.json` for durable node behavior. Use env vars for secrets and tempor
 | Put it in `config.json` | Put it in env vars |
 |---|---|
 | Provider/plugin selection | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` |
-| `baseUrl` for OpenAI-compatible providers | `ANTSEED_IDENTITY_HEX` |
-| Service list, categories, and capabilities | `ANTSEED_DEBUG=1` |
+| `baseUrl` for OpenAI-compatible providers | `TORVE_IDENTITY_HEX` |
+| Service list, categories, and capabilities | `TORVE_DEBUG=1` |
 | Token pricing and per-service unit billing | One-off runtime overrides in deployment scripts |
 | Domain/GitHub verification claims | |
-| `payments.crypto.rpcUrl` for durable RPC config | `ANTSEED_BASE_RPC_URL` for deployment-specific Base RPC endpoints |
-| Buyer proxy port and peer refresh interval | `ANTSEED_DATA_DIR` for per-process buyer state isolation |
+| `payments.crypto.rpcUrl` for durable RPC config | `TORVE_BASE_RPC_URL` for deployment-specific Base RPC endpoints |
+| Buyer proxy port and peer refresh interval | `TORVE_DATA_DIR` for per-process buyer state isolation |
 | Bootstrap nodes | |
 
 For example, this is a normal production pattern:
@@ -103,13 +103,13 @@ For example, this is a normal production pattern:
 
 ```bash
 export OPENAI_API_KEY=<your-key>
-export ANTSEED_IDENTITY_HEX=<your-identity-key>
-antseed seller start
+export TORVE_IDENTITY_HEX=<your-identity-key>
+torve seller start
 ```
 
 ## Override Precedence
 
-When the same setting exists in multiple places, Antseed resolves it in this order:
+When the same setting exists in multiple places, Torve resolves it in this order:
 
 1. CLI flags for the current command
 2. Environment variables
@@ -119,28 +119,28 @@ When the same setting exists in multiple places, Antseed resolves it in this ord
 So if `config.json` already contains your provider and service setup, you can still do a one-off run like:
 
 ```bash
-antseed seller start --provider together --input-usd-per-million 0.7
+torve seller start --provider together --input-usd-per-million 0.7
 ```
 
 That changes only the current process. It does not rewrite `config.json`.
 
 ## Data Directory vs Config File
 
-`config.json` controls durable settings, but buyer runtime state is isolated by the data directory. The default data directory is `~/.antseed`; it contains `buyer.state.json`, SQLite databases, payment-channel files, and the fallback `identity.key`.
+`config.json` controls durable settings, but buyer runtime state is isolated by the data directory. The default data directory is `~/.torve`; it contains `buyer.state.json`, SQLite databases, payment-channel files, and the fallback `identity.key`.
 
 For each independent buyer node, service integration, isolated test, or concurrent process, use a separate data directory:
 
 ```bash
-export BUYDIR="$HOME/.antseed-buyer-myapp"
+export BUYDIR="$HOME/.torve-buyer-myapp"
 mkdir -p "$BUYDIR"
 
-ANTSEED_DATA_DIR="$BUYDIR" \
-antseed --data-dir "$BUYDIR" buyer start \
+TORVE_DATA_DIR="$BUYDIR" \
+torve --data-dir "$BUYDIR" buyer start \
   --peer <peer-id> \
   --port 8380
 ```
 
-Prefer `--data-dir` in service/systemd scripts. `ANTSEED_DATA_DIR` is equivalent when the flag is not supplied. If buyer behavior looks stale or files appear in an unexpected place, check the startup log for the resolved data directory and `buyer.state.json` path. Do not rely on `ANTSEED_HOME` for CLI buyer state isolation.
+Prefer `--data-dir` in service/systemd scripts. `TORVE_DATA_DIR` is equivalent when the flag is not supplied. If buyer behavior looks stale or files appear in an unexpected place, check the startup log for the resolved data directory and `buyer.state.json` path. Do not rely on `TORVE_HOME` for CLI buyer state isolation.
 
 ## Config Sections
 
@@ -232,40 +232,40 @@ If you store `baseUrl` in `config.json`, you do not need to export `OPENAI_BASE_
 
 ## Adding a Provider (CLI)
 
-Use `antseed config seller add-provider` to create a provider entry and install the matching plugin package:
+Use `torve config seller add-provider` to create a provider entry and install the matching plugin package:
 
 ```bash
 # Add a provider backed by the openai plugin, pointed at Together AI
 # --cached sets the default cached-input price for every service under
 # this provider (overridable per service). Omit it if your upstream does
 # not offer a cached-input discount.
-antseed config seller add-provider together \
+torve config seller add-provider together \
   --plugin openai \
   --base-url https://api.together.ai \
   --input 1 --cached 0.1 --output 2
 
 # Add another using the same plugin for OpenRouter
-antseed config seller add-provider openrouter \
+torve config seller add-provider openrouter \
   --plugin openai \
   --base-url https://openrouter.ai/api/v1
 
 # Remove a provider
-antseed config seller remove-provider openrouter
+torve config seller remove-provider openrouter
 ```
 
 After adding a provider, you typically add one or more services and then start with:
 
 ```bash
 export OPENAI_API_KEY=<your-key>
-antseed seller start
+torve seller start
 ```
 
 ## Adding a Service (CLI)
 
-Use `antseed config seller add-service` to add a service entry in one shot:
+Use `torve config seller add-service` to add a service entry in one shot:
 
 ```bash
-antseed config seller add-service together deepseek-v3.1 \
+torve config seller add-service together deepseek-v3.1 \
   --upstream "deepseek-ai/DeepSeek-V3.1" \
   --input 0.60 --output 1.70 --cached 0.06 \
   --categories chat,math,coding \
@@ -275,7 +275,7 @@ antseed config seller add-service together deepseek-v3.1 \
 Capabilities and image unit pricing are JSON options:
 
 ```bash
-antseed config seller add-service openai flux.1-schnell \
+torve config seller add-service openai flux.1-schnell \
   --upstream "black-forest-labs/FLUX.1-schnell" \
   --input 0 --output 0 \
   --categories image,creative \
@@ -283,20 +283,20 @@ antseed config seller add-service openai flux.1-schnell \
   --unit-billing-models '{"openai-images":{"version":1,"components":[{"unit":"output_images","priceUsd":0.003}]}}'
 ```
 
-The interactive `antseed seller setup` flow builds the capabilities object for you with one question per field, tailored to the service's protocol: image models are asked about input modalities and supported request parameters (image output is announced automatically), text models about context window, modalities, reasoning, tool use, structured output, and supported parameters. Answer `y` at the capabilities prompt, or paste a JSON object there to skip the guided flow. Unit billing models are still entered as JSON. The CLI serializes both into plugin runtime config. Seller startup warns when unit billing is configured for a plugin that does not declare support.
+The interactive `torve seller setup` flow builds the capabilities object for you with one question per field, tailored to the service's protocol: image models are asked about input modalities and supported request parameters (image output is announced automatically), text models about context window, modalities, reasoning, tool use, structured output, and supported parameters. Answer `y` at the capabilities prompt, or paste a JSON object there to skip the guided flow. Unit billing models are still entered as JSON. The CLI serializes both into plugin runtime config. Seller startup warns when unit billing is configured for a plugin that does not declare support.
 
 To remove one:
 
 ```bash
-antseed config seller remove-service together deepseek-v3.1
+torve config seller remove-service together deepseek-v3.1
 ```
 
 You can also edit individual fields directly:
 
 ```bash
-antseed config seller set providers.together.services.deepseek-v3.1.pricing.inputUsdPerMillion 0.55
-antseed config seller set providers.together.services.deepseek-v3.1.categories '["chat","math","coding","fast"]'
-antseed config seller set providers.together.services.deepseek-v3.1.capabilities '{"contextWindow":128000,"inputs":["text"],"toolUse":true}'
+torve config seller set providers.together.services.deepseek-v3.1.pricing.inputUsdPerMillion 0.55
+torve config seller set providers.together.services.deepseek-v3.1.categories '["chat","math","coding","fast"]'
+torve config seller set providers.together.services.deepseek-v3.1.capabilities '{"contextWindow":128000,"inputs":["text"],"toolUse":true}'
 ```
 
 ## Free-Tier Limits
@@ -327,9 +327,9 @@ At least one of the two must be set. When using both, set the IP limit higher th
 Configure it from the CLI or edit `config.json` directly:
 
 ```bash
-antseed config seller set freeTier.maxRequestsPerAddress 100
-antseed config seller set freeTier.maxRequestsPerIp 300
-antseed config seller set freeTier.windowMs 86400000
+torve config seller set freeTier.maxRequestsPerAddress 100
+torve config seller set freeTier.maxRequestsPerIp 300
+torve config seller set freeTier.windowMs 86400000
 ```
 
 Omit `windowMs` to use the 24-hour default. Remove `seller.freeTier` to restore unlimited zero-priced service access.
@@ -343,8 +343,8 @@ A refused buyer gets a short message instead of a dropped connection: the reques
 Set your own list of ISO country codes, or `[]` to turn the check off:
 
 ```bash
-antseed config seller set restrictedCountries '["CU","IR","KP","SY","RU"]'
-antseed config seller set restrictedCountries '[]'
+torve config seller set restrictedCountries '["CU","IR","KP","SY","RU"]'
+torve config seller set restrictedCountries '[]'
 ```
 
 ## Free-Usage Transactions
@@ -367,8 +367,8 @@ The seller controls how often usage is written:
 A `record` transaction is sent as soon as `recordBatchSize` free requests have accumulated on a channel, or after `recordFlushIntervalMs` milliseconds since the first unrecorded request, whichever comes first. The flush always happens before the channel deadline, because records submitted after it are rejected by the contract. Raising either value means fewer transactions per active buyer; usage is never dropped, only written later. The defaults are 16 requests and 15 minutes.
 
 ```bash
-antseed config seller set freeUsage.recordBatchSize 64
-antseed config seller set freeUsage.recordFlushIntervalMs 3600000
+torve config seller set freeUsage.recordBatchSize 64
+torve config seller set freeUsage.recordFlushIntervalMs 3600000
 ```
 
 Both values must be positive integers; `recordFlushIntervalMs` must be at least 1000.
@@ -416,8 +416,8 @@ Model-only requests use one shared Price + Trust policy in the CLI buyer proxy a
 Eligible offers are ranked using trust, token or image price, cached-input pricing coverage, recent failures, cooldowns, and `preferFreePeers`. `maxInputUsdPerMillion` is a strong price preference in that ranking; the separate hierarchical `maxPricing` policy remains the hard price-cap mechanism:
 
 ```bash
-antseed config buyer set maxPricing.defaults.inputUsdPerMillion 25
-antseed config buyer set maxPricing.defaults.outputUsdPerMillion 75
+torve config buyer set maxPricing.defaults.inputUsdPerMillion 25
+torve config buyer set maxPricing.defaults.outputUsdPerMillion 75
 ```
 
 The desktop writes routing-preference changes to this same config. A running buyer proxy watches the config file and reloads valid `buyer.routingPreferences` changes automatically.
@@ -425,44 +425,44 @@ The desktop writes routing-preference changes to this same config. A running buy
 The buyer proxy refreshes its discovered peer cache from the DHT in the background. The default is 5 minutes, and you can tune it in milliseconds:
 
 ```bash
-antseed config buyer set peerRefreshIntervalMs 300000
+torve config buyer set peerRefreshIntervalMs 300000
 ```
 
 Each discovered endpoint is then queried over HTTP for signed peer metadata. The default per-endpoint metadata fetch timeout is 1500ms; raise it for high-latency networks or lower it to make discovery skip slow/offline endpoints faster:
 
 ```bash
-antseed config buyer set metadataFetchTimeoutMs 1500
+torve config buyer set metadataFetchTimeoutMs 1500
 ```
 
 For one process, use either the runtime flag or env var instead of writing config:
 
 ```bash
-antseed buyer start --metadata-fetch-timeout-ms 1500
-ANTSEED_BUYER_METADATA_FETCH_TIMEOUT_MS=1500 antseed buyer start
+torve buyer start --metadata-fetch-timeout-ms 1500
+TORVE_BUYER_METADATA_FETCH_TIMEOUT_MS=1500 torve buyer start
 ```
 
 Long-running models can exceed the defaults (5 minutes for `requestTimeoutMs`, 30 minutes for `maxStreamDurationMs`). Configure the initial/non-streaming request timeout and the maximum total stream duration independently:
 
 ```bash
-antseed config buyer set requestTimeoutMs 600000
-antseed config buyer set maxStreamDurationMs 3600000
+torve config buyer set requestTimeoutMs 600000
+torve config buyer set maxStreamDurationMs 3600000
 ```
 
-`requestTimeoutMs` applies while waiting for a non-streaming response or for a stream to begin. Once streaming starts, idle-stream protection remains active, while `maxStreamDurationMs` controls the total permitted stream lifetime. The stream cap can also be set per process with the `ANTSEED_BUYER_MAX_STREAM_DURATION_MS` environment variable.
+`requestTimeoutMs` applies while waiting for a non-streaming response or for a stream to begin. Once streaming starts, idle-stream protection remains active, while `maxStreamDurationMs` controls the total permitted stream lifetime. The stream cap can also be set per process with the `TORVE_BUYER_MAX_STREAM_DURATION_MS` environment variable.
 
 Buyer SpendingAuth and free-usage metadata v2 include aggregate usage totals by default. They also include per-service attribution unless disabled. Privacy-sensitive buyers can keep aggregate accounting while suppressing service IDs and per-service totals:
 
 ```bash
-antseed config buyer set disableMetadataV2Services true
-antseed buyer start --disable-metadata-v2-services
-ANTSEED_BUYER_DISABLE_METADATA_V2_SERVICES=true antseed buyer start
+torve config buyer set disableMetadataV2Services true
+torve buyer start --disable-metadata-v2-services
+TORVE_BUYER_DISABLE_METADATA_V2_SERVICES=true torve buyer start
 ```
 
 ## Identity and Metadata
 
 ```bash
-antseed config set identity.displayName "Acme Inference - us-east-1"
-antseed config seller set publicAddress "peer.example.com:6882"
+torve config set identity.displayName "Acme Inference - us-east-1"
+torve config seller set publicAddress "peer.example.com:6882"
 ```
 
 ## Domain and GitHub Verification
@@ -486,7 +486,7 @@ Add claims under `seller.verifications`:
       "github": [
         {
           "username": "example-org",
-          "repository": "antseed-verification"
+          "repository": "torve-verification"
         }
       ]
     }
@@ -496,25 +496,25 @@ Add claims under `seller.verifications`:
 
 ### Domain proof
 
-For DNS TXT verification, create a TXT record at `_antseed.<domain>`:
+For DNS TXT verification, create a TXT record at `_torve.<domain>`:
 
 ```text
-Name:  _antseed.provider.example.com
+Name:  _torve.provider.example.com
 Type:  TXT
-Value: antseed-peer=<peer-id-without-0x>
+Value: torve-peer=<peer-id-without-0x>
 ```
 
 Example:
 
 ```text
-antseed-peer=9e8f9aaee684298b7f2af2ae008e3692f0e9f4f7
+torve-peer=9e8f9aaee684298b7f2af2ae008e3692f0e9f4f7
 ```
 
-If you prefer HTTPS verification, serve this JSON at `https://<domain>/.well-known/antseed.json` and configure the claim with `"methods": ["https-well-known"]`:
+If you prefer HTTPS verification, serve this JSON at `https://<domain>/.well-known/torve.json` and configure the claim with `"methods": ["https-well-known"]`:
 
 ```json
 {
-  "type": "antseed-domain-verification",
+  "type": "torve-domain-verification",
   "peerId": "9e8f9aaee684298b7f2af2ae008e3692f0e9f4f7",
   "domain": "provider.example.com"
 }
@@ -524,17 +524,17 @@ Do not redirect the well-known URL; verifiers require the proof to be served dir
 
 ### GitHub proof
 
-Create a public repository and place `antseed.json` at the repository root. Antseed fetches:
+Create a public repository and place `torve.json` at the repository root. Torve fetches:
 
 ```text
-https://raw.githubusercontent.com/<username>/<repository>/HEAD/antseed.json
+https://raw.githubusercontent.com/<username>/<repository>/HEAD/torve.json
 ```
 
 The file must contain:
 
 ```json
 {
-  "type": "antseed-github-verification",
+  "type": "torve-github-verification",
   "peerId": "9e8f9aaee684298b7f2af2ae008e3692f0e9f4f7",
   "username": "example-org"
 }
@@ -591,21 +591,21 @@ Per-service agents (different agents for different services):
 }
 ```
 
-See the [`@antseed/ant-agent` README](https://github.com/AntSeed/antseed/tree/main/packages/ant-agent) for the full manifest reference.
+See the [`@torveai/ant-agent` README](https://github.com/Torve/torve/tree/main/packages/ant-agent) for the full manifest reference.
 
 ## Identity Storage
 
 | Priority | Method | Best for |
 |---|---|---|
-| 1 | `ANTSEED_IDENTITY_HEX` env var | CLI and server deployments |
-| 2 | Desktop keychain (Electron `safeStorage`) | Antseed Desktop app |
+| 1 | `TORVE_IDENTITY_HEX` env var | CLI and server deployments |
+| 2 | Desktop keychain (Electron `safeStorage`) | Torve Desktop app |
 | 3 | Custom `IdentityStore` | KMS/HSM integrations |
-| 4 | `~/.antseed/identity.key` (plaintext) | Not recommended for production |
+| 4 | `~/.torve/identity.key` (plaintext) | Not recommended for production |
 
 For production servers, pass the key from a secrets manager:
 
 ```bash
-export ANTSEED_IDENTITY_HEX="$(vault kv get -field=key secret/antseed/identity)"
+export TORVE_IDENTITY_HEX="$(vault kv get -field=key secret/torve/identity)"
 ```
 
 ## Base RPC URL
@@ -615,39 +615,39 @@ Sellers should configure a dedicated Base JSON-RPC endpoint for production deplo
 Use `payments.crypto.rpcUrl` for durable config:
 
 ```bash
-antseed config set payments.crypto.rpcUrl "https://base-mainnet.g.alchemy.com/v2/<key>"
+torve config set payments.crypto.rpcUrl "https://base-mainnet.g.alchemy.com/v2/<key>"
 ```
 
 Or use runtime overrides when you do not want to edit `config.json`:
 
 ```bash
-export ANTSEED_BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/<key>
-antseed seller start
+export TORVE_BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/<key>
+torve seller start
 
 # one-off process override
-antseed seller start --base-rpc-url https://base-mainnet.infura.io/v3/<key>
+torve seller start --base-rpc-url https://base-mainnet.infura.io/v3/<key>
 ```
 
-Precedence is: CLI flag, then `ANTSEED_BASE_RPC_URL`, then `payments.crypto.rpcUrl`, then built-in Base defaults.
+Precedence is: CLI flag, then `TORVE_BASE_RPC_URL`, then `payments.crypto.rpcUrl`, then built-in Base defaults.
 
 ## ANTS Staking
 
-`antseed ants` and its subcommands use the same chain settings as the rest of
+`torve ants` and its subcommands use the same chain settings as the rest of
 the CLI. Contract addresses for the recognized-usage stack (seller registry,
 seller pools, usage accounting, usage rewards, emissions gate, wash-trading
 registry, points policy registry) come from the built-in deployment record for
-`payments.chainId` and from the on-chain `AntseedRegistry`, so nothing needs to
+`payments.chainId` and from the on-chain `TorveRegistry`, so nothing needs to
 be configured on Base Mainnet.
 
 Two optional settings under `payments.crypto`:
 
 | Key | Description |
 |---|---|
-| `explorerApiUrl` | Antscan base URL. `antseed ants` takes pool statistics, per-epoch volume and usage, seller profiles, and closed positions from it and reads the chain only for your wallet's live state. Defaults to `https://antscan.co`; set it to `""` to disable (for example on a local fork), which leaves only the pools you stake in listed. |
+| `explorerApiUrl` | Antscan base URL. `torve ants` takes pool statistics, per-epoch volume and usage, seller profiles, and closed positions from it and reads the chain only for your wallet's live state. Defaults to `https://antscan.co`; set it to `""` to disable (for example on a local fork), which leaves only the pools you stake in listed. |
 | `<contract>Address` | Per-contract overrides for local or test deployments: `sellerRegistryAddress`, `sellerPoolsAddress`, `sellerPoolsRewardsAddress`, `usageAccountingAddress`, `usageRewardsAddress`, `emissionsGateAddress`, `positionInitAddress`, `washTradingRegistryAddress`, `pointsPolicyRegistryAddress`, `antsTokenAddress`, `legacyEmissionsContractAddress`, `legacyStakingContractAddress`. `positionInitAddress` has no on-chain pointer and must be set explicitly outside the built-in deployments. |
 
 ```bash
-antseed config set payments.crypto.explorerApiUrl ""
+torve config set payments.crypto.explorerApiUrl ""
 ```
 
 See the [staking guide](/docs/guides/staking) for what the dashboard shows.
@@ -658,12 +658,12 @@ Only secrets, global toggles, and deployment-specific runtime overrides are set 
 
 | Variable | Description |
 |---|---|
-| `ANTSEED_IDENTITY_HEX` | Identity private key (64 hex chars, optional 0x prefix) |
-| `ANTSEED_BASE_RPC_URL` | Runtime Base JSON-RPC endpoint override for seller on-chain operations |
-| `ANTSEED_BUYER_METADATA_FETCH_TIMEOUT_MS` | Runtime buyer peer-discovery metadata fetch timeout in milliseconds |
-| `ANTSEED_BUYER_DISABLE_METADATA_V2_SERVICES` | Runtime opt-out for buyer per-service metadata v2 attribution (`true` opts out) |
+| `TORVE_IDENTITY_HEX` | Identity private key (64 hex chars, optional 0x prefix) |
+| `TORVE_BASE_RPC_URL` | Runtime Base JSON-RPC endpoint override for seller on-chain operations |
+| `TORVE_BUYER_METADATA_FETCH_TIMEOUT_MS` | Runtime buyer peer-discovery metadata fetch timeout in milliseconds |
+| `TORVE_BUYER_DISABLE_METADATA_V2_SERVICES` | Runtime opt-out for buyer per-service metadata v2 attribution (`true` opts out) |
 | `ANTHROPIC_API_KEY` | Upstream Anthropic API key (used by the `anthropic` provider plugin) |
 | `OPENAI_API_KEY` | Upstream OpenAI-compatible API key (used by the `openai` provider plugin) |
-| `ANTSEED_SETTLEMENT_IDLE_MS` | Idle time before settling a session (default: 600000 / 10 min) |
-| `ANTSEED_DEFAULT_DEPOSIT_USDC` | Default lock amount per session (default: 1) |
-| `ANTSEED_DEBUG` | Enable debug logging (set to 1) |
+| `TORVE_SETTLEMENT_IDLE_MS` | Idle time before settling a session (default: 600000 / 10 min) |
+| `TORVE_DEFAULT_DEPOSIT_USDC` | Default lock amount per session (default: 1) |
+| `TORVE_DEBUG` | Enable debug logging (set to 1) |

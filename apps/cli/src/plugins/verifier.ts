@@ -1,11 +1,11 @@
-import { ANTSEED_ATTEST_PATH, type SellerRequest, type SellerResponse } from '@antseed/node'
+import { TORVE_ATTEST_PATH, type SellerRequest, type SellerResponse } from '@torveai/node'
 import { loadVerifierPlugin } from './loader.js'
 import { TRUSTED_VERIFIER_PLUGINS } from './registry.js'
-import { parseVerifierCapabilities } from '@antseed/node/verifier-capabilities'
-import { passedSellerNodeClaims, TEE_VERIFIER_ID, type TeeClaim } from '@antseed/node/tee-status'
-export { parseVerifierCapabilities } from '@antseed/node/verifier-capabilities'
+import { parseVerifierCapabilities } from '@torveai/node/verifier-capabilities'
+import { passedSellerNodeClaims, TEE_VERIFIER_ID, type TeeClaim } from '@torveai/node/tee-status'
+export { parseVerifierCapabilities } from '@torveai/node/verifier-capabilities'
 
-export const ANTSEED_VERIFIER_SDKS_ENV = 'ANTSEED_VERIFIER_SDKS'
+export const TORVE_VERIFIER_SDKS_ENV = 'TORVE_VERIFIER_SDKS'
 const VSDK = 'verifier.'
 const VSDK_DEFAULT = 'verifier-default.'
 const VERIFIER_ID_RE = /^[a-z0-9][a-z0-9.-]*$/
@@ -152,7 +152,7 @@ export async function runVerifier(
       async (verifySignal) => sdk.verify({
         peerId,
         verifierId: chosen,
-        attestPath: `${ANTSEED_ATTEST_PATH}/${encodeURIComponent(chosen)}`,
+        attestPath: `${TORVE_ATTEST_PATH}/${encodeURIComponent(chosen)}`,
         fetchFromSeller: reach,
         signal: verifySignal,
       }),

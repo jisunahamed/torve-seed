@@ -27,7 +27,7 @@ export interface ServiceApiRequestTransformOptions {
   streamRequested?: boolean;
 }
 
-const CLIENT_STREAM_REQUESTED_HEADER = 'x-antseed-client-stream-requested';
+const CLIENT_STREAM_REQUESTED_HEADER = 'x-torve-client-stream-requested';
 const LEGACY_RESPONSES_MESSAGE_ID_SUFFIX = '_msg_1';
 
 type RequestNormalizer = (body: Record<string, unknown>) => CanonicalLlmRequest;

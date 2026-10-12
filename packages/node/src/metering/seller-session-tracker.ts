@@ -48,7 +48,7 @@ export interface SessionTrackerConfig {
 /**
  * Tracks seller-side session lifecycle: session state, metering, receipts, and settlement.
  *
- * Extracted from AntseedNode to separate seller session concerns
+ * Extracted from TorveNode to separate seller session concerns
  * from core node orchestration.
  */
 export class SellerSessionTracker {

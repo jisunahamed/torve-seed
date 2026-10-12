@@ -20,7 +20,7 @@ test("development seller proof submits end-to-end on Anvil", { timeout: 900_000 
     : await firstSellerArtifact(resolve(artifactDirectory, "sellers"));
   const generated = JSON.parse(await readFile(artifactPath, "utf8"));
   assert.equal(generated.version, 3);
-  assert.equal(generated.kind, "antseed-wash-trading-seller-proof");
+  assert.equal(generated.kind, "torve-wash-trading-seller-proof");
   assert.equal(generated.proofArchitecture, "direct-seller-v1");
   assert.equal(generated.securityMode, "development");
   assert.ok(generated.claimCount >= 1);
@@ -29,7 +29,7 @@ test("development seller proof submits end-to-end on Anvil", { timeout: 900_000 
 
   await run("forge", [
     "build",
-    "integrity/AntseedWashTradingRegistry.sol",
+    "integrity/TorveWashTradingRegistry.sol",
     "test/mocks/WashTradingDevelopmentE2E.sol",
   ], contractsDirectory);
 

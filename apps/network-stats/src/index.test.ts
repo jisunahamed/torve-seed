@@ -15,14 +15,14 @@ import { writeFile, mkdir } from 'node:fs/promises';
 
 import { NetworkPoller } from './poller.js';
 import { createServer } from './server.js';
-import type { PeerMetadata } from '@antseed/node';
-import { toPeerId } from '@antseed/node';
-import { METADATA_VERSION } from '@antseed/node/discovery';
+import type { PeerMetadata } from '@torveai/node';
+import { toPeerId } from '@torveai/node';
+import { METADATA_VERSION } from '@torveai/node/discovery';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function tmpCache(): string {
-  return join(tmpdir(), `antseed-test-${randomUUID()}`, 'network.json');
+  return join(tmpdir(), `torve-test-${randomUUID()}`, 'network.json');
 }
 
 function fakePeer(id: string, services: string[]): PeerMetadata {

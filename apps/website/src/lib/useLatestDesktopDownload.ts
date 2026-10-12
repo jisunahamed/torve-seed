@@ -3,10 +3,10 @@ import ExecutionEnvironment from '@docusaurus/ExecutionEnvironment';
 import {isMobileGetStartedVisitor} from './useMobileGetStarted';
 
 /**
- * Resolves the Antseed Desktop download URL for the visitor's OS + arch.
+ * Resolves the Torve Desktop download URL for the visitor's OS + arch.
  *
  * Download CTAs point at our download proxy (a Cloudflare Worker on
- * download.antseed.com, see apps/download-proxy) instead of GitHub release
+ * download.torveai.com, see apps/download-proxy) instead of GitHub release
  * assets directly:
  *   - the proxy resolves "latest release" server-side, so the client needs no
  *     GitHub API call and the CTA has a direct href as soon as the platform
@@ -35,10 +35,10 @@ import {isMobileGetStartedVisitor} from './useMobileGetStarted';
  *     user picks.
  */
 
-export const DOWNLOAD_BASE_URL = 'https://download.antseed.com';
-export const RELEASES_URL = 'https://github.com/AntSeed/antseed/releases/latest';
+export const DOWNLOAD_BASE_URL = 'https://download.torveai.com';
+export const RELEASES_URL = 'https://github.com/Torve/torve/releases/latest';
 /** Full releases list — every platform, arch, and past version. */
-export const ALL_VERSIONS_URL = 'https://github.com/AntSeed/antseed/releases';
+export const ALL_VERSIONS_URL = 'https://github.com/Torve/torve/releases';
 
 export type DesktopPlatform = 'mac' | 'win' | 'linux' | 'unknown';
 export type DesktopArch = 'arm64' | 'x64';

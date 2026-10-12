@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { peerMatchesServiceFilter } from './browse.js';
-import { collectPeerVerificationLinks } from '@antseed/node/discovery';
-import type { PeerInfo } from '@antseed/node';
+import { collectPeerVerificationLinks } from '@torveai/node/discovery';
+import type { PeerInfo } from '@torveai/node';
 
 function peerWithServices(services: string[], providers: string[] = ['minimax']): PeerInfo {
   return {
@@ -64,7 +64,7 @@ test('network browse builds links for verified external claims only', () => {
     github: [
       {
         username: 'OctoCat',
-        repository: 'antseed-proof',
+        repository: 'torve-proof',
         peerId: peer.peerId,
         verified: true,
         checkedAtMs: 123,
@@ -81,6 +81,6 @@ test('network browse builds links for verified external claims only', () => {
 
   assert.deepEqual(collectPeerVerificationLinks(peer), [
     { kind: 'domain', label: 'example.com', href: 'https://example.com' },
-    { kind: 'github', label: '@octocat/antseed-proof', href: 'https://github.com/octocat/antseed-proof' },
+    { kind: 'github', label: '@octocat/torve-proof', href: 'https://github.com/octocat/torve-proof' },
   ]);
 });

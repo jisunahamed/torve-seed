@@ -3,8 +3,8 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import {AntseedStaking} from "../../staking/AntseedStaking.sol";
-import {AntseedRegistry} from "../../core/AntseedRegistry.sol";
+import {TorveStaking} from "../../staking/TorveStaking.sol";
+import {TorveRegistry} from "../../core/TorveRegistry.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {MockERC8004Registry} from "../mocks/MockERC8004Registry.sol";
 import {MockChannelsCounter} from "../mocks/MockChannelsCounter.sol";
@@ -12,25 +12,25 @@ import {MockChannelsCounter} from "../mocks/MockChannelsCounter.sol";
 import {StakingHandler} from "./StakingHandler.sol";
 
 /**
- * @title AntseedStakingInvariants
- * @notice Custody + identity-binding invariants for AntseedStaking, deployed without a slashing
+ * @title TorveStakingInvariants
+ * @notice Custody + identity-binding invariants for TorveStaking, deployed without a slashing
  *         module (slashing is being reworked). Asserts solvency and the agentId<->seller
  *         bijection across arbitrary stake/stakeFor/unstake sequences.
  */
-contract AntseedStakingInvariants is Test {
+contract TorveStakingInvariants is Test {
     MockUSDC usdc;
     MockERC8004Registry identity;
-    AntseedRegistry registry;
+    TorveRegistry registry;
     MockChannelsCounter mockChannels;
-    AntseedStaking staking;
+    TorveStaking staking;
     StakingHandler handler;
 
     function setUp() public {
         usdc = new MockUSDC();
         identity = new MockERC8004Registry();
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         mockChannels = new MockChannelsCounter();
-        staking = new AntseedStaking(address(usdc), address(registry));
+        staking = new TorveStaking(address(usdc), address(registry));
 
         registry.setIdentityRegistry(address(identity));
         registry.setChannels(address(mockChannels));

@@ -4,8 +4,8 @@ import { normalizeDiscoverRow, projectRowsToChatServiceOptions } from './discove
 
 test('normalizeDiscoverRow carries only normalized advertised verifier IDs', () => {
   const raw = { peerId: 'abc', serviceId: 'gpt-5' };
-  assert.deepEqual(normalizeDiscoverRow({ ...raw, advertisedVerifierIds: [' Antseed-Verifier ', 'antseed-verifier', null, 'bad id'] })?.advertisedVerifierIds, ['antseed-verifier']);
-  assert.deepEqual(normalizeDiscoverRow({ ...raw, advertisedVerifierIds: 'antseed-verifier' })?.advertisedVerifierIds, []);
+  assert.deepEqual(normalizeDiscoverRow({ ...raw, advertisedVerifierIds: [' Torve-Verifier ', 'torve-verifier', null, 'bad id'] })?.advertisedVerifierIds, ['torve-verifier']);
+  assert.deepEqual(normalizeDiscoverRow({ ...raw, advertisedVerifierIds: 'torve-verifier' })?.advertisedVerifierIds, []);
   assert.deepEqual(normalizeDiscoverRow(raw)?.advertisedVerifierIds, []);
 });
 
@@ -92,7 +92,7 @@ test('normalizeDiscoverRow preserves safe verified external links only', () => {
         description: ' A verified domain. ',
         faviconUrl: 'https://example.com/favicon.ico',
       },
-      { kind: 'github', label: '@antseed/test', href: 'https://github.com/antseed/test' },
+      { kind: 'github', label: '@torveai/test', href: 'https://github.com/torve/test' },
       { kind: 'domain', label: 'bad-icon', href: 'https://bad-icon.example', faviconUrl: 'http://bad-icon.example/favicon.ico' },
       { kind: 'domain', label: 'bad', href: 'http://example.com' },
       { kind: 'x', label: 'bad', href: 'https://example.com' },
@@ -108,7 +108,7 @@ test('normalizeDiscoverRow preserves safe verified external links only', () => {
       description: 'A verified domain.',
       faviconUrl: 'https://example.com/favicon.ico',
     },
-    { kind: 'github', label: '@antseed/test', href: 'https://github.com/antseed/test' },
+    { kind: 'github', label: '@torveai/test', href: 'https://github.com/torve/test' },
     { kind: 'domain', label: 'bad-icon', href: 'https://bad-icon.example/' },
   ]);
   assert.equal(row!.peerIconUrl, 'https://example.com/favicon.ico');

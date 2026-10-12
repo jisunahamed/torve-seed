@@ -1,12 +1,12 @@
 import {
   resolveChainConfig,
   type NodePaymentsConfig,
-} from '@antseed/node';
+} from '@torveai/node';
 
 /**
  * The subset of the CLI's `payments.crypto` user overrides that chain-aware
  * network commands actually consume. Matches the shape of
- * `AntseedConfig.payments.crypto` from the CLI's config/types.ts.
+ * `TorveConfig.payments.crypto` from the CLI's config/types.ts.
  */
 export interface ChainCryptoOverrides {
   chainId?: 'base-local' | 'base-sepolia' | 'base-mainnet';
@@ -34,15 +34,15 @@ export interface ChainCryptoOverrides {
   legacyEmissionsEscrowAddress?: string;
   washTradingRegistryAddress?: string;
   pointsPolicyRegistryAddress?: string;
-  /** Explorer REST base for seller profiles in `antseed ants`; empty string disables the lookup. */
+  /** Explorer REST base for seller profiles in `torve ants`; empty string disables the lookup. */
   explorerApiUrl?: string;
 }
 
 /**
- * Build the `NodePaymentsConfig` an ad-hoc `AntseedNode` needs to enrich peers
+ * Build the `NodePaymentsConfig` an ad-hoc `TorveNode` needs to enrich peers
  * with on-chain stats (channel count, ghost count, total volume, last-settled).
- * Used by short-lived buyer nodes spun up by `antseed network browse` and
- * `antseed network peer` when a buyer daemon isn't already running.
+ * Used by short-lived buyer nodes spun up by `torve network browse` and
+ * `torve network peer` when a buyer daemon isn't already running.
  *
  * Returns `undefined` when the chain can't be resolved (missing `chainId`,
  * RPC, or contract addresses) so callers can gracefully skip on-chain
@@ -51,7 +51,7 @@ export interface ChainCryptoOverrides {
  * on-chain columns as "—".
  *
  * The `stakingAddress` + `identityRegistryAddress` wiring is critical: without
- * them `AntseedNode._initializePayments` never creates a `StakingClient` /
+ * them `TorveNode._initializePayments` never creates a `StakingClient` /
  * `IdentityClient`, which gates the on-chain verification loop in
  * `discoverPeers()`. The seller-pools, usage-accounting and wash-trading
  * registry addresses feed the `TrustSignalsClient` behind the buyer trust

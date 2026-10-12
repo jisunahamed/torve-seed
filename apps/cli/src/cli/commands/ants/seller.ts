@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import { parsePositiveInteger } from '../parse-positive-integer.js';
 import Table from 'cli-table3';
-import { seller, registerBinding, claimStarter, formatUsdc, formatAntsExact } from '@antseed/ants';
+import { seller, registerBinding, claimStarter, formatUsdc, formatAntsExact } from '@torveai/ants';
 import { ants, printJson, runAction, runRead } from './shared.js';
 
 export function registerAntsSellerCommand(antsCmd: Command): void {
@@ -13,7 +13,7 @@ export function registerAntsSellerCommand(antsCmd: Command): void {
     const table = new Table({ head: ['Field', 'Value'] });
     table.push(
       ['Wallet', view.address], ['Agent ID', view.agentId || 'none'], ['ERC-8004 identity', view.identityRegistered ? 'registered' : 'not registered'],
-      ['Seller registry binding', view.registryBound ? 'bound' : 'not bound (run: antseed seller register)'],
+      ['Seller registry binding', view.registryBound ? 'bound' : 'not bound (run: torve seller register)'],
       ['Eligible to serve', view.eligible ? 'yes' : 'no'], ['Legacy USDC stake', `${formatUsdc(view.legacyStake)} USDC${view.legacyEligibilityEnabled === false ? ' (legacy fallback disabled)' : ''}`],
       ['Pool active stake', `${ants(view.poolActiveStake)}${view.minPoolStake ? ` (minimum ${formatAntsExact(view.minPoolStake)} ANTS)` : ''}`],
     );
@@ -24,7 +24,7 @@ export function registerAntsSellerCommand(antsCmd: Command): void {
   }));
 
   sellerCmd.command('register')
-    .description('Bind your agent ID in the seller registry (same as: antseed seller register)')
+    .description('Bind your agent ID in the seller registry (same as: torve seller register)')
     .option('--agent-id <id>', 'agent ID to bind (default: legacy staking binding)', parsePositiveInteger)
     .action(async (options: { agentId?: number }) => runAction(antsCmd, 'Registering...', async ({ ctx }, report) => {
       const result = await registerBinding(ctx, options.agentId, report);
@@ -32,7 +32,7 @@ export function registerAntsSellerCommand(antsCmd: Command): void {
     }));
 
   sellerCmd.command('claim-starter')
-    .description('Claim the legacy-seller starter ANTS position (same as: antseed seller legacy claim-starter)')
+    .description('Claim the legacy-seller starter ANTS position (same as: torve seller legacy claim-starter)')
     .action(async () => runAction(antsCmd, 'Claiming starter position...', async ({ ctx }, report) => {
       const result = await claimStarter(ctx, report);
       return `Starter position created for agent ${result.agentId}: ${ants(result.amount)} locked through epoch ${result.endEpoch}`;

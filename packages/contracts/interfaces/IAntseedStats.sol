@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IAntseedStats {
+interface ITorveStats {
     struct BuyerMetadataStats {
         uint256 totalInputTokens;
         uint256 totalOutputTokens;

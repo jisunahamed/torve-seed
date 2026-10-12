@@ -1,6 +1,6 @@
 # 04 - Payments: Streaming SpendingAuth
 
-This document specifies the payment protocol for the Antseed P2P AI compute network. Payments use USDC on Base with two EIP-712 signed messages: **ReserveAuth** (session budget) and **SpendingAuth** (cumulative per-request authorization). AntseedChannels orchestrates the lifecycle but holds no USDC — all funds stay in AntseedDeposits.
+This document specifies the payment protocol for the Torve P2P AI compute network. Payments use USDC on Base with two EIP-712 signed messages: **ReserveAuth** (session budget) and **SpendingAuth** (cumulative per-request authorization). TorveChannels orchestrates the lifecycle but holds no USDC — all funds stay in TorveDeposits.
 
 ## 1. Session Lifecycle (Reserve → Serve → Settle/Close)
 
@@ -111,7 +111,7 @@ data is not evidence of non-support.
 EIP-712 domain for both message types:
 
 ```
-name:               "AntseedChannels"
+name:               "TorveChannels"
 version:            "7"
 chainId:            <deployment chain>
 verifyingContract:  <channels contract address>
@@ -159,9 +159,9 @@ The `maxAmount` in the ReserveAuth caps total USDC the seller can charge in a se
 
 When the budget is nearly exhausted, the seller calls `close()` with the final SpendingAuth, returns HTTP 402 to the buyer, and the buyer initiates a new session negotiation with a fresh ReserveAuth and salt.
 
-## 4. Per-Agent Stats (AntseedStats)
+## 4. Per-Agent Stats (TorveStats)
 
-Channel metrics are tracked per ERC-8004 agentId in the AntseedStats contract. Stats are updated by AntseedChannels during `settle()` and `close()`:
+Channel metrics are tracked per ERC-8004 agentId in the TorveStats contract. Stats are updated by TorveChannels during `settle()` and `close()`:
 
 - `channelCount` — number of completed channels
 - `totalVolumeUsdc` — cumulative USDC volume
@@ -181,8 +181,8 @@ Stats are factual counters with no reputation scoring logic. They feed into emis
 
 ## 6. Staking
 
-Before the epoch-22 cutover, `AntseedStaking` uses USDC stake bound to an ERC-8004
-agent ID, with a 10 USDC minimum. After cutover, `AntseedSellerRegistry` supplies
+Before the epoch-22 cutover, `TorveStaking` uses USDC stake bound to an ERC-8004
+agent ID, with a 10 USDC minimum. After cutover, `TorveSellerRegistry` supplies
 seller eligibility, with legacy USDC stake accepted while its fallback is enabled.
 New reward points additionally require sufficient ANTS pool power. See
 [staking and exit terms](../../../apps/website/docs/protocol/recognized-usage.md)
@@ -190,13 +190,13 @@ and [legacy USDC staking](../../../apps/website/docs/protocol/legacy-emissions.m
 
 ## 7. Stats and Identity
 
-### AntseedStats (on-chain metrics)
+### TorveStats (on-chain metrics)
 
-Factual per-agent session metrics updated by AntseedChannels during settlement. No reputation scoring — pure counters.
+Factual per-agent session metrics updated by TorveChannels during settlement. No reputation scoring — pure counters.
 
 ### ERC-8004 Identity and Feedback
 
-Identity uses the deployed ERC-8004 IdentityRegistry (Base: `0x8004A169...`). Feedback uses the deployed ERC-8004 ReputationRegistry (Base: `0x8004BAa1...`). There is no custom AntseedIdentity contract.
+Identity uses the deployed ERC-8004 IdentityRegistry (Base: `0x8004A169...`). Feedback uses the deployed ERC-8004 ReputationRegistry (Base: `0x8004BAa1...`). There is no custom TorveIdentity contract.
 
 ### MockERC8004Registry
 
@@ -214,18 +214,18 @@ that reserve is not a new user reward or freely claimable balance.
 **Transfer-restricted phase:** Ordinary transfers are disabled; minting and transfers by whitelisted senders are allowed. Owner calls `enableTransfers()` as a separate, irreversible action. M001 does not enable trading.
 
 After M001 phase 1 on September 6, 2026, `ANTSToken.registry()` points to
-`AntseedEmissionsGate` (`0xE60a31E6CD2F8455503cA0B3f6545Dd3DDF543BD`). The gate
+`TorveEmissionsGate` (`0xE60a31E6CD2F8455503cA0B3f6545Dd3DDF543BD`). The gate
 controls minting; legacy V2's unchanged mint calls now transfer from
-`AntseedLegacyEmissionsEscrow` (`0x4d0fC3C0BBb5233Af6c4Ce33223e5330c34db9ab`).
+`TorveLegacyEmissionsEscrow` (`0x4d0fC3C0BBb5233Af6c4Ce33223e5330c34db9ab`).
 
 ### Recognized Usage (From Epoch 22)
 
 **Protocol start: September 10, 2026 at 09:54:21 UTC (epoch 22).**
 
 The standard reward model combines eligible usage with ANTS seller-pool power.
-`AntseedRegistry.staking()` resolves to `AntseedSellerRegistry`
+`TorveRegistry.staking()` resolves to `TorveSellerRegistry`
 (`0x99c533BCc6Ca646E543dbA835Fdbb9C2ee02Cb60`) and `emissions()` to
-`AntseedUsageAccounting` (`0xAdd2D85316153D7bfaF7921EE9Bf1Bb6c7A1cBc9`)
+`TorveUsageAccounting` (`0xAdd2D85316153D7bfaF7921EE9Bf1Bb6c7A1cBc9`)
 after activation. Buyer USDC deposits, channel signatures, and settlement are unchanged.
 
 Allocation ceilings are 40% seller-pool rewards, 20% usage rewards, 15% team,
@@ -278,32 +278,32 @@ from the pre-minted escrow after migration.
 ## 9. Contract Architecture
 
 ```
-ANTSToken                     ── mint authority is AntseedEmissionsGate
-AntseedDeposits                ── holds buyer USDC deposits and seller payouts
-AntseedChannels                ── signed payment channels, holds no USDC
-AntseedSellerRegistry          ── ERC-8004 seller eligibility
-AntseedSellerPools             ── locked ANTS positions and pool power
-AntseedUsageAccounting         ── recognized usage and pool-weighted points
-AntseedPointsPolicyRegistry    ── sequential points transformations
-AntseedWashTradingRegistry     ── authenticated historical seller proofs
-AntseedWashTradingPointsPolicy ── zeros future points for flagged sellers
-AntseedSellerPoolsRewards      ── staker rewards
-AntseedUsageRewards            ── buyer and seller/operator usage rewards
-AntseedPositionInit            ── starter-position faucet
-AntseedEmissionsGate           ── emission schedule and allocations
-AntseedLegacyEmissionsEscrow   ── funds pre-migration claims and flushes
-AntseedStats                   ── factual per-agent session metrics
+ANTSToken                     ── mint authority is TorveEmissionsGate
+TorveDeposits                ── holds buyer USDC deposits and seller payouts
+TorveChannels                ── signed payment channels, holds no USDC
+TorveSellerRegistry          ── ERC-8004 seller eligibility
+TorveSellerPools             ── locked ANTS positions and pool power
+TorveUsageAccounting         ── recognized usage and pool-weighted points
+TorvePointsPolicyRegistry    ── sequential points transformations
+TorveWashTradingRegistry     ── authenticated historical seller proofs
+TorveWashTradingPointsPolicy ── zeros future points for flagged sellers
+TorveSellerPoolsRewards      ── staker rewards
+TorveUsageRewards            ── buyer and seller/operator usage rewards
+TorvePositionInit            ── starter-position faucet
+TorveEmissionsGate           ── emission schedule and allocations
+TorveLegacyEmissionsEscrow   ── funds pre-migration claims and flushes
+TorveStats                   ── factual per-agent session metrics
 ```
 
 Contracts reference each other by address (set at deployment, updateable by owner). No inheritance between contracts — only interface calls.
 
 **Interaction flow:**
-- `AntseedChannels` calls `AntseedDeposits.lockForChannel()` on reserve
-- `AntseedChannels` calls `AntseedDeposits.chargeAndCreditPayouts()` on settle/close
-- `AntseedChannels` calls `AntseedStats.updateStats()` on settle/close
-- `AntseedChannels` calls `AntseedEmissionsV2.accrueSellerPoints()` / `accrueBuyerPoints()` on settle/close
-- `AntseedChannels` reads from `AntseedStaking` (seller stake verification)
-- `AntseedEmissionsV2` calls `ANTSToken.mint()` on claim
+- `TorveChannels` calls `TorveDeposits.lockForChannel()` on reserve
+- `TorveChannels` calls `TorveDeposits.chargeAndCreditPayouts()` on settle/close
+- `TorveChannels` calls `TorveStats.updateStats()` on settle/close
+- `TorveChannels` calls `TorveEmissionsV2.accrueSellerPoints()` / `accrueBuyerPoints()` on settle/close
+- `TorveChannels` reads from `TorveStaking` (seller stake verification)
+- `TorveEmissionsV2` calls `ANTSToken.mint()` on claim
 
 ## 11. P2P Messages
 

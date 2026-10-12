@@ -179,23 +179,23 @@ export interface NodePaymentsConfig {
   rpcUrl?: string;
   /** Additional RPC endpoints for transparent failover via ethers FallbackProvider (quorum=1). */
   fallbackRpcUrls?: string[];
-  /** Deployed AntseedDeposits contract address */
+  /** Deployed TorveDeposits contract address */
   depositsAddress?: string;
-  /** Deployed AntseedChannels contract address */
+  /** Deployed TorveChannels contract address */
   channelsAddress?: string;
-  /** Optional deployed AntseedFreeUsage contract address */
+  /** Optional deployed TorveFreeUsage contract address */
   freeUsageAddress?: string;
   /** USDC token contract address */
   usdcAddress?: string;
   /** ERC-8004 IdentityRegistry contract address */
   identityRegistryAddress?: string;
-  /** AntseedSellerRegistry (or legacy AntseedStaking) contract address: seller → agent id. */
+  /** TorveSellerRegistry (or legacy TorveStaking) contract address: seller → agent id. */
   stakingAddress?: string;
-  /** AntseedSellerPools contract address (buyer trust score: pool staking power). */
+  /** TorveSellerPools contract address (buyer trust score: pool staking power). */
   sellerPoolsAddress?: string;
-  /** AntseedUsageAccounting contract address (buyer trust score: recognized usage per epoch). */
+  /** TorveUsageAccounting contract address (buyer trust score: recognized usage per epoch). */
   usageAccountingAddress?: string;
-  /** AntseedWashTradingRegistry contract address (buyer trust score: proven wash traders). */
+  /** TorveWashTradingRegistry contract address (buyer trust score: proven wash traders). */
   washTradingRegistryAddress?: string;
   /** Chain ID for EIP-712 domain. Default: 8453 (Base) */
   chainId?: number;
@@ -219,7 +219,7 @@ export interface NodePaymentsConfig {
   maxVideoRequestUsdc?: string;
   /** Disable per-service buyer attribution in metadata v2. Default: false. */
   disableMetadataV2Services?: boolean;
-  /** Deployed AntseedDepositRelay contract address (gasless deposit sweeps). */
+  /** Deployed TorveDepositRelay contract address (gasless deposit sweeps). */
   depositRelayAddress?: string;
 }
 
@@ -257,7 +257,7 @@ export interface NodeConfig {
   requireSecureTransport?: boolean;
   /** Seller only: inbound sockets whose remote address this returns false for are closed on accept. */
   acceptInboundAddress?: (remoteAddress: string) => boolean;
-  dataDir?: string;           // Default: ~/.antseed
+  dataDir?: string;           // Default: ~/.torve
   dhtPort?: number;           // Default: 6881 for seller, 0 for buyer
   signalingPort?: number;     // Default: 6882 for seller
   bootstrapNodes?: Array<{ host: string; port: number }>;
@@ -362,7 +362,7 @@ const DEFAULT_SWEEP_OFFER_TIMEOUT_MS = 3_000;
  *  mirrors MIN_REMAINING_VALIDITY_SECS in the seller-side relayer. */
 const MIN_SWEEP_DISPATCH_VALIDITY_SECS = 30;
 
-export class AntseedNode extends EventEmitter {
+export class TorveNode extends EventEmitter {
   private _config: NodeConfig;
   private _identity: Identity | null = null;
   private _dht: DHTNode | null = null;
@@ -557,7 +557,7 @@ export class AntseedNode extends EventEmitter {
     return this._identityClient;
   }
 
-  /** AntseedFreeUsage client (null if not configured). */
+  /** TorveFreeUsage client (null if not configured). */
   get freeUsageClient(): FreeUsageClient | null {
     return this._freeUsageClient;
   }
@@ -595,7 +595,7 @@ export class AntseedNode extends EventEmitter {
       throw new Error("Node already started");
     }
 
-    const dataDir = this._config.dataDir ?? join(homedir(), ".antseed");
+    const dataDir = this._config.dataDir ?? join(homedir(), ".torve");
 
     // Load or create identity
     this._identity = await loadOrCreateIdentity(this._config.identityStore ?? dataDir);
@@ -703,7 +703,7 @@ export class AntseedNode extends EventEmitter {
 
     if (this._balanceManager) {
       try {
-        const dataDir = this._config.dataDir ?? join(homedir(), ".antseed");
+        const dataDir = this._config.dataDir ?? join(homedir(), ".torve");
         await this._balanceManager.save(join(dataDir, "payments"));
       } catch (err) {
         debugWarn(`[Node] Failed to persist payment balances: ${err instanceof Error ? err.message : err}`);
@@ -1536,7 +1536,7 @@ export class AntseedNode extends EventEmitter {
     }
 
     const payments = this._config.payments;
-    const dataDir = this._config.dataDir ?? join(homedir(), ".antseed");
+    const dataDir = this._config.dataDir ?? join(homedir(), ".torve");
     const context = await BuyerIdentityContext.create({
       name,
       identity,
@@ -1746,7 +1746,7 @@ export class AntseedNode extends EventEmitter {
     const signalingPort = this._config.signalingPort ?? 6882;
     debugLog(`[Node] Starting seller — DHT port=${dhtPort}, signaling port=${signalingPort}`);
 
-    const dataDir = this._config.dataDir ?? join(homedir(), ".antseed");
+    const dataDir = this._config.dataDir ?? join(homedir(), ".torve");
     try {
       this._metering = new MeteringStorage(join(dataDir, "metering.db"));
       debugLog("[Node] Metering storage initialized");
@@ -1935,7 +1935,7 @@ export class AntseedNode extends EventEmitter {
     const dhtPort = this._config.dhtPort ?? 0;
     debugLog(`[Node] Starting buyer — DHT port=${dhtPort}`);
 
-    const dataDir = this._config.dataDir ?? join(homedir(), ".antseed");
+    const dataDir = this._config.dataDir ?? join(homedir(), ".torve");
     this._initializeVerificationStorage(dataDir);
     await this._initializePayments(dataDir);
 
@@ -2685,7 +2685,7 @@ export class AntseedNode extends EventEmitter {
     if (this._sellerFreeUsageManager || !this._hasFreePricedService()) return;
     const missingAddress = !this._config.payments?.freeUsageAddress;
     debugWarn(
-      `[Node] Zero-priced service advertised but AntseedFreeUsage is not configured` +
+      `[Node] Zero-priced service advertised but TorveFreeUsage is not configured` +
       `${missingAddress ? ' (payments.freeUsageAddress missing)' : ''}. ` +
       `Free requests will be served without on-chain usage proofs.`,
     );

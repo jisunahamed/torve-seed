@@ -8,16 +8,16 @@ import { join } from 'node:path';
 import { getGlobalOptions } from '../types.js';
 import { loadConfig } from '../../../config/loader.js';
 import {
-  AntseedNode,
+  TorveNode,
   buildNetworkServiceOffers,
   type NetworkServiceOffer,
   type PeerInfo,
-} from '@antseed/node';
-import { parseBootstrapList, toBootstrapConfig } from '@antseed/node/discovery';
+} from '@torveai/node';
+import { parseBootstrapList, toBootstrapConfig } from '@torveai/node/discovery';
 import {
   collectPeerVerificationLinks,
   type PeerVerificationLink,
-} from '@antseed/node/discovery';
+} from '@torveai/node/discovery';
 import { parsePersistedPeers } from '../../../proxy/buyer-proxy.js';
 import { buildPaymentsConfig } from './chain-config-helper.js';
 import { resolveEffectiveBuyerConfig } from '../../../config/effective.js';
@@ -181,7 +181,7 @@ export function peerMatchesServiceFilter(peer: PeerInfo, filter: string): boolea
  * CAVEAT: the returned input and output are picked independently across
  * services. A peer with serviceA=$1/$2 and serviceB=$2/$1 is rendered as
  * $1/$1 — a lower-bound approximation, not a real single-service offer.
- * Use `antseed network browse --services` or `antseed network peer <id>`
+ * Use `torve network browse --services` or `torve network peer <id>`
  * for per-service pricing when exact comparison matters.
  */
 function resolveBestPaidPricing(peer: PeerInfo): { input: number | null; output: number | null } {
@@ -221,7 +221,7 @@ function isPeerSybilRisky(peer: PeerInfo): boolean {
     && peer.onChainSybilRisk >= BROWSE_SYBIL_WARN_THRESHOLD;
 }
 
-/** Proven wash trader per `AntseedWashTradingRegistry`; the trust score is 0. */
+/** Proven wash trader per `TorveWashTradingRegistry`; the trust score is 0. */
 function isPeerWashFlagged(peer: PeerInfo): boolean {
   return peer.onChainWashFlagged === true;
 }
@@ -397,7 +397,7 @@ function parseTopLimit(raw: string | undefined): number {
 /**
  * Render the default compact table: one row per peer with aggregate metrics.
  * Full peer ids are printed so the output is directly copy-pasteable into
- * `antseed buyer connection set --peer <id>` without any truncation.
+ * `torve buyer connection set --peer <id>` without any truncation.
  * The "Free" column is only emitted when at least one displayed peer has
  * free services; otherwise it's omitted so the common-case table stays
  * compact.
@@ -518,7 +518,7 @@ function renderCompactTable(peers: PeerInfo[], hasChainData: boolean): void {
   }
   const anySybilWarn = peers.some(isPeerSybilRisky);
   if (anySybilWarn) {
-    console.log(chalk.dim(`  ${chalk.red('⚠')} peers triggered on-chain sybil heuristics. Run ${chalk.bold('antseed network peer <id>')} for the per-signal breakdown.`));
+    console.log(chalk.dim(`  ${chalk.red('⚠')} peers triggered on-chain sybil heuristics. Run ${chalk.bold('torve network peer <id>')} for the per-signal breakdown.`));
   }
   if (anyFreeService) {
     console.log(chalk.dim('  Free column lists services a peer offers at $0 input, cached-input, and output. "Min In/Out $/1M" always reflects the cheapest PAID option.'));
@@ -660,7 +660,7 @@ function renderExpandedTable(peers: PeerInfo[], requestedTags: Set<string>): voi
 }
 
 /**
- * Register the `antseed network browse` command.
+ * Register the `torve network browse` command.
  */
 export function registerNetworkBrowseCommand(networkCmd: Command): void {
   networkCmd
@@ -695,7 +695,7 @@ export function registerNetworkBrowseCommand(networkCmd: Command): void {
         const spinner = ora('Discovering peers on the network...').start();
         const paymentsConfig = buildPaymentsConfig(config.payments?.crypto);
 
-        const node = new AntseedNode({
+        const node = new TorveNode({
           role: 'buyer',
           ...(bootstrapNodes ? { bootstrapNodes } : {}),
           dhtOperationTimeoutMs: 30_000,
@@ -801,9 +801,9 @@ export function registerNetworkBrowseCommand(networkCmd: Command): void {
           console.log(chalk.dim(`  then request it:  curl localhost:8377/v1/chat/completions -d '{"model": "${exampleService}", ...}'`));
         }
         console.log(chalk.bold('Or force this seller:'));
-        console.log(`  antseed buyer connection set --peer ${topPeer.peerId}`);
-        console.log(chalk.dim(`  or per-request:   curl -H "x-antseed-pin-peer: ${topPeer.peerId}" ...`));
-        console.log(chalk.dim(`  full details:     antseed network peer ${topPeer.peerId}`));
+        console.log(`  torve buyer connection set --peer ${topPeer.peerId}`);
+        console.log(chalk.dim(`  or per-request:   curl -H "x-torve-pin-peer: ${topPeer.peerId}" ...`));
+        console.log(chalk.dim(`  full details:     torve network peer ${topPeer.peerId}`));
         console.log('');
       }
     });

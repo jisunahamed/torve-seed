@@ -1,28 +1,28 @@
-# @antseed/provider-local-llm
+# @torveai/provider-local-llm
 
-Provide local LLM capacity on the AntSeed P2P network. Works with Ollama, llama.cpp, and any OpenAI-compatible local server.
+Provide local LLM capacity on the Torve P2P network. Works with Ollama, llama.cpp, and any OpenAI-compatible local server.
 
 ## Installation
 
 ```bash
-antseed plugin add @antseed/provider-local-llm
+torve plugin add @torveai/provider-local-llm
 ```
 
 ## Usage
 
 ```bash
 # Configure once
-antseed config seller add-provider local-llm --plugin local-llm
-antseed config seller add-service local-llm llama3.2:3b \
+torve config seller add-provider local-llm --plugin local-llm
+torve config seller add-service local-llm llama3.2:3b \
   --input 0 --output 0 \
   --categories chat,fast,free
 
 # With Ollama (default)
-antseed seller start
+torve seller start
 
 # With a custom endpoint
 export LOCAL_LLM_BASE_URL=http://localhost:8080
-antseed seller start
+torve seller start
 ```
 
 ## Configuration
@@ -31,11 +31,11 @@ antseed seller start
 |-----|------|----------|---------|-------------|
 | `LOCAL_LLM_BASE_URL` | string | No | `http://localhost:11434` | Local LLM server URL |
 | `LOCAL_LLM_API_KEY` | secret | No | -- | Optional API key for local server |
-| `ANTSEED_INPUT_USD_PER_MILLION` | number | No | 0 | Input token price (USD per 1M) |
-| `ANTSEED_OUTPUT_USD_PER_MILLION` | number | No | 0 | Output token price (USD per 1M) |
-| `ANTSEED_SERVICE_PRICING_JSON` | string | No | -- | Per-service pricing as JSON |
-| `ANTSEED_MAX_CONCURRENCY` | number | No | 1 | Max concurrent requests |
-| `ANTSEED_ALLOWED_SERVICES` | string[] | No | -- | Comma-separated service allowlist |
+| `TORVE_INPUT_USD_PER_MILLION` | number | No | 0 | Input token price (USD per 1M) |
+| `TORVE_OUTPUT_USD_PER_MILLION` | number | No | 0 | Output token price (USD per 1M) |
+| `TORVE_SERVICE_PRICING_JSON` | string | No | -- | Per-service pricing as JSON |
+| `TORVE_MAX_CONCURRENCY` | number | No | 1 | Max concurrent requests |
+| `TORVE_ALLOWED_SERVICES` | string[] | No | -- | Comma-separated service allowlist |
 
 ## How It Works
 

@@ -10,7 +10,7 @@ export interface PrivacyCard {
 }
 
 const ANONYMOUS_DEFAULT: PrivacyCard = {
-  text: 'No account or email needed, so neither the provider nor Antseed knows who sent the request.',
+  text: 'No account or email needed, so neither the provider nor Torve knows who sent the request.',
   to: '/blog/trust-without-a-middleman',
 };
 

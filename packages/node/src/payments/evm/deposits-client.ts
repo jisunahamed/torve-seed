@@ -1,2 +1,2 @@
-// Moved to @antseed/buyer-core; re-exported for compatibility.
-export * from '@antseed/buyer-core/deposits-client';
+// Moved to @torveai/buyer-core; re-exported for compatibility.
+export * from '@torveai/buyer-core/deposits-client';

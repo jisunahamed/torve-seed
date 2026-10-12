@@ -1,6 +1,6 @@
-import { MessageType, type FramedMessage, type ResponseAuthPayload } from '@antseed/protocol/messages';
+import { MessageType, type FramedMessage, type ResponseAuthPayload } from '@torveai/protocol/messages';
 import type { BuyerConnection } from './interfaces.js';
-import { encodeFrame } from '@antseed/protocol/framing';
+import { encodeFrame } from '@torveai/protocol/framing';
 import { debugLog } from './debug.js';
 import { decodeResponseAuth, encodeResponseAuth } from './verification-codec.js';
 

@@ -44,7 +44,7 @@ function runFileSilent(cmd: string, args: string[]): void {
 function notifyWindowsProxyChanged(): void {
   const script = [
     '$sig = \'[DllImport("wininet.dll", SetLastError=true)] public static extern bool InternetSetOption(IntPtr hInternet, int dwOption, IntPtr lpBuffer, int dwBufferLength);\'',
-    '$t = Add-Type -MemberDefinition $sig -Name AntSeedWinInet -Namespace AntSeed -PassThru',
+    '$t = Add-Type -MemberDefinition $sig -Name TorveWinInet -Namespace Torve -PassThru',
     '$t::InternetSetOption([IntPtr]::Zero, 39, [IntPtr]::Zero, 0) | Out-Null',
     '$t::InternetSetOption([IntPtr]::Zero, 37, [IntPtr]::Zero, 0) | Out-Null',
   ].join('; ')

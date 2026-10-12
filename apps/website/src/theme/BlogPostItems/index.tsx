@@ -22,7 +22,7 @@ const DEFAULT_OG_IMAGE = '/og-image.jpg';
 
 const COVER_SLUGS = new Set([
   'buyer-protection',
-  'announcing-antseed-non-profit-foundation',
+  'announcing-torve-non-profit-foundation',
   'seller-pools-reputation-tokenomics',
   'model-verification-fingerprint-swarm',
   'the-permissionless-openrouter-alternative',

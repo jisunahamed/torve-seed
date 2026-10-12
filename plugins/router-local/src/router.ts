@@ -1,10 +1,10 @@
-import { normalizedModelReputationScore, type Router, type PeerInfo, type SerializedHttpRequest } from '@antseed/node';
+import { normalizedModelReputationScore, type Router, type PeerInfo, type SerializedHttpRequest } from '@torveai/node';
 import {
   scoreCandidates,
   PeerMetricsTracker,
   type TokenPricingUsdPerMillion,
   type ScoringWeights,
-} from '@antseed/router-core';
+} from '@torveai/router-core';
 
 export interface BuyerMaxPricingConfig {
   defaults: TokenPricingUsdPerMillion;

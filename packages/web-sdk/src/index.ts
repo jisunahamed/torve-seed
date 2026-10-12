@@ -1,5 +1,5 @@
 export {
-  AntseedWebClient,
+  TorveWebClient,
   SellerSession,
   sellerSummaryFromMetadata,
   type ClientOptions,
@@ -29,6 +29,6 @@ export {
   type WebLockManagerLike,
 } from './tab-lock.js';
 
-// The buyer machinery and wire format are shared with @antseed/node.
-export * from '@antseed/buyer-core';
-export * from '@antseed/protocol';
+// The buyer machinery and wire format are shared with @torveai/node.
+export * from '@torveai/buyer-core';
+export * from '@torveai/protocol';

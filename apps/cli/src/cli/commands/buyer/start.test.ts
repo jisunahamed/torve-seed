@@ -35,9 +35,9 @@ test('buyer start runtime overrides are runtime-only and win over env/config', (
   const beforeResolution = JSON.parse(JSON.stringify(config));
 
   const env = {
-    ANTSEED_BUYER_MAX_INPUT_USD_PER_MILLION: '70',
-    ANTSEED_BUYER_MAX_OUTPUT_USD_PER_MILLION: '80',
-    ANTSEED_BUYER_METADATA_FETCH_TIMEOUT_MS: '2000',
+    TORVE_BUYER_MAX_INPUT_USD_PER_MILLION: '70',
+    TORVE_BUYER_MAX_OUTPUT_USD_PER_MILLION: '80',
+    TORVE_BUYER_METADATA_FETCH_TIMEOUT_MS: '2000',
   } as NodeJS.ProcessEnv;
 
   const overrides = buildBuyerRuntimeOverridesFromFlags({
@@ -85,9 +85,9 @@ test('buyer start maps effective buyer config into router runtime env keys', () 
   config.buyer.maxPricing.defaults.outputUsdPerMillion = 63;
 
   const runtimeEnv = buildRouterRuntimeEnvFromBuyerConfig(config.buyer);
-  assert.equal(runtimeEnv['ANTSEED_MIN_REPUTATION'], '72');
+  assert.equal(runtimeEnv['TORVE_MIN_REPUTATION'], '72');
 
-  const parsed = JSON.parse(runtimeEnv['ANTSEED_MAX_PRICING_JSON'] ?? '{}') as {
+  const parsed = JSON.parse(runtimeEnv['TORVE_MAX_PRICING_JSON'] ?? '{}') as {
     defaults?: { inputUsdPerMillion?: number; outputUsdPerMillion?: number };
   };
   assert.equal(parsed.defaults?.inputUsdPerMillion, 21);
@@ -120,9 +120,9 @@ test('buyer start recognizes legacy proxies that only return no_peer_pinned', as
   });
 });
 
-test('buyer start recognizes current proxies by AntSeed response header', async () => {
+test('buyer start recognizes current proxies by Torve response header', async () => {
   await withProbeServer((_req, res) => {
-    res.writeHead(200, { 'content-type': 'application/json', 'x-antseed-request-id': 'test' });
+    res.writeHead(200, { 'content-type': 'application/json', 'x-torve-request-id': 'test' });
     res.end(JSON.stringify({ object: 'list', data: [] }));
   }, async (port) => {
     assert.equal(await isCompatibleBuyerProxy(port), true);

@@ -4,11 +4,11 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { ANTSToken } from "../../core/ANTSToken.sol";
-import { AntseedRegistry } from "../../core/AntseedRegistry.sol";
-import { AntseedEmissionsGate } from "../../emissions/AntseedEmissionsGate.sol";
-import { AntseedSellerPools } from "../../sellers/AntseedSellerPools.sol";
-import { AntseedUsageAccounting } from "../../emissions/AntseedUsageAccounting.sol";
-import { IAntseedPointsPolicy } from "../../interfaces/IAntseedPointsPolicy.sol";
+import { TorveRegistry } from "../../core/TorveRegistry.sol";
+import { TorveEmissionsGate } from "../../emissions/TorveEmissionsGate.sol";
+import { TorveSellerPools } from "../../sellers/TorveSellerPools.sol";
+import { TorveUsageAccounting } from "../../emissions/TorveUsageAccounting.sol";
+import { ITorvePointsPolicy } from "../../interfaces/ITorvePointsPolicy.sol";
 import { MockERC8004Registry } from "../mocks/MockERC8004Registry.sol";
 
 contract MockAgentLookup {
@@ -25,7 +25,7 @@ contract MockAgentLookup {
 
 /// @notice A points policy that can revert, return huge values, or behave
 ///         normally — to prove a misbehaving policy can never brick settlement.
-contract HostilePointsPolicy is IAntseedPointsPolicy {
+contract HostilePointsPolicy is ITorvePointsPolicy {
     enum Mode {
         Normal,
         Revert,
@@ -54,21 +54,21 @@ contract HostilePointsPolicy is IAntseedPointsPolicy {
 }
 
 /**
- * @title AntseedUsageAccountingFuzz
- * @notice The accrual entrypoints are invoked INLINE by AntseedChannels.settle()
+ * @title TorveUsageAccountingFuzz
+ * @notice The accrual entrypoints are invoked INLINE by TorveChannels.settle()
  *         with NO try/catch. If they ever revert for a reason outside the
  *         channel's control, ALL USDC settlement bricks network-wide. These
  *         fuzz tests prove the defensive design holds: under any combination of
  *         pause state, missing pool, a reverting/huge/zero points policy, and
  *         realistic-scale points, the accrual calls NEVER revert.
  */
-contract AntseedUsageAccountingFuzzTest is Test {
+contract TorveUsageAccountingFuzzTest is Test {
     ANTSToken token;
-    AntseedRegistry registry;
-    AntseedEmissionsGate gate;
+    TorveRegistry registry;
+    TorveEmissionsGate gate;
     MockERC8004Registry identityRegistry;
-    AntseedSellerPools pools;
-    AntseedUsageAccounting usageAccounting;
+    TorveSellerPools pools;
+    TorveUsageAccounting usageAccounting;
     MockAgentLookup agentLookup;
     HostilePointsPolicy policy;
 
@@ -90,7 +90,7 @@ contract AntseedUsageAccountingFuzzTest is Test {
         deployCodeTo("ANTSToken.sol:ANTSToken", KNOWN_ANTS_TOKEN);
         token = ANTSToken(KNOWN_ANTS_TOKEN);
 
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         identityRegistry = new MockERC8004Registry();
         agentLookup = new MockAgentLookup();
         registry.setAntsToken(address(token));
@@ -105,13 +105,13 @@ contract AntseedUsageAccountingFuzzTest is Test {
         token.enableTransfers();
 
         vm.warp(GATE_GENESIS + GATE_EPOCH_DURATION * 4 + 1);
-        gate = new AntseedEmissionsGate(teamWallet, reserve, 15_000, 15_000);
+        gate = new TorveEmissionsGate(teamWallet, reserve, 15_000, 15_000);
         token.setRegistry(address(gate));
 
-        pools = new AntseedSellerPools(address(token), address(gate), address(identityRegistry), address(agentLookup));
+        pools = new TorveSellerPools(address(token), address(gate), address(identityRegistry), address(agentLookup));
         token.setTransferWhitelist(address(pools), true);
 
-        usageAccounting = new AntseedUsageAccounting(address(pools), address(this), address(gate));
+        usageAccounting = new TorveUsageAccounting(address(pools), address(this), address(gate));
         registry.setEmissions(address(usageAccounting));
 
         policy = new HostilePointsPolicy();

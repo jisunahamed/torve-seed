@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { AntseedNode } from '@antseed/node';
+import { TorveNode } from '@torveai/node';
 import { createLocalBootstrap } from './helpers/local-bootstrap.js';
 import { MockAnthropicProvider } from './helpers/mock-provider.js';
 import { tmpdir } from 'node:os';
@@ -7,7 +7,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 
 async function waitForPeers(
-  node: AntseedNode,
+  node: TorveNode,
   expectedCount: number,
   timeoutMs = 15_000,
   intervalMs = 500,
@@ -23,8 +23,8 @@ async function waitForPeers(
 
 describe('Discovery: seller announces, buyer discovers via DHT', () => {
   let bootstrap: Awaited<ReturnType<typeof createLocalBootstrap>> | null = null;
-  let sellerNode: AntseedNode | null = null;
-  let buyerNode: AntseedNode | null = null;
+  let sellerNode: TorveNode | null = null;
+  let buyerNode: TorveNode | null = null;
   let sellerDataDir: string | null = null;
   let buyerDataDir: string | null = null;
 
@@ -40,11 +40,11 @@ describe('Discovery: seller announces, buyer discovers via DHT', () => {
     // 1. Create local bootstrap
     bootstrap = await createLocalBootstrap();
 
-    // 2. Create seller AntseedNode with mock provider
-    sellerDataDir = await mkdtemp(join(tmpdir(), 'antseed-seller-'));
+    // 2. Create seller TorveNode with mock provider
+    sellerDataDir = await mkdtemp(join(tmpdir(), 'torve-seller-'));
     const mockProvider = new MockAnthropicProvider();
 
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: 'seller',
       dataDir: sellerDataDir,
       dhtPort: 0,          // OS-assigned
@@ -59,10 +59,10 @@ describe('Discovery: seller announces, buyer discovers via DHT', () => {
     const sellerPeerId = sellerNode.peerId;
     expect(sellerPeerId).toBeTruthy();
 
-    // 3. Create buyer AntseedNode
-    buyerDataDir = await mkdtemp(join(tmpdir(), 'antseed-buyer-'));
+    // 3. Create buyer TorveNode
+    buyerDataDir = await mkdtemp(join(tmpdir(), 'torve-buyer-'));
 
-    buyerNode = new AntseedNode({
+    buyerNode = new TorveNode({
       role: 'buyer',
       dataDir: buyerDataDir,
       dhtPort: 0,          // OS-assigned

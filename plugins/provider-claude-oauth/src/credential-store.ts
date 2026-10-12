@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { closeSync, fsyncSync, linkSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
-import type { OAuthState, OAuthStateStore } from '@antseed/provider-core';
+import type { OAuthState, OAuthStateStore } from '@torveai/provider-core';
 
 /** Single-process credential store for development/testing OAuth sessions. */
 export class CredentialStore implements OAuthStateStore {

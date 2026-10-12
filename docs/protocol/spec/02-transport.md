@@ -1,6 +1,6 @@
 # 02 - Transport
 
-This document specifies the transport protocol for peer-to-peer communication in the Antseed Network, covering identity, framing, handshake, connection management, keepalive, reconnection, and HTTP-over-P2P multiplexing.
+This document specifies the transport protocol for peer-to-peer communication in the Torve Network, covering identity, framing, handshake, connection management, keepalive, reconnection, and HTTP-over-P2P multiplexing.
 
 ## Identity
 
@@ -9,10 +9,10 @@ Each node holds a persistent secp256k1 identity used for authentication and peer
 ### Key Storage
 
 - Algorithm: secp256k1 (via `ethers`)
-- **Recommended**: set via `ANTSEED_IDENTITY_HEX` env var (64 hex chars, optional `0x` prefix)
-- Fallback: plaintext file `~/.antseed/identity.key` (hex-encoded, `0o600` permissions) — **not recommended for production**
+- **Recommended**: set via `TORVE_IDENTITY_HEX` env var (64 hex chars, optional `0x` prefix)
+- Fallback: plaintext file `~/.torve/identity.key` (hex-encoded, `0o600` permissions) — **not recommended for production**
 
-The identity private key can be provided via the `ANTSEED_IDENTITY_HEX` env var (recommended) or read from `~/.antseed/identity.key`. If neither exists, the node generates a random secp256k1 private key and writes it to disk. For production, always use the env var with a secrets manager rather than the plaintext file.
+The identity private key can be provided via the `TORVE_IDENTITY_HEX` env var (recommended) or read from `~/.torve/identity.key`. If neither exists, the node generates a random secp256k1 private key and writes it to disk. For production, always use the env var with a secrets manager rather than the plaintext file.
 
 ### PeerId Derivation
 
@@ -148,7 +148,7 @@ Selection is capability-driven. An initiator uses:
 2. **WebRTC** only when the remote advertises `transport.webrtc.v1` but *not* `transport.tcp-enc.v1`, and the local node-datachannel stack passed its startup probe. Nodes advertise `transport.webrtc.v1` only when that probe succeeds; a node without a working stack refuses `hello` signaling.
 3. **Plaintext TCP** otherwise (legacy peers).
 
-Note: WebRTC DataChannel messages are capped at 256 KiB, which is why encrypted TCP is preferred for node-to-node traffic and why single request frames stay below `ANTSEED_UPLOAD_THRESHOLD_BYTES` (240 KiB).
+Note: WebRTC DataChannel messages are capped at 256 KiB, which is why encrypted TCP is preferred for node-to-node traffic and why single request frames stay below `TORVE_UPLOAD_THRESHOLD_BYTES` (240 KiB).
 
 ### Encrypted TCP (`transport.tcp-enc.v1`)
 
@@ -160,7 +160,7 @@ Note: WebRTC DataChannel messages are capped at 256 KiB, which is why encrypted 
 
 ### Data Channel
 
-- Label: `"antseed-data"`
+- Label: `"torve-data"`
 - Options: `{ ordered: true }`
 
 ### Initial Wire Protocol

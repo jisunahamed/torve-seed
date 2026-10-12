@@ -1,6 +1,6 @@
 import type { Command } from 'commander'
 import chalk from 'chalk'
-import { ANTSEED_MODEL_CONTEXT_WINDOW, ANTSEED_MODEL_MAX_OUTPUT_TOKENS } from '@antseed/node/types'
+import { TORVE_MODEL_CONTEXT_WINDOW, TORVE_MODEL_MAX_OUTPUT_TOKENS } from '@torveai/node/types'
 import { spawn } from 'node:child_process'
 import { accessSync, constants } from 'node:fs'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -15,8 +15,8 @@ type ToolConfig = {
 }
 
 const DEFAULT_PROXY_ROOT_URL = 'http://localhost:8377'
-const DEFAULT_RUNTIME_API_KEY = 'antseed'
-const OPENCODE_CONFIG_PREFIX = 'antseed-opencode-'
+const DEFAULT_RUNTIME_API_KEY = 'torve'
+const OPENCODE_CONFIG_PREFIX = 'torve-opencode-'
 
 const TOOL_CONFIGS: Record<ToolName, ToolConfig> = {
   codex: {
@@ -35,7 +35,7 @@ const NOOP_CLEANUP = async (): Promise<void> => {}
 export type ParsedWrappedToolArgs = {
   childArgs: string[]
   model: string | null
-  antseedBaseUrl: string | null
+  torveBaseUrl: string | null
 }
 
 type NormalizedBaseUrl = {
@@ -52,7 +52,7 @@ type PreparedInvocation = {
 export function parseWrappedToolArgs(rawArgs: string[]): ParsedWrappedToolArgs {
   const childArgs: string[] = []
   let model: string | null = null
-  let antseedBaseUrl: string | null = null
+  let torveBaseUrl: string | null = null
 
   for (let i = 0; i < rawArgs.length; i += 1) {
     const arg = rawArgs[i]!
@@ -68,14 +68,14 @@ export function parseWrappedToolArgs(rawArgs: string[]): ParsedWrappedToolArgs {
       continue
     }
 
-    const baseUrlFlag = readValueFlag(rawArgs, i, '--antseed-base-url')
+    const baseUrlFlag = readValueFlag(rawArgs, i, '--torve-base-url')
     if (baseUrlFlag) {
-      antseedBaseUrl = baseUrlFlag.value
+      torveBaseUrl = baseUrlFlag.value
       i = baseUrlFlag.nextIndex
       continue
     }
 
-    if (arg.startsWith('--antseed-')) {
+    if (arg.startsWith('--torve-')) {
       throw new Error(`${arg.split('=')[0]} is not supported by this wrapper`)
     }
 
@@ -85,7 +85,7 @@ export function parseWrappedToolArgs(rawArgs: string[]): ParsedWrappedToolArgs {
   return {
     childArgs,
     model: normalizeOptionalString(model),
-    antseedBaseUrl: normalizeOptionalString(antseedBaseUrl),
+    torveBaseUrl: normalizeOptionalString(torveBaseUrl),
   }
 }
 
@@ -111,7 +111,7 @@ function readInlineValue(arg: string, flag: string): string | null {
   return arg.startsWith(prefix) ? arg.slice(prefix.length) : null
 }
 
-export function normalizeAntseedBaseUrl(inputUrl: string | null | undefined): NormalizedBaseUrl {
+export function normalizeTorveBaseUrl(inputUrl: string | null | undefined): NormalizedBaseUrl {
   const raw = normalizeOptionalString(inputUrl) ?? DEFAULT_PROXY_ROOT_URL
   const withProtocol = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `http://${raw}`
   const parsed = new URL(withProtocol)
@@ -130,7 +130,7 @@ export function normalizeAntseedBaseUrl(inputUrl: string | null | undefined): No
   return { root, v1: `${root}/v1` }
 }
 
-export async function resolveDefaultAntseedBaseUrl(dataDir: string, configPath: string): Promise<string> {
+export async function resolveDefaultTorveBaseUrl(dataDir: string, configPath: string): Promise<string> {
   const statePort = await readJsonPort(join(dataDir, 'buyer.state.json'), ['port'])
   if (statePort !== null) {
     return `http://localhost:${statePort}`
@@ -147,46 +147,46 @@ export async function resolveDefaultAntseedBaseUrl(dataDir: string, configPath: 
 export function buildCodexConfigArgs(baseUrlV1: string, model: string): string[] {
   return [
     '-c',
-    `model_providers.antseed.name=${tomlString('AntSeed')}`,
+    `model_providers.torve.name=${tomlString('Torve')}`,
     '-c',
-    `model_providers.antseed.base_url=${tomlString(baseUrlV1)}`,
+    `model_providers.torve.base_url=${tomlString(baseUrlV1)}`,
     '-c',
-    'model_providers.antseed.wire_api="responses"',
+    'model_providers.torve.wire_api="responses"',
     '-c',
-    'model_providers.antseed.env_key="ANTSEED_API_KEY"',
+    'model_providers.torve.env_key="TORVE_API_KEY"',
     '-c',
-    `model_providers.antseed.env_key_instructions=${tomlString('The AntSeed wrapper sets ANTSEED_API_KEY automatically.')}`,
+    `model_providers.torve.env_key_instructions=${tomlString('The Torve wrapper sets TORVE_API_KEY automatically.')}`,
     '-c',
     `model=${tomlString(model)}`,
     '-c',
-    'model_provider="antseed"',
+    'model_provider="torve"',
     '-c',
-    `model_context_window=${ANTSEED_MODEL_CONTEXT_WINDOW}`,
+    `model_context_window=${TORVE_MODEL_CONTEXT_WINDOW}`,
   ]
 }
 
 export function buildOpenCodeConfigContent(baseUrlV1: string, model: string): string {
   return JSON.stringify({
     provider: {
-      antseed: {
+      torve: {
         npm: '@ai-sdk/openai-compatible',
-        name: 'AntSeed',
+        name: 'Torve',
         options: {
           baseURL: baseUrlV1,
-          apiKey: 'antseed',
+          apiKey: 'torve',
         },
         models: {
           [model]: {
-            name: `${model} (via AntSeed)`,
+            name: `${model} (via Torve)`,
             limit: {
-              context: ANTSEED_MODEL_CONTEXT_WINDOW,
-              output: ANTSEED_MODEL_MAX_OUTPUT_TOKENS,
+              context: TORVE_MODEL_CONTEXT_WINDOW,
+              output: TORVE_MODEL_MAX_OUTPUT_TOKENS,
             },
           },
         },
       },
     },
-    model: `antseed/${model}`,
+    model: `torve/${model}`,
   })
 }
 
@@ -218,9 +218,9 @@ async function readJsonPort(filePath: string, path: string[]): Promise<number | 
 }
 
 function resolveModel(model: string | null, toolName: ToolName): string {
-  const resolved = normalizeOptionalString(model) ?? normalizeOptionalString(process.env['ANTSEED_MODEL'])
+  const resolved = normalizeOptionalString(model) ?? normalizeOptionalString(process.env['TORVE_MODEL'])
   if (resolved) return resolved
-  throw new Error(`${toolName} requires --model <service-id> or ANTSEED_MODEL`)
+  throw new Error(`${toolName} requires --model <service-id> or TORVE_MODEL`)
 }
 
 function resolveExecutable(command: string): string | null {
@@ -283,7 +283,7 @@ function prepareCodexInvocation(parsed: ParsedWrappedToolArgs, baseUrl: Normaliz
   const model = resolveModel(parsed.model, 'codex')
   return {
     args: [...buildCodexConfigArgs(baseUrl.v1, model), ...parsed.childArgs],
-    env: withDefaultEnv('ANTSEED_API_KEY', DEFAULT_RUNTIME_API_KEY),
+    env: withDefaultEnv('TORVE_API_KEY', DEFAULT_RUNTIME_API_KEY),
     cleanup: NOOP_CLEANUP,
   }
 }
@@ -332,7 +332,7 @@ async function runWrappedTool(toolName: ToolName, rawArgs: string[], dataDir: st
   let prepared: PreparedInvocation
   try {
     parsed = parseWrappedToolArgs(rawArgs)
-    baseUrl = normalizeAntseedBaseUrl(parsed.antseedBaseUrl ?? await resolveDefaultAntseedBaseUrl(dataDir, configPath))
+    baseUrl = normalizeTorveBaseUrl(parsed.torveBaseUrl ?? await resolveDefaultTorveBaseUrl(dataDir, configPath))
     prepared = await prepareToolInvocation(toolName, parsed, baseUrl)
   } catch (err) {
     console.error(chalk.red((err as Error).message))
@@ -346,7 +346,7 @@ async function runWrappedTool(toolName: ToolName, rawArgs: string[], dataDir: st
     process.exit(1)
   }
 
-  console.log(chalk.dim(`AntSeed proxy: ${proxyDisplayUrl(toolName, baseUrl)}`))
+  console.log(chalk.dim(`Torve proxy: ${proxyDisplayUrl(toolName, baseUrl)}`))
   const exitCode = await spawnInteractive(executable, prepared.args, prepared.env).catch((err) => {
     console.error(chalk.red(`Failed to run ${toolName}: ${(err as Error).message}`))
     return 1
@@ -360,15 +360,15 @@ function registerToolCommand(program: Command, toolName: ToolName): void {
   const tool = TOOL_CONFIGS[toolName]
   program
     .command(toolName)
-    .description(`Run ${tool.executable} with AntSeed proxy settings`)
+    .description(`Run ${tool.executable} with Torve proxy settings`)
     .allowUnknownOption(true)
     .allowExcessArguments(true)
-    .argument('[args...]', `${tool.executable} arguments; AntSeed consumes --model and --antseed-base-url`)
+    .argument('[args...]', `${tool.executable} arguments; Torve consumes --model and --torve-base-url`)
     .addHelpText('after', `
 
-AntSeed wrapper flags:
+Torve wrapper flags:
   --model <service-id>             Service/model id for the tool
-  --antseed-base-url <url>         Proxy URL (default: active buyer proxy/config)
+  --torve-base-url <url>         Proxy URL (default: active buyer proxy/config)
 
 Unknown flags are forwarded to ${tool.executable}.
 `)

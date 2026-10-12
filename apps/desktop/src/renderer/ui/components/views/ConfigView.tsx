@@ -68,7 +68,7 @@ export function ConfigView({ onSelectView }: ConfigViewProps) {
   const markDirty = useCallback(() => setDirty(true), [setDirty]);
 
   const refreshVoiceStatus = useCallback(async () => {
-    const result = await window.antseedDesktop?.voiceGetStatus?.();
+    const result = await window.torveDesktop?.voiceGetStatus?.();
     if (isVoiceModelStatus(result)) setVoiceStatus(result);
   }, []);
 
@@ -78,7 +78,7 @@ export function ConfigView({ onSelectView }: ConfigViewProps) {
 
   async function handleVoiceModelChange(modelId: string) {
     setVoiceMessage(null);
-    const result = await window.antseedDesktop?.voiceSetModel?.(modelId) as { ok?: boolean; error?: string; status?: unknown } | undefined;
+    const result = await window.torveDesktop?.voiceSetModel?.(modelId) as { ok?: boolean; error?: string; status?: unknown } | undefined;
     if (!result?.ok) {
       setVoiceMessage(result?.error || 'Could not switch voice model.');
       return;
@@ -90,7 +90,7 @@ export function ConfigView({ onSelectView }: ConfigViewProps) {
     setVoiceInstalling(true);
     setVoiceMessage('Downloading Base multilingual (~142 MB)…');
     try {
-      const result = await window.antseedDesktop?.voiceInstallModel?.('base') as { ok?: boolean; error?: string; status?: unknown } | undefined;
+      const result = await window.torveDesktop?.voiceInstallModel?.('base') as { ok?: boolean; error?: string; status?: unknown } | undefined;
       if (!result?.ok) throw new Error(result?.error || 'Install failed.');
       if (isVoiceModelStatus(result.status)) setVoiceStatus(result.status);
       setVoiceMessage('Base multilingual installed and selected.');

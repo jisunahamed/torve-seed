@@ -14,9 +14,9 @@ import { defineChain, http, fallback } from 'viem';
 //   mainnet.base.org    — 1/3 flaky under concurrent reads
 //
 // Users with production traffic should override via an Alchemy/Infura
-// endpoint. Mirrors the @antseed/node default primary.
+// endpoint. Mirrors the @torveai/node default primary.
 export const wagmiConfig = getDefaultConfig({
-  appName: 'AntSeed Payments',
+  appName: 'Torve Payments',
   projectId: '9a1851410cb5589bc351a6dabf17140e',
   chains: [base],
   transports: {
@@ -36,5 +36,5 @@ export function paymentWalletConfig(config: { evmChainId: number; chainId: strin
       ? defineChain({ id: 31337, name: 'Local Anvil', nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: { default: { http: [config.rpcUrl] } } })
       : null;
   if (!chain) throw new Error(`Unsupported wallet network: ${config.chainId}`);
-  return getDefaultConfig({ appName: 'AntSeed Payments', projectId: '9a1851410cb5589bc351a6dabf17140e', chains: [chain], transports: { [chain.id]: http() } });
+  return getDefaultConfig({ appName: 'Torve Payments', projectId: '9a1851410cb5589bc351a6dabf17140e', chains: [chain], transports: { [chain.id]: http() } });
 }

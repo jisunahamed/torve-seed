@@ -3,7 +3,7 @@ import { VprLogo } from './VprLogo';
 import type { UpdateStatus } from '../../types/bridge';
 import styles from './TitleBar.module.scss';
 
-const DEFAULT_UPDATE_INSTALL_HINT = 'Quit Antseed, reopen, and try again.';
+const DEFAULT_UPDATE_INSTALL_HINT = 'Quit Torve, reopen, and try again.';
 
 export function TitleBar() {
   const [updateState, setUpdateState] = useState<
@@ -15,7 +15,7 @@ export function TitleBar() {
   const updateErrorWrapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.onUpdateStatus) return;
     return bridge.onUpdateStatus((data) => {
       if (data.status === 'error') {
@@ -50,9 +50,9 @@ export function TitleBar() {
   }, []);
 
   const handleUpdate = useCallback(async () => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.installUpdate) {
-      showUpdateError('Desktop updater is unavailable.', 'window.antseedDesktop.installUpdate is not available.');
+      showUpdateError('Desktop updater is unavailable.', 'window.torveDesktop.installUpdate is not available.');
       return;
     }
 

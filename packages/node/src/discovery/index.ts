@@ -2,7 +2,7 @@ export {
   DHTNode,
   DEFAULT_DHT_CONFIG,
   topicToInfoHash,
-  ANTSEED_WILDCARD_TOPIC,
+  TORVE_WILDCARD_TOPIC,
   capabilityTopic,
   peerTopic,
   subnetTopic,

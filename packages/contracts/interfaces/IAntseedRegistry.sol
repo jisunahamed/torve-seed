@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-/// @notice Central registry for all AntSeed protocol contract addresses.
-interface IAntseedRegistry {
+/// @notice Central registry for all Torve protocol contract addresses.
+interface ITorveRegistry {
     function channels() external view returns (address);
     function stats() external view returns (address);
     function deposits() external view returns (address);

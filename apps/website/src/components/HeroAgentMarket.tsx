@@ -8,7 +8,7 @@ import {SquareGlyph, PiGlyph} from './AgentsLogoBar';
 /**
  * Agent tab hero visual: coding agents routed to a curated set of models —
  * the top free models first, then the frontier models — with the lowest
- * live Antseed offer against the official price. Prices come from the same
+ * live Torve offer against the official price. Prices come from the same
  * marketplace feed as the pricing board further down the page.
  */
 

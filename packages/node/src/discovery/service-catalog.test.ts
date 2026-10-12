@@ -5,10 +5,10 @@ describe('buildNetworkServiceOffers', () => {
   it('projects peer-level verifier advertisements to every service offer', () => {
     const offers = buildNetworkServiceOffers([{
       peerId: 'tee-seller', providers: ['openai'], services: ['model-a', 'model-b'],
-      capabilities: ['verifier.antseed-verifier', 'verifier-default.antseed-verifier'],
+      capabilities: ['verifier.torve-verifier', 'verifier-default.torve-verifier'],
     }, { peerId: 'legacy', providers: ['openai'], services: ['model-a'] }]);
     expect(offers.filter((offer) => offer.peerId === 'tee-seller').map((offer) => offer.advertisedVerifierIds))
-      .toEqual([['antseed-verifier'], ['antseed-verifier']]);
+      .toEqual([['torve-verifier'], ['torve-verifier']]);
     expect(offers.find((offer) => offer.peerId === 'legacy')?.advertisedVerifierIds).toEqual([]);
   });
 

@@ -84,7 +84,7 @@ export class VerificationSampler {
       files: {
         request: 'request.bin',
         response: 'response.bin',
-        encoding: 'antseed-http-codec-v1',
+        encoding: 'torve-http-codec-v1',
       },
     };
 
@@ -121,7 +121,7 @@ interface VerificationSampleManifest {
   files: {
     request: string;
     response: string;
-    encoding: 'antseed-http-codec-v1';
+    encoding: 'torve-http-codec-v1';
   };
 }
 

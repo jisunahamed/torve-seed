@@ -7,7 +7,7 @@ export {
   selectTargetProtocolForRequest,
   transformRequest,
   transformResponse,
-} from '@antseed/api-adapter'
+} from '@torveai/api-adapter'
 
 export type {
   ServiceApiRequestTransformOptions,
@@ -19,4 +19,4 @@ export type {
   ServiceApiProtocol,
   StreamingResponseAdapter,
   TargetProtocolSelection,
-} from '@antseed/api-adapter'
+} from '@torveai/api-adapter'

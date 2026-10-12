@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { PeerInfo } from '@antseed/node'
+import type { PeerInfo } from '@torveai/node'
 import { scoreCandidates, DEFAULT_WEIGHTS } from './peer-scorer.js'
 import type { PeerMetrics, TokenPricingUsdPerMillion } from './peer-scorer.js'
 

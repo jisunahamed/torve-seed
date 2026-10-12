@@ -3,13 +3,13 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
 
-import { AntseedEmissionsV2 } from "../legacy/AntseedEmissionsV2.sol";
-import { AntseedSellerRewardsPool } from "../rewards/AntseedSellerRewardsPool.sol";
-import { AntseedSellerUnlockPolicy } from "../policies/AntseedSellerUnlockPolicy.sol";
-import { IAntseedRegistry } from "../interfaces/IAntseedRegistry.sol";
-import { ISetRegistry } from "../interfaces/IAntseedWiring.sol";
+import { TorveEmissionsV2 } from "../legacy/TorveEmissionsV2.sol";
+import { TorveSellerRewardsPool } from "../rewards/TorveSellerRewardsPool.sol";
+import { TorveSellerUnlockPolicy } from "../policies/TorveSellerUnlockPolicy.sol";
+import { ITorveRegistry } from "../interfaces/ITorveRegistry.sol";
+import { ISetRegistry } from "../interfaces/ITorveWiring.sol";
 
-interface IAntseedRegistryAdmin is IAntseedRegistry {
+interface ITorveRegistryAdmin is ITorveRegistry {
     function setEmissions(address emissions) external;
 }
 
@@ -19,12 +19,12 @@ interface IANTSTokenAdmin {
 
 /**
  * @title UpgradeEmissionsV2BaseMainnet
- * @notice Deploys AntseedEmissionsV2 + seller rewards pool while keeping the
+ * @notice Deploys TorveEmissionsV2 + seller rewards pool while keeping the
  *         deployed registry, token, channels, deposits, staking, and stats in place.
  *
  * Required env:
  *   DEPLOYER_PRIVATE_KEY   Owner/broadcaster key.
- *   ANTSEED_REGISTRY       Deployed AntseedRegistry address.
+ *   TORVE_REGISTRY       Deployed TorveRegistry address.
  *
  * Optional env:
  *   SELLER_UNLOCK_POLICY   Existing unlock policy. If unset, this script deploys one.
@@ -45,22 +45,22 @@ contract UpgradeEmissionsV2BaseMainnet is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
-        address registryAddress = vm.envAddress("ANTSEED_REGISTRY");
+        address registryAddress = vm.envAddress("TORVE_REGISTRY");
 
-        IAntseedRegistryAdmin registry = IAntseedRegistryAdmin(registryAddress);
+        ITorveRegistryAdmin registry = ITorveRegistryAdmin(registryAddress);
         address oldEmissions = registry.emissions();
         require(oldEmissions != address(0), "old emissions not set");
 
         vm.startBroadcast(deployerPrivateKey);
 
-        console.log("=== AntSeed Emissions V2 Upgrade ===");
+        console.log("=== Torve Emissions V2 Upgrade ===");
         console.log("Deployer:             ", deployer);
         console.log("Registry:             ", registryAddress);
         console.log("Old Emissions:        ", oldEmissions);
         console.log("ANTS Token:           ", registry.antsToken());
         console.log("");
 
-        AntseedSellerRewardsPool rewardsPool = new AntseedSellerRewardsPool(registryAddress);
+        TorveSellerRewardsPool rewardsPool = new TorveSellerRewardsPool(registryAddress);
         console.log("SellerRewardsPool:    ", address(rewardsPool));
 
         bool whitelistRewardsPool = vm.envOr("WHITELIST_REWARDS_POOL", false);
@@ -71,7 +71,7 @@ contract UpgradeEmissionsV2BaseMainnet is Script {
 
         address policyAddress = vm.envOr("SELLER_UNLOCK_POLICY", address(0));
         if (policyAddress == address(0)) {
-            AntseedSellerUnlockPolicy policy = new AntseedSellerUnlockPolicy();
+            TorveSellerUnlockPolicy policy = new TorveSellerUnlockPolicy();
             policyAddress = address(policy);
             console.log("SellerUnlockPolicy:   ", policyAddress);
 
@@ -84,7 +84,7 @@ contract UpgradeEmissionsV2BaseMainnet is Script {
             console.log("SellerUnlockPolicy:   ", policyAddress);
         }
 
-        AntseedEmissionsV2 emissionsV2 = new AntseedEmissionsV2(registryAddress, oldEmissions, address(rewardsPool));
+        TorveEmissionsV2 emissionsV2 = new TorveEmissionsV2(registryAddress, oldEmissions, address(rewardsPool));
         console.log("EmissionsV2:          ", address(emissionsV2));
         console.log("Migration epoch:      ", emissionsV2.MIGRATION_EPOCH());
         console.log("Current epoch:        ", emissionsV2.currentEpoch());

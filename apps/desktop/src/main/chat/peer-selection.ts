@@ -1,4 +1,4 @@
-export const ANTSEED_PEER_CUSTOM_TYPE = 'antseed:peer';
+export const TORVE_PEER_CUSTOM_TYPE = 'torve:peer';
 
 export type ChatPeerSelectionRequest = {
   conversationId?: string | null;
@@ -72,7 +72,7 @@ export function resolveLatestPeerBinding(
 ): PersistedPeerBinding | null {
   for (let i = entries.length - 1; i >= 0; i -= 1) {
     const entry = entries[i];
-    if (!entry || entry.type !== 'custom' || entry.customType !== ANTSEED_PEER_CUSTOM_TYPE) {
+    if (!entry || entry.type !== 'custom' || entry.customType !== TORVE_PEER_CUSTOM_TYPE) {
       continue;
     }
 

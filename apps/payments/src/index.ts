@@ -14,9 +14,9 @@ const isMain = process.argv[1]
   : false;
 
 if (isMain) {
-  const port = Number(process.env['ANTSEED_PAYMENTS_PORT']) || DEFAULT_PORT;
-  const dataDir = process.env['ANTSEED_DATA_DIR'] || undefined;
-  const identityHex = process.env['ANTSEED_IDENTITY_HEX'] || undefined;
+  const port = Number(process.env['TORVE_PAYMENTS_PORT']) || DEFAULT_PORT;
+  const dataDir = process.env['TORVE_DATA_DIR'] || undefined;
+  const identityHex = process.env['TORVE_IDENTITY_HEX'] || undefined;
 
   createServer({ port, dataDir, identityHex }).then(async (server) => {
     await server.listen({ port, host: '127.0.0.1' });

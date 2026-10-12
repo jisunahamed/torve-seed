@@ -55,7 +55,7 @@ const PATHS = [
   {
     title: 'Raw Inference',
     icon: <HugeiconsIcon icon={ServerStack01Icon} size={24} strokeWidth={1.6} aria-hidden="true" />,
-    body: 'You run a model or proxy an upstream API - Ollama, a fine-tune, a local GPU, OpenAI, Together. Point Antseed at it with one config entry and announce it to the network. Buyers choose you based on price, latency, and onchain reputation; payments depend on demand and successful settlement.',
+    body: 'You run a model or proxy an upstream API - Ollama, a fine-tune, a local GPU, OpenAI, Together. Point Torve at it with one config entry and announce it to the network. Buyers choose you based on price, latency, and onchain reputation; payments depend on demand and successful settlement.',
     points: ['Any model or backend', 'Set your own price per token', 'Reputation built per delivery'],
   },
   {
@@ -129,21 +129,21 @@ const ECONOMICS = [
 ];
 
 const CLI_SNIPPET = `# Point at any OpenAI-compatible endpoint
-antseed config seller add-provider together \\
+torve config seller add-provider together \\
   --plugin openai \\
   --base-url https://api.together.ai
 
 # Announce a service with your price + categories
 # (--cached is optional - set it to charge less for
 # cached-input tokens when your upstream supports them)
-antseed config seller add-service together deepseek-v3.1 \\
+torve config seller add-service together deepseek-v3.1 \\
   --upstream "deepseek-ai/DeepSeek-V3.1" \\
   --input 0.6 --cached 0.06 --output 1.7 \\
   --categories chat,math,coding
 
 # Start serving
 export OPENAI_API_KEY=<your-key>
-antseed seller start`;
+torve seller start`;
 
 const CONFIG_SNIPPET = `{
   "seller": {
@@ -167,16 +167,16 @@ const CONFIG_SNIPPET = `{
   }
 }`;
 
-const WALLET_SNIPPET = `antseed seller status         # earnings, peers, wallet address
-antseed seller register       # register on-chain; all you need to sell
-antseed seller stake <ants> --epochs <n>  # optional: stake ANTS for rewards`;
+const WALLET_SNIPPET = `torve seller status         # earnings, peers, wallet address
+torve seller register       # register on-chain; all you need to sell
+torve seller stake <ants> --epochs <n>  # optional: stake ANTS for rewards`;
 
 /* ── MAIN PAGE ───────────────────────────────────────────────── */
 export default function Providers(): JSX.Element {
   return (
     <Layout
       title="Become a Provider"
-      description="Build an Antseed provider for your AI capability. Providers are independent operators responsible for their own infrastructure, policies, compliance, and data handling."
+      description="Build an Torve provider for your AI capability. Providers are independent operators responsible for their own infrastructure, policies, compliance, and data handling."
     >
       <PageHero
         title={
@@ -263,7 +263,7 @@ export default function Providers(): JSX.Element {
         <Reveal>
           <SectionHeader
             title="One JSON file. Full control."
-            lead="No code to write. Point Antseed at an OpenAI-compatible endpoint, set your prices and categories, and offer capacity to buyers."
+            lead="No code to write. Point Torve at an OpenAI-compatible endpoint, set your prices and categories, and offer capacity to buyers."
           />
         </Reveal>
         <div className={styles.codeGrid}>
@@ -278,7 +278,7 @@ export default function Providers(): JSX.Element {
           </Reveal>
           <Reveal className={styles.codeCard} delay={100}>
             <p className={styles.codeCardLabel}>2 · Or edit config.json directly</p>
-            <Terminal title="~/.antseed/config.json">{CONFIG_SNIPPET}</Terminal>
+            <Terminal title="~/.torve/config.json">{CONFIG_SNIPPET}</Terminal>
             <p className={styles.codeNote}>
               Your backend URL, API key, and routing logic are intended to remain under your control.
               The network only sees the service name, price, and categories; you are responsible for
@@ -361,7 +361,7 @@ export default function Providers(): JSX.Element {
             </p>
             <p>
               Provider-side ANTS emissions are currently tracked but locked in a dedicated Provider
-              Pool while Antseed develops stronger validation and proof systems. Fake usage, sybil
+              Pool while Torve develops stronger validation and proof systems. Fake usage, sybil
               behavior, or incentive extraction may be excluded or subject to future slashing.
             </p>
           </div>

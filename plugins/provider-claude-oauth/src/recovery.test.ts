@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ModelHealthChecker, type Provider } from '@antseed/node';
+import { ModelHealthChecker, type Provider } from '@torveai/node';
 import plugin from './index.js';
 import { CredentialStore } from './credential-store.js';
 
@@ -15,7 +15,7 @@ const config = () => ({
   CLAUDE_ACCESS_TOKEN: 'old-access',
   CLAUDE_REFRESH_TOKEN: 'old-refresh',
   CLAUDE_TOKEN_EXPIRES_AT: String(Date.now() - 1000),
-  ANTSEED_ALLOWED_SERVICES: 'model-a,model-b',
+  TORVE_ALLOWED_SERVICES: 'model-a,model-b',
 });
 
 beforeEach(() => {
@@ -60,7 +60,7 @@ describe('development OAuth persistence and recovery', () => {
   it('keeps failed services hidden, continues other providers, and restores every model after repair', async () => {
     fetchMock.mockResolvedValue(new Response('sensitive-upstream-body', { status: 401 }));
     const provider: Provider = plugin.createProvider(config());
-    await expect(provider.init?.()).rejects.toMatchObject({ code: 'ANTSEED_OAUTH_REFRESH_FAILED' });
+    await expect(provider.init?.()).rejects.toMatchObject({ code: 'TORVE_OAUTH_REFRESH_FAILED' });
     provider.healthCheckAvailable = false;
     const other: Provider = {
       name: 'other', services: ['working'], pricing: { defaults: { inputUsdPerMillion: 0, outputUsdPerMillion: 0 } },
@@ -88,7 +88,7 @@ describe('development OAuth persistence and recovery', () => {
     fetchMock.mockResolvedValueOnce(new Response('expired', { status: 401 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ access_token: 'rotated', refresh_token: 'rotated-refresh', expires_in: 3600 })))
       .mockResolvedValueOnce(new Response(JSON.stringify({ content: [{ type: 'text', text: 'OK' }] })));
-    const provider = plugin.createProvider({ CLAUDE_AUTH_FILE: path, ANTSEED_ALLOWED_SERVICES: 'model-a' });
+    const provider = plugin.createProvider({ CLAUDE_AUTH_FILE: path, TORVE_ALLOWED_SERVICES: 'model-a' });
     const response = await provider.handleRequest({ requestId: 'test', method: 'POST', path: '/v1/messages', headers: {},
       body: new TextEncoder().encode(JSON.stringify({ model: 'model-a', messages: [], max_tokens: 1 })) });
     expect(response.statusCode).toBe(200);

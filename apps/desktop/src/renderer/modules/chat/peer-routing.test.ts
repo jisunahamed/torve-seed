@@ -2412,7 +2412,7 @@ test('a retryable failure on a pinned conversation is shown instead of retried',
 
   const message = [
     'Oops, pinned peer could not complete the request.',
-    'Antseed is a peer-to-peer network. Try another peer or use Auto routing.',
+    'Torve is a peer-to-peer network. Try another peer or use Auto routing.',
     'Original Response: {"message":"Insufficient balance","status":429}',
   ].join('\n');
   streamErrorHandlers[0]?.({

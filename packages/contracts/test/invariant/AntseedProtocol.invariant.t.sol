@@ -4,16 +4,16 @@ pragma solidity ^0.8.24;
 import {ProtocolFixture} from "./ProtocolFixture.sol";
 
 /**
- * @title AntseedProtocolInvariants
+ * @title TorveProtocolInvariants
  * @notice Custody & conservation invariants over the live-mainnet payment core:
- *         AntseedDeposits (custody) ↔ AntseedChannels (lifecycle).
+ *         TorveDeposits (custody) ↔ TorveChannels (lifecycle).
  *
  *         Emissions is intentionally out of scope here (and unwired in the fixture) while its
  *         economics are under revision; these custody invariants don't depend on it.
  */
-contract AntseedProtocolInvariants is ProtocolFixture {
+contract TorveProtocolInvariants is ProtocolFixture {
     // ═════════════════════════════════════════════════════════════════════
-    //                  CUSTODY INVARIANTS (AntseedDeposits)
+    //                  CUSTODY INVARIANTS (TorveDeposits)
     // ═════════════════════════════════════════════════════════════════════
 
     /// @notice Deposits holds exactly the sum of all buyer balances — no USDC leaks or appears.

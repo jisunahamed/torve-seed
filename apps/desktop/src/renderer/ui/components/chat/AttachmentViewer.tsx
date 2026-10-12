@@ -10,7 +10,7 @@ import styles from './AttachmentViewer.module.scss';
  * 2. Chat image blocks — carry the base64 body in `imageBase64` +
  *    `imageMimeType`.
  * 3. Chat file blocks with disk-backed storage — carry a
- *    `antseed-attachment://` URL in `src`, and the renderer dispatches
+ *    `torve-attachment://` URL in `src`, and the renderer dispatches
  *    to the right engine based on `mimeType`.
  */
 export type ViewerAttachment = {
@@ -24,7 +24,7 @@ export type ViewerAttachment = {
   imageMimeType?: string;
   /**
    * Custom-protocol URL that Chromium can fetch directly (via Electron's
-   * `antseed-attachment://` handler). Used by persisted file blocks so
+   * `torve-attachment://` handler). Used by persisted file blocks so
    * PDFs, HTML, SVG and images render natively without round-tripping
    * megabytes through IPC.
    */
@@ -163,7 +163,7 @@ export function AttachmentViewer({ attachment, onClose }: AttachmentViewerProps)
 
   const handleDownload = useCallback(async () => {
     const bridge = typeof window !== 'undefined'
-      ? (window as { antseedDesktop?: { attachmentDownload?: (c: string, a: string, n: string) => Promise<{ ok: boolean; error?: string }> } }).antseedDesktop
+      ? (window as { torveDesktop?: { attachmentDownload?: (c: string, a: string, n: string) => Promise<{ ok: boolean; error?: string }> } }).torveDesktop
       : undefined;
     if (attachment.downloadIpc && bridge?.attachmentDownload) {
       // Reliable path: main process streams the file through

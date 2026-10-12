@@ -33,12 +33,12 @@ export interface WashTradingRegistryConfig {
 
 export interface BlockReference { number: number; blockHash: string; }
 
-/** Chunk from a loop-proof `antseed-wash-trading-seller-proof` artifact. */
+/** Chunk from a loop-proof `torve-wash-trading-seller-proof` artifact. */
 export interface BlockAuthenticationChunk { index: number; references: BlockReference[]; proof: string[]; }
 
 /**
  * Seller proof artifact produced by the loop-proof host
- * (`kind: antseed-wash-trading-seller-proof`, `proofArchitecture: direct-seller-v1`).
+ * (`kind: torve-wash-trading-seller-proof`, `proofArchitecture: direct-seller-v1`).
  */
 export interface SellerProofArtifact {
   version: number;
@@ -95,7 +95,7 @@ export function sellerProofId(publicValues: string): string {
 export function validateSellerProofArtifact(artifact: unknown): SellerProofArtifact {
   const value = artifact as Partial<SellerProofArtifact> | null;
   if (!value || typeof value !== 'object') throw new Error('Seller proof artifact must be a JSON object.');
-  if (value.kind !== 'antseed-wash-trading-seller-proof') throw new Error(`Unexpected artifact kind '${String(value.kind)}'; expected antseed-wash-trading-seller-proof.`);
+  if (value.kind !== 'torve-wash-trading-seller-proof') throw new Error(`Unexpected artifact kind '${String(value.kind)}'; expected torve-wash-trading-seller-proof.`);
   if (value.proofArchitecture !== undefined && value.proofArchitecture !== 'direct-seller-v1') {
     throw new Error(`Unsupported proof architecture '${String(value.proofArchitecture)}'; the registry accepts direct-seller-v1.`);
   }

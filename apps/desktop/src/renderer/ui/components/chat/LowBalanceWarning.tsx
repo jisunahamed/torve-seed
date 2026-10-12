@@ -1,4 +1,4 @@
-import { Button } from '@antseed/ui';
+import { Button } from '@torveai/ui';
 import styles from './LowBalanceWarning.module.scss';
 
 type LowBalanceWarningProps = {

@@ -1,5 +1,5 @@
 {
-  description = "AntSeed development environment and CLI package";
+  description = "Torve development environment and CLI package";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -130,7 +130,7 @@
         in
         {
           default = stdenv.mkDerivation (finalAttrs: {
-            pname = "antseed-cli";
+            pname = "torve-cli";
             version = cliVersion;
 
             src = lib.cleanSourceWith {
@@ -144,7 +144,7 @@
               inherit (finalAttrs) pname version src;
               inherit pnpm;
               fetcherVersion = 3;
-              pnpmWorkspaces = [ "@antseed/cli..." ];
+              pnpmWorkspaces = [ "@torveai/cli..." ];
               # NIX-PNPM-HASH: this fixed-output hash goes stale on every
               # pnpm-lock.yaml change (the store no longer matches). After
               # touching the lockfile, regenerate it with:
@@ -152,7 +152,7 @@
               hash = "sha256-YRwWbfRoU6gDpamUGVmZAf4skx0RZ0/dONgjw0aSUTc=";
             };
 
-            pnpmWorkspaces = [ "@antseed/cli..." ];
+            pnpmWorkspaces = [ "@torveai/cli..." ];
 
             nativeBuildInputs = [
               nodejs
@@ -221,7 +221,7 @@
               for f in node_modules/@esbuild/*/bin/esbuild node_modules/*/node_modules/@esbuild/*/bin/esbuild; do
                 [ -f "$f" ] && chmod +x "$f"
               done
-              pnpm --filter='@antseed/cli...' run build
+              pnpm --filter='@torveai/cli...' run build
 
               # 4. Bundle the CLI into a single ESM file; native modules stay
               #    external and are shipped alongside (same as build:bundle).
@@ -231,7 +231,7 @@
                 --outfile=apps/cli/dist/bundle.mjs \
                 --external:better-sqlite3 --external:node-datachannel \
                 --external:koffi --external:keytar \
-                '--banner:js=import { createRequire as __antseedCreateRequire } from "node:module"; var require = __antseedCreateRequire(import.meta.url);'
+                '--banner:js=import { createRequire as __torveCreateRequire } from "node:module"; var require = __torveCreateRequire(import.meta.url);'
 
               runHook postBuild
             '';
@@ -239,42 +239,42 @@
             installPhase = ''
               runHook preInstall
 
-              mkdir -p "$out/libexec/antseed/node_modules" "$out/bin"
+              mkdir -p "$out/libexec/torve/node_modules" "$out/bin"
 
-              cp apps/cli/dist/bundle.mjs "$out/libexec/antseed/"
+              cp apps/cli/dist/bundle.mjs "$out/libexec/torve/"
 
-              # Web dashboard assets; @antseed/payments resolves ./web relative
+              # Web dashboard assets; @torveai/payments resolves ./web relative
               # to import.meta.url, which is the bundle's directory once built.
-              cp -r apps/payments/dist/web "$out/libexec/antseed/web"
-              cp -r apps/ants/dist/ants-web "$out/libexec/antseed/ants-web"
+              cp -r apps/payments/dist/web "$out/libexec/torve/web"
+              cp -r apps/ants/dist/ants-web "$out/libexec/torve/ants-web"
 
               for pkg in ${lib.concatStringsSep " " runtimeNodeModules}; do
                 if [ -e "node_modules/$pkg" ]; then
-                  cp -rL "node_modules/$pkg" "$out/libexec/antseed/node_modules/$pkg"
+                  cp -rL "node_modules/$pkg" "$out/libexec/torve/node_modules/$pkg"
                 fi
               done
 
               # koffi's npm package ships binaries for every platform; keep
               # only the target one so autoPatchelf does not trip on the rest.
-              if [ -d "$out/libexec/antseed/node_modules/koffi/build/koffi" ]; then
-                find "$out/libexec/antseed/node_modules/koffi/build/koffi" \
+              if [ -d "$out/libexec/torve/node_modules/koffi/build/koffi" ]; then
+                find "$out/libexec/torve/node_modules/koffi/build/koffi" \
                   -mindepth 1 -maxdepth 1 \
                   ! -name "${platform.os}_${platform.cpu}" \
                   -exec rm -rf {} +
               fi
 
-              makeWrapper ${nodejs}/bin/node "$out/bin/antseed" \
-                --add-flags "$out/libexec/antseed/bundle.mjs" \
+              makeWrapper ${nodejs}/bin/node "$out/bin/torve" \
+                --add-flags "$out/libexec/torve/bundle.mjs" \
                 --prefix PATH : ${lib.makeBinPath [ nodejs ]}
 
               runHook postInstall
             '';
 
             meta = {
-              description = "AntSeed Network CLI — P2P network for AI services";
-              homepage = "https://github.com/antseed/antseed";
+              description = "Torve Network CLI — P2P network for AI services";
+              homepage = "https://github.com/torve/torve";
               license = lib.licenses.gpl3Only;
-              mainProgram = "antseed";
+              mainProgram = "torve";
               platforms = systems;
             };
           });
@@ -283,7 +283,7 @@
       apps = forAllSystems (system: {
         default = {
           type = "app";
-          program = "${self.packages.${system}.default}/bin/antseed";
+          program = "${self.packages.${system}.default}/bin/torve";
         };
       });
     };

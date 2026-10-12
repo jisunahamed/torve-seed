@@ -7,7 +7,7 @@
 
 import express from 'express';
 import type { NetworkPoller } from './poller.js';
-import type { StakingClient } from '@antseed/node';
+import type { StakingClient } from '@torveai/node';
 import type { SqliteStore } from './store.js';
 import type { MetadataIndexer } from './indexer.js';
 

@@ -1,14 +1,14 @@
-# @antseed/web-sdk
+# @torveai/web-sdk
 
-Browser buyer SDK for AntSeed. Connects to unmodified sellers over WebRTC
-DataChannels (signaled through an [@antseed/relay](../../apps/relay)) and pays
+Browser buyer SDK for Torve. Connects to unmodified sellers over WebRTC
+DataChannels (signaled through an [@torveai/relay](../../apps/relay)) and pays
 per request with in-browser EIP-712 signatures. No native modules; the only
 runtime dependency is ethers.
 
 ```ts
-import { AntseedWebClient } from '@antseed/web-sdk';
+import { TorveWebClient } from '@torveai/web-sdk';
 
-const client = await AntseedWebClient.create({
+const client = await TorveWebClient.create({
   relayUrl: 'https://relay.example.com',
   privateKey: buyerHotWalletKey,        // peerId = its EVM address
   connection: {
@@ -40,7 +40,7 @@ A working single-page example (seller discovery, connect, streaming chat)
 lives in [`examples/example.html`](examples/example.html):
 
 ```bash
-pnpm --filter @antseed/web-sdk run example
+pnpm --filter @torveai/web-sdk run example
 # open http://127.0.0.1:8974/example.html
 ```
 
@@ -55,7 +55,7 @@ signed SpendingAuth state is gone and reserved funds stay locked until the
 session deadline passes. Production apps should inject a durable store:
 
 ```ts
-const client = new AntseedWebClient({ relayUrl, wallet, channelStore: myStore });
+const client = new TorveWebClient({ relayUrl, wallet, channelStore: myStore });
 ```
 
 `channelStore` takes any `BuyerChannelStore` (re-exported here). For
@@ -85,10 +85,10 @@ Everything else is shared code, not a reimplementation. Production clients
 use an IndexedDB store; the in-memory store remains available only through
 the explicit `ephemeral()` API:
 
-- **@antseed/protocol** — wire format: message types, frame/HTTP/payment
+- **@torveai/protocol** — wire format: message types, frame/HTTP/payment
   codecs, EIP-712 payment signatures, connection auth. Same modules
-  @antseed/node runs.
-- **@antseed/buyer-core** — the buyer machinery: `BuyerRequestHandler`,
+  @torveai/node runs.
+- **@torveai/buyer-core** — the buyer machinery: `BuyerRequestHandler`,
   `BuyerPaymentManager`, `BuyerPaymentNegotiator`, `ProxyMux`/`PaymentMux`.
   The exact classes behind the node/CLI buyer proxy, wired here to a WebRTC
   DataChannel and the configured channel store (in-memory by default).
@@ -107,7 +107,7 @@ slots. There is no re-signaling path; a dropped DataChannel means a fresh
 
 ## Persistence and multiple tabs
 
-`AntseedWebClient.create()` is asynchronous because it acquires an exclusive
+`TorveWebClient.create()` is asynchronous because it acquires an exclusive
 Web Lock for the buyer identity and hydrates IndexedDB before the payment
 manager may sign. Only one tab can use a buyer on the same chain/channels
 contract at a time. A second tab fails with `BuyerAlreadyActiveError` by
@@ -124,7 +124,7 @@ status/accounting writes immediately; awaited authorization commits and
 Call `await client.close()` when the application is done to flush storage and
 release the lock. Page-unload handlers are not a channel recovery mechanism.
 
-`AntseedWebClient.ephemeral()` retains in-memory behavior for tests and free
+`TorveWebClient.ephemeral()` retains in-memory behavior for tests and free
 interoperability experiments. It must not be used for paid traffic because a
 reload loses its channel state and it provides no multi-tab exclusion.
 
@@ -134,7 +134,7 @@ supporting seller. `client.listActiveChannels()` exposes locally unresolved
 channels for recovery UI. If the seller is unavailable, call
 `session.requestOnChainClose(operatorSigner)` and, after the contract grace
 period, `session.withdrawTimedOutChannel(operatorSigner)`. The signer must be
-the operator configured for the buyer in AntseedDeposits; the SDK does not
+the operator configured for the buyer in TorveDeposits; the SDK does not
 assume that the browser wallet or any particular backend owns that role.
 
 The relay verifies DHT metadata before caching it, and the SDK rejects a
@@ -154,14 +154,14 @@ responses.
 
 ## Prerequisites for paying sellers
 
-The buyer address must have USDC deposited in AntseedDeposits (directly or
+The buyer address must have USDC deposited in TorveDeposits (directly or
 via the gasless EIP-3009 sweep). Deposit UX is out of scope for this SDK.
 
 ## Testing
 
-`vitest run` covers byte-for-byte parity with `@antseed/node` (hello
+`vitest run` covers byte-for-byte parity with `@torveai/node` (hello
 envelope, frame codec, EIP-712 signatures, metadata hashing) and an
-end-to-end suite that drives the real `@antseed/node` seller listener through
+end-to-end suite that drives the real `@torveai/node` seller listener through
 a real relay instance, with `node-datachannel/polyfill` standing in for the
 browser's `RTCPeerConnection`. `pnpm run test:browser` additionally launches
 real Chromium and Firefox runtimes, connects their native WebRTC stacks to an

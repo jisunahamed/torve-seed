@@ -11,7 +11,7 @@ describe("verification links", () => {
     expect(isGithubName("-octocat")).toBe(false);
     expect(isGithubName("bad user")).toBe(false);
 
-    expect(isGithubRepository("antseed-proof")).toBe(true);
+    expect(isGithubRepository("torve-proof")).toBe(true);
     expect(isGithubRepository("proof.repo")).toBe(true);
     expect(isGithubRepository("..")).toBe(false);
   });
@@ -41,7 +41,7 @@ describe("verification links", () => {
         github: [
           {
             username: "OctoCat",
-            repository: "antseed-proof",
+            repository: "torve-proof",
             peerId: PEER_ID,
             verified: true,
             checkedAtMs: 123,
@@ -57,7 +57,7 @@ describe("verification links", () => {
       },
     })).toEqual([
       { kind: "domain", label: "example.com", href: "https://example.com" },
-      { kind: "github", label: "@octocat/antseed-proof", href: "https://github.com/octocat/antseed-proof" },
+      { kind: "github", label: "@octocat/torve-proof", href: "https://github.com/octocat/torve-proof" },
     ]);
   });
 

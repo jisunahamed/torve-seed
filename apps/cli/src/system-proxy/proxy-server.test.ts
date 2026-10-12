@@ -646,7 +646,7 @@ async function makeProxy(tmpDir: string, buyerPort: number) {
 }
 
 test('Proxy: rewrites model field and strips Authorization header', { timeout: 15_000 }, async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-proxy-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-proxy-test-'))
   try {
     const buyer = await startFakeBuyerProxy()
     const { proxy, caKeys } = await makeProxy(tmpDir, buyer.port)
@@ -683,7 +683,7 @@ test('Proxy: rewrites model field and strips Authorization header', { timeout: 1
 })
 
 test('Proxy: passes non-JSON body through without modification', { timeout: 15_000 }, async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-proxy-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-proxy-test-'))
   try {
     const buyer = await startFakeBuyerProxy()
     const { proxy, caKeys } = await makeProxy(tmpDir, buyer.port)
@@ -712,7 +712,7 @@ test('Proxy: passes non-JSON body through without modification', { timeout: 15_0
 })
 
 test('Proxy: forwards correct path to buyer proxy', { timeout: 15_000 }, async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-proxy-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-proxy-test-'))
   try {
     const buyer = await startFakeBuyerProxy()
     const { proxy, caKeys } = await makeProxy(tmpDir, buyer.port)
@@ -730,7 +730,7 @@ test('Proxy: forwards correct path to buyer proxy', { timeout: 15_000 }, async (
 
       assert.equal(buyer.captured[0]?.path, '/v1/messages', 'path should be preserved')
       assert.equal(buyer.captured[0]?.headers['profile-version'], '2023-06-01', 'non-hop-by-hop headers preserved')
-      assert.equal(buyer.captured[0]?.headers['x-antseed-system-proxy-source'], 'api-a-profile')
+      assert.equal(buyer.captured[0]?.headers['x-torve-system-proxy-source'], 'api-a-profile')
     } finally {
       await proxy.stop()
       await buyer.close()
@@ -741,7 +741,7 @@ test('Proxy: forwards correct path to buyer proxy', { timeout: 15_000 }, async (
 })
 
 test('Proxy: strips oversized conversation browser headers before forwarding', { timeout: 15_000 }, async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-proxy-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-proxy-test-'))
   try {
     const buyer = await startFakeBuyerProxy()
     const { proxy, caKeys } = await makeProxy(tmpDir, buyer.port)
@@ -807,7 +807,7 @@ test('Proxy: strips oversized conversation browser headers before forwarding', {
 })
 
 test('Proxy: routes workflow requests to responses and strips browser headers', { timeout: 15_000 }, async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-proxy-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-proxy-test-'))
   try {
     const buyer = await startFakeBuyerProxy()
     const { proxy, caKeys } = await makeProxy(tmpDir, buyer.port)
@@ -882,7 +882,7 @@ test('Proxy: routes workflow requests to responses and strips browser headers', 
 })
 
 test('Proxy: handles profile CORS preflight without forwarding', { timeout: 15_000 }, async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-proxy-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-proxy-test-'))
   try {
     const buyer = await startFakeBuyerProxy()
     const { proxy, caKeys } = await makeProxy(tmpDir, buyer.port)
@@ -928,7 +928,7 @@ function respond402PaymentRequired(
     error: 'payment_required',
     code: 'insufficient_deposits',
     peerId: 'testPeer',
-    message: 'You are out of AntSeed credits for this request.',
+    message: 'You are out of Torve credits for this request.',
   })
   res.writeHead(402, {
     'content-type': 'application/json',
@@ -940,7 +940,7 @@ function respond402PaymentRequired(
 }
 
 test('Proxy: rewrites a 402 body into a plain-text out-of-credits notice', { timeout: 15_000 }, async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-proxy-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-proxy-test-'))
   try {
     const buyer = await startFakeBuyerProxy(respond402PaymentRequired)
     const { proxy, caKeys } = await makeProxy(tmpDir, buyer.port)
@@ -966,7 +966,7 @@ test('Proxy: rewrites a 402 body into a plain-text out-of-credits notice', { tim
       assert.ok(result.headers['content-type']?.includes('text/plain'), 'body is plain text, not JSON')
       const text = result.body.toString('utf8')
       assert.ok(text.includes('out of credits'), 'notice tells the user what happened')
-      assert.ok(text.includes('AntSeed app'), 'notice tells the user where to fix it')
+      assert.ok(text.includes('Torve app'), 'notice tells the user where to fix it')
       assert.ok(!text.includes('payment_required'), 'raw error JSON never reaches the client')
       assert.ok(!text.includes('{'), 'no JSON syntax leaks into the notice')
     } finally {
@@ -979,7 +979,7 @@ test('Proxy: rewrites a 402 body into a plain-text out-of-credits notice', { tim
 })
 
 test('Proxy: rewrites non-chat 402s with the same plain-text notice', { timeout: 15_000 }, async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-proxy-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-proxy-test-'))
   try {
     const buyer = await startFakeBuyerProxy(respond402PaymentRequired)
     const { proxy, caKeys } = await makeProxy(tmpDir, buyer.port)

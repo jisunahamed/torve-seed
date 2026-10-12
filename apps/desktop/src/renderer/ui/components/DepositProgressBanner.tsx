@@ -34,7 +34,7 @@ export function DepositProgressBanner() {
   const hideTimer = useRef<number | null>(null);
 
   useEffect(() => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.onDepositsWatchStatus) return undefined;
     const unsubscribe = bridge.onDepositsWatchStatus((data) => {
       if (hideTimer.current) {
@@ -83,7 +83,7 @@ export function DepositProgressBanner() {
             <HugeiconsIcon icon={ArrowUpRight01Icon} size={13} strokeWidth={2} />
           </>
         ),
-        onClick: () => void window.antseedDesktop?.openExternalUrl?.(explorerTxUrl(status.txHash!)),
+        onClick: () => void window.torveDesktop?.openExternalUrl?.(explorerTxUrl(status.txHash!)),
       }] : []}
       body={phase === 'received' ? 'Preparing the deposit…' : phase === 'error' ? status.error : undefined}
       dismissLabel="Dismiss deposit status"

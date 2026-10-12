@@ -17,7 +17,7 @@ function parsePayPageFromUrl(): { action: PayPageAction; amount: string | null; 
   // Legacy compat: old app builds linked portal tabs — map them to the
   // nearest signing action instead of a dead dashboard.
   const tab = params.get('tab') ?? params.get('modal') ?? '';
-  // (DIEM staking rewards are claimed on diemantseed.com now, so the old
+  // (DIEM staking rewards are claimed on diemtorveai.com now, so the old
   // 'diem-rewards' tab folds into the network-rewards claim page.)
   const legacy: PayPageAction | null =
     tab === 'rewards' || tab === 'emissions' || tab === 'diem-rewards' ? 'claim'
@@ -47,8 +47,8 @@ export function App() {
 
   useEffect(() => {
     const handler = () => setSessionExpired(true);
-    window.addEventListener('antseed:session-expired', handler);
-    return () => window.removeEventListener('antseed:session-expired', handler);
+    window.addEventListener('torve:session-expired', handler);
+    return () => window.removeEventListener('torve:session-expired', handler);
   }, []);
 
   useEffect(() => {

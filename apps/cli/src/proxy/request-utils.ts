@@ -1,5 +1,5 @@
-import { shouldEmitDebugLine, type PeerInfo, type SerializedHttpRequest, type SerializedHttpResponse } from '@antseed/node'
-import { extractRequestBodyFields, nativeVideoRoute, parseJsonObject, requestService } from '@antseed/api-adapter'
+import { shouldEmitDebugLine, type PeerInfo, type SerializedHttpRequest, type SerializedHttpResponse } from '@torveai/node'
+import { extractRequestBodyFields, nativeVideoRoute, parseJsonObject, requestService } from '@torveai/api-adapter'
 
 function isTruthyDebugValue(value: string | undefined): boolean {
   return ['1', 'true', 'yes', 'on'].includes((value ?? '').trim().toLowerCase())
@@ -10,7 +10,7 @@ function shouldEmitProxyLog(args: unknown[]): boolean {
 }
 
 export function DEBUG(): boolean {
-  return isTruthyDebugValue(process.env['ANTSEED_DEBUG'])
+  return isTruthyDebugValue(process.env['TORVE_DEBUG'])
 }
 
 export function log(...args: unknown[]): void {
@@ -139,8 +139,8 @@ function summarizeMessageShape(messagesRaw: unknown): string {
 export function summarizeRequestShape(request: SerializedHttpRequest): string {
   const contentType = getHeader(request.headers, 'content-type').toLowerCase()
   const accept = getHeader(request.headers, 'accept').toLowerCase()
-  const providerHeader = request.headers['x-antseed-provider'] ?? 'none'
-  const preferPeerHeader = request.headers['x-antseed-prefer-peer'] ?? 'none'
+  const providerHeader = request.headers['x-torve-provider'] ?? 'none'
+  const preferPeerHeader = request.headers['x-torve-prefer-peer'] ?? 'none'
   const service = extractRequestedService(request) ?? 'none'
   const wantsStreaming = requestWantsStreaming(request.headers, request.body)
 
@@ -268,7 +268,7 @@ export function isLoopbackPeer(peer: PeerInfo): boolean {
  * (floating pill / VPR) applies to already-running tool sessions without
  * rewriting their configs.
  */
-export const ROUTED_MODEL_ALIAS = 'antseed'
+export const ROUTED_MODEL_ALIAS = 'torve'
 
 export function substituteRoutedModelAlias(
   body: Uint8Array,
@@ -305,21 +305,21 @@ export function substituteRoutedModelAlias(
  * Marker header the system proxy stamps on requests whose `model` field IT
  * rewrote from the connect-time route — intercepted tools (Claude Code
  * talking to api.anthropic.com through the MITM proxy) send upstream model
- * names, not an AntSeed route, so the model on such requests is AntSeed
+ * names, not an Torve route, so the model on such requests is Torve
  * plumbing rather than a client choice. The buyer treats those models like
  * the routed-model alias for per-chat routing: a chat's pinned model
  * overrides the proxy-resolved route. Internal — stripped before dispatch.
  */
-export const SYSTEM_ROUTED_MODEL_HEADER = 'x-antseed-system-routed'
+export const SYSTEM_ROUTED_MODEL_HEADER = 'x-torve-system-routed'
 
 /** Internal profile marker stamped by the system proxy so intercepted app
     traffic is attributed to the Connected App profile that captured it,
     rather than to a generic SDK User-Agent. Stripped before dispatch. */
-export const SYSTEM_PROXY_SOURCE_HEADER = 'x-antseed-system-proxy-source'
+export const SYSTEM_PROXY_SOURCE_HEADER = 'x-torve-system-proxy-source'
 
 /** Names the stored buyer identity (wallet) that pays for a request; absent
     means the default identity. Local to the buyer — stripped before dispatch. */
-export const BUYER_IDENTITY_HEADER = 'x-antseed-buyer-identity'
+export const BUYER_IDENTITY_HEADER = 'x-torve-buyer-identity'
 
 /**
  * Replace a proxy-assigned model with the chat's pinned route. Only used for

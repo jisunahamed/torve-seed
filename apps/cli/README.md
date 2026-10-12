@@ -1,101 +1,101 @@
-# Antseed CLI + Dashboard
+# Torve CLI + Dashboard
 
-Command-line interface and web dashboard for the AntSeed Network — a P2P network for AI services.
+Command-line interface and web dashboard for the Torve Network — a P2P network for AI services.
 
-> **Important:** AntSeed is designed for providers who build differentiated services on top of AI APIs — such as TEE-secured inference, domain-specific skills and agents, fine-tuned models, or managed product experiences. Simply reselling raw API access or subscription credentials is not the intended use and may violate your upstream provider's terms of service. Subscription-based plugins (`provider-claude-code`, `provider-claude-oauth`) are for testing and development only.
+> **Important:** Torve is designed for providers who build differentiated services on top of AI APIs — such as TEE-secured inference, domain-specific skills and agents, fine-tuned models, or managed product experiences. Simply reselling raw API access or subscription credentials is not the intended use and may violate your upstream provider's terms of service. Subscription-based plugins (`provider-claude-code`, `provider-claude-oauth`) are for testing and development only.
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
 | **Setup** | |
-| `antseed seller setup` | Interactive seller onboarding |
+| `torve seller setup` | Interactive seller onboarding |
 | **Providing** | |
-| `antseed seller start` | Start providing AI services on the P2P network |
-| `antseed seller register` | Register peer identity on-chain (ERC-8004) |
-| `antseed seller stake <ants> --epochs <n>` | Optional: stake ANTS into your seller pool; never stakes USDC |
-| `antseed seller legacy stake <amount>` | Stake USDC as a provider before cutover (min $10) |
-| `antseed seller legacy unstake` | Withdraw legacy USDC stake |
-| `antseed seller legacy claim-starter` | Claim the legacy-seller starter ANTS position after the recognized-usage upgrade |
-| `antseed seller pool positions` | List seller-pool positions and lifecycle state |
-| `antseed seller pool withdraw <id...> [--accept-slashing]` | Withdraw positions, with a slashing estimate and confirmation for early exits |
-| `antseed seller rewards [claim]` | View or claim all seller rewards |
+| `torve seller start` | Start providing AI services on the P2P network |
+| `torve seller register` | Register peer identity on-chain (ERC-8004) |
+| `torve seller stake <ants> --epochs <n>` | Optional: stake ANTS into your seller pool; never stakes USDC |
+| `torve seller legacy stake <amount>` | Stake USDC as a provider before cutover (min $10) |
+| `torve seller legacy unstake` | Withdraw legacy USDC stake |
+| `torve seller legacy claim-starter` | Claim the legacy-seller starter ANTS position after the recognized-usage upgrade |
+| `torve seller pool positions` | List seller-pool positions and lifecycle state |
+| `torve seller pool withdraw <id...> [--accept-slashing]` | Withdraw positions, with a slashing estimate and confirmation for early exits |
+| `torve seller rewards [claim]` | View or claim all seller rewards |
 | **ANTS staking** | |
-| `antseed ants` | Open the local ANTS staking dashboard; the connected browser wallet is the acting account (`--port`, `--no-open`) |
-| `antseed ants --address 0x...` | Pin the dashboard to one account. Transactions require that account's browser wallet, or its authorized operator for buyer actions. Does not use the local wallet. |
-| `antseed ants status` | Protocol phase, epoch countdown, balances, stake, claimable rewards |
-| `antseed ants stake <ants> --agent <id> --epochs <n>` | Stake ANTS into any registered seller pool |
-| `antseed ants positions` | List open lANTS positions with state, pending rewards, and exit slash |
-| `antseed ants move <id...> --to <agent>` | Move positions to another pool (terms preserved, effective next epoch) |
-| `antseed ants split <id> <ants>` / `merge <id...>` | Split a position or merge same-pool positions |
-| `antseed ants extend <id> --epochs <n>` / `max-lock <id> [--off]` | Extend a lock or toggle max lock |
-| `antseed ants withdraw <id...> [--preview] [--accept-slashing]` | Withdraw with a slashing estimate and explicit consent for early exits |
-| `antseed ants rewards [claim\|compound\|restake\|stake-usage]` | View, claim, or restake rewards; `compound` restakes every restakable bucket in one go |
-| `antseed ants pools` / `pool <agent>` | Compare pools: power and share of network, settled volume per epoch, staker ANTS per 1k power (last and projected), your power and share; explorer names via Antscan |
-| `antseed ants usage` / `emissions` / `addresses` | Usage points per epoch, emission schedule and buckets, contract addresses |
-| `antseed ants seller [register\|claim-starter]` | Seller binding, eligibility, and starter grant |
-| `antseed ants verify [seller]` / `verify submit <artifact.json>` / `verify proof <id>` | Wash-trading status, resumable proof submission, proof progress |
+| `torve ants` | Open the local ANTS staking dashboard; the connected browser wallet is the acting account (`--port`, `--no-open`) |
+| `torve ants --address 0x...` | Pin the dashboard to one account. Transactions require that account's browser wallet, or its authorized operator for buyer actions. Does not use the local wallet. |
+| `torve ants status` | Protocol phase, epoch countdown, balances, stake, claimable rewards |
+| `torve ants stake <ants> --agent <id> --epochs <n>` | Stake ANTS into any registered seller pool |
+| `torve ants positions` | List open lANTS positions with state, pending rewards, and exit slash |
+| `torve ants move <id...> --to <agent>` | Move positions to another pool (terms preserved, effective next epoch) |
+| `torve ants split <id> <ants>` / `merge <id...>` | Split a position or merge same-pool positions |
+| `torve ants extend <id> --epochs <n>` / `max-lock <id> [--off]` | Extend a lock or toggle max lock |
+| `torve ants withdraw <id...> [--preview] [--accept-slashing]` | Withdraw with a slashing estimate and explicit consent for early exits |
+| `torve ants rewards [claim\|compound\|restake\|stake-usage]` | View, claim, or restake rewards; `compound` restakes every restakable bucket in one go |
+| `torve ants pools` / `pool <agent>` | Compare pools: power and share of network, settled volume per epoch, staker ANTS per 1k power (last and projected), your power and share; explorer names via Antscan |
+| `torve ants usage` / `emissions` / `addresses` | Usage points per epoch, emission schedule and buckets, contract addresses |
+| `torve ants seller [register\|claim-starter]` | Seller binding, eligibility, and starter grant |
+| `torve ants verify [seller]` / `verify submit <artifact.json>` / `verify proof <id>` | Wash-trading status, resumable proof submission, proof progress |
 | **Buying** | |
-| `antseed buyer start` | Start the buyer proxy and connect to sellers |
-| `antseed buyer start --router <name>` | Start the buyer proxy with a non-default router |
-| `antseed buyer deposit` | Show your funding address + QR; incoming USDC deposits automatically (gasless) |
-| `antseed buyer sweep` | Manually sweep hot-wallet USDC into deposits (gasless) |
-| `antseed buyer activity` | Activity summary: tokens, spend history, savings, channels, claimable ANTS |
-| `antseed buyer deposit --onchain <usdc>` | Direct on-chain deposit from the hot wallet (requires ETH for gas) |
-| `antseed buyer withdraw <amount>` | Withdraw USDC from deposits |
-| `antseed buyer set-authorized-wallet [--self]` | Authorize an external wallet in the browser, or authorize the buyer wallet itself |
-| `antseed buyer balance` | Check wallet and deposit balance |
-| `antseed network browse` | Browse peers, models, and pricing (same catalog as `/v1/models`) |
+| `torve buyer start` | Start the buyer proxy and connect to sellers |
+| `torve buyer start --router <name>` | Start the buyer proxy with a non-default router |
+| `torve buyer deposit` | Show your funding address + QR; incoming USDC deposits automatically (gasless) |
+| `torve buyer sweep` | Manually sweep hot-wallet USDC into deposits (gasless) |
+| `torve buyer activity` | Activity summary: tokens, spend history, savings, channels, claimable ANTS |
+| `torve buyer deposit --onchain <usdc>` | Direct on-chain deposit from the hot wallet (requires ETH for gas) |
+| `torve buyer withdraw <amount>` | Withdraw USDC from deposits |
+| `torve buyer set-authorized-wallet [--self]` | Authorize an external wallet in the browser, or authorize the buyer wallet itself |
+| `torve buyer balance` | Check wallet and deposit balance |
+| `torve network browse` | Browse peers, models, and pricing (same catalog as `/v1/models`) |
 | **Session** | |
-| `antseed buyer connection get` | Show current session state (pinned service, peer) |
-| `antseed buyer connection set` | Update service/peer overrides on a running proxy |
-| `antseed buyer connection clear` | Clear service/peer overrides |
+| `torve buyer connection get` | Show current session state (pinned service, peer) |
+| `torve buyer connection set` | Update service/peer overrides on a running proxy |
+| `torve buyer connection clear` | Clear service/peer overrides |
 | **Management** | |
-| `antseed seller status` | Show seller status |
-| `antseed buyer status` | Show buyer status |
-| `antseed config` | Manage configuration |
-| `antseed profile` | Manage your peer profile |
-| `antseed peer <peerId>` | Show a peer's profile (lightweight) |
-| `antseed network peer <peerId>` | Show full peer details (providers, services, on-chain stats) |
-| `antseed dashboard` | Start the web dashboard |
-| `antseed metrics serve` | Serve Prometheus metrics for buyers and sellers |
-| `antseed buyer channels` | List payment channels |
-| `antseed dev` | Run seller + buyer locally for testing |
-| `antseed network bootstrap` | Run a dedicated DHT bootstrap node |
+| `torve seller status` | Show seller status |
+| `torve buyer status` | Show buyer status |
+| `torve config` | Manage configuration |
+| `torve profile` | Manage your peer profile |
+| `torve peer <peerId>` | Show a peer's profile (lightweight) |
+| `torve network peer <peerId>` | Show full peer details (providers, services, on-chain stats) |
+| `torve dashboard` | Start the web dashboard |
+| `torve metrics serve` | Serve Prometheus metrics for buyers and sellers |
+| `torve buyer channels` | List payment channels |
+| `torve dev` | Run seller + buyer locally for testing |
+| `torve network bootstrap` | Run a dedicated DHT bootstrap node |
 
 ## Configuration Workflow
 
 The normal workflow is:
 
-1. Create or update `~/.antseed/config.json` with `antseed seller setup` or `antseed config ...`
+1. Create or update `~/.torve/config.json` with `torve seller setup` or `torve config ...`
 2. Keep non-secret settings there: providers, services, pricing, categories, `baseUrl`, ports
-3. Keep secrets in environment variables: API keys and `ANTSEED_IDENTITY_HEX`
-4. Start later with `antseed seller start` or `antseed buyer start`
+3. Keep secrets in environment variables: API keys and `TORVE_IDENTITY_HEX`
+4. Start later with `torve seller start` or `torve buyer start`
 
 Once your config file exists, the usual seller flow is just:
 
 ```bash
 export OPENAI_API_KEY=sk-...
-export ANTSEED_IDENTITY_HEX=<your-identity-key>
+export TORVE_IDENTITY_HEX=<your-identity-key>
 # Recommended for production sellers: use a dedicated Base RPC endpoint
-export ANTSEED_BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/<key>
-antseed seller start
+export TORVE_BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/<key>
+torve seller start
 ```
 
 `config.json` is the durable source of truth. Env vars are for secrets and one-off overrides.
 
 ### Buyer state isolation
 
-Buyer runtime state lives in the data directory, not just in the config file. By default that directory is `~/.antseed`, which contains `buyer.state.json`, SQLite databases, payment-channel state, and the fallback `identity.key`.
+Buyer runtime state lives in the data directory, not just in the config file. By default that directory is `~/.torve`, which contains `buyer.state.json`, SQLite databases, payment-channel state, and the fallback `identity.key`.
 
 Use a separate data directory for each independent buyer node, service integration, test run, or concurrent process:
 
 ```bash
-export BUYDIR="$HOME/.antseed-buyer-myapp"
+export BUYDIR="$HOME/.torve-buyer-myapp"
 mkdir -p "$BUYDIR"
 
-ANTSEED_DATA_DIR="$BUYDIR" \
-antseed --data-dir "$BUYDIR" buyer start \
+TORVE_DATA_DIR="$BUYDIR" \
+torve --data-dir "$BUYDIR" buyer start \
   --peer <peer-id> \
   --port 8380
 ```
@@ -103,29 +103,29 @@ antseed --data-dir "$BUYDIR" buyer start \
 Notes:
 
 - `--data-dir <path>` is the most explicit option and is recommended in service managers such as systemd.
-- `ANTSEED_DATA_DIR=<path>` is the environment-variable equivalent for scripts and wrappers.
+- `TORVE_DATA_DIR=<path>` is the environment-variable equivalent for scripts and wrappers.
 - Do not reuse the same buyer data directory across concurrent buyer processes.
 - If behavior looks stale or unexpected, confirm which `buyer.state.json` and SQLite files the process logged at startup.
-- `ANTSEED_HOME` is not the buyer state-isolation knob for the CLI; use `--data-dir` or `ANTSEED_DATA_DIR`.
+- `TORVE_HOME` is not the buyer state-isolation knob for the CLI; use `--data-dir` or `TORVE_DATA_DIR`.
 
 ## Plugins
 
-Antseed uses an open plugin ecosystem. Provider and router plugins are installed into `~/.antseed/plugins/` via npm.
+Torve uses an open plugin ecosystem. Provider and router plugins are installed into `~/.torve/plugins/` via npm.
 
 **Providers** connect your node to an upstream AI API (seeder mode):
 
 ```bash
-antseed config seller add-provider anthropic --plugin anthropic
-antseed config seller add-service anthropic claude-sonnet-4-5-20250929 \
+torve config seller add-provider anthropic --plugin anthropic
+torve config seller add-service anthropic claude-sonnet-4-5-20250929 \
   --input 12 --output 18 --cached 6 \
   --categories coding,chat
-antseed seller start
+torve seller start
 ```
 
 Per-service capability hints and non-token billing are durable config fields:
 
 ```bash
-antseed config seller add-service openai gpt-image-1 \
+torve config seller add-service openai gpt-image-1 \
   --input 0 --output 0 \
   --capabilities '{"inputs":["text","image"]}' \
   --unit-billing-models '{"openai-images":{"version":1,"components":[{"unit":"output_images","priceUsd":0.04}]}}'
@@ -136,9 +136,9 @@ antseed config seller add-service openai gpt-image-1 \
 Services whose token and unit prices are all zero are unlimited unless the seller configures a persistent free tier, keyed by buyer address, remote IP, or both:
 
 ```bash
-antseed config seller set freeTier.maxRequestsPerAddress 100
-antseed config seller set freeTier.maxRequestsPerIp 300
-antseed config seller set freeTier.windowMs 86400000
+torve config seller set freeTier.maxRequestsPerAddress 100
+torve config seller set freeTier.maxRequestsPerIp 300
+torve config seller set freeTier.windowMs 86400000
 ```
 
 This allows each authenticated buyer address 100 requests, and each remote IP 300 requests, across all fully zero-priced services in a sliding 24-hour window. A request is served only while every configured limit still has headroom. Reconnects and seller restarts do not reset the counters. Exhausted buyers receive HTTP 429 with `free_tier_exhausted` and a `limitedBy` field (`address` or `ip`); paid services are unaffected. The address limit alone can be bypassed by creating another identity; the IP limit (IPv6 grouped by /64) closes that gap at the cost of sharing the allowance between users behind one NAT, so set it higher than the per-address limit.
@@ -146,19 +146,19 @@ This allows each authenticated buyer address 100 requests, and each remote IP 30
 Free requests are recorded on-chain and the seller pays the gas. The seller writes accumulated usage after `freeUsage.recordBatchSize` requests (default 16) or `freeUsage.recordFlushIntervalMs` milliseconds (default 900000, always before the channel deadline), whichever comes first. Raise either to send fewer transactions per active buyer:
 
 ```bash
-antseed config seller set freeUsage.recordBatchSize 64
-antseed config seller set freeUsage.recordFlushIntervalMs 3600000
+torve config seller set freeUsage.recordBatchSize 64
+torve config seller set freeUsage.recordFlushIntervalMs 3600000
 ```
 
 **Routers** select peers and proxy requests (consumer mode):
 
 ```bash
-antseed buyer start
+torve buyer start
 ```
 
 ## Configuration
 
-Configuration is stored at `~/.antseed/config.json` by default. Use `-c` / `--config` to specify an alternative path.
+Configuration is stored at `~/.torve/config.json` by default. Use `-c` / `--config` to specify an alternative path.
 
 Runtime env variables are loaded via `dotenv` from `.env.local` and `.env` in the current working directory.
 See `.env.example` for supported keys.
@@ -166,26 +166,26 @@ See `.env.example` for supported keys.
 Enable debug logs with either:
 
 ```bash
-antseed -v <command>
+torve -v <command>
 ```
 
 or:
 
 ```bash
-ANTSEED_DEBUG=1 antseed <command>
+TORVE_DEBUG=1 torve <command>
 ```
 
 Filter debug logs by source or text with:
 
 ```bash
-antseed buyer start --log-filter ProxyMux
-ANTSEED_LOG_FILTER=PaymentMux,BuyerPayment ANTSEED_DEBUG=1 antseed buyer start
+torve buyer start --log-filter ProxyMux
+TORVE_LOG_FILTER=PaymentMux,BuyerPayment TORVE_DEBUG=1 torve buyer start
 ```
 
 For dashboard frontend debug logging, set:
 
 ```bash
-VITE_ANTSEED_DEBUG=1
+VITE_TORVE_DEBUG=1
 ```
 
 Pricing is configured in USD per 1M tokens with role-specific defaults and optional provider/service overrides. You can also set node `displayName`, an optional seller `publicAddress`, and per-service category tags announced in discovery metadata:
@@ -257,70 +257,70 @@ Providers can wrap their service with an ant agent — a read-only, knowledge-au
 }
 ```
 
-The agent directory contains an `agent.json` manifest that defines the agent's persona, guardrails, and knowledge modules. Knowledge modules are loaded on demand via the `antseed_load_knowledge` tool — the LLM decides which modules to load during the conversation and only relevant knowledge is brought into context. Buyers only see the LLM's natural response, never the injected content or internal tool calls.
+The agent directory contains an `agent.json` manifest that defines the agent's persona, guardrails, and knowledge modules. Knowledge modules are loaded on demand via the `torve_load_knowledge` tool — the LLM decides which modules to load during the conversation and only relevant knowledge is brought into context. Buyers only see the LLM's natural response, never the injected content or internal tool calls.
 
-See the [`@antseed/ant-agent` README](../../packages/ant-agent/README.md) for the full manifest reference and directory structure.
+See the [`@torveai/ant-agent` README](../../packages/ant-agent/README.md) for the full manifest reference and directory structure.
 
 Role-first config examples:
 
 ```bash
 # Identity / metadata display name
-antseed config set identity.displayName "Acme Inference - us-east-1"
+torve config set identity.displayName "Acme Inference - us-east-1"
 
 # Add a provider and then a service
-antseed config seller add-provider anthropic --plugin anthropic --input 12 --output 18
-antseed config seller add-service anthropic claude-sonnet-4-5-20250929 \
+torve config seller add-provider anthropic --plugin anthropic --input 12 --output 18
+torve config seller add-service anthropic claude-sonnet-4-5-20250929 \
   --upstream "claude-sonnet-4-5-20250929" \
   --input 12 --output 18 --cached 6 \
   --categories coding,chat
 
 # Remove a service
-antseed config seller remove-service anthropic claude-sonnet-4-5-20250929
+torve config seller remove-service anthropic claude-sonnet-4-5-20250929
 
 # Fine-grained edits to a service already in the config (auto-creates
 # intermediate objects; --dynamic paths under seller.providers.* are allowed)
-antseed config seller set providers.anthropic.defaults.inputUsdPerMillion 12
-antseed config seller set providers.anthropic.services.claude-sonnet-4-5-20250929.pricing.outputUsdPerMillion 20
-antseed config seller set providers.anthropic.services.claude-sonnet-4-5-20250929.categories '["coding","legal"]'
-antseed config seller set providers.anthropic.services.claude-sonnet-4-5-20250929.capabilities '{"contextWindow":200000,"inputs":["text","image"],"toolUse":true}'
+torve config seller set providers.anthropic.defaults.inputUsdPerMillion 12
+torve config seller set providers.anthropic.services.claude-sonnet-4-5-20250929.pricing.outputUsdPerMillion 20
+torve config seller set providers.anthropic.services.claude-sonnet-4-5-20250929.categories '["coding","legal"]'
+torve config seller set providers.anthropic.services.claude-sonnet-4-5-20250929.capabilities '{"contextWindow":200000,"inputs":["text","image"],"toolUse":true}'
 
 # Seller public address override for load-balanced deployments
-antseed config seller set publicAddress "peer.example.com:6882"
+torve config seller set publicAddress "peer.example.com:6882"
 
 # Raise the seller per-request upload cap (bytes) for large Codex-style payloads
-antseed config seller set maxUploadBodyBytes 134217728
+torve config seller set maxUploadBodyBytes 134217728
 
 # Cap zero-priced services per authenticated buyer address and per remote IP
-antseed config seller set freeTier.maxRequestsPerAddress 100
-antseed config seller set freeTier.maxRequestsPerIp 300
-antseed config seller set freeTier.windowMs 86400000
+torve config seller set freeTier.maxRequestsPerAddress 100
+torve config seller set freeTier.maxRequestsPerIp 300
+torve config seller set freeTier.windowMs 86400000
 
 # Batch on-chain free-usage records: every N requests or every N ms, whichever first
-antseed config seller set freeUsage.recordBatchSize 64
-antseed config seller set freeUsage.recordFlushIntervalMs 3600000
+torve config seller set freeUsage.recordBatchSize 64
+torve config seller set freeUsage.recordFlushIntervalMs 3600000
 
 # Buyer max pricing, DHT peer refresh cadence, and metadata fetch timeout
-antseed config buyer set maxPricing.defaults.inputUsdPerMillion 25
-antseed config buyer set maxPricing.defaults.cachedInputUsdPerMillion 12
-antseed config buyer set maxPricing.defaults.outputUsdPerMillion 75
-antseed config buyer set routingPreferences.minTrustScore 60
-antseed config buyer set routingPreferences.maxInputUsdPerMillion 25
-antseed config buyer set peerRefreshIntervalMs 300000
-antseed config buyer set metadataFetchTimeoutMs 1500
-antseed config buyer set disableMetadataV2Services true
+torve config buyer set maxPricing.defaults.inputUsdPerMillion 25
+torve config buyer set maxPricing.defaults.cachedInputUsdPerMillion 12
+torve config buyer set maxPricing.defaults.outputUsdPerMillion 75
+torve config buyer set routingPreferences.minTrustScore 60
+torve config buyer set routingPreferences.maxInputUsdPerMillion 25
+torve config buyer set peerRefreshIntervalMs 300000
+torve config buyer set metadataFetchTimeoutMs 1500
+torve config buyer set disableMetadataV2Services true
 ```
 
 Runtime-only overrides (do not write your config file):
 
 ```bash
-antseed seller start --provider anthropic --input-usd-per-million 10 --cached-input-usd-per-million 5 --output-usd-per-million 30
-antseed seller start --base-rpc-url https://base-mainnet.infura.io/v3/<key>
-antseed buyer start --max-input-usd-per-million 20 --max-cached-input-usd-per-million 10 --max-output-usd-per-million 60
-antseed buyer start --metadata-fetch-timeout-ms 1500
-antseed buyer start --disable-metadata-v2-services
+torve seller start --provider anthropic --input-usd-per-million 10 --cached-input-usd-per-million 5 --output-usd-per-million 30
+torve seller start --base-rpc-url https://base-mainnet.infura.io/v3/<key>
+torve buyer start --max-input-usd-per-million 20 --max-cached-input-usd-per-million 10 --max-output-usd-per-million 60
+torve buyer start --metadata-fetch-timeout-ms 1500
+torve buyer start --disable-metadata-v2-services
 ```
 
-For production sellers, prefer a dedicated Base JSON-RPC endpoint over public defaults. You can set it durably with `payments.crypto.rpcUrl`, at runtime with `ANTSEED_BASE_RPC_URL`, or for one run with `antseed seller start --base-rpc-url <url>`.
+For production sellers, prefer a dedicated Base JSON-RPC endpoint over public defaults. You can set it durably with `payments.crypto.rpcUrl`, at runtime with `TORVE_BASE_RPC_URL`, or for one run with `torve seller start --base-rpc-url <url>`.
 
 ### Metadata v12 rollout
 
@@ -348,7 +348,7 @@ curl -s 'http://localhost:8377/v1/models?type=decisions'
 curl -s http://localhost:8377/v1/models/<model-id>
 
 # Peers, pricing, protocols, capabilities, and reputation
-antseed network browse
+torve network browse
 ```
 
 `GET /v1/models` is network-wide and groups compatible aliases. Duplicate
@@ -357,24 +357,24 @@ conversations, the first successful automatic route becomes a soft affinity:
 later turns prefer the same seller and service while they remain healthy and
 policy-eligible, but can still fail over. Explicit pins remain hard.
 
-When you do want to force a specific seller, pin it. After `antseed buyer
+When you do want to force a specific seller, pin it. After `torve buyer
 start` is running, you can pin all subsequent requests to a peer without
 restarting:
 
 ```bash
 # Pin all requests to a specific peer (bypasses router for peer selection)
-antseed buyer connection set --peer <40-char-hex-peer-id>
+torve buyer connection set --peer <40-char-hex-peer-id>
 
 # Check current session state
-antseed buyer connection get
+torve buyer connection get
 
 # Clear the session pin
-antseed buyer connection clear
+torve buyer connection clear
 ```
 
-Session peer pins are stored in `~/.antseed/buyer.state.json`, survive proxy restarts, and are picked up by the running proxy immediately via file-watching. The desktop app reads and writes the same file to expose explicit peer selection in its UI.
+Session peer pins are stored in `~/.torve/buyer.state.json`, survive proxy restarts, and are picked up by the running proxy immediately via file-watching. The desktop app reads and writes the same file to expose explicit peer selection in its UI.
 
-For tools that can only set a model name, use `<peerId>@<model>` as the model. The proxy strips the peer prefix before provider matching and forwards only `<model>` to the seller. If both this model prefix and `x-antseed-pin-peer` are sent, the header selects the peer and the model prefix is still stripped.
+For tools that can only set a model name, use `<peerId>@<model>` as the model. The proxy strips the peer prefix before provider matching and forwards only `<model>` to the seller. If both this model prefix and `x-torve-pin-peer` are sent, the header selects the peer and the model prefix is still stripped.
 
 ## Payments
 
@@ -394,7 +394,7 @@ ANTS pool positions.
 
 ### ANTS Staking Dashboard and Commands
 
-`antseed ants` starts a local dashboard on `http://127.0.0.1:3119` and opens it
+`torve ants` starts a local dashboard on `http://127.0.0.1:3119` and opens it
 in your browser. Browse pools before connecting; once you connect a browser
 wallet it becomes the acting account for staking, positions and seller
 actions, and every transaction is approved in that wallet. The dashboard binds
@@ -407,7 +407,7 @@ authorized operator of the local identity's buyer account (the one in
 `--data-dir`), that buyer account's rewards are shown, and the existing
 payments flow can authorize such an operator.
 
-`antseed ants --address 0x...` pins the dashboard to one account instead.
+`torve ants --address 0x...` pins the dashboard to one account instead.
 Seller and position actions then require that account's wallet, buyer reward
 actions require its current deposits operator, and switching browser wallets
 does not change the pinned account. It does not use the local wallet, load or
@@ -435,27 +435,27 @@ position/reward snapshots until Antscan catches up. This marker is in memory,
 not saved to disk or shared with later CLI invocations. After a restart, indexed
 amounts remain estimates at the displayed source block, not transaction quotes.
 
-Everything the dashboard does is also a command under `antseed ants`, so the
+Everything the dashboard does is also a command under `torve ants`, so the
 dashboard is optional:
 
 ```bash
-antseed ants status                                   # phase, epoch countdown, balances, claimable rewards
-antseed ants stake 250 --agent 84990 --epochs 12      # stake into a registered seller pool
-antseed ants positions --json                         # positions, pending rewards, exit slash
-antseed ants split 7 100 && antseed ants merge 8 9    # restructure (effective next epoch)
-antseed ants move 7 --to 84991                        # move stake to another pool
-antseed ants withdraw 7 --preview                     # slashing estimate before an early exit
-antseed ants rewards && antseed ants rewards claim    # all buckets: staker, seller, buyer, legacy, locked
-antseed ants rewards compound --epochs 8 --to 59096   # restake all rewards (bonus kept), move them into pool 59096
-antseed ants verify submit seller-proof.json          # stage → authenticate chunks → finalize
+torve ants status                                   # phase, epoch countdown, balances, claimable rewards
+torve ants stake 250 --agent 84990 --epochs 12      # stake into a registered seller pool
+torve ants positions --json                         # positions, pending rewards, exit slash
+torve ants split 7 100 && torve ants merge 8 9    # restructure (effective next epoch)
+torve ants move 7 --to 84991                        # move stake to another pool
+torve ants withdraw 7 --preview                     # slashing estimate before an early exit
+torve ants rewards && torve ants rewards claim    # all buckets: staker, seller, buyer, legacy, locked
+torve ants rewards compound --epochs 8 --to 59096   # restake all rewards (bonus kept), move them into pool 59096
+torve ants verify submit seller-proof.json          # stage → authenticate chunks → finalize
 ```
 
 Before the cutover (phase `deployed`) the commands read the deployed contracts
 and can stake once ANTS transfers are enabled for your wallet; reward accounting
 starts at the effective epoch. Buyer usage rewards are paid to the deposits
 operator, so they are claimable here only when the node wallet is its own
-operator. Loop-proof artifacts come from the `antseed-loop-proof` host
-(`kind: antseed-wash-trading-seller-proof`); submission is resumable, so a
+operator. Loop-proof artifacts come from the `torve-loop-proof` host
+(`kind: torve-wash-trading-seller-proof`); submission is resumable, so a
 partially authenticated proof can be re-submitted with the same file.
 The [staking guide](../website/docs/guides/staking.md) walks through the
 dashboard tabs and how to read the pool table.
@@ -464,34 +464,34 @@ dashboard tabs and how to read the pool table.
 
 ```bash
 # 1. Set your identity (secp256k1 private key)
-export ANTSEED_IDENTITY_HEX=<your-private-key-hex>
+export TORVE_IDENTITY_HEX=<your-private-key-hex>
 
 # 2. Fund your wallet with ETH (for gas) on Base Mainnet
 
 # 3. Register your identity on-chain
-antseed seller register
+torve seller register
 
 # 4. Optional: stake USDC (minimum $10 if you stake)
-antseed seller legacy stake 10
+torve seller legacy stake 10
 
 # 5. Start providing
-antseed seller start
+torve seller start
 ```
 
 Staking is optional: the seller registry's minimum pool stake is currently 0, so a registered seller can start without staking. After the M001 recognized-usage cutover, new seller stake moves from legacy USDC staking to ANTS seller pools:
 
 ```bash
-antseed seller register
-antseed seller legacy claim-starter
-antseed seller stake 100 --epochs 4
-antseed seller pool positions
-antseed seller rewards
-antseed seller rewards claim
+torve seller register
+torve seller legacy claim-starter
+torve seller stake 100 --epochs 4
+torve seller pool positions
+torve seller rewards
+torve seller rewards claim
 ```
 
-`antseed seller stake <ants> --epochs <n>` always stakes ANTS and requires the recognized-usage upgrade. On older networks it stops without sending a transaction and directs you to `antseed seller legacy stake <usdc>`. New legacy USDC stakes are rejected after the upgrade. `antseed seller legacy unstake` withdraws legacy stake and warns that doing so can remove temporary eligibility before an ANTS position becomes active. `antseed seller legacy claim-starter` claims the starter position for an eligible legacy seller. `antseed seller rewards` combines legacy emissions, recognized-use emissions, and pool-staking rewards.
+`torve seller stake <ants> --epochs <n>` always stakes ANTS and requires the recognized-usage upgrade. On older networks it stops without sending a transaction and directs you to `torve seller legacy stake <usdc>`. New legacy USDC stakes are rejected after the upgrade. `torve seller legacy unstake` withdraws legacy stake and warns that doing so can remove temporary eligibility before an ANTS position becomes active. `torve seller legacy claim-starter` claims the starter position for an eligible legacy seller. `torve seller rewards` combines legacy emissions, recognized-use emissions, and pool-staking rewards.
 
-`seller register` explicitly binds your existing agent identity to the current seller registry, independently of legacy stake. Repeating it when already bound sends no transaction. If registration needs updating, `seller stake` stops and asks you to run `antseed seller register`; staking never registers you silently.
+`seller register` explicitly binds your existing agent identity to the current seller registry, independently of legacy stake. Repeating it when already bound sends no transaction. If registration needs updating, `seller stake` stops and asks you to run `torve seller register`; staking never registers you silently.
 
 `seller rewards` is read-only: it calculates unclaimed rewards from completed epochs using existing contract getters, including pool earnings that have not yet been indexed. It does not sign transactions or spend gas. Pool previews use the same reward-index and position-segment rounding as the payout calculation. The pool contribution is read at a single block; amounts can change before a claim confirms. Historical position discovery includes withdrawn and closed positions using receipt burn events and may require an archive-capable RPC with historical log support. Read failures are reported rather than treated as zero rewards.
 
@@ -539,41 +539,41 @@ Use `--port <port>` and `--out <dir>` on each sandbox command to override the de
 
 ```bash
 # 1. Set your identity (secp256k1 private key)
-export ANTSEED_IDENTITY_HEX=<your-private-key-hex>
+export TORVE_IDENTITY_HEX=<your-private-key-hex>
 
 # 2. Connect to the network
-antseed buyer start
+torve buyer start
 # Proxy listening on http://localhost:8377
 
 # 3. Fund your node: shows your address + a QR code, then deposits incoming
 #    USDC into your credits automatically (gasless — a relayer submits the
 #    transaction for a fixed ~$0.05 USDC fee)
-antseed buyer deposit
+torve buyer deposit
 ```
 
 Point your AI tools (Claude Code, Codex, etc.) at `http://localhost:8377` as the API base URL. The router handles peer selection and failover transparently.
 
 ### Depositing USDC
 
-`antseed buyer deposit` prints your node's funding address and a QR code (an EIP-681 payment request any mobile wallet can scan). Send USDC on Base to that address from anywhere — an exchange withdrawal, another wallet, a card on-ramp. Incoming funds are swept into your deposits balance gaslessly: your node signs an EIP-3009 authorization and a permissionless relayer submits the transaction for a fixed ~$0.05 USDC fee, so the hot wallet never needs ETH. While watching, the command also serves the connected-wallet checkout page and prints its link (`http://127.0.0.1:3118?token=…`) for depositing from a browser-extension wallet instead.
+`torve buyer deposit` prints your node's funding address and a QR code (an EIP-681 payment request any mobile wallet can scan). Send USDC on Base to that address from anywhere — an exchange withdrawal, another wallet, a card on-ramp. Incoming funds are swept into your deposits balance gaslessly: your node signs an EIP-3009 authorization and a permissionless relayer submits the transaction for a fixed ~$0.05 USDC fee, so the hot wallet never needs ETH. While watching, the command also serves the connected-wallet checkout page and prints its link (`http://127.0.0.1:3118?token=…`) for depositing from a browser-extension wallet instead.
 
-While `antseed buyer start` is running, this sweeping happens automatically in the background (disable with `buyer.autoSweep: false` in your config). `antseed buyer sweep` triggers the same gasless sweep manually, and `antseed buyer deposit --onchain <usdc>` remains for direct on-chain deposits from a hot wallet that holds ETH. (The `antseed payments` web portal is retired.)
+While `torve buyer start` is running, this sweeping happens automatically in the background (disable with `buyer.autoSweep: false` in your config). `torve buyer sweep` triggers the same gasless sweep manually, and `torve buyer deposit --onchain <usdc>` remains for direct on-chain deposits from a hot wallet that holds ETH. (The `torve payments` web portal is retired.)
 
 ### Set an authorized wallet
 
 ```bash
 # Recommended: open the secure local page, connect an external wallet,
 # and approve the transaction from that wallet.
-antseed buyer set-authorized-wallet
+torve buyer set-authorized-wallet
 
 # Print the secure local URL without opening the browser automatically.
-antseed buyer set-authorized-wallet --no-open
+torve buyer set-authorized-wallet --no-open
 
 # Alternatively, make the buyer hot wallet its own authorized wallet.
-antseed buyer set-authorized-wallet --self
+torve buyer set-authorized-wallet --self
 
 # Select the same buyer identity/config used for your deposits:
-antseed --data-dir ~/.antseed-buyer --config ~/.antseed-buyer/config.json buyer set-authorized-wallet
+torve --data-dir ~/.torve-buyer --config ~/.torve-buyer/config.json buyer set-authorized-wallet
 ```
 
 By default, the command opens the same **Set authorized wallet** browser flow used by AI VPN. The local buyer identity signs the deposits contract's EIP-712 authorization, then the connected external wallet submits `setOperator` and pays ETH gas. The CLI prints the localhost URL as a fallback and waits for confirmation before shutting down the local server. Use `--no-open` to print the URL without launching the browser.
@@ -582,7 +582,7 @@ With `--self`, the CLI makes the buyer hot wallet its own authorized wallet. The
 
 **The authorized wallet gains control of withdrawals and future authorization transfers.** Choose a wallet you control. Initial authorization is only possible when no authorized wallet is set. Self-authorization sends no transaction when the buyer wallet is already authorized and rejects replacement of a different existing wallet. Changing it later requires an operator-transfer transaction from the current authorized wallet, not the buyer identity.
 
-`antseed buyer withdraw` still submits from the buyer identity. If you authorize an external wallet, withdraw from that wallet through AI VPN's payments UI (for the same buyer identity) or the deposits contract, not through the current CLI withdrawal command. To use CLI withdrawal, the buyer identity itself must be the authorized wallet. Setting an operator does not resolve other withdrawal constraints, such as reserved funds or insufficient available balance.
+`torve buyer withdraw` still submits from the buyer identity. If you authorize an external wallet, withdraw from that wallet through AI VPN's payments UI (for the same buyer identity) or the deposits contract, not through the current CLI withdrawal command. To use CLI withdrawal, the buyer identity itself must be the authorized wallet. Setting an operator does not resolve other withdrawal constraints, such as reserved funds or insufficient available balance.
 
 
 ### Configuration
@@ -602,22 +602,22 @@ Use `base-sepolia` for testing with MockUSDC.
 
 ### Runtime Controls
 
-- `ANTSEED_BASE_RPC_URL=<url>` — custom Base JSON-RPC endpoint for seller on-chain operations (recommended for production)
-- `ANTSEED_COMPARABLE_PRICES_URL=<url>` — retail-prices models API for the `antseed buyer activity` Saved tile (OpenRouter-compatible schema, e.g. `https://openrouter.ai/api/v1/models`). Release builds ship with a baked-in default; set the variable to override it, or set it to an empty string to disable the savings baseline. Builds from source have no default
-- `ANTSEED_BUYER_METADATA_FETCH_TIMEOUT_MS=<ms>` — runtime override for buyer peer-discovery metadata fetch timeout
-- `ANTSEED_BUYER_DISABLE_METADATA_V2_SERVICES=true` — suppress buyer per-service metadata v2 attribution while keeping aggregate usage totals
-- `ANTSEED_SETTLEMENT_IDLE_MS=600000` — idle time before settling a session (default: 10 minutes)
-- `ANTSEED_DEFAULT_DEPOSIT_USDC=1` — default lock amount per session
-- `ANTSEED_IDENTITY_HEX=<hex>` — inject identity via env (supports 0x prefix)
+- `TORVE_BASE_RPC_URL=<url>` — custom Base JSON-RPC endpoint for seller on-chain operations (recommended for production)
+- `TORVE_COMPARABLE_PRICES_URL=<url>` — retail-prices models API for the `torve buyer activity` Saved tile (OpenRouter-compatible schema, e.g. `https://openrouter.ai/api/v1/models`). Release builds ship with a baked-in default; set the variable to override it, or set it to an empty string to disable the savings baseline. Builds from source have no default
+- `TORVE_BUYER_METADATA_FETCH_TIMEOUT_MS=<ms>` — runtime override for buyer peer-discovery metadata fetch timeout
+- `TORVE_BUYER_DISABLE_METADATA_V2_SERVICES=true` — suppress buyer per-service metadata v2 attribution while keeping aggregate usage totals
+- `TORVE_SETTLEMENT_IDLE_MS=600000` — idle time before settling a session (default: 10 minutes)
+- `TORVE_DEFAULT_DEPOSIT_USDC=1` — default lock amount per session
+- `TORVE_IDENTITY_HEX=<hex>` — inject identity via env (supports 0x prefix)
 
-Provider-specific options are configured via each plugin's config schema (see `antseed plugin add --help`).
+Provider-specific options are configured via each plugin's config schema (see `torve plugin add --help`).
 
 ## Metrics
 
 Expose a Prometheus-compatible endpoint for a buyer or seller:
 
 ```bash
-antseed --config ~/.antseed/config.json --data-dir ~/.antseed \
+torve --config ~/.torve/config.json --data-dir ~/.torve \
   metrics serve --role seller --host 0.0.0.0 --port 9108 --instance my-peer
 ```
 
@@ -633,7 +633,7 @@ See [Metrics](../../apps/website/docs/guides/metrics.md) for metric names, label
 
 ## Development
 
-Blockchain access and reward calculations live in `@antseed/node/payments`.
+Blockchain access and reward calculations live in `@torveai/node/payments`.
 The CLI uses those SDK clients for registration, position discovery, reward
 previews/claims, slashing estimates, and confirmed token receipts. Command
 parsing, output, actionable instructions, and withdrawal confirmation stay in
@@ -670,8 +670,8 @@ disk persistence and no per-inference-response proof in this cache.
 
 ## Native video services
 
-Use `@antseed/provider-venice-video` or `@antseed/provider-fal-video` (fal.ai models) to sell native video services. Buyers can discover them with `GET /v1/models?type=videos` and send native provider requests to the buyer proxy. See [native video integration](../../docs/protocol/spec/10-native-video.md).
+Use `@torveai/provider-venice-video` or `@torveai/provider-fal-video` (fal.ai models) to sell native video services. Buyers can discover them with `GET /v1/models?type=videos` and send native provider requests to the buyer proxy. See [native video integration](../../docs/protocol/spec/10-native-video.md).
 
 ## Links
 
-- Node SDK: `@antseed/node` (`../node`)
+- Node SDK: `@torveai/node` (`../node`)

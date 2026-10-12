@@ -3,28 +3,28 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import {AntseedChannels} from "../payments/AntseedChannels.sol";
-import {AntseedDeposits} from "../payments/AntseedDeposits.sol";
-import {AntseedStaking} from "../staking/AntseedStaking.sol";
-import {AntseedRegistry} from "../core/AntseedRegistry.sol";
+import {TorveChannels} from "../payments/TorveChannels.sol";
+import {TorveDeposits} from "../payments/TorveDeposits.sol";
+import {TorveStaking} from "../staking/TorveStaking.sol";
+import {TorveRegistry} from "../core/TorveRegistry.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 import {MockERC8004Registry} from "./mocks/MockERC8004Registry.sol";
 
 /**
- * @title AntseedChannelsAuthFuzz
- * @notice Adversarial EIP-712 / state-machine cases NOT covered by AntseedChannels.t.sol
+ * @title TorveChannelsAuthFuzz
+ * @notice Adversarial EIP-712 / state-machine cases NOT covered by TorveChannels.t.sol
  *         (which already tests basic invalid-sig / firstSignCap / sellerNotStaked / operator
  *         gating): cross-seller replay, wrong-domain binding, wrong-channelId and amount/metadata
  *         signature mismatches, monotonic settle bounds, no-sig close, and terminal-state
  *         immutability. Pure safety, independent of economics.
  */
-contract AntseedChannelsAuthFuzz is Test {
+contract TorveChannelsAuthFuzz is Test {
     MockUSDC usdc;
     MockERC8004Registry identity;
-    AntseedRegistry registry;
-    AntseedStaking staking;
-    AntseedDeposits deposits;
-    AntseedChannels channels;
+    TorveRegistry registry;
+    TorveStaking staking;
+    TorveDeposits deposits;
+    TorveChannels channels;
 
     uint256 constant BUYER_PK = 0xA11CE;
     uint256 constant SELLER_PK = 0xB0B;
@@ -50,10 +50,10 @@ contract AntseedChannelsAuthFuzz is Test {
 
         usdc = new MockUSDC();
         identity = new MockERC8004Registry();
-        registry = new AntseedRegistry();
-        staking = new AntseedStaking(address(usdc), address(registry));
-        deposits = new AntseedDeposits(address(usdc));
-        channels = new AntseedChannels(address(registry));
+        registry = new TorveRegistry();
+        staking = new TorveStaking(address(usdc), address(registry));
+        deposits = new TorveDeposits(address(usdc));
+        channels = new TorveChannels(address(registry));
 
         registry.setChannels(address(channels));
         registry.setDeposits(address(deposits));
@@ -143,7 +143,7 @@ contract AntseedChannelsAuthFuzz is Test {
         bytes memory sig = _signReserveAuth(BUYER_PK, idA, amount, deadline);
 
         vm.prank(seller2);
-        vm.expectRevert(AntseedChannels.InvalidSignature.selector);
+        vm.expectRevert(TorveChannels.InvalidSignature.selector);
         channels.reserve(buyer, salt, amount, deadline, sig);
     }
 
@@ -159,7 +159,7 @@ contract AntseedChannelsAuthFuzz is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(BUYER_PK, wrongDigest);
 
         vm.prank(seller);
-        vm.expectRevert(AntseedChannels.InvalidSignature.selector);
+        vm.expectRevert(TorveChannels.InvalidSignature.selector);
         channels.reserve(buyer, salt, amount, deadline, abi.encodePacked(r, s, v));
     }
 
@@ -171,7 +171,7 @@ contract AntseedChannelsAuthFuzz is Test {
         bytes32 id = channels.computeChannelId(buyer, seller, salt);
         bytes memory sig = _signReserveAuth(BUYER_PK, id, 10_000_000, deadline);
         vm.prank(seller);
-        vm.expectRevert(AntseedChannels.ChannelExists.selector);
+        vm.expectRevert(TorveChannels.ChannelExists.selector);
         channels.reserve(buyer, salt, 10_000_000, deadline, sig);
     }
 
@@ -184,7 +184,7 @@ contract AntseedChannelsAuthFuzz is Test {
 
         bytes memory sig = _signSpendingAuth(BUYER_PK, fakeId, cum, keccak256(_meta()));
         vm.prank(seller);
-        vm.expectRevert(AntseedChannels.InvalidSignature.selector);
+        vm.expectRevert(TorveChannels.InvalidSignature.selector);
         channels.settle(id, cum, _meta(), sig);
     }
 
@@ -196,7 +196,7 @@ contract AntseedChannelsAuthFuzz is Test {
 
         bytes memory sig = _signSpendingAuth(BUYER_PK, id, signedAmt, keccak256(_meta()));
         vm.prank(seller);
-        vm.expectRevert(AntseedChannels.InvalidSignature.selector);
+        vm.expectRevert(TorveChannels.InvalidSignature.selector);
         channels.settle(id, callAmt, _meta(), sig);
     }
 
@@ -207,7 +207,7 @@ contract AntseedChannelsAuthFuzz is Test {
         bytes memory sig = _signSpendingAuth(BUYER_PK, id, cum, keccak256(_meta()));
 
         vm.prank(seller);
-        vm.expectRevert(AntseedChannels.InvalidSignature.selector);
+        vm.expectRevert(TorveChannels.InvalidSignature.selector);
         channels.settle(id, cum, tamperedMeta, sig);
     }
 
@@ -222,14 +222,14 @@ contract AntseedChannelsAuthFuzz is Test {
         // cum <= settled reverts.
         bytes memory sigLow = _signSpendingAuth(BUYER_PK, id, first, keccak256(_meta()));
         vm.prank(seller);
-        vm.expectRevert(AntseedChannels.InvalidAmount.selector);
+        vm.expectRevert(TorveChannels.InvalidAmount.selector);
         channels.settle(id, first, _meta(), sigLow);
 
         // cum > deposit reverts.
         uint128 tooHigh = DEPOSIT_AMT + 1;
         bytes memory sigHigh = _signSpendingAuth(BUYER_PK, id, tooHigh, keccak256(_meta()));
         vm.prank(seller);
-        vm.expectRevert(AntseedChannels.InvalidAmount.selector);
+        vm.expectRevert(TorveChannels.InvalidAmount.selector);
         channels.settle(id, tooHigh, _meta(), sigHigh);
     }
 
@@ -240,8 +240,8 @@ contract AntseedChannelsAuthFuzz is Test {
         vm.prank(seller);
         channels.close(id, 0, _meta(), bytes(""));
 
-        (,,,,,,,, AntseedChannels.ChannelStatus status) = channels.channels(id);
-        assertEq(uint256(status), uint256(AntseedChannels.ChannelStatus.Settled));
+        (,,,,,,,, TorveChannels.ChannelStatus status) = channels.channels(id);
+        assertEq(uint256(status), uint256(TorveChannels.ChannelStatus.Settled));
     }
 
     function test_terminalChannelRejectsAllMutations() public {
@@ -252,23 +252,23 @@ contract AntseedChannelsAuthFuzz is Test {
         bytes memory sig = _signSpendingAuth(BUYER_PK, id, 1_000_000, keccak256(_meta()));
 
         vm.prank(seller);
-        vm.expectRevert(AntseedChannels.ChannelNotActive.selector);
+        vm.expectRevert(TorveChannels.ChannelNotActive.selector);
         channels.settle(id, 1_000_000, _meta(), sig);
 
         vm.prank(seller);
-        vm.expectRevert(AntseedChannels.ChannelNotActive.selector);
+        vm.expectRevert(TorveChannels.ChannelNotActive.selector);
         channels.close(id, 0, _meta(), bytes(""));
 
         vm.prank(seller);
-        vm.expectRevert(AntseedChannels.ChannelNotActive.selector);
+        vm.expectRevert(TorveChannels.ChannelNotActive.selector);
         channels.topUp(id, 1_000_000, _meta(), sig, DEPOSIT_AMT + 1, block.timestamp + 1 hours, sig);
 
         vm.prank(operator);
-        vm.expectRevert(AntseedChannels.ChannelNotActive.selector);
+        vm.expectRevert(TorveChannels.ChannelNotActive.selector);
         channels.requestClose(id);
 
         vm.prank(operator);
-        vm.expectRevert(AntseedChannels.ChannelNotActive.selector);
+        vm.expectRevert(TorveChannels.ChannelNotActive.selector);
         channels.withdraw(id);
     }
 }

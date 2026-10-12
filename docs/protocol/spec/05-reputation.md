@@ -30,12 +30,12 @@ export interface PeerInfo {
 
 ### Router Plugin Peer Scoring
 
-**Source:** `@antseed/router-core/src/peer-scorer.ts`
+**Source:** `@torveai/router-core/src/peer-scorer.ts`
 
 Router plugins can define their own scoring logic. The generic composite scorer
-in `@antseed/router-core` uses the weights below. They are not the full selection
+in `@torveai/router-core` uses the weights below. They are not the full selection
 algorithm for the buyer proxy and desktop's model-only routing, which use
-`@antseed/node/model-routing` and shared Price + Trust preferences.
+`@torveai/node/model-routing` and shared Price + Trust preferences.
 
 | Factor      | Weight | Description                                              |
 |-------------|--------|----------------------------------------------------------|
@@ -52,13 +52,13 @@ All factors are min-max normalised across the eligible candidate pool before wei
 reputationFactor = peerReputation / 100
 ```
 
-When a peer has no `reputationScore`, the value **0** is used (treated as unknown/unverified). Official routers use the buyer-computed trust score (`trust = washFlagged ? 0 : history + usage + power + identity`, weights 50 / 20 / 10 / 20) before falling back to the locally reported score. `history` comes from the lifetime settled channel count and volume in `AntseedChannels`; ghost count and the local sybil warning remain display-only.
+When a peer has no `reputationScore`, the value **0** is used (treated as unknown/unverified). Official routers use the buyer-computed trust score (`trust = washFlagged ? 0 : history + usage + power + identity`, weights 50 / 20 / 10 / 20) before falling back to the locally reported score. `history` comes from the lifetime settled channel count and volume in `TorveChannels`; ghost count and the local sybil warning remain display-only.
 
 ### Minimum Reputation Filter
 
-Router plugins apply a minimum reputation filter before scoring. In `@antseed/router-local`:
+Router plugins apply a minimum reputation filter before scoring. In `@torveai/router-local`:
 
-- Config field: `BuyerConfig.minPeerReputation` (`@antseed/cli/src/config/defaults.ts`)
+- Config field: `BuyerConfig.minPeerReputation` (`@torveai/cli/src/config/defaults.ts`)
 - Default value: **0** (no reputation gate)
 - Passed to the router as `minReputation` in the plugin config
 - Behavior: when a buyer explicitly raises `minReputation`, any peer whose effective reputation is below that threshold is excluded from the candidate pool before scoring

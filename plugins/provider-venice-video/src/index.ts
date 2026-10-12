@@ -1,8 +1,8 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AntseedProviderPlugin, Provider, SerializedHttpRequest } from '@antseed/node';
-import { VIDEO_DOWNLOAD_STREAM_HEADER, VIDEO_DOWNLOAD_STREAM_VERSION } from '@antseed/node';
-import { nativeVideoRoute, parseJsonObject, requestService } from '@antseed/api-adapter';
+import type { TorveProviderPlugin, Provider, SerializedHttpRequest } from '@torveai/node';
+import { VIDEO_DOWNLOAD_STREAM_HEADER, VIDEO_DOWNLOAD_STREAM_VERSION } from '@torveai/node';
+import { nativeVideoRoute, parseJsonObject, requestService } from '@torveai/api-adapter';
 import {
   BaseProvider,
   parseCsv,
@@ -11,7 +11,7 @@ import {
   streamVideoResponse,
   videoDownloadError,
   videoDownloadSignal,
-} from '@antseed/provider-core';
+} from '@torveai/provider-core';
 
 export const VENICE_DEFAULT_BASE_URL = 'https://api.venice.ai';
 
@@ -70,7 +70,7 @@ function retrieveBody(service: string, queueId: string, deleteMedia: unknown): U
   }));
 }
 
-const plugin: AntseedProviderPlugin = {
+const plugin: TorveProviderPlugin = {
   name: 'venice-video',
   displayName: 'Venice Video',
   version: '0.1.0-beta.0',
@@ -79,10 +79,10 @@ const plugin: AntseedProviderPlugin = {
   configSchema: [
     { key: 'VENICE_VIDEO_BASE_URL', label: 'Venice API URL', type: 'string', default: VENICE_DEFAULT_BASE_URL },
     { key: 'VENICE_VIDEO_API_KEY', label: 'Venice API Key', type: 'secret', required: true },
-    { key: 'ANTSEED_ALLOWED_SERVICES', label: 'Services', type: 'string[]', required: true },
-    { key: 'ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON', label: 'Unit Pricing', type: 'string', required: true },
-    { key: 'ANTSEED_SERVICE_CAPABILITIES_JSON', label: 'Capabilities', type: 'string' },
-    { key: 'ANTSEED_MAX_CONCURRENCY', label: 'Concurrency', type: 'number', default: 10 },
+    { key: 'TORVE_ALLOWED_SERVICES', label: 'Services', type: 'string[]', required: true },
+    { key: 'TORVE_SERVICE_UNIT_BILLING_MODELS_JSON', label: 'Unit Pricing', type: 'string', required: true },
+    { key: 'TORVE_SERVICE_CAPABILITIES_JSON', label: 'Capabilities', type: 'string' },
+    { key: 'TORVE_MAX_CONCURRENCY', label: 'Concurrency', type: 'number', default: 10 },
   ],
   createProvider(config): Provider {
     const apiKey = config['VENICE_VIDEO_API_KEY']?.trim();
@@ -92,16 +92,16 @@ const plugin: AntseedProviderPlugin = {
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
       throw new Error('VENICE_VIDEO_BASE_URL must be an HTTP(S) URL without credentials, query, or fragment');
     }
-    if (config['ANTSEED_SERVICE_ALIAS_MAP_JSON']) throw new Error('Venice video services must use Venice model names');
+    if (config['TORVE_SERVICE_ALIAS_MAP_JSON']) throw new Error('Venice video services must use Venice model names');
 
-    const services = parseCsv(config['ANTSEED_ALLOWED_SERVICES']);
-    if (services.length === 0) throw new Error('ANTSEED_ALLOWED_SERVICES is required');
-    const serviceUnitBillingModels = parseServiceUnitBillingModelsJson(config['ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON']);
+    const services = parseCsv(config['TORVE_ALLOWED_SERVICES']);
+    if (services.length === 0) throw new Error('TORVE_ALLOWED_SERVICES is required');
+    const serviceUnitBillingModels = parseServiceUnitBillingModelsJson(config['TORVE_SERVICE_UNIT_BILLING_MODELS_JSON']);
     const missingPricing = services.find(service => !serviceUnitBillingModels?.[service]?.[PROTOCOL]);
     if (missingPricing) throw new Error(`Missing ${PROTOCOL} unit pricing for ${missingPricing}`);
-    const maxConcurrency = Number(config['ANTSEED_MAX_CONCURRENCY'] ?? 10);
-    if (!Number.isSafeInteger(maxConcurrency) || maxConcurrency < 1) throw new Error('ANTSEED_MAX_CONCURRENCY must be a positive integer');
-    const configuredCapabilities = parseServiceCapabilitiesJson(config['ANTSEED_SERVICE_CAPABILITIES_JSON']);
+    const maxConcurrency = Number(config['TORVE_MAX_CONCURRENCY'] ?? 10);
+    if (!Number.isSafeInteger(maxConcurrency) || maxConcurrency < 1) throw new Error('TORVE_MAX_CONCURRENCY must be a positive integer');
+    const configuredCapabilities = parseServiceCapabilitiesJson(config['TORVE_SERVICE_CAPABILITIES_JSON']);
     const relay = new BaseProvider({
       name: 'venice-video',
       services,
@@ -116,7 +116,7 @@ const plugin: AntseedProviderPlugin = {
         maxConcurrency,
         allowedServices: services,
         redirect: 'error',
-        stripHeaderPrefixes: ['x-antseed-'],
+        stripHeaderPrefixes: ['x-torve-'],
       },
     });
 
@@ -131,7 +131,7 @@ const plugin: AntseedProviderPlugin = {
     // create instead of streaming the file from retrieve. The seller keeps
     // that URL and streams the file itself, so every video reaches the buyer
     // through the same checked, charge-on-delivery download.
-    const dataDir = config['ANTSEED_DATA_DIR']?.trim() || undefined;
+    const dataDir = config['TORVE_DATA_DIR']?.trim() || undefined;
     const downloadUrls = loadDownloadUrls(dataDir);
     const keepDownloadUrl = (queueId: string, url: string) => {
       const now = Date.now();

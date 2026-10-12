@@ -10,7 +10,7 @@ import {
 describe('json-codec utilities', () => {
   it('parses JSON objects from bytes and strings', () => {
     expect(parseJsonObject(new TextEncoder().encode('{"ok":true}'))).toEqual({ ok: true });
-    expect(parseJsonObject('{"name":"antseed"}')).toEqual({ name: 'antseed' });
+    expect(parseJsonObject('{"name":"torve"}')).toEqual({ name: 'torve' });
   });
 
   it('rejects non-object JSON and oversized payloads', () => {

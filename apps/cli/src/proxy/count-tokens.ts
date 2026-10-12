@@ -10,8 +10,8 @@
  * pricing layer uses (~95-98% of the real count).
  */
 
-import { estimateTokensFromText } from '@antseed/node'
-import { parseJsonObject } from '@antseed/api-adapter'
+import { estimateTokensFromText } from '@torveai/node'
+import { parseJsonObject } from '@torveai/api-adapter'
 
 /** Anthropic's token-count endpoint, on any API version prefix. */
 export function isCountTokensPath(path: string): boolean {

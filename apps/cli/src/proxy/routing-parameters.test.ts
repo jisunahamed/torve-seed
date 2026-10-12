@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import type { PeerInfo } from '@antseed/node'
+import type { PeerInfo } from '@torveai/node'
 import {
   findMissingRequiredParameters,
   findUnannouncedRequestParameters,

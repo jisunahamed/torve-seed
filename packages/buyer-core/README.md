@@ -1,6 +1,6 @@
-# @antseed/buyer-core
+# @torveai/buyer-core
 
-The transport-agnostic buyer machinery, extracted from `@antseed/node` (which
+The transport-agnostic buyer machinery, extracted from `@torveai/node` (which
 re-exports everything from its original paths, so existing consumers are
 unaffected): `BuyerRequestHandler`, `BuyerPaymentManager`,
 `BuyerPaymentNegotiator`, `BuyerFreeUsageManager`, the
@@ -8,16 +8,16 @@ unaffected): `BuyerRequestHandler`, `BuyerPaymentManager`,
 channel accounting, unit-billing request/response normalization, and the
 read-only Deposits/Channels EVM clients.
 
-Depends only on `@antseed/protocol`, `@antseed/api-adapter`, `ethers`, and
+Depends only on `@torveai/protocol`, `@torveai/api-adapter`, `ethers`, and
 `tokenx` — no sqlite, no sockets, no Node-specific APIs.
 
 The environment plugs in through small structural interfaces
 (`src/interfaces.ts`, `src/channel-store-types.ts`):
 
 - `BuyerConnection` — `state`, `stateChange` events, `send(bytes)`. Satisfied
-  by `@antseed/node`'s `PeerConnection`.
+  by `@torveai/node`'s `PeerConnection`.
 - `BuyerChannelStore` — the channel bookkeeping surface. Satisfied by
-  `@antseed/node`'s sqlite `ChannelStore`.
+  `@torveai/node`'s sqlite `ChannelStore`.
 - `BuyerIdentity`, `BuyerPeerView`, `ResponseAuthSink`, `ResponseAuthSampler`
   — identity, peer knowledge, and optional verification persistence.
 

@@ -3,18 +3,18 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
 
-import { AntseedUsageRewards } from "../../../emissions/AntseedUsageRewards.sol";
-import { AntseedEmissionsGate } from "../../../emissions/AntseedEmissionsGate.sol";
-import { AntseedLegacyEmissionsEscrow } from "../../../emissions/AntseedLegacyEmissionsEscrow.sol";
-import { AntseedSellerPoolsRewards } from "../../../emissions/AntseedSellerPoolsRewards.sol";
-import { AntseedUsageAccounting } from "../../../emissions/AntseedUsageAccounting.sol";
-import { AntseedWashTradingRegistry } from "../../../integrity/AntseedWashTradingRegistry.sol";
-import { IAntseedRegistry } from "../../../interfaces/IAntseedRegistry.sol";
-import { AntseedPointsPolicyRegistry } from "../../../policies/AntseedPointsPolicyRegistry.sol";
-import { AntseedWashTradingPointsPolicy } from "../../../policies/AntseedWashTradingPointsPolicy.sol";
-import { AntseedPositionInit } from "../../../sellers/AntseedPositionInit.sol";
-import { AntseedSellerPools } from "../../../sellers/AntseedSellerPools.sol";
-import { AntseedSellerRegistry } from "../../../sellers/AntseedSellerRegistry.sol";
+import { TorveUsageRewards } from "../../../emissions/TorveUsageRewards.sol";
+import { TorveEmissionsGate } from "../../../emissions/TorveEmissionsGate.sol";
+import { TorveLegacyEmissionsEscrow } from "../../../emissions/TorveLegacyEmissionsEscrow.sol";
+import { TorveSellerPoolsRewards } from "../../../emissions/TorveSellerPoolsRewards.sol";
+import { TorveUsageAccounting } from "../../../emissions/TorveUsageAccounting.sol";
+import { TorveWashTradingRegistry } from "../../../integrity/TorveWashTradingRegistry.sol";
+import { ITorveRegistry } from "../../../interfaces/ITorveRegistry.sol";
+import { TorvePointsPolicyRegistry } from "../../../policies/TorvePointsPolicyRegistry.sol";
+import { TorveWashTradingPointsPolicy } from "../../../policies/TorveWashTradingPointsPolicy.sol";
+import { TorvePositionInit } from "../../../sellers/TorvePositionInit.sol";
+import { TorveSellerPools } from "../../../sellers/TorveSellerPools.sol";
+import { TorveSellerRegistry } from "../../../sellers/TorveSellerRegistry.sol";
 
 interface IANTSTokenAdmin {
     function owner() external view returns (address);
@@ -22,13 +22,13 @@ interface IANTSTokenAdmin {
     function setTransferWhitelist(address account, bool allowed) external;
 }
 
-interface IAntseedLegacyEmissionsClock {
+interface ITorveLegacyEmissionsClock {
     function genesis() external view returns (uint256);
     function EPOCH_DURATION() external view returns (uint256);
     function currentEpoch() external view returns (uint256);
 }
 
-interface IAntseedLegacyEmissionsAdmin {
+interface ITorveLegacyEmissionsAdmin {
     function owner() external view returns (address);
     function setRegistry(address registry) external;
 }
@@ -37,7 +37,7 @@ interface IAntseedLegacyEmissionsAdmin {
  * @title M001DeployRecognizedUsage
  * @notice Broadcast #1 of the two-broadcast cutover. Deploys the seller-pool /
  *         recognized-usage stack, moves the ANTS mint authority to
- *         AntseedEmissionsGate, funds the legacy escrow, and re-points the
+ *         TorveEmissionsGate, funds the legacy escrow, and re-points the
  *         legacy emissions contract at it. It deliberately does NOT touch the
  *         registry emissions/staking pointers: the network keeps running on
  *         the legacy stack (claims paid from the escrow pot) until
@@ -54,7 +54,7 @@ interface IAntseedLegacyEmissionsAdmin {
  *
  * Required env:
  *   DEPLOYER               Broadcaster address (see above).
- *   ANTSEED_REGISTRY       Existing (legacy) AntseedRegistry address.
+ *   TORVE_REGISTRY       Existing (legacy) TorveRegistry address.
  *   EXPECTED_ANTS_TOKEN    Current registry antsToken pointer.
  *   EXPECTED_CHANNELS      Current registry channels pointer.
  *   EXPECTED_LEGACY_EMISSIONS Current registry emissions pointer.
@@ -89,16 +89,16 @@ interface IAntseedLegacyEmissionsAdmin {
  *     --via-ir
  */
 contract M001DeployRecognizedUsage is Script {
-    bytes32 public constant VERIFICATION_MINTER_ID = keccak256("antseed.emissions.verification.v1");
-    bytes32 public constant SELLER_POOLS_MINTER_ID = keccak256("antseed.emissions.seller-pools.v1");
-    bytes32 public constant USAGE_MINTER_ID = keccak256("antseed.emissions.usage.v1");
+    bytes32 public constant VERIFICATION_MINTER_ID = keccak256("torve.emissions.verification.v1");
+    bytes32 public constant SELLER_POOLS_MINTER_ID = keccak256("torve.emissions.seller-pools.v1");
+    bytes32 public constant USAGE_MINTER_ID = keccak256("torve.emissions.usage.v1");
     address internal constant BASE_CHAINLINK_BLOCKHASH_STORE = 0x78b69899C8cD252126cBB1A50171ec37286C3877;
 
     function run() external {
         address deployer = vm.envAddress("DEPLOYER");
-        address registryAddress = vm.envAddress("ANTSEED_REGISTRY");
+        address registryAddress = vm.envAddress("TORVE_REGISTRY");
 
-        IAntseedRegistry registry = IAntseedRegistry(registryAddress);
+        ITorveRegistry registry = ITorveRegistry(registryAddress);
         address antsToken = registry.antsToken();
         address existingEmissions = registry.emissions();
         address existingChannels = registry.channels();
@@ -133,7 +133,7 @@ contract M001DeployRecognizedUsage is Script {
         // simulation before any tx is sent rather than mid-broadcast.
         require(IANTSTokenAdmin(antsToken).owner() == deployer, "deployer must own ANTSToken");
         require(
-            IAntseedLegacyEmissionsAdmin(existingEmissions).owner() == deployer, "deployer must own legacy emissions"
+            ITorveLegacyEmissionsAdmin(existingEmissions).owner() == deployer, "deployer must own legacy emissions"
         );
 
         // Minter share checkpoints activate at currentEpoch()+1 == the gate's
@@ -142,9 +142,9 @@ contract M001DeployRecognizedUsage is Script {
         // would leave the effective epoch's buckets at zero share forever, so
         // refuse to start near the boundary.
         {
-            uint256 legacyGenesis = IAntseedLegacyEmissionsClock(existingEmissions).genesis();
-            uint256 legacyEpochDuration = IAntseedLegacyEmissionsClock(existingEmissions).EPOCH_DURATION();
-            uint256 legacyCurrentEpoch = IAntseedLegacyEmissionsClock(existingEmissions).currentEpoch();
+            uint256 legacyGenesis = ITorveLegacyEmissionsClock(existingEmissions).genesis();
+            uint256 legacyEpochDuration = ITorveLegacyEmissionsClock(existingEmissions).EPOCH_DURATION();
+            uint256 legacyCurrentEpoch = ITorveLegacyEmissionsClock(existingEmissions).currentEpoch();
             uint256 nextBoundary = legacyGenesis + (legacyCurrentEpoch + 1) * legacyEpochDuration;
             require(
                 nextBoundary - block.timestamp > 1 hours, "too close to epoch boundary; deploy earlier in the epoch"
@@ -153,10 +153,10 @@ contract M001DeployRecognizedUsage is Script {
 
         vm.startBroadcast(deployer);
 
-        AntseedWashTradingRegistry washTradingRegistry = _deployWashTradingRegistry();
+        TorveWashTradingRegistry washTradingRegistry = _deployWashTradingRegistry();
         console.log("WashTradingRegistry:    ", address(washTradingRegistry));
 
-        AntseedEmissionsGate gate = new AntseedEmissionsGate(teamWallet, protocolReserve, 15_000, 15_000);
+        TorveEmissionsGate gate = new TorveEmissionsGate(teamWallet, protocolReserve, 15_000, 15_000);
         if (emissionsReserveWallet != address(0)) {
             gate.setMinterController(gate.RESERVE_MINTER_ID(), emissionsReserveWallet);
         }
@@ -168,12 +168,12 @@ contract M001DeployRecognizedUsage is Script {
         // The escrow funding below settles pre-effective epochs on the
         // gate's schedule, so the legacy and gate clocks must agree.
         require(
-            IAntseedLegacyEmissionsClock(existingEmissions).genesis() == genesis
-                && IAntseedLegacyEmissionsClock(existingEmissions).EPOCH_DURATION() == epochDuration,
+            ITorveLegacyEmissionsClock(existingEmissions).genesis() == genesis
+                && ITorveLegacyEmissionsClock(existingEmissions).EPOCH_DURATION() == epochDuration,
             "legacy emissions clock mismatch"
         );
 
-        console.log("=== AntSeed Recognized Usage Deployment ===");
+        console.log("=== Torve Recognized Usage Deployment ===");
         console.log("Deployer:               ", deployer);
         console.log("Legacy Registry:        ", registryAddress);
         console.log("ANTS Token:             ", antsToken);
@@ -189,12 +189,12 @@ contract M001DeployRecognizedUsage is Script {
         console.log("Effective Epoch:        ", effectiveEpoch);
         console.log("");
 
-        AntseedSellerPools sellerPools =
-            new AntseedSellerPools(antsToken, address(gate), identityRegistry, existingStaking);
+        TorveSellerPools sellerPools =
+            new TorveSellerPools(antsToken, address(gate), identityRegistry, existingStaking);
         console.log("SellerPools:          ", address(sellerPools));
 
-        AntseedSellerRegistry sellerRegistry =
-            new AntseedSellerRegistry(identityRegistry, address(sellerPools), existingStaking);
+        TorveSellerRegistry sellerRegistry =
+            new TorveSellerRegistry(identityRegistry, address(sellerPools), existingStaking);
         console.log("SellerRegistry:       ", address(sellerRegistry));
 
         // SellerPools is constructed against the legacy staking contract only
@@ -216,7 +216,7 @@ contract M001DeployRecognizedUsage is Script {
         // rewarded epoch), so a late claim never outweighs an early one and
         // the faucet expires by itself. Unowned and immutable — it also
         // switches off when its funded pot runs out.
-        AntseedPositionInit positionInit = new AntseedPositionInit(
+        TorvePositionInit positionInit = new TorvePositionInit(
             address(sellerPools),
             existingStaking,
             vm.envOr("POSITION_INIT_AMOUNT", uint256(1 ether)),
@@ -225,24 +225,24 @@ contract M001DeployRecognizedUsage is Script {
         console.log("PositionInit:         ", address(positionInit));
         console.log("PositionInit end epoch:", positionInit.initEndEpoch());
 
-        AntseedUsageAccounting usageAccounting =
-            new AntseedUsageAccounting(address(sellerPools), existingChannels, address(gate));
+        TorveUsageAccounting usageAccounting =
+            new TorveUsageAccounting(address(sellerPools), existingChannels, address(gate));
         console.log("UsageAccounting:        ", address(usageAccounting));
 
-        AntseedPointsPolicyRegistry pointsPolicyRegistry = new AntseedPointsPolicyRegistry(deployer);
-        AntseedWashTradingPointsPolicy washTradingPointsPolicy =
-            new AntseedWashTradingPointsPolicy(address(washTradingRegistry));
+        TorvePointsPolicyRegistry pointsPolicyRegistry = new TorvePointsPolicyRegistry(deployer);
+        TorveWashTradingPointsPolicy washTradingPointsPolicy =
+            new TorveWashTradingPointsPolicy(address(washTradingRegistry));
         pointsPolicyRegistry.registerPolicy(address(washTradingPointsPolicy));
         usageAccounting.setPointsPolicy(address(pointsPolicyRegistry));
         console.log("PointsPolicyRegistry:   ", address(pointsPolicyRegistry));
         console.log("WashTradingPointsPolicy:", address(washTradingPointsPolicy));
 
-        AntseedSellerPoolsRewards sellerPoolsRewards =
-            new AntseedSellerPoolsRewards(address(gate), address(sellerPools), address(usageAccounting));
+        TorveSellerPoolsRewards sellerPoolsRewards =
+            new TorveSellerPoolsRewards(address(gate), address(sellerPools), address(usageAccounting));
         console.log("SellerPoolsRewards: ", address(sellerPoolsRewards));
 
-        AntseedUsageRewards usageRewards =
-            new AntseedUsageRewards(address(gate), address(usageAccounting), identityRegistry, existingDeposits);
+        TorveUsageRewards usageRewards =
+            new TorveUsageRewards(address(gate), address(usageAccounting), identityRegistry, existingDeposits);
         usageRewards.setSellerPools(address(sellerPools));
         console.log("UsageRewards:       ", address(usageRewards));
 
@@ -259,7 +259,7 @@ contract M001DeployRecognizedUsage is Script {
         // itself, so its unchanged mint() claims draw from a fixed pre-minted
         // pot instead of minting. The gate then refuses pre-effective epochs
         // unconditionally.
-        AntseedLegacyEmissionsEscrow legacyEscrow = new AntseedLegacyEmissionsEscrow(registryAddress, existingEmissions);
+        TorveLegacyEmissionsEscrow legacyEscrow = new TorveLegacyEmissionsEscrow(registryAddress, existingEmissions);
         console.log("LegacyEmissionsEscrow:  ", address(legacyEscrow));
 
         // SellerPools must be able to pay out withdrawals and slash to the dead
@@ -294,7 +294,7 @@ contract M001DeployRecognizedUsage is Script {
         // the same epoch.
         IANTSTokenAdmin(antsToken).setRegistry(address(gate));
         uint256 escrowAmount = gate.fundLegacyEscrow(address(legacyEscrow));
-        IAntseedLegacyEmissionsAdmin(existingEmissions).setRegistry(address(legacyEscrow));
+        ITorveLegacyEmissionsAdmin(existingEmissions).setRegistry(address(legacyEscrow));
         console.log("Legacy escrow funded:   ", escrowAmount);
 
         vm.stopBroadcast();
@@ -337,7 +337,7 @@ contract M001DeployRecognizedUsage is Script {
         console.log("cutover (broadcast 2 of 2) and the post-flip checklist.");
     }
 
-    function _deployWashTradingRegistry() internal returns (AntseedWashTradingRegistry) {
+    function _deployWashTradingRegistry() internal returns (TorveWashTradingRegistry) {
         address blockhashStore = vm.envOr("WASH_TRADING_BLOCKHASH_STORE", BASE_CHAINLINK_BLOCKHASH_STORE);
         require(blockhashStore.code.length != 0, "blockhash store has no code");
         if (block.chainid == 8453) {
@@ -346,7 +346,7 @@ contract M001DeployRecognizedUsage is Script {
         uint256 periodStart = vm.envUint("HISTORICAL_PERIOD_START_BLOCK");
         uint256 periodEnd = vm.envUint("HISTORICAL_PERIOD_END_BLOCK");
         require(periodStart <= type(uint64).max && periodEnd <= type(uint64).max, "historical period exceeds uint64");
-        return new AntseedWashTradingRegistry(
+        return new TorveWashTradingRegistry(
             vm.envAddress("SP1_VERIFIER"),
             vm.envBytes32("SP1_VERIFIER_HASH"),
             blockhashStore,

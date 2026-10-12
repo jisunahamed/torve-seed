@@ -1,6 +1,6 @@
 import * as http from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { DEFAULT_BUYER_IDENTITY } from '@antseed/node'
+import { DEFAULT_BUYER_IDENTITY } from '@torveai/node'
 import { SPEND_ATTRIBUTION_HEADER } from '../proxy/spend-attribution.js'
 import { BUYER_IDENTITY_HEADER } from '../proxy/request-utils.js'
 import { newRequestTag, type GatewayAccounting } from './accounting.js'
@@ -218,7 +218,7 @@ export class GatewayServer {
     headers.host = `127.0.0.1:${buyerPort}`
     headers.connection = 'close'
     headers['content-length'] = String(body.length)
-    headers['x-antseed-system-proxy-source'] = tunnelRequestSource(req.headers)
+    headers['x-torve-system-proxy-source'] = tunnelRequestSource(req.headers)
     headers[SPEND_ATTRIBUTION_HEADER] = tag
     if (key.buyerIdentity !== DEFAULT_BUYER_IDENTITY) headers[BUYER_IDENTITY_HEADER] = key.buyerIdentity
 
@@ -230,7 +230,7 @@ export class GatewayServer {
       headers,
     }, (upstreamRes) => {
       const status = upstreamRes.statusCode ?? 502
-      const buyerRequestId = firstHeader(upstreamRes.headers['x-antseed-request-id']) || null
+      const buyerRequestId = firstHeader(upstreamRes.headers['x-torve-request-id']) || null
       const responseHeaders: http.OutgoingHttpHeaders = {}
       for (const [name, value] of Object.entries(upstreamRes.headers)) {
         if (!HOP_BY_HOP.has(name.toLowerCase()) && value !== undefined) responseHeaders[name] = value
@@ -247,7 +247,7 @@ export class GatewayServer {
       this._log(`gateway upstream error: ${error.message}`)
       finish(502, null)
       if (!res.headersSent) {
-        sendError(res, 502, 'api_error', 'buyer_unavailable', 'Antseed buyer proxy is unavailable')
+        sendError(res, 502, 'api_error', 'buyer_unavailable', 'Torve buyer proxy is unavailable')
       } else {
         res.destroy()
       }

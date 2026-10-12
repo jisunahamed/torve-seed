@@ -13,7 +13,7 @@ hide_title: true
 
 Open-source AI models are getting more powerful every quarter. They are also getting smaller and easier to run. Models that required a data center two years ago now run on a single GPU. Models that required a GPU will soon run on a laptop. The result: more providers can offer top-tier open-source models, from inference companies and GPU operators to individuals running models at home.
 
-This is the trend Antseed is built on. As open-source models close the gap with closed APIs, the number of people and organizations capable of serving high-quality inference explodes. A peer-to-peer network turns that growing supply into a global, open market. More providers means more competition. More competition means lower prices. Smaller providers who could never compete with centralized platforms can now reach buyers directly.
+This is the trend Torve is built on. As open-source models close the gap with closed APIs, the number of people and organizations capable of serving high-quality inference explodes. A peer-to-peer network turns that growing supply into a global, open market. More providers means more competition. More competition means lower prices. Smaller providers who could never compete with centralized platforms can now reach buyers directly.
 
 ## The Problem
 
@@ -23,9 +23,9 @@ This is not how commodity markets work. Electricity, bandwidth, and compute are 
 
 The problem compounds with AI agents. An agent can technically switch between API providers, but it is choosing from a short list of walled gardens, each with its own account, billing, and terms. What agents need is an open market for intelligence: a peer-to-peer network where they can discover AI services by capability, evaluate providers by reputation, and settle payment, without asking anyone for permission.
 
-## Antseed
+## Torve
 
-Antseed is a communication protocol for peer-to-peer AI services. Anyone can provide AI services, from model inference to specialized agents and routing services, and anyone can consume them directly through open peer-to-peer software. Providers are independent operators that run their own infrastructure, models, policies, and data practices.
+Torve is a communication protocol for peer-to-peer AI services. Anyone can provide AI services, from model inference to specialized agents and routing services, and anyone can consume them directly through open peer-to-peer software. Providers are independent operators that run their own infrastructure, models, policies, and data practices.
 
 The protocol does not care what happens between request and response. It is a neutral transport layer: direct peer-to-peer communication. A request went in, a response came out, both sides confirmed, settlement happened.
 
@@ -49,31 +49,31 @@ All three expose a standard API. What runs behind it is entirely the provider's 
 
 Decentralization is not the value proposition. Cheap, reliable, uncensorable AI access is. Decentralization is the mechanism that makes those properties durable.
 
-A centralized aggregator can be pressured by upstream providers, shut down by regulators, acquired by a competitor, or disrupted by business failure. When that happens, every customer is affected by one decision from one company. Antseed removes the centralized routing intermediary between buyers and independent providers.
+A centralized aggregator can be pressured by upstream providers, shut down by regulators, acquired by a competitor, or disrupted by business failure. When that happens, every customer is affected by one decision from one company. Torve removes the centralized routing intermediary between buyers and independent providers.
 
 Buyers are anonymous by default at the application layer: no central account, no sign-up, and no platform-issued API key. Providers can operate pseudonymously too, though most will choose to build a public reputation. For providers running in Trusted Execution Environments, hardware attestation can reduce what the provider operator can see.
 
-Antseed's privacy model is architectural rather than account-based: users can route requests without a central identity account, platform-issued API key, or centralized chat database, and TEE providers can add hardware-backed confidentiality where available. It is not, however, a promise that every piece of data is hidden from every participant. Independent providers and supporting infrastructure may process data needed to deliver and settle requests, and public-chain activity remains visible on-chain. Users should choose providers and routes appropriate to the sensitivity of their work.
+Torve's privacy model is architectural rather than account-based: users can route requests without a central identity account, platform-issued API key, or centralized chat database, and TEE providers can add hardware-backed confidentiality where available. It is not, however, a promise that every piece of data is hidden from every participant. Independent providers and supporting infrastructure may process data needed to deliver and settle requests, and public-chain activity remains visible on-chain. Users should choose providers and routes appropriate to the sensitivity of their work.
 
 ## Why Now
 
 **Models commoditized.** Claude, GPT, Gemini, DeepSeek, Llama, converging in capability and racing to zero on price. Open-weight models compete with closed APIs on most tasks. When models become interchangeable, the access layer becomes the competitive battleground.
 
-**Open-source inference is everywhere.** Ollama, vLLM, consumer GPUs, and cloud GPU rentals have made serving open-source models trivial. Every new provider is a potential Antseed seller.
+**Open-source inference is everywhere.** Ollama, vLLM, consumer GPUs, and cloud GPU rentals have made serving open-source models trivial. Every new provider is a potential Torve seller.
 
 **Agents are deployed.** Agents are no longer demos. Claude Code, Codex, and hundreds of autonomous workflows are in production, consuming inference programmatically, at scale.
 
 **Payment rails are ready.** USDC on Base is fast, cheap, and widely held. EIP-712 signatures enable gasless authorization. The infrastructure for machine-to-machine payments exists.
 
-**The aggregator model proved demand.** OpenRouter, Together.ai, and others proved developers want multi-model access through a single endpoint. They validated the demand. Antseed removes the centralized bottleneck.
+**The aggregator model proved demand.** OpenRouter, Together.ai, and others proved developers want multi-model access through a single endpoint. They validated the demand. Torve removes the centralized bottleneck.
 
 ## How Payments Work
 
-Antseed uses cumulative payment channels settled on Base. Two contracts handle the money: **AntseedDeposits** (holds funds) and **AntseedChannels** (manages session lifecycle, holds no funds). Channels is swappable — it can be redeployed without touching buyer balances.
+Torve uses cumulative payment channels settled on Base. Two contracts handle the money: **TorveDeposits** (holds funds) and **TorveChannels** (manages session lifecycle, holds no funds). Channels is swappable — it can be redeployed without touching buyer balances.
 
 ### Deposit and Reserve
 
-Buyers deposit USDC into AntseedDeposits. When a buyer wants to use a provider, they sign a **ReserveAuth** — an EIP-712 authorization that binds a channel ID, a maximum amount, and a deadline. The seller submits this signature on-chain, and the Deposits contract locks the authorized amount from the buyer's balance.
+Buyers deposit USDC into TorveDeposits. When a buyer wants to use a provider, they sign a **ReserveAuth** — an EIP-712 authorization that binds a channel ID, a maximum amount, and a deadline. The seller submits this signature on-chain, and the Deposits contract locks the authorized amount from the buyer's balance.
 
 First-time sessions are hard-capped at **$1 USDC**. This minimizes risk when neither party has history with the other.
 
@@ -131,8 +131,8 @@ See [Reward Policies](/docs/reward-policies) for how the rule works.
 
 ## Compliance and Risk
 
-Antseed is open peer-to-peer software. The protocol may remain technically accessible from many jurisdictions, but technical access does not mean legal permission. Users and Providers are solely responsible for sanctions, export-control, AML/CFT, tax, data-protection, AI, consumer-protection, and other legal compliance in their jurisdictions. Interfaces or hosted services may apply restrictions where technically possible or legally required.
+Torve is open peer-to-peer software. The protocol may remain technically accessible from many jurisdictions, but technical access does not mean legal permission. Users and Providers are solely responsible for sanctions, export-control, AML/CFT, tax, data-protection, AI, consumer-protection, and other legal compliance in their jurisdictions. Interfaces or hosted services may apply restrictions where technically possible or legally required.
 
-AI outputs are generated by independent models and providers. Antseed does not guarantee that outputs are accurate, lawful, safe, non-infringing, unbiased, confidential, or suitable for any purpose. Users are responsible for reviewing outputs before relying on or sharing them.
+AI outputs are generated by independent models and providers. Torve does not guarantee that outputs are accurate, lawful, safe, non-infringing, unbiased, confidential, or suitable for any purpose. Users are responsible for reviewing outputs before relying on or sharing them.
 
-Providers are independent third parties. Antseed contributors, maintainers, ecosystem participants, and support entities do not control every provider, model, node, output, log, or data practice.
+Providers are independent third parties. Torve contributors, maintainers, ecosystem participants, and support entities do not control every provider, model, node, output, log, or data practice.

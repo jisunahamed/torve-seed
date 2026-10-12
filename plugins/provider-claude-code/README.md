@@ -1,23 +1,23 @@
-# @antseed/provider-claude-code
+# @torveai/provider-claude-code
 
-> **Testing and development only.** This plugin reads credentials from your personal Claude Code subscription. Reselling subscription-based access violates Anthropic's Terms of Service and is not permitted. Use this plugin only for local development, testing, and demo purposes. For production use, see `@antseed/provider-anthropic` with a commercial API key.
+> **Testing and development only.** This plugin reads credentials from your personal Claude Code subscription. Reselling subscription-based access violates Anthropic's Terms of Service and is not permitted. Use this plugin only for local development, testing, and demo purposes. For production use, see `@torveai/provider-anthropic` with a commercial API key.
 
 Connect to the Anthropic API using Claude Code keychain credentials for local testing and development. No API key needed -- reads OAuth tokens directly from the macOS keychain.
 
 ## Installation
 
 ```bash
-antseed plugin add @antseed/provider-claude-code
+torve plugin add @torveai/provider-claude-code
 ```
 
 ## Usage
 
 ```bash
-antseed config seller add-provider claude-code --plugin claude-code
-antseed config seller add-service claude-code claude-sonnet-4-5-20250929 \
+torve config seller add-provider claude-code --plugin claude-code
+torve config seller add-service claude-code claude-sonnet-4-5-20250929 \
   --input 10 --output 10 \
   --categories chat,coding
-antseed seller start
+torve seller start
 ```
 
 No API key configuration is required. The plugin reads credentials from the system keychain where Claude Code stores them.
@@ -26,10 +26,10 @@ No API key configuration is required. The plugin reads credentials from the syst
 
 | Key | Type | Required | Default | Description |
 |-----|------|----------|---------|-------------|
-| `ANTSEED_INPUT_USD_PER_MILLION` | number | No | 10 | Input token price (USD per 1M) |
-| `ANTSEED_OUTPUT_USD_PER_MILLION` | number | No | 10 | Output token price (USD per 1M) |
-| `ANTSEED_MAX_CONCURRENCY` | number | No | 10 | Max concurrent requests |
-| `ANTSEED_ALLOWED_SERVICES` | string[] | No | -- | Comma-separated service allowlist |
+| `TORVE_INPUT_USD_PER_MILLION` | number | No | 10 | Input token price (USD per 1M) |
+| `TORVE_OUTPUT_USD_PER_MILLION` | number | No | 10 | Output token price (USD per 1M) |
+| `TORVE_MAX_CONCURRENCY` | number | No | 10 | Max concurrent requests |
+| `TORVE_ALLOWED_SERVICES` | string[] | No | -- | Comma-separated service allowlist |
 
 ## How It Works
 

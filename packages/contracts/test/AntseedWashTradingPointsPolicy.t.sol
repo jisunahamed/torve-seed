@@ -2,15 +2,15 @@ pragma solidity ^0.8.24;
 
 import { Test } from "forge-std/Test.sol";
 import { ANTSToken } from "../core/ANTSToken.sol";
-import { AntseedRegistry } from "../core/AntseedRegistry.sol";
-import { AntseedUsageAccounting } from "../emissions/AntseedUsageAccounting.sol";
-import { AntseedPointsPolicyRegistry } from "../policies/AntseedPointsPolicyRegistry.sol";
-import { AntseedWashTradingPointsPolicy } from "../policies/AntseedWashTradingPointsPolicy.sol";
-import { AntseedPositionInit } from "../sellers/AntseedPositionInit.sol";
-import { AntseedSellerPools } from "../sellers/AntseedSellerPools.sol";
-import { AntseedSellerRegistry } from "../sellers/AntseedSellerRegistry.sol";
+import { TorveRegistry } from "../core/TorveRegistry.sol";
+import { TorveUsageAccounting } from "../emissions/TorveUsageAccounting.sol";
+import { TorvePointsPolicyRegistry } from "../policies/TorvePointsPolicyRegistry.sol";
+import { TorveWashTradingPointsPolicy } from "../policies/TorveWashTradingPointsPolicy.sol";
+import { TorvePositionInit } from "../sellers/TorvePositionInit.sol";
+import { TorveSellerPools } from "../sellers/TorveSellerPools.sol";
+import { TorveSellerRegistry } from "../sellers/TorveSellerRegistry.sol";
 import { MockERC8004Registry } from "./mocks/MockERC8004Registry.sol";
-import { MockLegacySellerStaking } from "./AntseedPositionInit.t.sol";
+import { MockLegacySellerStaking } from "./TorvePositionInit.t.sol";
 
 contract WashTradingStatusForPoints {
     mapping(address => bool) public isProvenWashTrader;
@@ -20,13 +20,13 @@ contract WashTradingStatusForPoints {
     }
 }
 
-contract AntseedWashTradingPointsPolicyTest is Test {
+contract TorveWashTradingPointsPolicyTest is Test {
     WashTradingStatusForPoints status;
-    AntseedWashTradingPointsPolicy policy;
-    AntseedPointsPolicyRegistry policies;
-    AntseedUsageAccounting accounting;
-    AntseedPositionInit faucet;
-    AntseedSellerPools pools;
+    TorveWashTradingPointsPolicy policy;
+    TorvePointsPolicyRegistry policies;
+    TorveUsageAccounting accounting;
+    TorvePositionInit faucet;
+    TorveSellerPools pools;
     address seller = address(0x100);
     address buyer = address(0x200);
     uint256 agentId;
@@ -36,11 +36,11 @@ contract AntseedWashTradingPointsPolicyTest is Test {
         vm.warp(1_700_000_000);
         genesis = block.timestamp;
         status = new WashTradingStatusForPoints();
-        policy = new AntseedWashTradingPointsPolicy(address(status));
-        policies = new AntseedPointsPolicyRegistry(address(this));
+        policy = new TorveWashTradingPointsPolicy(address(status));
+        policies = new TorvePointsPolicyRegistry(address(this));
         policies.registerPolicy(address(policy));
 
-        AntseedRegistry registry = new AntseedRegistry();
+        TorveRegistry registry = new TorveRegistry();
         ANTSToken token = new ANTSToken();
         token.setRegistry(address(registry));
         registry.setAntsToken(address(token));
@@ -51,14 +51,14 @@ contract AntseedWashTradingPointsPolicyTest is Test {
         agentId = identity.register();
         legacy.setAgent(seller, agentId);
         legacy.setStakedAboveMin(seller, true);
-        pools = new AntseedSellerPools(address(token), address(this), address(identity), address(legacy));
-        AntseedSellerRegistry sellers = new AntseedSellerRegistry(address(identity), address(pools), address(legacy));
+        pools = new TorveSellerPools(address(token), address(this), address(identity), address(legacy));
+        TorveSellerRegistry sellers = new TorveSellerRegistry(address(identity), address(pools), address(legacy));
         pools.setStakingSource(address(sellers));
-        faucet = new AntseedPositionInit(address(pools), address(legacy), 1 ether, 105);
+        faucet = new TorvePositionInit(address(pools), address(legacy), 1 ether, 105);
         token.setTransferWhitelist(address(faucet), true);
         token.setTransferWhitelist(address(pools), true);
         token.mint(address(faucet), 1 ether);
-        accounting = new AntseedUsageAccounting(address(pools), address(this), address(this));
+        accounting = new TorveUsageAccounting(address(pools), address(this), address(this));
         accounting.setPointsPolicy(address(policies));
     }
 
@@ -71,8 +71,8 @@ contract AntseedWashTradingPointsPolicyTest is Test {
     }
 
     function test_rejectsZeroRegistry() public {
-        vm.expectRevert(AntseedWashTradingPointsPolicy.InvalidAddress.selector);
-        new AntseedWashTradingPointsPolicy(address(0));
+        vm.expectRevert(TorveWashTradingPointsPolicy.InvalidAddress.selector);
+        new TorveWashTradingPointsPolicy(address(0));
     }
 
     function testFuzz_unflaggedSellerPreservesBothSides(uint128 rawPoints) public view {

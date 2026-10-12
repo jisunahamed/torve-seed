@@ -3,36 +3,36 @@ import {
   detectProviderFromHeaders,
   detectProviderFromPath,
   resolveProvider,
-  ANTSEED_PROVIDER_HEADER,
+  TORVE_PROVIDER_HEADER,
 } from '../src/proxy/provider-detection.js';
 
 describe('detectProviderFromHeaders', () => {
   it('should detect anthropic from header', () => {
-    expect(detectProviderFromHeaders({ [ANTSEED_PROVIDER_HEADER]: 'anthropic' })).toBe('anthropic');
+    expect(detectProviderFromHeaders({ [TORVE_PROVIDER_HEADER]: 'anthropic' })).toBe('anthropic');
   });
 
   it('should detect openai from header', () => {
-    expect(detectProviderFromHeaders({ [ANTSEED_PROVIDER_HEADER]: 'openai' })).toBe('openai');
+    expect(detectProviderFromHeaders({ [TORVE_PROVIDER_HEADER]: 'openai' })).toBe('openai');
   });
 
   it('should detect google from header', () => {
-    expect(detectProviderFromHeaders({ [ANTSEED_PROVIDER_HEADER]: 'google' })).toBe('google');
+    expect(detectProviderFromHeaders({ [TORVE_PROVIDER_HEADER]: 'google' })).toBe('google');
   });
 
   it('should detect moonshot from header', () => {
-    expect(detectProviderFromHeaders({ [ANTSEED_PROVIDER_HEADER]: 'moonshot' })).toBe('moonshot');
+    expect(detectProviderFromHeaders({ [TORVE_PROVIDER_HEADER]: 'moonshot' })).toBe('moonshot');
   });
 
   it('should be case-insensitive for header name', () => {
-    expect(detectProviderFromHeaders({ 'X-ANTSEED-PROVIDER': 'anthropic' })).toBe('anthropic');
+    expect(detectProviderFromHeaders({ 'X-TORVE-PROVIDER': 'anthropic' })).toBe('anthropic');
   });
 
   it('should trim and lowercase the header value', () => {
-    expect(detectProviderFromHeaders({ [ANTSEED_PROVIDER_HEADER]: '  OPENAI  ' })).toBe('openai');
+    expect(detectProviderFromHeaders({ [TORVE_PROVIDER_HEADER]: '  OPENAI  ' })).toBe('openai');
   });
 
   it('should return null for unknown provider', () => {
-    expect(detectProviderFromHeaders({ [ANTSEED_PROVIDER_HEADER]: 'unknown' })).toBeNull();
+    expect(detectProviderFromHeaders({ [TORVE_PROVIDER_HEADER]: 'unknown' })).toBeNull();
   });
 
   it('should return null when header is missing', () => {
@@ -90,7 +90,7 @@ describe('detectProviderFromPath', () => {
 describe('resolveProvider', () => {
   it('should prefer header over path', () => {
     const result = resolveProvider('/v1/chat/completions', {
-      [ANTSEED_PROVIDER_HEADER]: 'anthropic',
+      [TORVE_PROVIDER_HEADER]: 'anthropic',
     }, 'openai');
     expect(result).toBe('anthropic');
   });

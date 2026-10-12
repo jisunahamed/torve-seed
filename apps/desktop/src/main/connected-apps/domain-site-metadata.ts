@@ -1,4 +1,4 @@
-import type { PeerVerificationLink } from '@antseed/node/discovery';
+import type { PeerVerificationLink } from '@torveai/node/discovery';
 
 export type DomainSiteMetadata = {
   title?: string;

@@ -1,5 +1,5 @@
 import {
-  ANTSEED_STREAMING_RESPONSE_HEADER,
+  TORVE_STREAMING_RESPONSE_HEADER,
   VIDEO_DOWNLOAD_CHUNK_BYTES,
   VIDEO_DOWNLOAD_MAX_BYTES,
   VIDEO_DOWNLOAD_STREAM_HEADER,
@@ -7,7 +7,7 @@ import {
   type ProviderStreamCallbacks,
   type SerializedHttpRequest,
   type SerializedHttpResponse,
-} from '@antseed/node';
+} from '@torveai/node';
 
 export function videoDownloadError(request: SerializedHttpRequest, statusCode: number, code: string, message: string): SerializedHttpResponse {
   return {
@@ -52,7 +52,7 @@ export async function streamVideoResponse(
   if (!reader) return videoDownloadError(request, 502, 'video_download_unavailable', 'Empty video response');
   const response: SerializedHttpResponse = { requestId: request.requestId, statusCode: 200, headers: {
     'content-type': 'video/mp4', ...(length === null ? {} : { 'content-length': String(length) }), 'cache-control': 'no-store',
-    [ANTSEED_STREAMING_RESPONSE_HEADER]: '1', [VIDEO_DOWNLOAD_STREAM_HEADER]: VIDEO_DOWNLOAD_STREAM_VERSION,
+    [TORVE_STREAMING_RESPONSE_HEADER]: '1', [VIDEO_DOWNLOAD_STREAM_HEADER]: VIDEO_DOWNLOAD_STREAM_VERSION,
   }, body: new Uint8Array(0) };
   let received = 0;
   // A stalled read does not observe the signal, so cancel the reader directly.

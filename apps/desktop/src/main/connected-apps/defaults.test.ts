@@ -51,7 +51,7 @@ test('Claude Code and T3 Code use distinct conversation sources', () => {
   assert.deepEqual(claudeCode?.['configPatch'], {
     format: 'claude-code',
     configPath: '~/.claude/settings.json',
-    providerKey: 'antseed',
+    providerKey: 'torve',
     baseURL: 'http://localhost:{buyerPort}',
     installProbe: 'claude',
   });
@@ -66,7 +66,7 @@ test('GooeyPi patches the shared Pi config without requiring pi on PATH', () => 
     format: 'pi',
     configPath: '~/.pi/agent/models.json',
     settingsPath: '~/.pi/agent/settings.json',
-    providerKey: 'antseed-gooeypi',
+    providerKey: 'torve-gooeypi',
     baseURL: 'http://localhost:{buyerPort}/v1',
     api: 'openai-responses',
     originator: 'gooeypi',

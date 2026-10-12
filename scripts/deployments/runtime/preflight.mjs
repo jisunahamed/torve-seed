@@ -2,10 +2,10 @@ import path from 'node:path';
 import readline from 'node:readline/promises';
 import { gitStatusPorcelain } from './exec.mjs';
 
-/** Requires an explicit typed confirmation (or ANTSEED_DEPLOY_CONFIRM) before broadcasting. */
+/** Requires an explicit typed confirmation (or TORVE_DEPLOY_CONFIRM) before broadcasting. */
 export async function confirmBroadcast(migrationId, network) {
-  if (process.env.ANTSEED_DEPLOY_CONFIRM === network) return;
-  if (!process.stdin.isTTY) throw new Error(`Set ANTSEED_DEPLOY_CONFIRM=${network} in non-interactive environments`);
+  if (process.env.TORVE_DEPLOY_CONFIRM === network) return;
+  if (!process.stdin.isTTY) throw new Error(`Set TORVE_DEPLOY_CONFIRM=${network} in non-interactive environments`);
   const reader = readline.createInterface({ input: process.stdin, output: process.stdout });
   const answer = await reader.question(`Type ${network} to broadcast ${migrationId}: `);
   reader.close();

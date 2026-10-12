@@ -2,18 +2,18 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import "../staking/AntseedStaking.sol";
-import "../staking/AntseedSlashing.sol";
-import "../payments/AntseedChannels.sol";
-import "../core/AntseedRegistry.sol";
+import "../staking/TorveStaking.sol";
+import "../staking/TorveSlashing.sol";
+import "../payments/TorveChannels.sol";
+import "../core/TorveRegistry.sol";
 import "./mocks/MockERC8004Registry.sol";
 import "./mocks/MockUSDC.sol";
-import {IAntseedChannels} from "../interfaces/IAntseedChannels.sol";
+import {ITorveChannels} from "../interfaces/ITorveChannels.sol";
 
 /// @dev Minimal mock that exposes activeChannelCount + getAgentStats for Staking tests.
 contract MockChannelsForStaking {
     mapping(address => uint256) private _activeChannelCount;
-    mapping(uint256 => IAntseedChannels.AgentStats) private _agentStats;
+    mapping(uint256 => ITorveChannels.AgentStats) private _agentStats;
 
     function activeChannelCount(address seller) external view returns (uint256) {
         return _activeChannelCount[seller];
@@ -23,7 +23,7 @@ contract MockChannelsForStaking {
         _activeChannelCount[seller] = count;
     }
 
-    function getAgentStats(uint256 agentId) external view returns (IAntseedChannels.AgentStats memory) {
+    function getAgentStats(uint256 agentId) external view returns (ITorveChannels.AgentStats memory) {
         return _agentStats[agentId];
     }
 
@@ -38,11 +38,11 @@ contract MockChannelsForStaking {
     }
 }
 
-contract AntseedStakingTest is Test {
+contract TorveStakingTest is Test {
     MockERC8004Registry public identityRegistry;
     MockChannelsForStaking public mockChannels;
-    AntseedStaking public staking;
-    AntseedRegistry public antseedRegistry;
+    TorveStaking public staking;
+    TorveRegistry public torveRegistry;
     MockUSDC public usdc;
 
     address public owner;
@@ -62,16 +62,16 @@ contract AntseedStakingTest is Test {
         usdc = new MockUSDC();
         identityRegistry = new MockERC8004Registry();
 
-        antseedRegistry = new AntseedRegistry();
+        torveRegistry = new TorveRegistry();
         mockChannels = new MockChannelsForStaking();
-        antseedRegistry.setChannels(address(mockChannels));
-        antseedRegistry.setIdentityRegistry(address(identityRegistry));
-        antseedRegistry.setProtocolReserve(reserve);
+        torveRegistry.setChannels(address(mockChannels));
+        torveRegistry.setIdentityRegistry(address(identityRegistry));
+        torveRegistry.setProtocolReserve(reserve);
 
-        staking = new AntseedStaking(address(usdc), address(antseedRegistry));
-        antseedRegistry.setStaking(address(staking));
+        staking = new TorveStaking(address(usdc), address(torveRegistry));
+        torveRegistry.setStaking(address(staking));
 
-        AntseedSlashing slashing = new AntseedSlashing(address(antseedRegistry));
+        TorveSlashing slashing = new TorveSlashing(address(torveRegistry));
         staking.setSlashing(address(slashing));
 
         // Register sellers on MockERC8004Registry
@@ -113,17 +113,17 @@ contract AntseedStakingTest is Test {
 
     function test_constructor_setsState() public view {
         assertEq(address(staking.usdc()), address(usdc));
-        assertEq(address(staking.registry()), address(antseedRegistry));
+        assertEq(address(staking.registry()), address(torveRegistry));
     }
 
     function test_constructor_revert_zeroUsdc() public {
-        vm.expectRevert(AntseedStaking.InvalidAddress.selector);
-        new AntseedStaking(address(0), address(antseedRegistry));
+        vm.expectRevert(TorveStaking.InvalidAddress.selector);
+        new TorveStaking(address(0), address(torveRegistry));
     }
 
     function test_constructor_revert_zeroRegistry() public {
-        vm.expectRevert(AntseedStaking.InvalidAddress.selector);
-        new AntseedStaking(address(usdc), address(0));
+        vm.expectRevert(TorveStaking.InvalidAddress.selector);
+        new TorveStaking(address(usdc), address(0));
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -137,7 +137,7 @@ contract AntseedStakingTest is Test {
         usdc.approve(address(staking), MIN_STAKE);
 
         vm.expectEmit(true, true, false, true);
-        emit AntseedStaking.Staked(seller, sellerAgentId, MIN_STAKE);
+        emit TorveStaking.Staked(seller, sellerAgentId, MIN_STAKE);
         staking.stake(sellerAgentId, MIN_STAKE);
         vm.stopPrank();
 
@@ -147,7 +147,7 @@ contract AntseedStakingTest is Test {
 
     function test_stake_revert_zeroAmount() public {
         vm.prank(seller);
-        vm.expectRevert(AntseedStaking.InvalidAmount.selector);
+        vm.expectRevert(TorveStaking.InvalidAmount.selector);
         staking.stake(sellerAgentId, 0);
     }
 
@@ -157,7 +157,7 @@ contract AntseedStakingTest is Test {
 
         vm.startPrank(unregistered);
         usdc.approve(address(staking), MIN_STAKE);
-        vm.expectRevert(AntseedStaking.NotAgentOwner.selector);
+        vm.expectRevert(TorveStaking.NotAgentOwner.selector);
         staking.stake(sellerAgentId, MIN_STAKE);
         vm.stopPrank();
     }
@@ -179,7 +179,7 @@ contract AntseedStakingTest is Test {
         usdc.mint(seller, MIN_STAKE);
         vm.startPrank(seller);
         usdc.approve(address(staking), MIN_STAKE);
-        vm.expectRevert(AntseedStaking.AgentIdMismatch.selector);
+        vm.expectRevert(TorveStaking.AgentIdMismatch.selector);
         staking.stake(otherAgentId, MIN_STAKE);
         vm.stopPrank();
     }
@@ -193,7 +193,7 @@ contract AntseedStakingTest is Test {
         usdc.mint(seller2, MIN_STAKE);
         vm.startPrank(seller2);
         usdc.approve(address(staking), MIN_STAKE);
-        vm.expectRevert(AntseedStaking.AgentAlreadyBound.selector);
+        vm.expectRevert(TorveStaking.AgentAlreadyBound.selector);
         staking.stake(sellerAgentId, MIN_STAKE);
         vm.stopPrank();
     }
@@ -209,7 +209,7 @@ contract AntseedStakingTest is Test {
         usdc.approve(address(staking), MIN_STAKE);
 
         vm.expectEmit(true, true, false, true);
-        emit AntseedStaking.Staked(seller, sellerAgentId, MIN_STAKE);
+        emit TorveStaking.Staked(seller, sellerAgentId, MIN_STAKE);
         staking.stakeFor(seller, sellerAgentId, MIN_STAKE);
         vm.stopPrank();
 
@@ -223,7 +223,7 @@ contract AntseedStakingTest is Test {
 
         vm.startPrank(thirdParty);
         usdc.approve(address(staking), MIN_STAKE);
-        vm.expectRevert(AntseedStaking.NotAgentOwner.selector);
+        vm.expectRevert(TorveStaking.NotAgentOwner.selector);
         staking.stakeFor(unregistered, sellerAgentId, MIN_STAKE);
         vm.stopPrank();
     }
@@ -232,14 +232,14 @@ contract AntseedStakingTest is Test {
         usdc.mint(thirdParty, MIN_STAKE);
         vm.startPrank(thirdParty);
         usdc.approve(address(staking), MIN_STAKE);
-        vm.expectRevert(AntseedStaking.InvalidAddress.selector);
+        vm.expectRevert(TorveStaking.InvalidAddress.selector);
         staking.stakeFor(address(0), sellerAgentId, MIN_STAKE);
         vm.stopPrank();
     }
 
     function test_stakeFor_revert_zeroAmount() public {
         vm.prank(thirdParty);
-        vm.expectRevert(AntseedStaking.InvalidAmount.selector);
+        vm.expectRevert(TorveStaking.InvalidAmount.selector);
         staking.stakeFor(seller, sellerAgentId, 0);
     }
 
@@ -252,7 +252,7 @@ contract AntseedStakingTest is Test {
 
         vm.prank(seller);
         vm.expectEmit(true, false, false, true);
-        emit AntseedStaking.Unstaked(seller, MIN_STAKE, 0);
+        emit TorveStaking.Unstaked(seller, MIN_STAKE, 0);
         staking.unstake();
 
         assertEq(staking.getStake(seller), 0);
@@ -261,7 +261,7 @@ contract AntseedStakingTest is Test {
 
     function test_unstake_revert_noStake() public {
         vm.prank(seller);
-        vm.expectRevert(AntseedStaking.InsufficientStake.selector);
+        vm.expectRevert(TorveStaking.InsufficientStake.selector);
         staking.unstake();
     }
 
@@ -270,11 +270,11 @@ contract AntseedStakingTest is Test {
 
         // Deploy a mock channels contract that reports active channels
         MockChannelsForStaking mockChannels = new MockChannelsForStaking();
-        antseedRegistry.setChannels(address(mockChannels));
+        torveRegistry.setChannels(address(mockChannels));
         mockChannels.setActiveChannelCount(seller, 1);
 
         vm.prank(seller);
-        vm.expectRevert(AntseedStaking.ActiveChannels.selector);
+        vm.expectRevert(TorveStaking.ActiveChannels.selector);
         staking.unstake();
     }
 
@@ -401,15 +401,15 @@ contract AntseedStakingTest is Test {
     // Edge: slash with no protocolReserve set -> revert to prevent lost funds
     function test_slash_noReserve_reverts() public {
         // Deploy a new staking with a registry that has no protocolReserve
-        AntseedRegistry noReserveRegistry = new AntseedRegistry();
+        TorveRegistry noReserveRegistry = new TorveRegistry();
         MockChannelsForStaking mockChannels2 = new MockChannelsForStaking();
         noReserveRegistry.setChannels(address(mockChannels2));
         noReserveRegistry.setIdentityRegistry(address(identityRegistry));
         // Don't set protocolReserve
 
-        AntseedStaking staking2 = new AntseedStaking(address(usdc), address(noReserveRegistry));
+        TorveStaking staking2 = new TorveStaking(address(usdc), address(noReserveRegistry));
         noReserveRegistry.setStaking(address(staking2));
-        AntseedSlashing slashing2 = new AntseedSlashing(address(noReserveRegistry));
+        TorveSlashing slashing2 = new TorveSlashing(address(noReserveRegistry));
         staking2.setSlashing(address(slashing2));
 
         usdc.mint(seller, LARGE_STAKE);
@@ -421,7 +421,7 @@ contract AntseedStakingTest is Test {
         mockChannels2.addGhosts(sellerAgentId, 5); // tier 1 full slash
 
         vm.prank(seller);
-        vm.expectRevert(AntseedStaking.InvalidAddress.selector);
+        vm.expectRevert(TorveStaking.InvalidAddress.selector);
         staking2.unstake();
     }
 
@@ -452,7 +452,7 @@ contract AntseedStakingTest is Test {
     // ═══════════════════════════════════════════════════════════════════
 
     function test_setRegistry() public {
-        AntseedRegistry newRegistry = new AntseedRegistry();
+        TorveRegistry newRegistry = new TorveRegistry();
         staking.setRegistry(address(newRegistry));
         assertEq(address(staking.registry()), address(newRegistry));
     }
@@ -464,7 +464,7 @@ contract AntseedStakingTest is Test {
     }
 
     function test_setRegistry_revert_zeroAddress() public {
-        vm.expectRevert(AntseedStaking.InvalidAddress.selector);
+        vm.expectRevert(TorveStaking.InvalidAddress.selector);
         staking.setRegistry(address(0));
     }
 
@@ -505,7 +505,7 @@ contract AntseedStakingTest is Test {
         _addGhosts(sellerAgentId, 10); // tier 1 full slash
 
         // Deploy a new slashing contract with higher threshold
-        AntseedSlashing newSlashing = new AntseedSlashing(address(antseedRegistry));
+        TorveSlashing newSlashing = new TorveSlashing(address(torveRegistry));
         newSlashing.setSlashGhostThreshold(20); // raise to 20
         staking.setSlashing(address(newSlashing));
 

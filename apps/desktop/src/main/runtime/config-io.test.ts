@@ -16,7 +16,7 @@ import {
 } from './config-io.js';
 
 async function makeTempConfigPath(): Promise<{ dir: string; configPath: string }> {
-  const dir = await mkdtemp(join(tmpdir(), 'antseed-desktop-config-'));
+  const dir = await mkdtemp(join(tmpdir(), 'torve-desktop-config-'));
   return { dir, configPath: join(dir, 'config.json') };
 }
 

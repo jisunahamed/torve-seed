@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { DepositsClient } from '@antseed/node';
+import { DepositsClient } from '@torveai/node';
 
 // Point the active config at a single local endpoint before the modules read it.
 const dir = mkdtempSync(path.join(tmpdir(), 'vpr-shared-chain-'));
 const configPath = path.join(dir, 'config.json');
 const LOCAL = 'http://127.0.0.1:1';
 writeFileSync(configPath, JSON.stringify({ payments: { crypto: { chainId: 'base-local', rpcUrl: LOCAL } } }));
-process.env['ANTSEED_CONFIG_PATH'] = configPath;
+process.env['TORVE_CONFIG_PATH'] = configPath;
 
 const { sharedChainContext, sharedChainProvider, resetSharedChain, withSharedProvider } = await import('./shared-chain.js');
 const { resolveStakingChain } = await import('../staking/configuration.js');

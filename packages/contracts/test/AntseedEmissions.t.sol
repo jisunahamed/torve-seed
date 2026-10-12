@@ -3,8 +3,8 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 import "../core/ANTSToken.sol";
-import "../legacy/AntseedEmissions.sol";
-import "../core/AntseedRegistry.sol";
+import "../legacy/TorveEmissions.sol";
+import "../core/TorveRegistry.sol";
 
 /// @dev Minimal mock Deposits that only supports getOperator for emission tests.
 contract MockDepositsForEmissions {
@@ -19,10 +19,10 @@ contract MockDepositsForEmissions {
     }
 }
 
-contract AntseedEmissionsTest is Test {
+contract TorveEmissionsTest is Test {
     ANTSToken public token;
-    AntseedEmissions public emissions;
-    AntseedRegistry public antseedRegistry;
+    TorveEmissions public emissions;
+    TorveRegistry public torveRegistry;
     MockDepositsForEmissions public mockDeposits;
 
     address public seller1 = address(0x10);
@@ -38,17 +38,17 @@ contract AntseedEmissionsTest is Test {
 
     function setUp() public {
         token = new ANTSToken();
-        antseedRegistry = new AntseedRegistry();
+        torveRegistry = new TorveRegistry();
         mockDeposits = new MockDepositsForEmissions();
-        antseedRegistry.setChannels(address(this));
-        antseedRegistry.setDeposits(address(mockDeposits));
-        antseedRegistry.setAntsToken(address(token));
+        torveRegistry.setChannels(address(this));
+        torveRegistry.setDeposits(address(mockDeposits));
+        torveRegistry.setAntsToken(address(token));
 
-        emissions = new AntseedEmissions(address(antseedRegistry), INITIAL_EMISSION, EPOCH_DURATION);
+        emissions = new TorveEmissions(address(torveRegistry), INITIAL_EMISSION, EPOCH_DURATION);
 
-        antseedRegistry.setEmissions(address(emissions));
-        antseedRegistry.setProtocolReserve(reserveDest);
-        token.setRegistry(address(antseedRegistry));
+        torveRegistry.setEmissions(address(emissions));
+        torveRegistry.setProtocolReserve(reserveDest);
+        token.setRegistry(address(torveRegistry));
 
         // Set operators for buyers
         mockDeposits.setOperator(buyer1, operator1);
@@ -129,7 +129,7 @@ contract AntseedEmissionsTest is Test {
 
     function test_accrueSellerPoints_revert_notChannels() public {
         vm.prank(seller1);
-        vm.expectRevert(AntseedEmissions.NotAuthorized.selector);
+        vm.expectRevert(TorveEmissions.NotAuthorized.selector);
         emissions.accrueSellerPoints(seller1, 100);
     }
 
@@ -142,7 +142,7 @@ contract AntseedEmissionsTest is Test {
 
     function test_accrueBuyerPoints_revert_notChannels() public {
         vm.prank(buyer1);
-        vm.expectRevert(AntseedEmissions.NotAuthorized.selector);
+        vm.expectRevert(TorveEmissions.NotAuthorized.selector);
         emissions.accrueBuyerPoints(buyer1, 100);
     }
 
@@ -214,13 +214,13 @@ contract AntseedEmissionsTest is Test {
         emissions.accrueSellerPoints(seller1, 100);
 
         vm.prank(seller1);
-        vm.expectRevert(AntseedEmissions.EpochNotFinalized.selector);
+        vm.expectRevert(TorveEmissions.EpochNotFinalized.selector);
         emissions.claimSellerEmissions(_epochList(0));
     }
 
     function test_claim_revert_futureEpoch() public {
         vm.prank(seller1);
-        vm.expectRevert(AntseedEmissions.EpochNotFinalized.selector);
+        vm.expectRevert(TorveEmissions.EpochNotFinalized.selector);
         emissions.claimSellerEmissions(_epochList(5));
     }
 
@@ -490,17 +490,17 @@ contract AntseedEmissionsTest is Test {
     }
 
     function test_reserveFlush_revert_zeroBalance() public {
-        vm.expectRevert(AntseedEmissions.NoReserve.selector);
+        vm.expectRevert(TorveEmissions.NoReserve.selector);
         emissions.flushReserve();
     }
 
     function test_reserveFlush_revert_noProtocolReserve() public {
-        AntseedRegistry reg2 = new AntseedRegistry();
+        TorveRegistry reg2 = new TorveRegistry();
         reg2.setChannels(address(this));
         reg2.setAntsToken(address(token));
-        AntseedEmissions em2 = new AntseedEmissions(address(reg2), INITIAL_EMISSION, EPOCH_DURATION);
+        TorveEmissions em2 = new TorveEmissions(address(reg2), INITIAL_EMISSION, EPOCH_DURATION);
 
-        vm.expectRevert(AntseedEmissions.NoProtocolReserve.selector);
+        vm.expectRevert(TorveEmissions.NoProtocolReserve.selector);
         em2.flushReserve();
     }
 
@@ -573,7 +573,7 @@ contract AntseedEmissionsTest is Test {
     }
 
     function test_sharePercentages_revert_invalidSum() public {
-        vm.expectRevert(AntseedEmissions.InvalidShareSum.selector);
+        vm.expectRevert(TorveEmissions.InvalidShareSum.selector);
         emissions.setSharePercentages(60, 20, 10, 5);
     }
 
@@ -584,7 +584,7 @@ contract AntseedEmissionsTest is Test {
     }
 
     function test_setRegistry() public {
-        AntseedRegistry newReg = new AntseedRegistry();
+        TorveRegistry newReg = new TorveRegistry();
         newReg.setChannels(address(this));
         newReg.setAntsToken(address(token));
         emissions.setRegistry(address(newReg));
@@ -592,7 +592,7 @@ contract AntseedEmissionsTest is Test {
     }
 
     function test_setRegistry_revert_zeroAddress() public {
-        vm.expectRevert(AntseedEmissions.InvalidAddress.selector);
+        vm.expectRevert(TorveEmissions.InvalidAddress.selector);
         emissions.setRegistry(address(0));
     }
 
@@ -607,23 +607,23 @@ contract AntseedEmissionsTest is Test {
     }
 
     function test_setMaxSellerSharePct_revert_over100() public {
-        vm.expectRevert(AntseedEmissions.InvalidValue.selector);
+        vm.expectRevert(TorveEmissions.InvalidValue.selector);
         emissions.setMaxSellerSharePct(101);
     }
 
     function test_constructor_revert_zeroRegistry() public {
-        vm.expectRevert(AntseedEmissions.InvalidAddress.selector);
-        new AntseedEmissions(address(0), INITIAL_EMISSION, EPOCH_DURATION);
+        vm.expectRevert(TorveEmissions.InvalidAddress.selector);
+        new TorveEmissions(address(0), INITIAL_EMISSION, EPOCH_DURATION);
     }
 
     function test_constructor_revert_zeroEmission() public {
-        vm.expectRevert(AntseedEmissions.InvalidValue.selector);
-        new AntseedEmissions(address(antseedRegistry), 0, EPOCH_DURATION);
+        vm.expectRevert(TorveEmissions.InvalidValue.selector);
+        new TorveEmissions(address(torveRegistry), 0, EPOCH_DURATION);
     }
 
     function test_constructor_revert_zeroDuration() public {
-        vm.expectRevert(AntseedEmissions.InvalidValue.selector);
-        new AntseedEmissions(address(antseedRegistry), INITIAL_EMISSION, 0);
+        vm.expectRevert(TorveEmissions.InvalidValue.selector);
+        new TorveEmissions(address(torveRegistry), INITIAL_EMISSION, 0);
     }
 
     function test_pause_blocksAccrual() public {
@@ -665,7 +665,7 @@ contract AntseedEmissionsTest is Test {
         emissions.transferOwnership(seller1);
         assertEq(emissions.owner(), seller1);
 
-        AntseedRegistry newRegistry = new AntseedRegistry();
+        TorveRegistry newRegistry = new TorveRegistry();
         newRegistry.setChannels(address(0x99));
         newRegistry.setAntsToken(address(token));
 

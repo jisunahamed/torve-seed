@@ -1,18 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createLegacyEmissionsClient, createLegacyStakingClient, requireCryptoConfig } from '../../payment-utils.js';
-import type { AntseedConfig } from '../../../config/types.js';
+import type { TorveConfig } from '../../../config/types.js';
 
 const address = '0x0000000000000000000000000000000000000011';
 
 test('CLI local defaults use the registry nonce rather than the token nonce and preserve overrides', () => {
-  const base = { payments: { crypto: { chainId: 'base-local' } } } as AntseedConfig;
+  const base = { payments: { crypto: { chainId: 'base-local' } } } as TorveConfig;
   assert.equal(requireCryptoConfig(base).registryContractAddress, '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9');
   assert.equal(requireCryptoConfig({ ...base, payments: { ...base.payments, crypto: { ...base.payments!.crypto!, registryContractAddress: address } } }).registryContractAddress, address);
 });
 
 test('legacy factories use V2 and USDC staking with the active mainnet ledger', () => {
-  const config = { payments: { crypto: { chainId: 'base-mainnet', rpcUrl: 'http://127.0.0.1:1' } } } as AntseedConfig;
+  const config = { payments: { crypto: { chainId: 'base-mainnet', rpcUrl: 'http://127.0.0.1:1' } } } as TorveConfig;
   const chain = requireCryptoConfig(config);
   const emissions = createLegacyEmissionsClient(config);
   const staking = createLegacyStakingClient(config);
@@ -35,7 +35,7 @@ test('legacy factories preserve the active ledger legacy overrides', () => {
     emissionsContractAddress: usage, usageAccountingAddress: usage,
     stakingContractAddress: registry, sellerRegistryAddress: registry,
     legacyEmissionsContractAddress: address, legacyStakingContractAddress: address,
-  } } } as AntseedConfig;
+  } } } as TorveConfig;
   const emissions = createLegacyEmissionsClient(config);
   const staking = createLegacyStakingClient(config);
   try {

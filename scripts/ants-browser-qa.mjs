@@ -111,7 +111,7 @@ const shim = `(() => {
       if (reply.error) throw new Error(reply.error.message); return reply.result;
     }
   };
-  const announce = () => window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {detail: {info: {uuid:'00b15368-4985-4919-ab44-777aad2f5481', name:'Anvil test wallet', icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="%232f7958"/></svg>', rdns:'local.antseed.anvil'}, provider}}));
+  const announce = () => window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {detail: {info: {uuid:'00b15368-4985-4919-ab44-777aad2f5481', name:'Anvil test wallet', icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="%232f7958"/></svg>', rdns:'local.torve.anvil'}, provider}}));
   window.addEventListener('eip6963:requestProvider', announce); announce();
 })();`;
 createServer(async (req, res) => {

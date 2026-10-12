@@ -4,8 +4,8 @@ import {
   type NetworkServiceOffer,
   type PeerInfo,
   type SerializedHttpRequest,
-} from '@antseed/node'
-import { canonicalModelKey } from '@antseed/node/model-identity'
+} from '@torveai/node'
+import { canonicalModelKey } from '@torveai/node/model-identity'
 import {
   extractRequestBodyFields,
   inferProviderDefaultServiceApiProtocols,
@@ -27,7 +27,7 @@ export type CandidatePeerRouteSelection = {
   routePlanByPeerId: Map<string, PeerProtocolRoutePlan>
 }
 
-export const REQUIRED_PARAMETERS_HEADER = 'x-antseed-required-parameters'
+export const REQUIRED_PARAMETERS_HEADER = 'x-torve-required-parameters'
 const REQUIRED_PARAMETER_PATTERN = /^[a-z][a-z0-9_.-]{0,63}$/
 const MAX_REQUIRED_PARAMETERS = 16
 
@@ -79,7 +79,7 @@ export function findMissingRequiredParameters(
 export type ServiceFilterMode = 'strict' | 'lenient'
 
 export function getExplicitProviderOverride(request: SerializedHttpRequest): string | null {
-  const provider = request.headers['x-antseed-provider']?.trim().toLowerCase()
+  const provider = request.headers['x-torve-provider']?.trim().toLowerCase()
   return provider && provider.length > 0 ? provider : null
 }
 
@@ -89,7 +89,7 @@ export function getExplicitPeerIdOverride(
   requestPinnedPeerId?: string | null,
 ): string | null {
   // Per-request header takes priority over session pin
-  const header = request.headers['x-antseed-pin-peer']?.trim()
+  const header = request.headers['x-torve-pin-peer']?.trim()
   if (header && header.length > 0) return normalizePeerId(header) ?? header.toLowerCase()
   if (requestPinnedPeerId) return requestPinnedPeerId.toLowerCase()
   return sessionPinnedPeerId?.toLowerCase() ?? null

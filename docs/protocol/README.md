@@ -1,6 +1,6 @@
-# Antseed Network
+# Torve Network
 
-Antseed is a peer-to-peer AI services network that enables direct connections between AI service providers and buyers. It eliminates intermediary platforms by providing protocol-level discovery, metering, and payment settlement.
+Torve is a peer-to-peer AI services network that enables direct connections between AI service providers and buyers. It eliminates intermediary platforms by providing protocol-level discovery, metering, and payment settlement.
 
 ## Repository Structure
 
@@ -29,22 +29,22 @@ than additional active reward policies.
 Install the CLI globally:
 
 ```bash
-npm install -g @antseed/cli
-antseed seller setup      # create ~/.antseed/config.json
-antseed seller start      # provide AI services
-antseed buyer start       # consume via local router
+npm install -g @torveai/cli
+torve seller setup      # create ~/.torve/config.json
+torve seller start      # provide AI services
+torve buyer start       # consume via local router
 ```
 
-`~/.antseed/config.json` is the main source of truth for provider definitions, services, pricing, categories, buyer settings, and `baseUrl`. Environment variables are mainly for secrets such as API keys and `ANTSEED_IDENTITY_HEX`.
+`~/.torve/config.json` is the main source of truth for provider definitions, services, pricing, categories, buyer settings, and `baseUrl`. Environment variables are mainly for secrets such as API keys and `TORVE_IDENTITY_HEX`.
 
 ## Plugin Ecosystem
 
-Antseed is extensible. Any developer can publish a plugin to npm:
+Torve is extensible. Any developer can publish a plugin to npm:
 
 | Plugin type | Purpose | Command |
 |---|---|---|
-| Provider plugin | Connect an upstream AI API and offer services | `antseed seller start` |
-| Router plugin | Select peers and proxy requests for a client tool | `antseed buyer start --router <name>` |
+| Provider plugin | Connect an upstream AI API and offer services | `torve seller start` |
+| Router plugin | Select peers and proxy requests for a client tool | `torve buyer start --router <name>` |
 
 Use the templates in this directory as a starting point:
 
@@ -60,11 +60,11 @@ cd my-router && npm install && npm run verify
 
 ## Links
 
-- [@antseed/node](https://npmjs.com/package/@antseed/node) — Protocol SDK
-- [@antseed/cli](https://npmjs.com/package/@antseed/cli) — CLI tools
-- [@antseed/provider-anthropic](https://npmjs.com/package/@antseed/provider-anthropic) — Anthropic provider (API key)
-- [@antseed/provider-claude-code](https://npmjs.com/package/@antseed/provider-claude-code) — Claude Code provider (keychain, testing only)
-- [@antseed/provider-openai](https://npmjs.com/package/@antseed/provider-openai) — OpenAI-compatible provider (OpenAI, Together, OpenRouter)
-- [@antseed/provider-local-llm](https://npmjs.com/package/@antseed/provider-local-llm) — Local LLM provider
-- [@antseed/provider-typesafe](https://npmjs.com/package/@antseed/provider-typesafe) — TypeSafe System One decision-model provider
-- [@antseed/router-local](https://npmjs.com/package/@antseed/router-local) — Local router (Claude Code, Codex)
+- [@torveai/node](https://npmjs.com/package/@torveai/node) — Protocol SDK
+- [@torveai/cli](https://npmjs.com/package/@torveai/cli) — CLI tools
+- [@torveai/provider-anthropic](https://npmjs.com/package/@torveai/provider-anthropic) — Anthropic provider (API key)
+- [@torveai/provider-claude-code](https://npmjs.com/package/@torveai/provider-claude-code) — Claude Code provider (keychain, testing only)
+- [@torveai/provider-openai](https://npmjs.com/package/@torveai/provider-openai) — OpenAI-compatible provider (OpenAI, Together, OpenRouter)
+- [@torveai/provider-local-llm](https://npmjs.com/package/@torveai/provider-local-llm) — Local LLM provider
+- [@torveai/provider-typesafe](https://npmjs.com/package/@torveai/provider-typesafe) — TypeSafe System One decision-model provider
+- [@torveai/router-local](https://npmjs.com/package/@torveai/router-local) — Local router (Claude Code, Codex)

@@ -14,7 +14,7 @@ import {
   EmissionsClient,
   formatUsdc,
   resolveChainConfig,
-} from '@antseed/node';
+} from '@torveai/node';
 import {
   creditsBalanceTotals,
   updateCreditsBalanceComponents,
@@ -60,7 +60,7 @@ const EMPTY_CREDITS: Omit<CreditsInfo, 'evmAddress'> = {
   creditLimitUsdc: '0',
 };
 
-// Use shared formatUsdc from @antseed/node
+// Use shared formatUsdc from @torveai/node
 const formatUsdc6 = formatUsdc;
 
 const EMPTY_BALANCE_COMPONENTS: CreditsBalanceComponents = {

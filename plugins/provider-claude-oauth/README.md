@@ -1,24 +1,24 @@
-# @antseed/provider-claude-oauth
+# @torveai/provider-claude-oauth
 
 > **Testing and development only.** This plugin uses OAuth credentials from a personal Claude subscription. Reselling subscription-based access violates Anthropic's Terms of Service and is not permitted. Use this plugin only for local development, testing, and demo purposes.
 
-Third-party Anthropic Claude provider plugin with OAuth authentication for Antseed. This plugin demonstrates how a third-party developer can build, test, and publish an Antseed provider plugin using `@antseed/provider-core`.
+Third-party Anthropic Claude provider plugin with OAuth authentication for Torve. This plugin demonstrates how a third-party developer can build, test, and publish an Torve provider plugin using `@torveai/provider-core`.
 
 ## How to Create a Plugin
 
 1. Create a new directory under `plugins/` (or anywhere on disk).
-2. Add a `package.json` with `@antseed/provider-core` as a dependency and `@antseed/node` as a peer dependency.
-3. Implement and default-export an `AntseedProviderPlugin` object from `src/index.ts`.
+2. Add a `package.json` with `@torveai/provider-core` as a dependency and `@torveai/node` as a peer dependency.
+3. Implement and default-export an `TorveProviderPlugin` object from `src/index.ts`.
 4. Build with `tsc` and test with `vitest`.
 
 ## Plugin Manifest Format
 
-Every provider plugin must default-export an object satisfying `AntseedProviderPlugin`:
+Every provider plugin must default-export an object satisfying `TorveProviderPlugin`:
 
 ```typescript
-import type { AntseedProviderPlugin, ConfigField } from '@antseed/node';
+import type { TorveProviderPlugin, ConfigField } from '@torveai/node';
 
-const plugin: AntseedProviderPlugin = {
+const plugin: TorveProviderPlugin = {
   name: 'my-provider',           // unique plugin name
   displayName: 'My Provider',    // human-readable label
   version: '0.1.0',
@@ -46,7 +46,7 @@ export default plugin;
 
 ## Using provider-core
 
-The `@antseed/provider-core` package provides reusable building blocks:
+The `@torveai/provider-core` package provides reusable building blocks:
 
 - **`BaseProvider`** -- Implements the `Provider` interface and wires up `HttpRelay`.
 - **`StaticTokenProvider`** -- Wraps a static API key with no refresh logic.
@@ -54,7 +54,7 @@ The `@antseed/provider-core` package provides reusable building blocks:
 - **`HttpRelay`** -- Forwards requests to an upstream API with auth header swapping, model validation, and concurrency control.
 
 ```typescript
-import { BaseProvider, OAuthTokenProvider, StaticTokenProvider } from '@antseed/provider-core';
+import { BaseProvider, OAuthTokenProvider, StaticTokenProvider } from '@torveai/provider-core';
 ```
 
 ## Testing Locally
@@ -70,13 +70,13 @@ npm run build
 npm test
 ```
 
-To test the plugin end-to-end with a local Antseed node, link it:
+To test the plugin end-to-end with a local Torve node, link it:
 
 ```bash
 cd plugins/provider-claude-oauth
 npm link
 
-cd /path/to/your/antseed-project
+cd /path/to/your/torve-project
 npm link @anthropic/provider-claude-oauth
 ```
 
@@ -91,15 +91,15 @@ Then configure the plugin in your node's plugin config with the required config 
 
 For scoped packages like `@anthropic/provider-claude-oauth`, use `--access public` to publish as a public package.
 
-## Installing via antseed plugin add
+## Installing via torve plugin add
 
 Once published, users can install the plugin:
 
 ```bash
-antseed plugin add @anthropic/provider-claude-oauth
+torve plugin add @anthropic/provider-claude-oauth
 ```
 
-This will download the plugin from npm, register it with the local Antseed node, and prompt the user to configure the required fields (access token, etc.).
+This will download the plugin from npm, register it with the local Torve node, and prompt the user to configure the required fields (access token, etc.).
 
 ## Configuration Reference
 
@@ -110,10 +110,10 @@ This will download the plugin from npm, register it with the local Antseed node,
 | `CLAUDE_REFRESH_TOKEN`         | secret   | No       | --      | OAuth refresh token for auto-renewal |
 | `CLAUDE_TOKEN_EXPIRES_AT`      | number   | No       | --      | Epoch ms when access token expires   |
 | `CLAUDE_OAUTH_CLIENT_ID`       | string   | Yes      | --      | OAuth application client ID used when refreshing tokens |
-| `ANTSEED_INPUT_USD_PER_MILLION`| number   | No       | 10      | Input token price (USD per 1M)       |
-| `ANTSEED_OUTPUT_USD_PER_MILLION`| number  | No       | 10      | Output token price (USD per 1M)      |
-| `ANTSEED_MAX_CONCURRENCY`      | number   | No       | 5       | Max concurrent requests              |
-| `ANTSEED_ALLOWED_SERVICES`     | string[] | No       | --      | Comma-separated list of service IDs  |
+| `TORVE_INPUT_USD_PER_MILLION`| number   | No       | 10      | Input token price (USD per 1M)       |
+| `TORVE_OUTPUT_USD_PER_MILLION`| number  | No       | 10      | Output token price (USD per 1M)      |
+| `TORVE_MAX_CONCURRENCY`      | number   | No       | 5       | Max concurrent requests              |
+| `TORVE_ALLOWED_SERVICES`     | string[] | No       | --      | Comma-separated list of service IDs  |
 
 ## Persistent authentication for development/testing
 

@@ -2,7 +2,7 @@
 
 **Status:** Mixed. `ResponseAuth`, `VerificationMux`, buyer-side response-auth
 storage, and random buyer-side request/response evidence samples are implemented
-in `@antseed/node`. Fingerprint verifiers, fingerprint swarm distribution,
+in `@torveai/node`. Fingerprint verifiers, fingerprint swarm distribution,
 reference storage, audit runners, and slashing are proposed next-step work.
 
 ## Overview
@@ -21,7 +21,7 @@ as well as an honest one, because delivery still happened.
 This is not hypothetical. "Real Money, Fake Models" audits shadow APIs claiming
 to serve official frontier models and finds utility, safety, and identity
 divergence between claimed and served behavior
-(https://arxiv.org/abs/2603.01919). Antseed's model-verification layer is the
+(https://arxiv.org/abs/2603.01919). Torve's model-verification layer is the
 protocol response to that failure mode: make served bytes attributable first,
 then run black-box identity checks over attributable evidence.
 
@@ -43,7 +43,7 @@ from the fingerprint/audit layers that still need to be built.
 
 ### Implemented
 
-Implemented in the `@antseed/node` package:
+Implemented in the `@torveai/node` package:
 
 - `ResponseAuthPayload` protocol type:
   - `version`;
@@ -103,7 +103,7 @@ encoded request bytes
 
 Still proposed:
 
-- `@antseed/fingerprints` package;
+- `@torveai/fingerprints` package;
 - KBF verifier implementation;
 - non-KBF verifier families;
 - public fingerprint swarm;
@@ -242,7 +242,7 @@ completed response when the Buyer supports `verification.response-auth.v1`.
 ```
 
 The merged implementation signs the following length-prefixed fields under the
-domain tag `antseed-response-auth-v1`:
+domain tag `torve-response-auth-v1`:
 
 ```text
 domainTag
@@ -360,7 +360,7 @@ also limited: when multiple frontier models answer a probe set perfectly, that
 probe set has no discriminating power. KBF therefore depends on fresh, private,
 model-specific references, not only public probes checked into source control.
 
-An Antseed KBF verifier MUST implement:
+An Torve KBF verifier MUST implement:
 
 - domain-specific prompt templates;
 - domain-specific numeric ranges and tolerances;
@@ -423,7 +423,7 @@ boundaries, schema repair, and hidden-instruction resistance. This often
 fingerprints the **Seller stack** (base model plus wrapper), not only the base
 model.
 
-For Antseed this is still valuable: Buyers care about the service they receive,
+For Torve this is still valuable: Buyers care about the service they receive,
 including wrappers. For model-identity slashing, the verifier MUST distinguish
 "different wrapper" from "different claimed model" in the verdict reason.
 
@@ -475,10 +475,10 @@ https://arxiv.org/abs/2606.10794).
 
 ## Package Boundaries
 
-The implementation SHOULD be split into pure verifier logic and Antseed runtime
+The implementation SHOULD be split into pure verifier logic and Torve runtime
 orchestration.
 
-### `@antseed/fingerprints`
+### `@torveai/fingerprints`
 
 Day-one pure TypeScript package. No P2P, payment, SQLite, or provider
 dependencies. This package is the canonical home for verifier interfaces,
@@ -531,7 +531,7 @@ Future verifier families (behavioral classifiers, perturbation tests, rare-token
 tests, runtime fingerprints, passive proxy-reader provenance) MUST plug into the
 same package-level interfaces instead of creating one-off package APIs.
 
-### `@antseed/fingerprint-swarm`
+### `@torveai/fingerprint-swarm`
 
 Optional package or node module for torrent-style public fingerprint pack
 distribution. It is separate from pure verifier math because it needs discovery,
@@ -545,13 +545,13 @@ Responsibilities:
 - fetch and seed packs by content hash;
 - validate pack signatures and provenance;
 - maintain local trust scores for pack publishers;
-- expose a swarm API to `@antseed/node`.
+- expose a swarm API to `@torveai/node`.
 
-This can start as an `@antseed/node` module if creating a package is premature,
+This can start as an `@torveai/node` module if creating a package is premature,
 but the protocol and storage model MUST be designed as decentralized and
 content-addressed from day one.
 
-### `@antseed/node`
+### `@torveai/node`
 
 Runtime integration package.
 
@@ -564,11 +564,11 @@ Responsibilities:
 - wait for and verify `ResponseAuth`;
 - store full request/response samples using the existing verification sample
   format;
-- call `@antseed/fingerprints` with parsed responses;
+- call `@torveai/fingerprints` with parsed responses;
 - store audit result manifests;
 - expose routing/reputation hooks based on audit results.
 
-`@antseed/node` MUST NOT embed verifier-specific math in request handlers. Request
+`@torveai/node` MUST NOT embed verifier-specific math in request handlers. Request
 handlers should only provide an authenticated request/response transport and
 sample persistence surface.
 
@@ -584,7 +584,7 @@ separate from audit results.
 Public references and fingerprints are useful for tests, demos, interop,
 bootstrap, and network-wide reputation. They are weaker than private probes for
 adversarial production use because a Seller can learn them, but they are still
-strategically important: Antseed SHOULD become the decentralized public
+strategically important: Torve SHOULD become the decentralized public
 fingerprint swarm for model fingerprints, verifier references, staleness
 signals, and reproducible audit packs.
 
@@ -653,7 +653,7 @@ All verifier references share a common envelope:
   "createdAt": "2026-06-14T00:00:00.000Z",
   "source": "public | generated | imported",
   "generator": {
-    "name": "@antseed/fingerprints",
+    "name": "@torveai/fingerprints",
     "version": "0.1.0",
     "verifierKind": "kbf",
     "params": {}
@@ -719,7 +719,7 @@ Generation rules:
 
 ## Buyer Audit Execution
 
-A Buyer audit is a normal Antseed request sequence with extra local bookkeeping.
+A Buyer audit is a normal Torve request sequence with extra local bookkeeping.
 The Seller should not be able to tell whether a request is user traffic or audit
 traffic.
 
@@ -762,7 +762,7 @@ upstream-compatible HTTP request. Example for OpenAI-compatible chat:
 The Buyer MAY apply protocol adapters for OpenAI Chat, OpenAI Responses,
 Anthropic Messages, or future formats. The adapter belongs in the verifier
 package only if it is transport-agnostic. Actual sending belongs in
-`@antseed/node`.
+`@torveai/node`.
 
 ### ResponseAuth Requirement
 
@@ -807,7 +807,7 @@ request or response bytes.
   "auditId": "sha256:...",
   "verifier": {
     "kind": "kbf",
-    "package": "@antseed/fingerprints",
+    "package": "@torveai/fingerprints",
     "version": "0.1.0"
   },
   "sellerPeerId": "0x...",
@@ -883,7 +883,7 @@ Reference maintenance rules:
   models SHOULD be marked stale.
 
 Growing references is both a local Buyer capability and a network capability.
-From day one, Antseed SHOULD support public signed fingerprint packs so the
+From day one, Torve SHOULD support public signed fingerprint packs so the
 network can accumulate shared model fingerprints over time. Private Buyer
 references remain local and SHOULD NOT be published. On-chain storage of probe
 files is explicitly out of scope. Storing probes on-chain makes them public,
@@ -935,7 +935,7 @@ sampled, and what is rare:
    re-runs the test, or better, re-queries the accused Seller and the reference
    itself with fresh requests, since a real substitution reproduces over fresh
    samples while a fabricated accusation does not. On confirmation, the swappable
-   slashing contract (`AntseedSlashing`) burns the Seller's stake.
+   slashing contract (`TorveSlashing`) burns the Seller's stake.
 
 ---
 
@@ -1086,7 +1086,7 @@ step 9, which does not depend on the Buyer's samples at all.
 | Min samples per verdict | `N` | 30 | Below this, no M2 verdict is emitted |
 | Distributional fail threshold | — | tuned on real traffic | Drives *local* flagging only |
 | Probe cadence (if M1 used) | — | 1 / 20 requests | M1 is deterrence/triage only |
-| KBF batch size | — | 10 probes | One Antseed request per domain batch |
+| KBF batch size | — | 10 probes | One Torve request per domain batch |
 | KBF min coverage | — | 0.5 | Below this, verdict is `UNDETERMINED` |
 | KBF CP confidence | — | 0.99 | Upper bound for reference self-error |
 | KBF alpha | — | 0.05 | One-sided binomial threshold for `DIFF` |
@@ -1113,7 +1113,7 @@ Completed milestones:
 The next implementation SHOULD proceed in small PRs with clean package
 boundaries:
 
-1. `@antseed/fingerprints` pure package:
+1. `@torveai/fingerprints` pure package:
    - shared `FingerprintVerifier` interface;
    - schema types for references, fingerprint packs, probes, match vectors, and
      results;
@@ -1137,20 +1137,20 @@ boundaries:
    - import trusted references into local storage;
    - expose pack trust/staleness metadata.
 
-3. Buyer-local reference store in `@antseed/node`:
+3. Buyer-local reference store in `@torveai/node`:
    - import public/generated references;
    - validate schema;
    - compute and verify `referenceId`;
    - write under `<dataDir>/fingerprints/references/<referenceId>.json`;
    - list references by `serviceAliases`.
 
-4. KBF audit runner in `@antseed/node`:
+4. KBF audit runner in `@torveai/node`:
    - select Seller/service/reference;
    - construct KBF request batches;
    - send through the ordinary Buyer request path;
    - require verified `ResponseAuth`;
    - force-store audit request/response samples;
-   - call `@antseed/fingerprints` to compute the verdict;
+   - call `@torveai/fingerprints` to compute the verdict;
    - write `<dataDir>/fingerprints/audits/<sellerPeerId>/<auditId>.json`.
 
 5. Local routing integration:
@@ -1169,7 +1169,7 @@ boundaries:
    - add probe-set commitment support;
    - build an off-chain exhibit verifier;
    - define verifier committee signatures;
-   - add compact slash signal support to `AntseedSlashing`.
+   - add compact slash signal support to `TorveSlashing`.
 
 Do not start with slashing. Slashing depends on mature evidence format,
 commit-reveal, reproducible verifier code, and independent adjudication.
@@ -1211,7 +1211,7 @@ commit-reveal, reproducible verifier code, and independent adjudication.
 
 The implemented base is **M3 ResponseAuth + buyer-side verification storage +
 random verified evidence samples**. The recommended next implementation is
-**`@antseed/fingerprints` + public fingerprint packs + buyer-local audit
+**`@torveai/fingerprints` + public fingerprint packs + buyer-local audit
 storage**: implement the shared fingerprint package with KBF as the first
 verifier, publish and mirror signed public fingerprint packs, store trusted
 references by content hash, run Buyer-side audits through the normal request

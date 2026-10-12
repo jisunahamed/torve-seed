@@ -68,7 +68,7 @@ test('blank peer ids are not stored', () => {
 });
 
 test('loads pins persisted with legacy canonical model keys', () => {
-  storage.set('antseed.desktop.vpr.modelPins', JSON.stringify({
+  storage.set('torve.desktop.vpr.modelPins', JSON.stringify({
     claudefable5: 'peer-1',
     'gpt5.6sol': 'peer-2',
     'glm5.2': 'peer-3',

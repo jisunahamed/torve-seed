@@ -2,25 +2,25 @@ import type { PeerMetadata } from "../discovery/peer-metadata.js";
 import type { DomainVerificationResult } from "../discovery/domain-verification.js";
 import type { GithubVerificationResult } from "../discovery/github-verification.js";
 
-// PeerId primitives moved to @antseed/protocol.
-export { toPeerId, peerIdToAddress, type PeerId } from '@antseed/protocol/peer-id';
-import type { PeerId } from '@antseed/protocol/peer-id';
+// PeerId primitives moved to @torveai/protocol.
+export { toPeerId, peerIdToAddress, type PeerId } from '@torveai/protocol/peer-id';
+import type { PeerId } from '@torveai/protocol/peer-id';
 
-export type { TokenPricingUsdPerMillion } from '@antseed/protocol/peer-metadata';
+export type { TokenPricingUsdPerMillion } from '@torveai/protocol/peer-metadata';
 export type {
   ProviderPricingMatrixEntry,
   ProviderServiceCategoryMatrixEntry,
   ProviderServiceApiProtocolMatrixEntry,
   ProviderServiceUnitBillingModelMatrixEntry,
   ProviderServiceCapabilityMatrixEntry,
-} from '@antseed/protocol/peer-pricing';
+} from '@torveai/protocol/peer-pricing';
 import type {
   ProviderPricingMatrixEntry,
   ProviderServiceCategoryMatrixEntry,
   ProviderServiceApiProtocolMatrixEntry,
   ProviderServiceUnitBillingModelMatrixEntry,
   ProviderServiceCapabilityMatrixEntry,
-} from '@antseed/protocol/peer-pricing';
+} from '@torveai/protocol/peer-pricing';
 
 import type { TrustBreakdown } from '../reputation/trust-score.js';
 
@@ -90,11 +90,11 @@ export interface PeerInfo {
   onChainSybilRisk?: number;
   /** Sybil signals that fired for this peer. */
   onChainSybilFlags?: string[];
-  /** Lifetime settled channel count from `AntseedChannels`. */
+  /** Lifetime settled channel count from `TorveChannels`. */
   onChainChannelCount?: number;
-  /** Lifetime ghost (timed-out, unsettled) channel count from `AntseedChannels`. */
+  /** Lifetime ghost (timed-out, unsettled) channel count from `TorveChannels`. */
   onChainGhostCount?: number;
-  /** Lifetime settled volume in micro-USDC from `AntseedChannels`. */
+  /** Lifetime settled volume in micro-USDC from `TorveChannels`. */
   onChainTotalVolumeUsdcMicros?: number;
   /** Unix seconds of the most recent settlement. */
   onChainLastSettledAtSec?: number;
@@ -110,7 +110,7 @@ export interface PeerInfo {
   onChainPoolStakeAnts?: number;
   /** Seller pool's share of total network staking power this epoch, in basis points. */
   onChainPoolPowerShareBps?: number;
-  /** True when `AntseedWashTradingRegistry.isProvenWashTrader` is set for the seller. */
+  /** True when `TorveWashTradingRegistry.isProvenWashTrader` is set for the seller. */
   onChainWashFlagged?: boolean;
   /** Proven wash share of the seller's volume, in basis points. */
   onChainWashShareBps?: number;

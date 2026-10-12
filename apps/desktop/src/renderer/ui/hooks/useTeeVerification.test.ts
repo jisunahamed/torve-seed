@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DesktopTeeStatus } from '@antseed/node/tee-status';
+import type { DesktopTeeStatus } from '@torveai/node/tee-status';
 import type { DiscoverRow } from '../../core/state';
 
-const peer = { peerId: 'a'.repeat(40), advertisedVerifierIds: ['antseed-verifier'] } as DiscoverRow;
+const peer = { peerId: 'a'.repeat(40), advertisedVerifierIds: ['torve-verifier'] } as DiscoverRow;
 let dispose: (() => void) | undefined;
 
 beforeEach(() => {
@@ -23,11 +23,11 @@ async function setup() {
   const getTeeStatus = vi.fn(async () => status);
   const checkSellerTee = vi.fn(async (peerId: string): Promise<DesktopTeeStatus> => {
     status = { ...status, snapshot: { ...status.snapshot!, evidence: [...status.snapshot!.evidence.filter((entry) => entry.peerId !== peerId), {
-      peerId, verifierId: 'antseed-verifier', fingerprint: 'caps', checkedAt: Date.now(), expiresAt: Date.now() + 300_000, sellerNodeVerified: true, claims: [],
+      peerId, verifierId: 'torve-verifier', fingerprint: 'caps', checkedAt: Date.now(), expiresAt: Date.now() + 300_000, sellerNodeVerified: true, claims: [],
     }] } };
     return status;
   });
-  vi.stubGlobal('window', { antseedDesktop: { getTeeStatus, checkSellerTee } });
+  vi.stubGlobal('window', { torveDesktop: { getTeeStatus, checkSellerTee } });
   const { teeVerificationStore: store } = await import('./useTeeVerification');
   dispose = store.subscribe(() => {});
   store.updatePeers([peer]);
@@ -90,7 +90,7 @@ describe('background verification lifecycle', () => {
     getTeeStatus.mockImplementation(() => new Promise((resolve) => { finishPoll = resolve; }));
     await vi.advanceTimersByTimeAsync(2000);
     const fresh: DesktopTeeStatus = { ...stale, snapshot: { ...stale.snapshot!, evidence: [{
-      peerId: peer.peerId, verifierId: 'antseed-verifier', fingerprint: 'caps', checkedAt: 3000, expiresAt: 303_000, sellerNodeVerified: true, claims: [],
+      peerId: peer.peerId, verifierId: 'torve-verifier', fingerprint: 'caps', checkedAt: 3000, expiresAt: 303_000, sellerNodeVerified: true, claims: [],
     }] } };
     finishCheck(fresh);
     await vi.advanceTimersByTimeAsync(0);

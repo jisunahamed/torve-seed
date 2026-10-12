@@ -15,7 +15,7 @@ export class BuyerAlreadyActiveError extends Error {
   readonly code = 'buyer_active_in_another_tab';
 
   constructor(readonly lockName: string) {
-    super('This AntSeed buyer is already active in another tab');
+    super('This Torve buyer is already active in another tab');
     this.name = 'BuyerAlreadyActiveError';
   }
 }

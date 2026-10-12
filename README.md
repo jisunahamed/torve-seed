@@ -1,8 +1,8 @@
-# Antseed
+# Torve
 
 A peer-to-peer AI services network. Providers offer AI services, buyers discover providers via DHT and route requests through encrypted P2P connections.
 
-**Live pricing:** see [PRICING.md](PRICING.md) or `https://network.antseed.com/stats` (public JSON, no auth).
+**Live pricing:** see [PRICING.md](PRICING.md) or `https://network.torveai.com/stats` (public JSON, no auth).
 
 ## How It Works
 
@@ -12,7 +12,7 @@ A peer-to-peer AI services network. Providers offer AI services, buyers discover
 
 ## Terms of Use
 
-Antseed is infrastructure for building differentiated AI services — not for raw resale of API keys or subscription access. Providers are expected to add value through domain-specific skills, agent workflows, Trusted Execution Environments (TEEs), fine-tuned models, or other product differentiation. Reselling personal subscription credentials (e.g., Claude Pro/Team plans) violates the upstream provider's terms of service and is not permitted. Always review your API provider's usage policies before offering capacity on the network. Subscription-based provider plugins (e.g., `provider-claude-code`, `provider-claude-oauth`) are provided for local testing and development only.
+Torve is infrastructure for building differentiated AI services — not for raw resale of API keys or subscription access. Providers are expected to add value through domain-specific skills, agent workflows, Trusted Execution Environments (TEEs), fine-tuned models, or other product differentiation. Reselling personal subscription credentials (e.g., Claude Pro/Team plans) violates the upstream provider's terms of service and is not permitted. Always review your API provider's usage policies before offering capacity on the network. Subscription-based provider plugins (e.g., `provider-claude-code`, `provider-claude-oauth`) are provided for local testing and development only.
 
 ## Quick Start
 
@@ -40,13 +40,13 @@ node apps/cli/dist/cli/index.js buyer start
 Or install globally:
 
 ```bash
-npm install -g @antseed/cli
-antseed seller setup  # Create ~/.antseed/config.json
-antseed seller start  # Start providing
-antseed buyer start   # Start buying
+npm install -g @torveai/cli
+torve seller setup  # Create ~/.torve/config.json
+torve seller start  # Start providing
+torve buyer start   # Start buying
 ```
 
-`~/.antseed/config.json` is the main source of truth for providers, services, pricing, categories, ports, and `baseUrl`. Environment variables are primarily for secrets such as `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `ANTSEED_IDENTITY_HEX`.
+`~/.torve/config.json` is the main source of truth for providers, services, pricing, categories, ports, and `baseUrl`. Environment variables are primarily for secrets such as `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `TORVE_IDENTITY_HEX`.
 
 ## Repository Structure
 
@@ -77,7 +77,7 @@ docs/protocol/        Protocol specification
 ## Architecture
 
 ```
-@antseed/node (core SDK)
+@torveai/node (core SDK)
   ├── provider-core
   │     └── provider-anthropic, provider-claude-code, provider-claude-oauth,
   │         provider-openai, provider-local-llm, provider-typesafe
@@ -91,11 +91,11 @@ docs/protocol/        Protocol specification
 
 ## Metrics and Monitoring
 
-Antseed includes a native Prometheus-compatible exporter:
+Torve includes a native Prometheus-compatible exporter:
 
 ```bash
-antseed metrics serve --role seller --host 0.0.0.0 --port 9108
-antseed metrics serve --role buyer --host 127.0.0.1 --port 9108
+torve metrics serve --role seller --host 0.0.0.0 --port 9108
+torve metrics serve --role buyer --host 127.0.0.1 --port 9108
 ```
 
 See [Metrics](apps/website/docs/guides/metrics.md) for endpoint details, metric names, labels, and operational notes.
@@ -137,7 +137,7 @@ pnpm run dev:desktop    # Build deps + start desktop in dev mode
 Providers and routers are npm packages that export a plugin manifest:
 
 ```bash
-antseed plugin create my-provider --type provider
+torve plugin create my-provider --type provider
 ```
 
 See [packages/node/README.md](packages/node/README.md) for the `Provider` and `Router` interfaces, and [plugins/provider-claude-oauth/README.md](plugins/provider-claude-oauth/README.md) for a full plugin walkthrough.

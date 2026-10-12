@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { AbiCoder, Interface, JsonRpcProvider } from 'ethers';
-import { ChannelsClient } from '@antseed/node';
+import { ChannelsClient } from '@torveai/node';
 import { readChannelsBatched } from './buyer-channel-control.js';
 
 const CHANNELS = '0x00000000000000000000000000000000000000c1';

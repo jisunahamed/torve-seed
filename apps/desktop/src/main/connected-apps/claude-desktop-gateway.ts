@@ -1,4 +1,4 @@
-import { ANTSEED_MODEL_MAX_OUTPUT_TOKENS } from '@antseed/node/types';
+import { TORVE_MODEL_MAX_OUTPUT_TOKENS } from '@torveai/node/types';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import net from 'node:net';
@@ -19,7 +19,7 @@ import {
  * and Claude's picker only accepts Anthropic's shape with family tiers. So
  * the gateway answers the catalog itself (see CLAUDE_MODEL_SLOTS) and
  * forwards the message routes to the buyer proxy with the model rewritten to
- * what its slot was advertised for — "Antseed Auto" follows the route
+ * what its slot was advertised for — "Torve Auto" follows the route
  * selected in the desktop (floating pill / AI VPN), so it drives Claude
  * conversations live without a config rewrite.
  *
@@ -28,15 +28,15 @@ import {
  */
 
 const MAX_REQUEST_BODY_BYTES = 64 * 1024 * 1024;
-export const CLAUDE_GATEWAY_HEALTH_PATH = '/_antseed/claude-gateway';
-export const CLAUDE_GATEWAY_HEALTH_HEADER = 'x-antseed-claude-gateway';
+export const CLAUDE_GATEWAY_HEALTH_PATH = '/_torve/claude-gateway';
+export const CLAUDE_GATEWAY_HEALTH_HEADER = 'x-torve-claude-gateway';
 
 /**
  * Claude Desktop's picker only lists the model ids it knows, grouped by
  * Anthropic family — so network models are advertised behind Claude's own
  * ids, with the real model name as the display name (exactly how Ollama's
  * gateway does it). Five ids means at most five entries: the first slot is
- * always "Antseed Auto" (the route selected in the desktop), the rest carry
+ * always "Torve Auto" (the route selected in the desktop), the rest carry
  * the top of the desktop's curated model picker. Advertised in Claude's
  * preferred order.
  */
@@ -47,7 +47,7 @@ const CLAUDE_MODEL_SLOTS: readonly { id: string; family: string; createdAt: stri
   { id: 'claude-sonnet-4-6', family: 'sonnet', createdAt: '2025-11-18T00:00:00Z', familyDefault: false },
   { id: 'claude-haiku-4-5-20251001', family: 'haiku', createdAt: '2025-10-01T00:00:00Z', familyDefault: true },
 ];
-const CLAUDE_GATEWAY_MODEL_LABEL = 'Antseed Auto';
+const CLAUDE_GATEWAY_MODEL_LABEL = 'Torve Auto';
 
 /** A model offered to Claude's picker: display label + the model the buyer
     proxy should route when Claude picks it. */
@@ -73,7 +73,7 @@ export function setClaudeDesktopGatewayModelSource(source: () => readonly Claude
  * this source override its chats would display under T3 Code. Must match
  * SYSTEM_PROXY_SOURCE_HEADER in apps/cli/src/proxy/request-utils.ts.
  */
-const SYSTEM_PROXY_SOURCE_HEADER = 'x-antseed-system-proxy-source';
+const SYSTEM_PROXY_SOURCE_HEADER = 'x-torve-system-proxy-source';
 const CLAUDE_DESKTOP_SOURCE = 'claude-desktop';
 
 /** Request headers forwarded to the buyer proxy verbatim. */
@@ -88,7 +88,7 @@ export type ClaudeDesktopGatewayOptions = {
   /** Curated picker models for the catalog slots; defaults to the shared
       source injected via setClaudeDesktopGatewayModelSource. */
   readonly listModels?: () => readonly ClaudeGatewayModel[];
-  /** Where slot bindings persist. Claude caches the catalog across Antseed
+  /** Where slot bindings persist. Claude caches the catalog across Torve
       restarts, so a fresh gateway must keep meaning the same models for the
       ids Claude already knows — without this file every app restart would
       rebind slots from the current picker order and silently re-point them. */
@@ -160,7 +160,7 @@ export class ClaudeDesktopGateway {
       const onError = (err: Error) => {
         server.close();
         reject((err as NodeJS.ErrnoException).code === 'EADDRINUSE'
-          ? new Error(`Claude gateway port ${this.options.port} is already in use — close the other process or set ANTSEED_CLAUDE_GATEWAY_PORT.`)
+          ? new Error(`Claude gateway port ${this.options.port} is already in use — close the other process or set TORVE_CLAUDE_GATEWAY_PORT.`)
           : err);
       };
       server.once('error', onError);
@@ -226,7 +226,7 @@ export class ClaudeDesktopGateway {
   }
 
   /**
-   * Slot assignments: "Antseed Auto" always holds the first slot; curated
+   * Slot assignments: "Torve Auto" always holds the first slot; curated
    * picker models occupy the rest. Bindings are sticky per model, not
    * positional: Claude caches the catalog it fetched, so the id it sends
    * with a message must keep meaning the model it displayed — a picker
@@ -307,7 +307,7 @@ export class ClaudeDesktopGateway {
       type: 'model',
       display_name: label,
       created_at: slot.createdAt,
-      max_tokens: ANTSEED_MODEL_MAX_OUTPUT_TOKENS,
+      max_tokens: TORVE_MODEL_MAX_OUTPUT_TOKENS,
       anthropic_family_tier: slot.family,
       is_family_default: slot.familyDefault,
     }));
@@ -335,7 +335,7 @@ export class ClaudeDesktopGateway {
         'content-type': 'application/json',
         // Claude authenticates to this loopback gateway with the placeholder
         // key from its profile; never forward that credential upstream.
-        'x-api-key': 'antseed',
+        'x-api-key': 'torve',
         [SYSTEM_PROXY_SOURCE_HEADER]: CLAUDE_DESKTOP_SOURCE,
       };
       for (const name of FORWARDED_REQUEST_HEADERS) {
@@ -365,7 +365,7 @@ export class ClaudeDesktopGateway {
           res.destroy();
           return;
         }
-        writeAnthropicError(res, 502, 'api_error', 'Antseed is not reachable — open the Antseed desktop app and try again.');
+        writeAnthropicError(res, 502, 'api_error', 'Torve is not reachable — open the Torve desktop app and try again.');
       });
       // A request's own 'close' fires once its body is consumed — only a
       // response that closes before finishing means Claude went away.
@@ -384,7 +384,7 @@ export class ClaudeDesktopGateway {
  * meaningful error.
  *
  * With `routingNote`, a short note is appended to the system prompt saying
- * the conversation runs through the Antseed network. Claude Desktop's own
+ * the conversation runs through the Torve network. Claude Desktop's own
  * system prompt asserts a Claude identity the model trusts over anything a
  * gateway writes, so no identity correction is attempted — the note only
  * flags that infrastructure context may not reflect the serving model.
@@ -412,7 +412,7 @@ export function rewriteModel(
   return Buffer.from(JSON.stringify(request), 'utf8');
 }
 
-const ROUTING_NOTE = 'Note from Antseed: this conversation is delivered through the Antseed peer-to-peer '
+const ROUTING_NOTE = 'Note from Torve: this conversation is delivered through the Torve peer-to-peer '
   + 'network, not directly through Anthropic. Environment metadata comes from the Claude client '
   + 'infrastructure and may not describe the model actually serving the conversation.';
 

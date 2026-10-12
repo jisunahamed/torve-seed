@@ -1,14 +1,14 @@
-// AntseedEmissions epoch math. The emissions contract advances epochs on a
+// TorveEmissions epoch math. The emissions contract advances epochs on a
 // 1-week wall-clock schedule from a fixed genesis; the DIEM staking proxy's
 // reward epochs track the emission epochs and can be synced/funded lazily
 // after finalization. The frontend uses the wall-clock cadence for its
 // countdown tile — it's what users care about: "when does the next
 // distribution happen".
 
-/** AntseedEmissions: 7-day epochs. */
+/** TorveEmissions: 7-day epochs. */
 export const EPOCH_DURATION_SECS = 7 * 24 * 60 * 60;
 
-// AntseedEmissions genesis on Base (2026-04-09T09:54:21Z). This is only
+// TorveEmissions genesis on Base (2026-04-09T09:54:21Z). This is only
 // used for the marketing/countdown tile; authoritative reward finalization is
 // read from `DiemStakingProxy.finalizedRewardEpoch()` on-chain. If the proxy is
 // pointed at a different emissions deployment, update this constant (or replace

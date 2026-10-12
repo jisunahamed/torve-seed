@@ -1,7 +1,7 @@
 {
-  "name": "@antseed/web-sdk",
+  "name": "@torveai/web-sdk",
   "version": "0.1.11",
-  "description": "Browser buyer SDK for AntSeed: connect to sellers over WebRTC via a signaling relay, pay with in-browser EIP-712 signatures",
+  "description": "Browser buyer SDK for Torve: connect to sellers over WebRTC via a signaling relay, pay with in-browser EIP-712 signatures",
   "type": "module",
   "files": [
     "dist"
@@ -18,12 +18,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@antseed/buyer-core": "workspace:*",
-    "@antseed/protocol": "workspace:*",
+    "@torveai/buyer-core": "workspace:*",
+    "@torveai/protocol": "workspace:*",
     "ethers": "~6.16.0"
   },
   "devDependencies": {
-    "@antseed/node": "workspace:*",
+    "@torveai/node": "workspace:*",
     "@playwright/test": "^1.55.0",
     "@types/node": "^20.11.0",
     "@types/ws": "^8.5.12",

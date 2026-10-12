@@ -1,5 +1,5 @@
 /**
- * Checkout popup windows (the hosted AntSeed Pay page and any sized popups
+ * Checkout popup windows (the hosted Torve Pay page and any sized popups
  * it opens — card processors, sign-ins).
  *
  * Sized popups open as plain Electron child windows: no browser chrome (the
@@ -45,7 +45,7 @@ export function checkoutWindowOpenHandler(details: HandlerDetails): WindowOpenRe
     return {
       action: 'allow',
       overrideBrowserWindowOptions: {
-        title: 'Antseed — Secure checkout',
+        title: 'Torve — Secure checkout',
         autoHideMenuBar: true,
         // webPreferences stay inherited on purpose: the SDK's spinner
         // injection needs the about:blank child in the opener's renderer
@@ -74,7 +74,7 @@ export function adoptCheckoutWindow(win: BrowserWindow): void {
 }
 
 /**
- * Open a hosted checkout page (e.g. the antseed-pay.com Stripe flow) as an
+ * Open a hosted checkout page (e.g. the torve-pay.com Stripe flow) as an
  * app-owned popup rather than a system-browser tab. These pages carry a
  * pre-signed funding link, so no wallet extension is needed — and adopting
  * the window means the deposit watcher closes it the moment the bought USDC
@@ -98,7 +98,7 @@ export function openCheckoutPopup(url: string, parent?: BrowserWindow | null): B
     minWidth: 360,
     minHeight: 560,
     ...(parent && !parent.isDestroyed() ? { parent } : {}),
-    title: 'Antseed — Secure checkout',
+    title: 'Torve — Secure checkout',
     autoHideMenuBar: true,
     backgroundColor: '#ffffff',
     webPreferences: {

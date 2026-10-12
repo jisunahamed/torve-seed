@@ -8,8 +8,8 @@ import {
   type BuyerPaymentConfig,
   type PaymentMux,
   type StoredChannel,
-} from '@antseed/buyer-core';
-import { toPeerId } from '@antseed/protocol';
+} from '@torveai/buyer-core';
+import { toPeerId } from '@torveai/protocol';
 import { IndexedDbChannelStore } from './channel-store.js';
 
 const databases: string[] = [];
@@ -26,7 +26,7 @@ afterEach(async () => {
 
 describe('IndexedDbChannelStore', () => {
   it('atomically restores authorization and reserve recovery state', async () => {
-    const databaseName = `antseed-test-${crypto.randomUUID()}`;
+    const databaseName = `torve-test-${crypto.randomUUID()}`;
     databases.push(databaseName);
     const first = await IndexedDbChannelStore.open({ databaseName, indexedDB });
     const channel = sampleChannel();
@@ -79,7 +79,7 @@ describe('IndexedDbChannelStore', () => {
   });
 
   it('flushes ordinary status updates before closing', async () => {
-    const databaseName = `antseed-test-${crypto.randomUUID()}`;
+    const databaseName = `torve-test-${crypto.randomUUID()}`;
     databases.push(databaseName);
     const first = await IndexedDbChannelStore.open({ databaseName, indexedDB });
     const channel = sampleChannel();
@@ -96,7 +96,7 @@ describe('IndexedDbChannelStore', () => {
   });
 
   it('reports a queued write failure without waiting for a later flush', async () => {
-    const databaseName = `antseed-test-${crypto.randomUUID()}`;
+    const databaseName = `torve-test-${crypto.randomUUID()}`;
     databases.push(databaseName);
     const onWriteError = vi.fn();
     const store = await IndexedDbChannelStore.open({
@@ -114,7 +114,7 @@ describe('IndexedDbChannelStore', () => {
   });
 
   it('hydrates reserve replay context before the next manager can sign', async () => {
-    const databaseName = `antseed-test-${crypto.randomUUID()}`;
+    const databaseName = `torve-test-${crypto.randomUUID()}`;
     databases.push(databaseName);
     const wallet = Wallet.createRandom();
     const identity = {
@@ -147,7 +147,7 @@ describe('IndexedDbChannelStore', () => {
   });
 
   it('treats an on-chain initial reserve as the lost AuthAck after reload', async () => {
-    const databaseName = `antseed-test-${crypto.randomUUID()}`;
+    const databaseName = `torve-test-${crypto.randomUUID()}`;
     databases.push(databaseName);
     const wallet = Wallet.createRandom();
     const identity = { wallet, peerId: toPeerId(wallet.address.slice(2).toLowerCase()) };
@@ -170,7 +170,7 @@ describe('IndexedDbChannelStore', () => {
   });
 
   it('atomically recovers the exact top-level metadata counters that were signed', async () => {
-    const databaseName = `antseed-test-${crypto.randomUUID()}`;
+    const databaseName = `torve-test-${crypto.randomUUID()}`;
     databases.push(databaseName);
     const wallet = Wallet.createRandom();
     const identity = { wallet, peerId: toPeerId(wallet.address.slice(2).toLowerCase()) };
@@ -208,7 +208,7 @@ describe('IndexedDbChannelStore', () => {
   });
 
   it('replays an ambiguously delivered top-up without trusting it after restart', async () => {
-    const databaseName = `antseed-test-${crypto.randomUUID()}`;
+    const databaseName = `torve-test-${crypto.randomUUID()}`;
     databases.push(databaseName);
     const wallet = Wallet.createRandom();
     const identity = { wallet, peerId: toPeerId(wallet.address.slice(2).toLowerCase()) };

@@ -84,7 +84,7 @@ export function VprChatRow({ chat, modelLabel, routedPeerName, profiles = [], on
   );
 }
 
-const HAS_CHATS_KEY = 'antseed.desktop.vpr.hasChats';
+const HAS_CHATS_KEY = 'torve.desktop.vpr.hasChats';
 
 /** Whether a previous fetch saw at least one tool chat. Gates the loading
     skeletons: first-run users (no chats yet) would otherwise get a flash of

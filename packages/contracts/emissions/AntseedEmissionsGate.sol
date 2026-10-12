@@ -6,17 +6,17 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import { IANTSToken } from "../interfaces/IANTSToken.sol";
-import { IAntseedEmissionsGate } from "../interfaces/IAntseedEmissionsGate.sol";
+import { ITorveEmissionsGate } from "../interfaces/ITorveEmissionsGate.sol";
 
 /**
- * @title AntseedEmissionsGate
+ * @title TorveEmissionsGate
  * @notice Canonical ANTS mint authority and immutable emission curve.
  *
  *         Each offchain minter id controls one emission plan. The id owns the
  *         epoch share and minted amount; the configured controller is only the
  *         address currently authorized to mint against that id.
  */
-contract AntseedEmissionsGate is IAntseedEmissionsGate, Ownable2Step, ReentrancyGuard {
+contract TorveEmissionsGate is ITorveEmissionsGate, Ownable2Step, ReentrancyGuard {
     struct ShareCheckpoint {
         uint256 startEpoch;
         uint32 shareBps;
@@ -30,8 +30,8 @@ contract AntseedEmissionsGate is IAntseedEmissionsGate, Ownable2Step, Reentrancy
     uint256 public constant SHARE_DENOMINATOR = 100_000;
     uint256 public constant BURN_CAP_BPS = 30_000;
     address public constant DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
-    bytes32 public constant TEAM_MINTER_ID = keccak256("antseed.emissions.team.v1");
-    bytes32 public constant RESERVE_MINTER_ID = keccak256("antseed.emissions.reserve.v1");
+    bytes32 public constant TEAM_MINTER_ID = keccak256("torve.emissions.team.v1");
+    bytes32 public constant RESERVE_MINTER_ID = keccak256("torve.emissions.reserve.v1");
 
     IANTSToken private immutable _antsToken;
 

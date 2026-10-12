@@ -1,2 +1,2 @@
-export { Button } from '@antseed/ui';
-export type { ButtonProps, ButtonVariant } from '@antseed/ui';
+export { Button } from '@torveai/ui';
+export type { ButtonProps, ButtonVariant } from '@torveai/ui';

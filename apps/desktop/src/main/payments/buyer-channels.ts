@@ -3,7 +3,7 @@
  * the on-chain enrichment the Credits view needs (channel status, and spend
  * authorized but not yet settled).
  */
-import { ChannelsClient, type ChannelInfo, type CloseChannelResultPayload } from '@antseed/node';
+import { ChannelsClient, type ChannelInfo, type CloseChannelResultPayload } from '@torveai/node';
 import type { AbstractProvider } from 'ethers';
 import { createHash } from 'node:crypto';
 import { LOCALHOST_URL } from '../constants.js';
@@ -180,7 +180,7 @@ const CHANNEL_ENRICH_CONCURRENCY = 12;
 
 // Channels with a delegated seller live behind the seller's facade contract
 // (the row's `seller` is the contract, e.g. DiemStakingProxy) and have no
-// record on the canonical AntseedChannels. ChannelsClient probes
+// record on the canonical TorveChannels. ChannelsClient probes
 // `channelsAddress()` on the facade to find the underlying deployment, so a
 // per-seller client resolves those rows. EOA sellers cache as non-facades and
 // simply keep returning status 0.
@@ -303,7 +303,7 @@ export async function loadBuyerChannels(
   /** Skip the short status cache, e.g. for an explicit refresh. */
   fresh = false,
 ): Promise<DesktopPaymentChannelSummary[] | null> {
-  const body = await fetchBuyerProxyJson(`/_antseed/channels${all ? '?all=1' : ''}`);
+  const body = await fetchBuyerProxyJson(`/_torve/channels${all ? '?all=1' : ''}`);
   if (!body) return null;
   const channels = Array.isArray(body['channels'])
     ? body['channels']

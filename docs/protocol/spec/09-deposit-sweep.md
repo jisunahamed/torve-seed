@@ -1,6 +1,6 @@
 # 09 — Deposit Sweep Protocol
 
-Decentralized gasless funding of a buyer's `AntseedDeposits` balance. The buyer
+Decentralized gasless funding of a buyer's `TorveDeposits` balance. The buyer
 hot wallet does not need ETH for the relayed sweep. USDC arriving at the hot
 wallet (QR deposits, onramp deliveries) is moved into the deposits contract by
 **permissionless relayers** (sellers by default), compensated by a fixed USDC
@@ -9,7 +9,7 @@ service is involved.
 
 ## On-chain component
 
-`AntseedDepositRelay` (stateless periphery, swappable tier — holds no funds
+`TorveDepositRelay` (stateless periphery, swappable tier — holds no funds
 between transactions, no owner, no tunable parameters):
 
 ```
@@ -22,7 +22,7 @@ sweepDeposit(
 1. Pulls `amount` USDC from `from` via EIP-3009 `receiveWithAuthorization`
    (`to` is pinned to the relay contract, so only the relay can redeem the
    authorization; the 3009 nonce makes it single-use).
-2. Credits `amount - FEE` to the **buyer's** `AntseedDeposits` balance via
+2. Credits `amount - FEE` to the **buyer's** `TorveDeposits` balance via
    `deposit(from, amount - FEE)` — the swept tokens move from the hot wallet
    through the relay into contract custody. Requires `amount > FEE`, and mirrors both Deposits
    guards with clear errors for simulating relayers: a first-time buyer's net
@@ -63,7 +63,7 @@ length, version) — payloads are untrusted peer input.
 |--------------|--------|-------------|
 | version      | number | Always `1` |
 | evmChainId   | number | EVM chain the sweep targets (e.g. 8453) |
-| relayAddress | string | `AntseedDepositRelay` the buyer signed against |
+| relayAddress | string | `TorveDepositRelay` the buyer signed against |
 | from         | string | Buyer hot wallet (source and credited account) |
 | amount       | string | Total USDC pulled via EIP-3009, base units (uint256 decimal) |
 | validAfter   | number | EIP-3009 window start, unix seconds (exclusive) |

@@ -7,22 +7,22 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {IAntseedRegistry} from "../interfaces/IAntseedRegistry.sol";
-import {IAntseedStaking} from "../interfaces/IAntseedStaking.sol";
-import {IAntseedStats} from "../interfaces/IAntseedStats.sol";
-import {IAntseedFreeUsage} from "../interfaces/IAntseedFreeUsage.sol";
+import {ITorveRegistry} from "../interfaces/ITorveRegistry.sol";
+import {ITorveStaking} from "../interfaces/ITorveStaking.sol";
+import {ITorveStats} from "../interfaces/ITorveStats.sol";
+import {ITorveFreeUsage} from "../interfaces/ITorveFreeUsage.sol";
 
 /**
- * @title AntseedFreeUsage
+ * @title TorveFreeUsage
  * @notice Free usage channel lifecycle with buyer-signed EIP-712 usage proofs.
  *         This contract holds no funds and never charges the buyer. It records
  *         signed usage metadata for seller/buyer auditability and can
- *         optionally forward metadata into AntseedStats when authorized there.
+ *         optionally forward metadata into TorveStats when authorized there.
  *         Metadata is opaque to this contract; indexers parse the raw bytes.
  */
-contract AntseedFreeUsage is IAntseedFreeUsage, EIP712, Pausable, Ownable, ReentrancyGuard {
+contract TorveFreeUsage is ITorveFreeUsage, EIP712, Pausable, Ownable, ReentrancyGuard {
     // ─── EIP-712 ─────────────────────────────────────────────────────
-    bytes32 public constant FREE_USAGE_CHANNEL_DOMAIN = keccak256("ANTSEED_FREE_USAGE_CHANNEL");
+    bytes32 public constant FREE_USAGE_CHANNEL_DOMAIN = keccak256("TORVE_FREE_USAGE_CHANNEL");
 
     bytes32 public constant FREE_USAGE_OPEN_TYPEHASH = keccak256(
         "FreeUsageOpen(bytes32 channelId,uint256 deadline)"
@@ -45,7 +45,7 @@ contract AntseedFreeUsage is IAntseedFreeUsage, EIP712, Pausable, Ownable, Reent
     }
 
     // ─── State ──────────────────────────────────────────────────────
-    IAntseedRegistry public registry;
+    ITorveRegistry public registry;
 
     mapping(bytes32 => Channel) public channels;
     mapping(address => uint256) public override activeChannelCount;
@@ -74,11 +74,11 @@ contract AntseedFreeUsage is IAntseedFreeUsage, EIP712, Pausable, Ownable, Reent
 
     // ─── Constructor ────────────────────────────────────────────────
     constructor(address _registry)
-        EIP712("AntseedFreeUsage", "1")
+        EIP712("TorveFreeUsage", "1")
         Ownable(msg.sender)
     {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     // ─── Views ──────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ contract AntseedFreeUsage is IAntseedFreeUsage, EIP712, Pausable, Ownable, Reent
     ) external override nonReentrant whenNotPaused {
         if (buyer == address(0)) revert InvalidAddress();
         if (block.timestamp > deadline) revert ChannelExpired();
-        if (!IAntseedStaking(registry.staking()).isStakedAboveMin(msg.sender)) revert SellerNotStaked();
+        if (!ITorveStaking(registry.staking()).isStakedAboveMin(msg.sender)) revert SellerNotStaked();
 
         bytes32 channelId = computeChannelId(buyer, msg.sender, salt);
         if (channels[channelId].status != ChannelStatus.None) revert ChannelExists();
@@ -186,7 +186,7 @@ contract AntseedFreeUsage is IAntseedFreeUsage, EIP712, Pausable, Ownable, Reent
         channel.updatedAt = block.timestamp;
 
         if (sequenceDelta > 0) {
-            uint256 agentId = IAntseedStaking(registry.staking()).getAgentId(channel.seller);
+            uint256 agentId = ITorveStaking(registry.staking()).getAgentId(channel.seller);
             if (agentId > 0) {
                 AgentStats storage s = _agentStats[agentId];
                 if (firstUsage) {
@@ -214,7 +214,7 @@ contract AntseedFreeUsage is IAntseedFreeUsage, EIP712, Pausable, Ownable, Reent
     ) internal {
         address statsContract = registry.stats();
         if (statsContract == address(0)) return;
-        try IAntseedStats(statsContract).recordMetadata(agentId, buyer, channelId, metadata) {}
+        try ITorveStats(statsContract).recordMetadata(agentId, buyer, channelId, metadata) {}
         catch {}
     }
 
@@ -255,7 +255,7 @@ contract AntseedFreeUsage is IAntseedFreeUsage, EIP712, Pausable, Ownable, Reent
     // ─── Admin ──────────────────────────────────────────────────────
     function setRegistry(address _registry) external onlyOwner {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     function pause() external onlyOwner {

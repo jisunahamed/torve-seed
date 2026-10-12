@@ -59,7 +59,7 @@ export async function seller(ctx: AntsContext): Promise<SellerView> {
 export async function registerBinding(ctx: AntsContext, agentIdInput?: number, report: StepReporter = silentReporter): Promise<{ agentId: number; sent: boolean }> {
   const signer = ctx.requireSigner();
   const registry = ctx.sellerRegistry();
-  if (!registry) throw new Error('Seller registry is not configured; use `antseed seller register` on this chain.');
+  if (!registry) throw new Error('Seller registry is not configured; use `torve seller register` on this chain.');
   const stack = await ctx.stack();
   const legacyStaking = ctx.legacyStakingAt(stack.legacyStaking);
   const identity = ctx.identity();

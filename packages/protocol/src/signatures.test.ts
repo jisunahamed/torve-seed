@@ -1,6 +1,6 @@
 /**
  * Golden vectors pin the on-chain-facing encodings: a change to any of these
- * values breaks compatibility with deployed AntseedChannels contracts and
+ * values breaks compatibility with deployed TorveChannels contracts and
  * existing peers, so the constants below must never change.
  */
 

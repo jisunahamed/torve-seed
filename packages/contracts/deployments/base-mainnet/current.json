@@ -7,7 +7,7 @@
   "sourceCommit": null,
   "transactions": [
     {
-      "action": "deploy AntseedLegacyRewardsPoolRegistry",
+      "action": "deploy TorveLegacyRewardsPoolRegistry",
       "hash": "0x8dee61d4aff021c760cdcbd9c1d21495064abc556bc5b92b0177eb8dd6cf7439",
       "blockNumber": 51096896,
       "from": "0x48F4142F4AbF7b77a03f0cDffcd511eDD9B6d54a",

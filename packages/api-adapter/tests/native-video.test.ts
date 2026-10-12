@@ -49,7 +49,7 @@ describe('native video API contracts', () => {
   it('extracts Venice models and routed services', () => {
     expect(requestService(request('/api/v1/video/queue', { model: 'wan-2.5', service: 'extension' }))).toBe('wan-2.5');
     const followUp = request('/api/v1/video/retrieve', { model: 'other', queue_id: 'task' });
-    followUp.headers = { ...followUp.headers, 'x-antseed-service': 'wan-2.5' };
+    followUp.headers = { ...followUp.headers, 'x-torve-service': 'wan-2.5' };
     expect(requestService(followUp)).toBe('wan-2.5');
   });
 

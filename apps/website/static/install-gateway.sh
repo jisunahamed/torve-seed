@@ -1,38 +1,38 @@
 #!/usr/bin/env bash
-# Antseed gateway installer for Linux servers.
+# Torve gateway installer for Linux servers.
 #
-# Installs Node.js and the Antseed CLI under /opt/antseed, runs the buyer and
-# the API-key gateway as systemd services under a dedicated `antseed` user,
+# Installs Node.js and the Torve CLI under /opt/torve, runs the buyer and
+# the API-key gateway as systemd services under a dedicated `torve` user,
 # optionally publishes the gateway over HTTPS (Caddy or Cloudflare Tunnel),
 # and creates a first API key.
 #
-#   curl -fsSL --proto '=https' --tlsv1.2 https://antseed.com/install-gateway.sh | sudo bash -s -- --domain llm.example.com
+#   curl -fsSL --proto '=https' --tlsv1.2 https://torveai.com/install-gateway.sh | sudo bash -s -- --domain llm.example.com
 #
 # Re-running it upgrades the CLI and rewrites the services. Wallets and keys in
-# /var/lib/antseed are never touched. Docs: https://antseed.com/docs/guides/gateway-server
+# /var/lib/torve are never touched. Docs: https://torveai.com/docs/guides/gateway-server
 
 set -euo pipefail
 
-PREFIX=/opt/antseed
-SERVICE_USER=antseed
-SERVICE_HOME=/var/lib/antseed
-ENV_FILE=/etc/antseed/gateway.env
-WRAPPER=/usr/local/bin/antseed
-WRAPPER_MARKER='# antseed-gateway-wrapper'
+PREFIX=/opt/torve
+SERVICE_USER=torve
+SERVICE_HOME=/var/lib/torve
+ENV_FILE=/etc/torve/gateway.env
+WRAPPER=/usr/local/bin/torve
+WRAPPER_MARKER='# torve-gateway-wrapper'
 NODE_MAJOR=24
 BUYER_PORT=8377
 
 # Every option can also be set in the environment, for cloud-init and other automation.
-DOMAIN="${ANTSEED_GATEWAY_DOMAIN:-}"
+DOMAIN="${TORVE_GATEWAY_DOMAIN:-}"
 CLOUDFLARE_TOKEN="${CLOUDFLARED_TUNNEL_TOKEN:-}"
-PUBLIC_URL="${ANTSEED_TUNNEL_PUBLIC_URL:-}"
-HOST="${ANTSEED_GATEWAY_HOST:-127.0.0.1}"
-PORT="${ANTSEED_GATEWAY_PORT:-8379}"
-KEY_LABEL="${ANTSEED_GATEWAY_KEY_LABEL:-admin}"
-CLI_VERSION="${ANTSEED_CLI_VERSION:-latest}"
-X402_FACILITATOR="${ANTSEED_X402_FACILITATOR_URL:-}"
-DRY_RUN="${ANTSEED_INSTALL_DRY_RUN:-0}"
-VERBOSE="${ANTSEED_INSTALL_VERBOSE:-0}"
+PUBLIC_URL="${TORVE_TUNNEL_PUBLIC_URL:-}"
+HOST="${TORVE_GATEWAY_HOST:-127.0.0.1}"
+PORT="${TORVE_GATEWAY_PORT:-8379}"
+KEY_LABEL="${TORVE_GATEWAY_KEY_LABEL:-admin}"
+CLI_VERSION="${TORVE_CLI_VERSION:-latest}"
+X402_FACILITATOR="${TORVE_X402_FACILITATOR_URL:-}"
+DRY_RUN="${TORVE_INSTALL_DRY_RUN:-0}"
+VERBOSE="${TORVE_INSTALL_VERBOSE:-0}"
 UNINSTALL=false
 TMP_DIR=""
 
@@ -58,24 +58,24 @@ Options:
   --key-label <name>           Label of the first API key (default: admin).
   --x402-facilitator <value>   Accept x402 key top-ups: cdp, payai or a facilitator URL.
                                cdp needs CDP_API_KEY_ID and CDP_API_KEY_SECRET in the environment.
-  --cli-version <version>      @antseed/cli version or dist-tag to install (default: latest).
+  --cli-version <version>      @torveai/cli version or dist-tag to install (default: latest).
   --dry-run                    Validate the options and print the plan, without changing anything.
   --verbose                    Print every command (set -x) and npm output.
-  --uninstall                  Remove the services and the CLI. Keeps /var/lib/antseed.
+  --uninstall                  Remove the services and the CLI. Keeps /var/lib/torve.
   -h, --help                   Show this help.
 
 Environment variables (same as the flags):
-  ANTSEED_GATEWAY_DOMAIN, ANTSEED_GATEWAY_HOST, ANTSEED_GATEWAY_PORT,
-  ANTSEED_GATEWAY_KEY_LABEL, ANTSEED_CLI_VERSION, ANTSEED_X402_FACILITATOR_URL,
-  CLOUDFLARED_TUNNEL_TOKEN, ANTSEED_TUNNEL_PUBLIC_URL,
-  ANTSEED_INSTALL_DRY_RUN=1, ANTSEED_INSTALL_VERBOSE=1, NO_COLOR=1
+  TORVE_GATEWAY_DOMAIN, TORVE_GATEWAY_HOST, TORVE_GATEWAY_PORT,
+  TORVE_GATEWAY_KEY_LABEL, TORVE_CLI_VERSION, TORVE_X402_FACILITATOR_URL,
+  CLOUDFLARED_TUNNEL_TOKEN, TORVE_TUNNEL_PUBLIC_URL,
+  TORVE_INSTALL_DRY_RUN=1, TORVE_INSTALL_VERBOSE=1, NO_COLOR=1
   CDP_API_KEY_ID, CDP_API_KEY_SECRET (for --x402-facilitator cdp)
 
 Examples:
-  curl -fsSL --proto '=https' --tlsv1.2 https://antseed.com/install-gateway.sh | sudo bash -s -- --domain llm.example.com
-  curl -fsSL --proto '=https' --tlsv1.2 https://antseed.com/install-gateway.sh \
+  curl -fsSL --proto '=https' --tlsv1.2 https://torveai.com/install-gateway.sh | sudo bash -s -- --domain llm.example.com
+  curl -fsSL --proto '=https' --tlsv1.2 https://torveai.com/install-gateway.sh \
     | sudo CLOUDFLARED_TUNNEL_TOKEN=... bash -s -- --public-url https://llm.example.com
-  curl -fsSL --proto '=https' --tlsv1.2 https://antseed.com/install-gateway.sh | sudo bash -s -- --dry-run
+  curl -fsSL --proto '=https' --tlsv1.2 https://torveai.com/install-gateway.sh | sudo bash -s -- --dry-run
 EOF
 }
 
@@ -114,22 +114,22 @@ parse_args() {
 
 check_system() {
   [[ "$(id -u)" -eq 0 || "$DRY_RUN" == 1 ]] \
-    || die "run as root, e.g. curl -fsSL --proto '=https' --tlsv1.2 https://antseed.com/install-gateway.sh | sudo bash -s -- <options>"
+    || die "run as root, e.g. curl -fsSL --proto '=https' --tlsv1.2 https://torveai.com/install-gateway.sh | sudo bash -s -- <options>"
   [[ "$(uname -s)" == Linux ]] || die "this installer supports Linux only"
   command -v systemctl >/dev/null 2>&1 || die "systemd is required"
 }
 
 uninstall() {
-  step "Removing Antseed services"
-  systemctl disable --now antseed-gateway.service antseed-buyer.service 2>/dev/null || true
-  rm -f /etc/systemd/system/antseed-gateway.service /etc/systemd/system/antseed-buyer.service
+  step "Removing Torve services"
+  systemctl disable --now torve-gateway.service torve-buyer.service 2>/dev/null || true
+  rm -f /etc/systemd/system/torve-gateway.service /etc/systemd/system/torve-buyer.service
   systemctl daemon-reload
-  if [[ -f /etc/caddy/antseed.caddy ]]; then
-    rm -f /etc/caddy/antseed.caddy
-    if [[ -f /etc/caddy/Caddyfile.antseed-backup ]]; then
-      mv /etc/caddy/Caddyfile.antseed-backup /etc/caddy/Caddyfile
+  if [[ -f /etc/caddy/torve.caddy ]]; then
+    rm -f /etc/caddy/torve.caddy
+    if [[ -f /etc/caddy/Caddyfile.torve-backup ]]; then
+      mv /etc/caddy/Caddyfile.torve-backup /etc/caddy/Caddyfile
     else
-      sed -i '\#^import /etc/caddy/antseed.caddy$#d' /etc/caddy/Caddyfile 2>/dev/null || true
+      sed -i '\#^import /etc/caddy/torve.caddy$#d' /etc/caddy/Caddyfile 2>/dev/null || true
     fi
     systemctl reload caddy 2>/dev/null || true
   fi
@@ -220,10 +220,10 @@ install_node() {
 }
 
 install_cli() {
-  step "Installing @antseed/cli@$CLI_VERSION"
+  step "Installing @torveai/cli@$CLI_VERSION"
   PATH="$PREFIX/node/bin:$PATH" "$PREFIX/node/bin/npm" install --global --prefix "$PREFIX/cli" \
-    --no-fund --no-audit --loglevel="$([[ "$VERBOSE" == 1 ]] && echo notice || echo error)" "@antseed/cli@$CLI_VERSION"
-  note "antseed $(PATH="$PREFIX/node/bin:$PATH" "$PREFIX/cli/bin/antseed" --version 2>/dev/null | head -1 || true)"
+    --no-fund --no-audit --loglevel="$([[ "$VERBOSE" == 1 ]] && echo notice || echo error)" "@torveai/cli@$CLI_VERSION"
+  note "torve $(PATH="$PREFIX/node/bin:$PATH" "$PREFIX/cli/bin/torve" --version 2>/dev/null | head -1 || true)"
 }
 
 create_user() {
@@ -238,18 +238,18 @@ create_user() {
 
 install_wrapper() {
   if [[ -e "$WRAPPER" ]] && ! grep -q "$WRAPPER_MARKER" "$WRAPPER" 2>/dev/null; then
-    die "$WRAPPER already exists and was not installed by this script; remove it (e.g. npm uninstall -g @antseed/cli) and re-run"
+    die "$WRAPPER already exists and was not installed by this script; remove it (e.g. npm uninstall -g @torveai/cli) and re-run"
   fi
   cat >"$WRAPPER" <<EOF
 #!/bin/sh
 $WRAPPER_MARKER
-# Runs the Antseed CLI as the $SERVICE_USER service user, against the gateway's data.
+# Runs the Torve CLI as the $SERVICE_USER service user, against the gateway's data.
 export PATH="$PREFIX/node/bin:\$PATH"
-if [ "\$(id -un)" = "$SERVICE_USER" ]; then exec "$PREFIX/cli/bin/antseed" "\$@"; fi
+if [ "\$(id -un)" = "$SERVICE_USER" ]; then exec "$PREFIX/cli/bin/torve" "\$@"; fi
 if [ "\$(id -u)" = 0 ]; then
-  exec runuser -u "$SERVICE_USER" -- env HOME="$SERVICE_HOME" PATH="\$PATH" "$PREFIX/cli/bin/antseed" "\$@"
+  exec runuser -u "$SERVICE_USER" -- env HOME="$SERVICE_HOME" PATH="\$PATH" "$PREFIX/cli/bin/torve" "\$@"
 fi
-exec sudo -u "$SERVICE_USER" env HOME="$SERVICE_HOME" PATH="\$PATH" "$PREFIX/cli/bin/antseed" "\$@"
+exec sudo -u "$SERVICE_USER" env HOME="$SERVICE_HOME" PATH="\$PATH" "$PREFIX/cli/bin/torve" "\$@"
 EOF
   chmod 0755 "$WRAPPER"
 }
@@ -266,9 +266,9 @@ write_env_file() {
   }
   if [[ "$MODE" == cloudflare ]]; then
     set_env CLOUDFLARED_TUNNEL_TOKEN "$CLOUDFLARE_TOKEN"
-    set_env ANTSEED_TUNNEL_PUBLIC_URL "$PUBLIC_URL"
+    set_env TORVE_TUNNEL_PUBLIC_URL "$PUBLIC_URL"
   fi
-  [[ -n "$X402_FACILITATOR" ]] && set_env ANTSEED_X402_FACILITATOR_URL "$X402_FACILITATOR"
+  [[ -n "$X402_FACILITATOR" ]] && set_env TORVE_X402_FACILITATOR_URL "$X402_FACILITATOR"
   [[ -n "${CDP_API_KEY_ID:-}" ]] && set_env CDP_API_KEY_ID "$CDP_API_KEY_ID"
   [[ -n "${CDP_API_KEY_SECRET:-}" ]] && set_env CDP_API_KEY_SECRET "$CDP_API_KEY_SECRET"
   return 0
@@ -296,14 +296,14 @@ RestrictSUIDSGID=true
 LockPersonality=true
 CapabilityBoundingSet="
 
-  cat >/etc/systemd/system/antseed-buyer.service <<EOF
+  cat >/etc/systemd/system/torve-buyer.service <<EOF
 [Unit]
-Description=Antseed buyer
+Description=Torve buyer
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=$PREFIX/cli/bin/antseed buyer start --port $BUYER_PORT
+ExecStart=$PREFIX/cli/bin/torve buyer start --port $BUYER_PORT
 $common
 
 [Install]
@@ -312,15 +312,15 @@ EOF
 
   local exec_start
   if [[ "$MODE" == cloudflare ]]; then
-    exec_start="$PREFIX/cli/bin/antseed tunnel start --provider cloudflare --buyer-port $BUYER_PORT --gateway-port $PORT"
+    exec_start="$PREFIX/cli/bin/torve tunnel start --provider cloudflare --buyer-port $BUYER_PORT --gateway-port $PORT"
   else
-    exec_start="$PREFIX/cli/bin/antseed gateway start --host $HOST --port $PORT --buyer-port $BUYER_PORT"
+    exec_start="$PREFIX/cli/bin/torve gateway start --host $HOST --port $PORT --buyer-port $BUYER_PORT"
   fi
-  cat >/etc/systemd/system/antseed-gateway.service <<EOF
+  cat >/etc/systemd/system/torve-gateway.service <<EOF
 [Unit]
-Description=Antseed API-key gateway
-After=network-online.target antseed-buyer.service
-Wants=network-online.target antseed-buyer.service
+Description=Torve API-key gateway
+After=network-online.target torve-buyer.service
+Wants=network-online.target torve-buyer.service
 
 [Service]
 EnvironmentFile=$ENV_FILE
@@ -336,14 +336,14 @@ EOF
 wait_for_buyer() {
   local _
   for _ in $(seq 1 90); do
-    if curl -fsS -o /dev/null "http://127.0.0.1:$BUYER_PORT/_antseed/buyer-identities" 2>/dev/null; then return 0; fi
-    if (( $(systemctl show -p NRestarts --value antseed-buyer.service) > 0 )); then
-      journalctl -u antseed-buyer -n 30 --no-pager >&2 || true
-      die "the buyer exited during startup; see the log above or: journalctl -u antseed-buyer -n 100"
+    if curl -fsS -o /dev/null "http://127.0.0.1:$BUYER_PORT/_torve/buyer-identities" 2>/dev/null; then return 0; fi
+    if (( $(systemctl show -p NRestarts --value torve-buyer.service) > 0 )); then
+      journalctl -u torve-buyer -n 30 --no-pager >&2 || true
+      die "the buyer exited during startup; see the log above or: journalctl -u torve-buyer -n 100"
     fi
     sleep 1
   done
-  die "the buyer did not start within 90s; check: journalctl -u antseed-buyer -n 100"
+  die "the buyer did not start within 90s; check: journalctl -u torve-buyer -n 100"
 }
 
 API_KEY=""
@@ -384,8 +384,8 @@ install_caddy() {
   fi
 
   step "Configuring Caddy for https://$DOMAIN"
-  cat >/etc/caddy/antseed.caddy <<EOF
-# Managed by install-gateway.sh: Antseed API-key gateway.
+  cat >/etc/caddy/torve.caddy <<EOF
+# Managed by install-gateway.sh: Torve API-key gateway.
 $DOMAIN {
 	reverse_proxy 127.0.0.1:$PORT {
 		flush_interval -1
@@ -396,10 +396,10 @@ EOF
   # The stock package Caddyfile serves a placeholder page on :80, which would
   # shadow the HTTPS redirect. Replace it; otherwise import alongside.
   if [[ ! -s "$caddyfile" ]] || grep -q '/usr/share/caddy' "$caddyfile"; then
-    [[ -s "$caddyfile" ]] && cp "$caddyfile" "$caddyfile.antseed-backup"
-    echo 'import /etc/caddy/antseed.caddy' >"$caddyfile"
-  elif ! grep -qx 'import /etc/caddy/antseed.caddy' "$caddyfile"; then
-    printf '\nimport /etc/caddy/antseed.caddy\n' >>"$caddyfile"
+    [[ -s "$caddyfile" ]] && cp "$caddyfile" "$caddyfile.torve-backup"
+    echo 'import /etc/caddy/torve.caddy' >"$caddyfile"
+  elif ! grep -qx 'import /etc/caddy/torve.caddy' "$caddyfile"; then
+    printf '\nimport /etc/caddy/torve.caddy\n' >>"$caddyfile"
   fi
   local validation
   if ! validation="$(caddy validate --config "$caddyfile" --adapter caddyfile 2>&1)"; then
@@ -412,9 +412,9 @@ EOF
 
 print_plan() {
   step "Dry run: nothing will be changed"
-  note "Node.js $NODE_MAJOR ($NODE_ARCH) and @antseed/cli@$CLI_VERSION -> $PREFIX"
+  note "Node.js $NODE_MAJOR ($NODE_ARCH) and @torveai/cli@$CLI_VERSION -> $PREFIX"
   note "System user $SERVICE_USER, data in $SERVICE_HOME"
-  note "Services: antseed-buyer (port $BUYER_PORT), antseed-gateway ($HOST:$PORT)"
+  note "Services: torve-buyer (port $BUYER_PORT), torve-gateway ($HOST:$PORT)"
   case "$MODE" in
     caddy) note "HTTPS: Caddy for https://$DOMAIN -> 127.0.0.1:$PORT" ;;
     cloudflare) note "HTTPS: Cloudflare named tunnel at $PUBLIC_URL" ;;
@@ -432,7 +432,7 @@ verify_gateway() {
     if [[ "$code" == 401 ]]; then return 0; fi
     sleep 1
   done
-  journalctl -u antseed-gateway -n 30 --no-pager >&2 || true
+  journalctl -u torve-gateway -n 30 --no-pager >&2 || true
   die "the gateway is not answering on 127.0.0.1:$PORT (last status: ${code:-none}); see the log above"
 }
 
@@ -458,15 +458,15 @@ main() {
   write_units
 
   step "Starting the buyer"
-  systemctl enable antseed-buyer.service >/dev/null 2>&1
-  systemctl restart antseed-buyer.service
+  systemctl enable torve-buyer.service >/dev/null 2>&1
+  systemctl restart torve-buyer.service
   wait_for_buyer
 
   create_first_key
 
   step "Starting the gateway"
-  systemctl enable antseed-gateway.service >/dev/null 2>&1
-  systemctl restart antseed-gateway.service
+  systemctl enable torve-gateway.service >/dev/null 2>&1
+  systemctl restart torve-gateway.service
 
   if [[ "$MODE" == caddy ]]; then install_caddy; fi
   verify_gateway
@@ -480,7 +480,7 @@ main() {
     | "$PREFIX/node/bin/node" -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const l=JSON.parse(s);console.log((l.find?.(i=>i.name==="default")??{}).address??"")}catch{console.log("")}})' || true)"
 
   echo
-  step "Antseed gateway is running"
+  step "Torve gateway is running"
   note "Base URL:  $BASE_URL"
   if [[ -n "$API_KEY" ]]; then
     note "API key:   $API_KEY"
@@ -491,9 +491,9 @@ main() {
   note "Test it:"
   note "  curl $BASE_URL/models -H \"Authorization: Bearer <api-key>\""
   echo
-  note "Manage keys:   antseed gateway key create --label alice --new-identity --monthly-limit 20"
-  note "Fund wallet:   antseed buyer deposit --no-watch"
-  note "Logs:          journalctl -u antseed-gateway -u antseed-buyer -f"
+  note "Manage keys:   torve gateway key create --label alice --new-identity --monthly-limit 20"
+  note "Fund wallet:   torve buyer deposit --no-watch"
+  note "Logs:          journalctl -u torve-gateway -u torve-buyer -f"
   if [[ "$MODE" == local && "$HOST" == 127.0.0.1 ]]; then
     echo
     note "The gateway only listens on this server. From your machine:"
@@ -506,5 +506,5 @@ main() {
   fi
 }
 
-# ANTSEED_INSTALL_SH_NO_RUN=1 loads the functions without running, for tests.
-if [[ "${ANTSEED_INSTALL_SH_NO_RUN:-0}" != 1 ]]; then main "$@"; fi
+# TORVE_INSTALL_SH_NO_RUN=1 loads the functions without running, for tests.
+if [[ "${TORVE_INSTALL_SH_NO_RUN:-0}" != 1 ]]; then main "$@"; fi

@@ -7,8 +7,8 @@ hide_title: true
 
 # Security
 
-Antseed separates a buyer's deposit balance from the node wallet. USDC committed
-to service payments is held by `AntseedDeposits`; the node signs spending
+Torve separates a buyer's deposit balance from the node wallet. USDC committed
+to service payments is held by `TorveDeposits`; the node signs spending
 authorizations. Incoming USDC can be swept from the node wallet into the deposit
 contract through a gasless authorization.
 
@@ -20,7 +20,7 @@ as its deposits operator; those roles do not have to share the node key.
 
 | Function | Mechanism |
 |---|---|
-| **P2P identity** | EIP-191 `personal_sign` with domain tags (`"antseed-data-v1:"`, `"antseed-msg-v1:"`), verified via `ecrecover` |
+| **P2P identity** | EIP-191 `personal_sign` with domain tags (`"torve-data-v1:"`, `"torve-msg-v1:"`), verified via `ecrecover` |
 | **Payment authorization** | EIP-712 signatures (ReserveAuth, SpendingAuth) |
 | **PeerId** | EVM address (40 hex chars, no `0x` prefix) |
 
@@ -28,7 +28,7 @@ as its deposits operator; those roles do not have to share the node key.
 
 The **signing identity** signs protocol messages and payment authorizations.
 Gasless buyer funding can send USDC to this address first, then use a signed
-authorization and a permissionless relayer to sweep it into `AntseedDeposits`.
+authorization and a permissionless relayer to sweep it into `TorveDeposits`.
 Sellers also use their node wallet for transaction gas and USDC earnings.
 
 An external **funding wallet** can instead approve USDC and call
@@ -45,7 +45,7 @@ rather than assuming the funding wallet has withdrawal authority.
 | Environment | Protection |
 |---|---|
 | **Desktop app** | Electron `safeStorage` API encrypts the secp256k1 private key at rest using the OS keychain (macOS Keychain, Windows Credential Manager, Linux libsecret). On first launch after upgrade, plaintext `identity.key` is auto-encrypted and the original deleted. |
-| **CLI / Server** | Plaintext `identity.key` in the data directory (`~/.antseed/`). Use `ANTSEED_IDENTITY_HEX` env var with a secrets manager for production deployments. |
+| **CLI / Server** | Plaintext `identity.key` in the data directory (`~/.torve/`). Use `TORVE_IDENTITY_HEX` env var with a secrets manager for production deployments. |
 
 ## Auto vs Manual Approval
 
@@ -112,9 +112,9 @@ separate transport controls.
 ## Best Practices
 
 1. Keep treasury and operator keys separate from the node where possible. Use `deposit(buyer, amount)` for direct external funding, or the [gasless sweep flow](../guides/payments.md) when funding the node address. Minimize assets left in the hot wallet.
-2. Deposit only what you need for a session. Top up as needed rather than pre-loading large amounts into AntseedDeposits.
+2. Deposit only what you need for a session. Top up as needed rather than pre-loading large amounts into TorveDeposits.
 3. Keep `allowPrivateIPs=false` in production.
 4. Keep signature verification and stale metadata rejection enabled (both on by default).
 5. Encrypted TCP (`transport.tcp-enc.v1`) is used automatically between peers that advertise it; set `requireSecureTransport` to refuse plaintext/unsigned transports once your peers are upgraded.
-6. On servers, use `ANTSEED_IDENTITY_HEX` with a secrets manager instead of storing keys on disk.
+6. On servers, use `TORVE_IDENTITY_HEX` with a secrets manager instead of storing keys on disk.
 7. Back up your secp256k1 private key — it is the only way to recover your PeerId (EVM address) and on-chain wallet.

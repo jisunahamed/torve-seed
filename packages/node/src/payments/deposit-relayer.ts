@@ -10,7 +10,7 @@ import { debugLog, debugWarn } from '../utils/debug.js';
 export interface DepositRelayerConfig {
   rpcUrl: string;
   fallbackRpcUrls?: string[];
-  /** The relayer's own configured AntseedDepositRelay address. Requests
+  /** The relayer's own configured TorveDepositRelay address. Requests
    *  pointing anywhere else are dropped — never submit to a peer-supplied
    *  contract address. */
   relayAddress: string;

@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadOrCreateIdentity } from '../../packages/node/src/p2p/identity.js';
-import { SellerPoolsRewardsClient } from '@antseed/node/payments';
+import { SellerPoolsRewardsClient } from '@torveai/node/payments';
 
 const execFile = promisify(execFileCallback);
 const existingSandboxOut = process.env.M001_SANDBOX_OUT;
@@ -73,10 +73,10 @@ describe.skipIf(!enabled)('M001 CLI sandbox', () => {
 
   beforeAll(async () => {
     ownsSandbox = !existingSandboxOut;
-    out = existingSandboxOut ? resolve(existingSandboxOut) : await mkdtemp(join(tmpdir(), 'antseed-m001-sandbox-'));
-    dataDir = await mkdtemp(join(tmpdir(), 'antseed-m001-cli-'));
+    out = existingSandboxOut ? resolve(existingSandboxOut) : await mkdtemp(join(tmpdir(), 'torve-m001-sandbox-'));
+    dataDir = await mkdtemp(join(tmpdir(), 'torve-m001-cli-'));
     config = join(out, 'cli-config.json');
-    await execFile('pnpm', ['--filter', '@antseed/cli', 'build'], { cwd: root, env: process.env });
+    await execFile('pnpm', ['--filter', '@torveai/cli', 'build'], { cwd: root, env: process.env });
     const identity = await loadOrCreateIdentity(dataDir);
     walletAddress = identity.wallet.address;
     if (ownsSandbox) {
@@ -109,8 +109,8 @@ describe.skipIf(!enabled)('M001 CLI sandbox', () => {
     ]) {
       expect(await run(command, true)).toMatch(/unknown (command|option)/);
     }
-    expect(await run(['seller', 'stake', '10'], true)).toContain('antseed seller legacy stake');
-    expect(await run(['seller', 'stake', '10', '--epochs', '4'], true)).toContain('antseed seller legacy stake');
+    expect(await run(['seller', 'stake', '10'], true)).toContain('torve seller legacy stake');
+    expect(await run(['seller', 'stake', '10', '--epochs', '4'], true)).toContain('torve seller legacy stake');
     expect(await nonce()).toBe(initialNonce);
     const registration = await run(['seller', 'register']);
     const agentId = registration.match(/Agent ID:\s*(\d+)/)?.[1];
@@ -122,9 +122,9 @@ describe.skipIf(!enabled)('M001 CLI sandbox', () => {
     await sandbox(['cutover']);
     expect(await runJson(['seller', 'rewards', '--json'])).toMatchObject({ mode: 'recognized-usage' });
     const beforeRejections = await nonce();
-    expect(await run(['seller', 'legacy', 'stake', '10'], true)).toContain('antseed seller stake');
+    expect(await run(['seller', 'legacy', 'stake', '10'], true)).toContain('torve seller stake');
     expect(await run(['seller', 'stake', '10'], true)).toContain('--epochs');
-    expect(await run(['seller', 'stake', '10', '--epochs', '4'], true)).toContain('antseed seller register');
+    expect(await run(['seller', 'stake', '10', '--epochs', '4'], true)).toContain('torve seller register');
     expect(await nonce()).toBe(beforeRejections);
     await sandbox(['fund-position-init', '5']);
     await run(['seller', 'legacy', 'claim-starter']);

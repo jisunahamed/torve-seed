@@ -12,7 +12,7 @@ import {AgentsArt, CodingToolsArt, AnonymityArt} from './WhoCardArt';
 const WHO_CARDS = [
   {
     title: 'Who run agents',
-    body: 'Hermes, OpenClaw, Codex, OpenCode, or your own. Your agent reads one skill, installs Antseed itself, and runs on free or frontier models.',
+    body: 'Hermes, OpenClaw, Codex, OpenCode, or your own. Your agent reads one skill, installs Torve itself, and runs on free or frontier models.',
     link: {to: '/agents', label: 'For agents'},
     art: <AgentsArt />,
   },

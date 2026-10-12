@@ -1,17 +1,17 @@
-# @antseed/node
+# @torveai/node
 
-[![npm version](https://img.shields.io/npm/v/@antseed/node.svg)](https://www.npmjs.com/package/@antseed/node)
+[![npm version](https://img.shields.io/npm/v/@torveai/node.svg)](https://www.npmjs.com/package/@torveai/node)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
 
-Core protocol SDK for AntSeed — a peer-to-peer AI services network. Providers offer AI services, buyers discover providers via DHT and send requests over encrypted P2P connections.
+Core protocol SDK for Torve — a peer-to-peer AI services network. Providers offer AI services, buyers discover providers via DHT and send requests over encrypted P2P connections.
 
-> **Important:** AntSeed is designed for providers who build differentiated services on top of AI APIs — such as TEE-secured inference, domain-specific skills and agents, fine-tuned models, or managed product experiences. Simply reselling raw API access or subscription credentials is not the intended use and may violate your upstream provider's terms of service.
+> **Important:** Torve is designed for providers who build differentiated services on top of AI APIs — such as TEE-secured inference, domain-specific skills and agents, fine-tuned models, or managed product experiences. Simply reselling raw API access or subscription credentials is not the intended use and may violate your upstream provider's terms of service.
 
 ## Installation
 
 ```bash
-npm install @antseed/node
+npm install @torveai/node
 ```
 
 ## Quick Start
@@ -21,8 +21,8 @@ npm install @antseed/node
 A provider node announces its capacity on the DHT and serves inference requests from buyers.
 
 ```ts
-import { AntseedNode } from '@antseed/node';
-import type { Provider, SerializedHttpRequest, SerializedHttpResponse } from '@antseed/node';
+import { TorveNode } from '@torveai/node';
+import type { Provider, SerializedHttpRequest, SerializedHttpResponse } from '@torveai/node';
 
 // Implement the Provider interface (or use an existing plugin)
 const myProvider: Provider = {
@@ -54,7 +54,7 @@ const myProvider: Provider = {
   },
 };
 
-const node = new AntseedNode({ role: 'seller' });
+const node = new TorveNode({ role: 'seller' });
 node.registerProvider(myProvider);
 await node.start();
 
@@ -67,10 +67,10 @@ console.log('Seller peer ID:', node.peerId);
 A buyer node discovers sellers via DHT, connects to them, and sends inference requests.
 
 ```ts
-import { AntseedNode } from '@antseed/node';
+import { TorveNode } from '@torveai/node';
 import { randomUUID } from 'node:crypto';
 
-const node = new AntseedNode({ role: 'buyer' });
+const node = new TorveNode({ role: 'buyer' });
 await node.start();
 
 // Discover sellers on the network
@@ -99,9 +99,9 @@ if (peers.length > 0) {
 
 Discovery topics are normalized to improve lookup consistency:
 
-- Provider topic: `antseed:{provider}` with `trim + lowercase`
-- Model topic (canonical): `antseed:service:{model}` with `trim + lowercase`
-- Model topic (search fallback): `antseed:service-search:{model}` with spaces, `-`, `_` removed after canonical normalization (keeps `.`)
+- Provider topic: `torve:{provider}` with `trim + lowercase`
+- Model topic (canonical): `torve:service:{model}` with `trim + lowercase`
+- Model topic (search fallback): `torve:service-search:{model}` with spaces, `-`, `_` removed after canonical normalization (keeps `.`)
 
 Canonical and search model topics are both used when their keys differ, so variants like `kimi 2.5`, `kimi-2.5`, and `kimi_2.5` can converge in discovery while keeping exact canonical topics.
 
@@ -111,7 +111,7 @@ For a full buyer-seller threat model and hardening guide, see:
 
 - [`docs/protocol/spec/06-security-overview.md`](../../docs/protocol/spec/06-security-overview.md)
 
-At a high level, `@antseed/node` currently enforces:
+At a high level, `@torveai/node` currently enforces:
 
 - Signed discovery metadata verification and staleness checks
 - Signed connection intro envelopes with replay protection
@@ -126,7 +126,7 @@ interface NodeConfig {
   role: 'seller' | 'buyer';
   displayName?: string;       // Optional human-readable name announced in metadata
   publicAddress?: string;     // Optional public host:port override announced in metadata
-  dataDir?: string;           // Default: ~/.antseed
+  dataDir?: string;           // Default: ~/.torve
   identityStore?: IdentityStore; // Pluggable identity storage backend
   dhtPort?: number;           // Default: 6881 for seller, 0 (OS-assigned) for buyer
   signalingPort?: number;     // Default: 6882 for seller
@@ -149,18 +149,18 @@ interface NodeConfig {
 | `role` | (required) | `'seller'` to serve requests, `'buyer'` to consume them |
 | `displayName` | unset | Optional node label included in discovery metadata |
 | `publicAddress` | unset | Optional public `host:port` advertised in signed metadata and preferred by buyers over the raw DHT source address |
-| `dataDir` | `~/.antseed` | Directory for identity keys, metering DB, and config |
+| `dataDir` | `~/.torve` | Directory for identity keys, metering DB, and config |
 | `identityStore` | `FileIdentityStore` | Pluggable identity storage backend (see [Identity Storage](#identity-storage)) |
 | `dhtPort` | `6881` / `0` | UDP port for DHT. Seller defaults to 6881, buyer uses OS-assigned |
 | `signalingPort` | `6882` | TCP port for P2P signaling and incoming connections (seller only) |
 | `maxUploadBodyBytes` | `64 MiB` | Maximum request body a seller accepts per proxied upload. Raise this for large Codex-style `/v1/responses` payloads while keeping the aggregate pending-upload budget bounded. |
-| `bootstrapNodes` | AntSeed nodes | Additional DHT bootstrap nodes merged with the official AntSeed infrastructure |
+| `bootstrapNodes` | Torve nodes | Additional DHT bootstrap nodes merged with the official Torve infrastructure |
 | `payments` | disabled | Optional seller-side payment channel + settlement lifecycle wiring |
 
 Use `publicAddress` when the DHT announce source IP is not the address buyers should dial, such as Kubernetes or other load-balanced deployments:
 
 ```ts
-const node = new AntseedNode({
+const node = new TorveNode({
   role: 'seller',
   publicAddress: 'peer.example.com:6882',
 });
@@ -179,19 +179,19 @@ Every node has a secp256k1 identity keypair. The private key (32 bytes, stored a
 
 Identity loading follows this priority:
 
-1. **Environment variable (recommended for CLI/server)** — if `ANTSEED_IDENTITY_HEX` is set (64 hex chars, optional `0x` prefix), it is used directly and cleared from the environment immediately after read. Use this with secrets managers for production deployments.
-2. **Desktop keychain (recommended for Desktop)** — AntSeed Desktop encrypts the key at rest via Electron `safeStorage` and the OS keychain (macOS Keychain / Windows DPAPI / Linux libsecret).
+1. **Environment variable (recommended for CLI/server)** — if `TORVE_IDENTITY_HEX` is set (64 hex chars, optional `0x` prefix), it is used directly and cleared from the environment immediately after read. Use this with secrets managers for production deployments.
+2. **Desktop keychain (recommended for Desktop)** — Torve Desktop encrypts the key at rest via Electron `safeStorage` and the OS keychain (macOS Keychain / Windows DPAPI / Linux libsecret).
 3. **Custom IdentityStore** — if `identityStore` is passed in `NodeConfig`, it is used to load/save the key (e.g., KMS, HSM).
-4. **Plaintext file (not recommended)** — reads/writes `identity.key` in `dataDir` (`~/.antseed/` by default) with `0600` permissions. Since this key is also your on-chain wallet, avoid storing it unencrypted on disk in production.
+4. **Plaintext file (not recommended)** — reads/writes `identity.key` in `dataDir` (`~/.torve/` by default) with `0600` permissions. Since this key is also your on-chain wallet, avoid storing it unencrypted on disk in production.
 
 If no identity is found, a new keypair is generated and persisted via the active store.
 
 ### File Store (Default)
 
 ```ts
-import { AntseedNode, FileIdentityStore } from '@antseed/node';
+import { TorveNode, FileIdentityStore } from '@torveai/node';
 
-const node = new AntseedNode({
+const node = new TorveNode({
   role: 'seller',
   // These are equivalent — FileIdentityStore is the default:
   identityStore: new FileIdentityStore('/path/to/config-dir'),
@@ -204,8 +204,8 @@ const node = new AntseedNode({
 Pass the private key hex from a secrets manager (AWS SSM, HashiCorp Vault, etc.):
 
 ```bash
-export ANTSEED_IDENTITY_HEX="$(vault kv get -field=key secret/antseed/identity)"
-antseed seller start
+export TORVE_IDENTITY_HEX="$(vault kv get -field=key secret/torve/identity)"
+torve seller start
 ```
 
 The variable is cleared from the process environment immediately after consumption.
@@ -215,20 +215,20 @@ The variable is cleared from the process environment immediately after consumpti
 Implement the `IdentityStore` interface for any backend:
 
 ```ts
-import { AntseedNode, type IdentityStore } from '@antseed/node';
+import { TorveNode, type IdentityStore } from '@torveai/node';
 
 class VaultIdentityStore implements IdentityStore {
   async load(): Promise<string | null> {
     // Read 64-char hex string from your backend
-    return await vault.getSecret('antseed-identity');
+    return await vault.getSecret('torve-identity');
   }
   async save(hexKey: string): Promise<void> {
     // Persist the 64-char hex string
-    await vault.putSecret('antseed-identity', hexKey);
+    await vault.putSecret('torve-identity', hexKey);
   }
 }
 
-const node = new AntseedNode({
+const node = new TorveNode({
   role: 'seller',
   identityStore: new VaultIdentityStore(),
 });
@@ -236,7 +236,7 @@ const node = new AntseedNode({
 
 ### Desktop App
 
-The AntSeed Desktop app encrypts the identity at rest using Electron's `safeStorage` API. The encryption key is stored in the OS keychain (macOS Keychain / Windows DPAPI / Linux libsecret) and the encrypted blob is stored at `~/.antseed/identity.enc`. On first launch, any existing plaintext `identity.key` is migrated to the encrypted store and deleted.
+The Torve Desktop app encrypts the identity at rest using Electron's `safeStorage` API. The encryption key is stored in the OS keychain (macOS Keychain / Windows DPAPI / Linux libsecret) and the encrypted blob is stored at `~/.torve/identity.enc`. On first launch, any existing plaintext `identity.key` is migrated to the encrypted store and deleted.
 
 ## On-Chain Settlement Flow
 
@@ -252,7 +252,7 @@ When `payments.enabled=true` in seller mode:
 Minimal crypto config:
 
 ```ts
-const node = new AntseedNode({
+const node = new TorveNode({
   role: 'seller',
   payments: {
     enabled: true,
@@ -280,7 +280,7 @@ Smart contract source and deployment notes: `node/contracts/README.md`.
 
 ### Recognized-usage payment helpers
 
-Import these APIs from `@antseed/node/payments`:
+Import these APIs from `@torveai/node/payments`:
 
 - `SellerRegistryClient.getRegisteredAgentId(seller)` returns the explicitly
   bound identity, or `0` when only a legacy fallback exists.
@@ -310,49 +310,49 @@ Import these APIs from `@antseed/node/payments`:
 
 ```ts
 // Main class
-import { AntseedNode, type NodeConfig } from '@antseed/node';
+import { TorveNode, type NodeConfig } from '@torveai/node';
 
 // Interfaces
-import type { Provider } from '@antseed/node';
-import type { Router } from '@antseed/node';
+import type { Provider } from '@torveai/node';
+import type { Router } from '@torveai/node';
 import type {
-  AntseedPlugin,
-  AntseedProviderPlugin,
-  AntseedRouterPlugin,
+  TorvePlugin,
+  TorveProviderPlugin,
+  TorveRouterPlugin,
   ConfigField,
-} from '@antseed/node';
+} from '@torveai/node';
 
 // Identity & P2P
-import { loadOrCreateIdentity, type Identity, type IdentityStore, FileIdentityStore } from '@antseed/node';
-import { NatTraversal, type NatMapping, type NatTraversalResult } from '@antseed/node';
+import { loadOrCreateIdentity, type Identity, type IdentityStore, FileIdentityStore } from '@torveai/node';
+import { NatTraversal, type NatMapping, type NatTraversalResult } from '@torveai/node';
 
 // Discovery
-import { DHTNode, DEFAULT_DHT_CONFIG } from '@antseed/node';
-import { OFFICIAL_BOOTSTRAP_NODES, mergeBootstrapNodes, toBootstrapConfig } from '@antseed/node';
-import { MetadataServer, type MetadataServerConfig } from '@antseed/node';
-import type { PeerMetadata, ProviderAnnouncement } from '@antseed/node';
+import { DHTNode, DEFAULT_DHT_CONFIG } from '@torveai/node';
+import { OFFICIAL_BOOTSTRAP_NODES, mergeBootstrapNodes, toBootstrapConfig } from '@torveai/node';
+import { MetadataServer, type MetadataServerConfig } from '@torveai/node';
+import type { PeerMetadata, ProviderAnnouncement } from '@torveai/node';
 
 // Metering & Payments
-import { MeteringStorage } from '@antseed/node';
-import { BalanceManager } from '@antseed/node';
-import { BuyerPaymentManager, calculateSettlement } from '@antseed/node/payments';
-import { BaseChannelsClient } from '@antseed/node';
+import { MeteringStorage } from '@torveai/node';
+import { BalanceManager } from '@torveai/node';
+import { BuyerPaymentManager, calculateSettlement } from '@torveai/node/payments';
+import { BaseChannelsClient } from '@torveai/node';
 
 // Routing & Proxy
-import { ProxyMux } from '@antseed/node';
-import { DefaultRouter, type DefaultRouterConfig } from '@antseed/node';
-import { resolveProvider } from '@antseed/node';
+import { ProxyMux } from '@torveai/node';
+import { DefaultRouter, type DefaultRouterConfig } from '@torveai/node';
+import { resolveProvider } from '@torveai/node';
 // Plugin system
-import { loadPluginModule, loadAllPlugins } from '@antseed/node';
-import type { ConfigField } from '@antseed/node';
+import { loadPluginModule, loadAllPlugins } from '@torveai/node';
+import type { ConfigField } from '@torveai/node';
 ```
 
 Submodule imports are also available:
 
 ```ts
-import { DHTNode } from '@antseed/node/discovery';
-import { MeteringStorage } from '@antseed/node/metering';
-import { BalanceManager } from '@antseed/node/payments';
+import { DHTNode } from '@torveai/node/discovery';
+import { MeteringStorage } from '@torveai/node/metering';
+import { BalanceManager } from '@torveai/node/payments';
 ```
 
 ## Provider Interface
@@ -415,14 +415,14 @@ interface Router {
 }
 ```
 
-If no router is set, the SDK uses a built-in `DefaultRouter` that selects the cheapest peer above a minimum reputation threshold. The CLI buyer proxy adds a model-specific planning layer before dispatch: bare model ids are canonicalized and ranked with `@antseed/node/model-routing` using shared Price + Trust preferences, health signals, and seller access rules. Explicit peer pins bypass automatic peer selection.
+If no router is set, the SDK uses a built-in `DefaultRouter` that selects the cheapest peer above a minimum reputation threshold. The CLI buyer proxy adds a model-specific planning layer before dispatch: bare model ids are canonicalized and ranked with `@torveai/node/model-routing` using shared Price + Trust preferences, health signals, and seller access rules. Explicit peer pins bypass automatic peer selection.
 
 ## Building a Custom Provider Plugin
 
 A provider plugin wraps a `Provider` so it can be installed and configured through the CLI.
 
 ```ts
-import type { AntseedProviderPlugin, Provider, SerializedHttpRequest, SerializedHttpResponse } from '@antseed/node';
+import type { TorveProviderPlugin, Provider, SerializedHttpRequest, SerializedHttpResponse } from '@torveai/node';
 
 class MyProvider implements Provider {
   readonly name = 'my-provider';
@@ -468,12 +468,12 @@ class MyProvider implements Provider {
   }
 }
 
-const plugin: AntseedProviderPlugin = {
+const plugin: TorveProviderPlugin = {
   name: 'my-provider',
   displayName: 'My Provider',
   version: '1.0.0',
   type: 'provider',
-  description: 'Provides My LLM capacity on the Antseed Network',
+  description: 'Provides My LLM capacity on the Torve Network',
   configSchema: [
     { key: 'MY_API_KEY', label: 'API Key', type: 'secret', required: true, description: 'API key for My LLM' },
     { key: 'MY_SERVICES', label: 'Services', type: 'string[]', required: false, description: 'Comma-separated service list' },
@@ -497,7 +497,7 @@ export default plugin;
 A router plugin wraps a `Router` for CLI-based installation and configuration.
 
 ```ts
-import type { AntseedRouterPlugin, Router, PeerInfo, SerializedHttpRequest } from '@antseed/node';
+import type { TorveRouterPlugin, Router, PeerInfo, SerializedHttpRequest } from '@torveai/node';
 
 class CheapestRouter implements Router {
   private readonly _maxInputUsdPerMillion: number;
@@ -518,7 +518,7 @@ class CheapestRouter implements Router {
   }
 }
 
-const plugin: AntseedRouterPlugin = {
+const plugin: TorveRouterPlugin = {
   name: 'cheapest',
   displayName: 'Cheapest Router',
   version: '1.0.0',
@@ -538,10 +538,10 @@ export default plugin;
 
 ## Plugin Ecosystem
 
-The Antseed plugin system uses a simple contract:
+The Torve plugin system uses a simple contract:
 
-1. **Provider plugins** (`AntseedProviderPlugin`) export a default object with `type: 'provider'` and a `createProvider(config)` factory.
-2. **Router plugins** (`AntseedRouterPlugin`) export a default object with `type: 'router'` and a `createRouter(config)` factory.
+1. **Provider plugins** (`TorveProviderPlugin`) export a default object with `type: 'provider'` and a `createProvider(config)` factory.
+2. **Router plugins** (`TorveRouterPlugin`) export a default object with `type: 'router'` and a `createRouter(config)` factory.
 3. Both plugin types declare their configuration via `configSchema`, an array of `ConfigField` objects:
 
 ```ts
@@ -555,9 +555,9 @@ interface ConfigField {
 }
 ```
 
-The CLI reads these keys from environment variables and passes them as a `Record<string, string>` to the factory function. Plugins are installed with `antseed plugin add <package-name>`.
+The CLI reads these keys from environment variables and passes them as a `Record<string, string>` to the factory function. Plugins are installed with `torve plugin add <package-name>`.
 
 ## Links
 
-- [npm](https://www.npmjs.com/package/@antseed/node)
-- [GitHub](https://github.com/AntSeed/node)
+- [npm](https://www.npmjs.com/package/@torveai/node)
+- [GitHub](https://github.com/Torve/node)

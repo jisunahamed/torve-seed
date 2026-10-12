@@ -20,7 +20,7 @@ const walletTheme = darkTheme({ accentColor: '#1fd87a', accentColorForeground: '
 const WalletRoot = WagmiProvider as unknown as ComponentType<{ config: ReturnType<typeof getDefaultConfig>; children: ReactNode }>;
 export function WalletProvider({ config, children }: { config: DashboardConfig; children: ReactNode }) {
   const wagmi = useMemo(() => getDefaultConfig({
-    appName: 'AntSeed Staking', projectId: '9a1851410cb5589bc351a6dabf17140e',
+    appName: 'Torve Staking', projectId: '9a1851410cb5589bc351a6dabf17140e',
     chains: [defineChain({ id: config.evmChainId, name: config.chainId, nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
       rpcUrls: { default: { http: [config.walletRpcUrl ?? (config.evmChainId === 8453 ? 'https://mainnet.base.org' : config.evmChainId === 84532 ? 'https://sepolia.base.org' : 'http://127.0.0.1:8545')] } } })],
     transports: { [config.evmChainId]: http() },

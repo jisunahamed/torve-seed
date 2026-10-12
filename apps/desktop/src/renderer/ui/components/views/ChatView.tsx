@@ -47,7 +47,7 @@ import { cancelVoiceRecording, startVoiceRecording, stopVoiceRecording } from '.
 import styles from './ChatView.module.scss';
 import bubbleStyles from '../chat/ChatBubble.module.scss';
 
-const SWITCH_DIALOG_DISMISSED_KEY = 'antseed:switchServiceConfirmDismissed';
+const SWITCH_DIALOG_DISMISSED_KEY = 'torve:switchServiceConfirmDismissed';
 const LOW_REPUTATION_SCORE_THRESHOLD = 50;
 
 const MAX_INPUT_HEIGHT = 220;
@@ -1029,7 +1029,7 @@ export function ChatView({ onSelectView }: ChatViewProps) {
           setVoiceState('idle');
           return;
         }
-        const result = await window.antseedDesktop?.voiceTranscribe?.(recording.audio);
+        const result = await window.torveDesktop?.voiceTranscribe?.(recording.audio);
         if (!result?.ok) throw new Error(result?.error || 'Local transcription failed.');
         const transcript = result.text?.trim();
         if (transcript) {
@@ -1087,7 +1087,7 @@ export function ChatView({ onSelectView }: ChatViewProps) {
     if (inputRef.current) inputRef.current.focus();
 
     // Also send via bridge for providers that handle element selection
-    const bridge = (window as unknown as { antseedDesktop?: { sendBrowserPreviewElementSelected?: (data: unknown) => void } }).antseedDesktop;
+    const bridge = (window as unknown as { torveDesktop?: { sendBrowserPreviewElementSelected?: (data: unknown) => void } }).torveDesktop;
     bridge?.sendBrowserPreviewElementSelected?.(info);
   }, []);
 

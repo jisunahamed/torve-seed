@@ -2,7 +2,7 @@ import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { DEFAULT_MODEL_ROUTING_PREFERENCES } from '@antseed/node/model-routing';
+import { DEFAULT_MODEL_ROUTING_PREFERENCES } from '@torveai/node/model-routing';
 import { DEFAULT_CONFIG_PATH } from '../constants.js';
 import { asString, asNumber } from '../utils.js';
 
@@ -15,7 +15,7 @@ export const DESKTOP_DEFAULT_SELLER_MAX_CONCURRENT_BUYERS = 50;
 const ROUTING_PEER_ID_PATTERN = /^(?:0x)?[0-9a-f]{40}$/i;
 
 const DEFAULT_CONFIG: Record<string, unknown> = {
-  identity: { displayName: 'Antseed Node' },
+  identity: { displayName: 'Torve Node' },
   seller: {
     reserveFloor: 10,
     maxConcurrentBuyers: DESKTOP_DEFAULT_SELLER_MAX_CONCURRENT_BUYERS,
@@ -307,7 +307,7 @@ export async function readDaemonState(configPath = DEFAULT_CONFIG_PATH): Promise
 
 /**
  * Build a status-like object from daemon.state.json.
- * Uses the same data directory as the config path so ANTSEED_CONFIG_PATH is respected.
+ * Uses the same data directory as the config path so TORVE_CONFIG_PATH is respected.
  */
 export async function readNodeStatus(configPath = DEFAULT_CONFIG_PATH): Promise<Record<string, unknown>> {
   const state = await readDaemonState(configPath);

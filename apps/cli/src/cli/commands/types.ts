@@ -12,7 +12,7 @@ export interface GlobalOptions {
   verbose: boolean;
 }
 
-const NEW_HOME_DIR = join(homedir(), '.antseed');
+const NEW_HOME_DIR = join(homedir(), '.torve');
 const NEW_CONFIG_PATH = join(NEW_HOME_DIR, 'config.json');
 
 function resolvePathWithHome(pathLike: string, fallbackAbsolutePath: string): string {
@@ -43,16 +43,16 @@ export function getGlobalOptions(program: Command): GlobalOptions {
     ? program.optsWithGlobals()
     : program.opts();
   const verbose = opts['verbose'] ?? false;
-  if (verbose || isTruthyEnv(process.env['ANTSEED_DEBUG'])) {
-    process.env['ANTSEED_DEBUG'] = '1';
+  if (verbose || isTruthyEnv(process.env['TORVE_DEBUG'])) {
+    process.env['TORVE_DEBUG'] = '1';
   }
 
   const requestedConfig = resolvePathWithHome(
-    opts['config'] ?? process.env['ANTSEED_CONFIG'] ?? '~/.antseed/config.json',
+    opts['config'] ?? process.env['TORVE_CONFIG'] ?? '~/.torve/config.json',
     NEW_CONFIG_PATH,
   );
   const requestedDataDir = resolvePathWithHome(
-    opts['dataDir'] ?? process.env['ANTSEED_DATA_DIR'] ?? '~/.antseed',
+    opts['dataDir'] ?? process.env['TORVE_DATA_DIR'] ?? '~/.torve',
     NEW_HOME_DIR,
   );
 

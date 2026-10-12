@@ -24,7 +24,7 @@ describe('telemetrySurfaceForView', () => {
 describe('user action delivery', () => {
   it('sends discrete actions immediately', () => {
     const telemetryRecordUserAction = vi.fn().mockResolvedValue({ ok: true });
-    vi.stubGlobal('window', { antseedDesktop: { telemetryRecordUserAction } });
+    vi.stubGlobal('window', { torveDesktop: { telemetryRecordUserAction } });
 
     recordUserAction('chat_send', 'chat');
 
@@ -35,7 +35,7 @@ describe('user action delivery', () => {
   it('coalesces repeated actions until the 500 ms quiet window expires', () => {
     vi.useFakeTimers();
     const telemetryRecordUserAction = vi.fn().mockResolvedValue({ ok: true });
-    vi.stubGlobal('window', { antseedDesktop: { telemetryRecordUserAction } });
+    vi.stubGlobal('window', { torveDesktop: { telemetryRecordUserAction } });
 
     recordUserActionCoalesced('routing_preferences_change', 'preferences');
     vi.advanceTimersByTime(300);
@@ -54,7 +54,7 @@ describe('user action delivery', () => {
   it('coalesces action and surface pairs independently', () => {
     vi.useFakeTimers();
     const telemetryRecordUserAction = vi.fn().mockResolvedValue({ ok: true });
-    vi.stubGlobal('window', { antseedDesktop: { telemetryRecordUserAction } });
+    vi.stubGlobal('window', { torveDesktop: { telemetryRecordUserAction } });
 
     recordUserActionCoalesced('routing_preferences_change', 'preferences');
     recordUserActionCoalesced('view_opened', 'preferences');

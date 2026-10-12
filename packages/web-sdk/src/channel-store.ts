@@ -4,9 +4,9 @@ import type {
   ChannelRole,
   ChannelStatus,
   StoredChannel,
-} from '@antseed/buyer-core/channel-store-types';
-import { CHANNEL_KIND, CHANNEL_STATUS } from '@antseed/buyer-core/channel-store-types';
-import type { SpendingAuthMetadata, SpendingAuthServiceMetadata } from '@antseed/protocol/signatures';
+} from '@torveai/buyer-core/channel-store-types';
+import { CHANNEL_KIND, CHANNEL_STATUS } from '@torveai/buyer-core/channel-store-types';
+import type { SpendingAuthMetadata, SpendingAuthServiceMetadata } from '@torveai/protocol/signatures';
 
 export class MemoryChannelStore implements BuyerChannelStore {
   protected channels = new Map<string, StoredChannel>();

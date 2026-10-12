@@ -1,6 +1,6 @@
 // Main facade
 export {
-  AntseedNode,
+  TorveNode,
   type NodeConfig,
   type NodePaymentsConfig,
   type NodeRelayerConfig,
@@ -15,7 +15,7 @@ export {
 } from './node.js';
 export { DEFAULT_BUYER_IDENTITY, isValidBuyerIdentityName } from './buyer-identity-context.js';
 export type { Provider, ProviderStreamCallbacks } from './interfaces/seller-provider.js';
-export { VIDEO_DOWNLOAD_STREAM_HEADER, VIDEO_DOWNLOAD_STREAM_VERSION, VIDEO_DOWNLOAD_MAX_BYTES, VIDEO_DOWNLOAD_CHUNK_BYTES, ANTSEED_STREAMING_RESPONSE_HEADER } from './types/http.js';
+export { VIDEO_DOWNLOAD_STREAM_HEADER, VIDEO_DOWNLOAD_STREAM_VERSION, VIDEO_DOWNLOAD_MAX_BYTES, VIDEO_DOWNLOAD_CHUNK_BYTES, TORVE_STREAMING_RESPONSE_HEADER } from './types/http.js';
 export {
   ModelHealthChecker,
   DEFAULT_HEALTH_CHECK_INTERVAL_MS,
@@ -51,15 +51,15 @@ export {
 
 // Fault attribution — lets consumers tell a dead peer from a broken buyer.
 export {
-  AntseedRequestError,
+  TorveRequestError,
   buyerFault,
   peerFault,
   faultAttributionOf,
   faultCodeOf,
   type FaultAttribution,
-  type AntseedErrorCode,
+  type TorveErrorCode,
 } from './errors.js';
-export { adaptPeerFaultErrorResponse } from '@antseed/buyer-core';
+export { adaptPeerFaultErrorResponse } from '@torveai/buyer-core';
 
 // Submodule re-exports (commonly used)
 export {
@@ -309,8 +309,8 @@ export {
   type ScoredModelRoute,
 } from './routing/model-route-ranking.js';
 
-export type { AntseedPlugin, AntseedProviderPlugin, AntseedRouterPlugin, AntseedVerifierPlugin, Prover, VerifyContext, VerifyResult, ClaimResult, SellerRequest, SellerResponse, PluginConfigKey, ConfigField } from './interfaces/plugin.js'
-export { ANTSEED_ATTEST_PATH } from './interfaces/plugin.js'
+export type { TorvePlugin, TorveProviderPlugin, TorveRouterPlugin, TorveVerifierPlugin, Prover, VerifyContext, VerifyResult, ClaimResult, SellerRequest, SellerResponse, PluginConfigKey, ConfigField } from './interfaces/plugin.js'
+export { TORVE_ATTEST_PATH } from './interfaces/plugin.js'
 
 // Reputation
 export { UptimeTracker } from './reputation/uptime-tracker.js';

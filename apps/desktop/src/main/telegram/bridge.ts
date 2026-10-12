@@ -58,7 +58,7 @@ export type TelegramBridgeOptions = {
   onStatusChanged?: (status: TelegramBridgeStatus) => void;
 };
 
-const OFFLINE_NOTE = 'I can only answer while your computer is on and the Antseed AI VPN is running.';
+const OFFLINE_NOTE = 'I can only answer while your computer is on and the Torve AI VPN is running.';
 /** Cap on the best-effort goodbye send so a slow network can never delay quit. */
 const GOODBYE_TIMEOUT_MS = 3_000;
 
@@ -136,7 +136,7 @@ function extractTextFromUiMessage(payload: unknown): string {
 
 function describeStreamError(error: string, stopReason?: ChatStreamStopReason): string {
   if (stopReason?.kind === 'payment_required' || /payment_required/i.test(error)) {
-    return 'Payment required — open the Antseed AI VPN to add credits, then send your message again.';
+    return 'Payment required — open the Torve AI VPN to add credits, then send your message again.';
   }
   if (stopReason?.kind === 'aborted' || /aborted/i.test(error)) {
     return 'Stopped.';
@@ -373,7 +373,7 @@ export function createTelegramBridge({ engine, appendLog, onStatusChanged }: Tel
     let routed: { peerId: string; service: string } | null = null;
     try {
       const port = await engine.getProxyPort();
-      const response = await fetch(`${LOCALHOST_URL}:${port}/_antseed/route`);
+      const response = await fetch(`${LOCALHOST_URL}:${port}/_torve/route`);
       const body = await response.json() as { ok?: boolean; model?: string | null };
       const model = typeof body.model === 'string' ? body.model.trim() : '';
       const at = model.indexOf('@');
@@ -582,7 +582,7 @@ export function createTelegramBridge({ engine, appendLog, onStatusChanged }: Tel
     }
     // Never respond with anything useful to strangers poking an unpaired bot.
     try {
-      await client?.sendMessage(message.chat.id, 'This bot is not paired. Pair it from the Antseed AI VPN on your computer.');
+      await client?.sendMessage(message.chat.id, 'This bot is not paired. Pair it from the Torve AI VPN on your computer.');
     } catch {
       // Ignore.
     }
@@ -836,7 +836,7 @@ export function createTelegramBridge({ engine, appendLog, onStatusChanged }: Tel
       }
       if (!wasRunning || settings?.ownerChatId == null) return;
       await Promise.race([
-        sendToOwner(`Going offline — the Antseed AI VPN is closing. ${OFFLINE_NOTE}`),
+        sendToOwner(`Going offline — the Torve AI VPN is closing. ${OFFLINE_NOTE}`),
         new Promise((resolve) => { setTimeout(resolve, GOODBYE_TIMEOUT_MS); }),
       ]);
     },

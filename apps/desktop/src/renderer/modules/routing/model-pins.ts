@@ -10,7 +10,7 @@
 
 import { canonicalModelKey, canonicalPersistedModelKey } from '../catalog/model-identity.js';
 
-export const VPR_MODEL_PINS_STORAGE_KEY = 'antseed.desktop.vpr.modelPins';
+export const VPR_MODEL_PINS_STORAGE_KEY = 'torve.desktop.vpr.modelPins';
 
 export type VprModelPins = Record<string, string>;
 

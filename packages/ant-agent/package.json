@@ -1,7 +1,7 @@
 {
-  "name": "@antseed/ant-agent",
+  "name": "@torveai/ant-agent",
   "version": "0.1.35",
-  "description": "Ant agent runtime for AntSeed — monetize knowledge with read-only, knowledge-augmented AI agents",
+  "description": "Ant agent runtime for Torve — monetize knowledge with read-only, knowledge-augmented AI agents",
   "type": "module",
   "files": [
     "dist"
@@ -15,11 +15,11 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@antseed/node": ">=0.1.0"
+    "@torveai/node": ">=0.1.0"
   },
   "devDependencies": {
     "typescript": "^5.5.0",
     "vitest": "^2.0.0",
-    "@antseed/node": "workspace:*"
+    "@torveai/node": "workspace:*"
   }
 }

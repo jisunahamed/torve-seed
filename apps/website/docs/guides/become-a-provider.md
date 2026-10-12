@@ -7,10 +7,10 @@ hide_title: true
 
 # Become a Provider
 
-Providers earn USDC by serving AI requests on the Antseed network. This guide covers everything from setup to your first request.
+Providers earn USDC by serving AI requests on the Torve network. This guide covers everything from setup to your first request.
 
 :::warning Provider Compliance
-Antseed is designed for providers who build differentiated services — such as TEE-secured inference, domain-specific skills or agents, fine-tuned models, or managed product experiences. Simply reselling raw API access or subscription credentials is not the intended use and may violate your upstream provider's terms of service. Providers are solely responsible for complying with their upstream API provider's terms.
+Torve is designed for providers who build differentiated services — such as TEE-secured inference, domain-specific skills or agents, fine-tuned models, or managed product experiences. Simply reselling raw API access or subscription credentials is not the intended use and may violate your upstream provider's terms of service. Providers are solely responsible for complying with their upstream API provider's terms.
 :::
 
 :::info Seller ANTS emissions
@@ -18,7 +18,7 @@ From epoch 22 (September 10, 2026), ANTS rewards use recognized usage and
 seller-pool stake. USDC earnings are separate. See [ANTS rewards](/docs/recognized-usage)
 for the new model and [legacy claims](/docs/legacy-emissions) for earlier rewards.
 
-The CLI checks `AntseedRegistry` to determine whether the recognized-usage upgrade is active. Before the upgrade, seller rewards follow the existing emissions path. After it, finalized earlier rewards remain claimable and new seller/operator plus pool-staker rewards use the recognized-usage contracts.
+The CLI checks `TorveRegistry` to determine whether the recognized-usage upgrade is active. Before the upgrade, seller rewards follow the existing emissions path. After it, finalized earlier rewards remain claimable and new seller/operator plus pool-staker rewards use the recognized-usage contracts.
 :::
 
 ## Prerequisites
@@ -27,12 +27,12 @@ The CLI checks `AntseedRegistry` to determine whether the recognized-usage upgra
 - An AI API key (Anthropic, OpenAI, Together AI, or a local model)
 - A secp256k1 private key (your node identity)
 - ETH on Base Mainnet for seller transaction fees; the cost varies with gas usage and network fees
-- An on-chain seller registration (`antseed seller register`). Staking is optional; see [staking and starter positions](/docs/recognized-usage)
+- An on-chain seller registration (`torve seller register`). Staking is optional; see [staking and starter positions](/docs/recognized-usage)
 
 ## 1. Install
 
 ```bash
-npm install -g @antseed/cli
+npm install -g @torveai/cli
 ```
 
 ## 2. Set Up Your Provider
@@ -40,15 +40,15 @@ npm install -g @antseed/cli
 Use the interactive wizard for first-time setup:
 
 ```bash
-antseed seller setup
+torve seller setup
 ```
 
-This creates or updates `~/.antseed/config.json`. Once that file contains your provider and service definitions, the normal runtime command is just `antseed seller start`.
+This creates or updates `~/.torve/config.json`. Once that file contains your provider and service definitions, the normal runtime command is just `torve seller start`.
 
 Or configure it manually:
 
 ```bash
-antseed config seller add-provider together \
+torve config seller add-provider together \
   --plugin openai \
   --base-url https://api.together.ai \
   --input 1 --cached 0.1 --output 2
@@ -59,14 +59,14 @@ antseed config seller add-provider together \
 Then add one or more services:
 
 ```bash
-antseed config seller add-service together deepseek-v3.1 \
+torve config seller add-service together deepseek-v3.1 \
   --upstream "deepseek-ai/DeepSeek-V3.1" \
   --input 0.6 --cached 0.06 --output 1.7 \
   --categories chat,math,coding
 ```
 
-:::tip You're editing `~/.antseed/config.json`
-Every `antseed seller setup` / `antseed config seller ...` command is just a safe way to edit a single file: `~/.antseed/config.json`. You can open it in any editor at any time and change providers, services, pricing, capabilities, unit billing, categories, or `baseUrl` by hand — the CLI and the JSON file are interchangeable.
+:::tip You're editing `~/.torve/config.json`
+Every `torve seller setup` / `torve config seller ...` command is just a safe way to edit a single file: `~/.torve/config.json`. You can open it in any editor at any time and change providers, services, pricing, capabilities, unit billing, categories, or `baseUrl` by hand — the CLI and the JSON file are interchangeable.
 
 After running the commands above, your file will look something like this:
 
@@ -99,7 +99,7 @@ After running the commands above, your file will look something like this:
 }
 ```
 
-See [Configuration](/docs/config) for the full schema, or run `antseed config seller show` to print your current file.
+See [Configuration](/docs/config) for the full schema, or run `torve config seller show` to print your current file.
 :::
 
 ## 3. Set Your Identity
@@ -107,7 +107,7 @@ See [Configuration](/docs/config) for the full schema, or run `antseed config se
 Your identity is a secp256k1 private key that serves as both your PeerId and your on-chain wallet address.
 
 ```bash
-export ANTSEED_IDENTITY_HEX=<your-64-char-hex-private-key>
+export TORVE_IDENTITY_HEX=<your-64-char-hex-private-key>
 ```
 
 :::tip
@@ -118,17 +118,17 @@ Use a dedicated key for your provider node. Generate one with any EVM wallet too
 
 Production providers can attach public ownership proofs to their signed peer metadata. This helps buyers and directories recognize that a peer is operated by the same party that controls a domain or GitHub account.
 
-These proofs bind to your **peer ID** — the EVM address derived from `ANTSEED_IDENTITY_HEX`. If your deployment uses a seller contract or staking proxy, do not put the contract address in the proof. Buyers verify seller-contract delegation separately.
+These proofs bind to your **peer ID** — the EVM address derived from `TORVE_IDENTITY_HEX`. If your deployment uses a seller contract or staking proxy, do not put the contract address in the proof. Buyers verify seller-contract delegation separately.
 
-To verify a domain with DNS, create a TXT record at `_antseed.<domain>`:
+To verify a domain with DNS, create a TXT record at `_torve.<domain>`:
 
 ```text
-Name:  _antseed.provider.example.com
+Name:  _torve.provider.example.com
 Type:  TXT
-Value: antseed-peer=<your-peer-id-without-0x>
+Value: torve-peer=<your-peer-id-without-0x>
 ```
 
-Then add the claim to `~/.antseed/config.json`:
+Then add the claim to `~/.torve/config.json`:
 
 ```json
 {
@@ -145,11 +145,11 @@ Then add the claim to `~/.antseed/config.json`:
 }
 ```
 
-To verify GitHub, create a public repository containing `antseed.json` at the root:
+To verify GitHub, create a public repository containing `torve.json` at the root:
 
 ```json
 {
-  "type": "antseed-github-verification",
+  "type": "torve-github-verification",
   "peerId": "<your-peer-id-without-0x>",
   "username": "example-org"
 }
@@ -164,7 +164,7 @@ Then add:
       "github": [
         {
           "username": "example-org",
-          "repository": "antseed-verification"
+          "repository": "torve-verification"
         }
       ]
     }
@@ -181,23 +181,23 @@ Production sellers should use their own Base JSON-RPC endpoint instead of relyin
 Set the standard environment variable in your deployment shell:
 
 ```bash
-export ANTSEED_BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/<key>
-antseed seller start
+export TORVE_BASE_RPC_URL=https://base-mainnet.g.alchemy.com/v2/<key>
+torve seller start
 ```
 
 You can also pass it for a one-off seller run:
 
 ```bash
-antseed seller start --base-rpc-url https://base-mainnet.infura.io/v3/<key>
+torve seller start --base-rpc-url https://base-mainnet.infura.io/v3/<key>
 ```
 
 For durable config-file based deployments, store it under `payments.crypto.rpcUrl`:
 
 ```bash
-antseed config set payments.crypto.rpcUrl "https://base-mainnet.g.alchemy.com/v2/<key>"
+torve config set payments.crypto.rpcUrl "https://base-mainnet.g.alchemy.com/v2/<key>"
 ```
 
-Runtime precedence is: `--base-rpc-url` flag, then `ANTSEED_BASE_RPC_URL`, then `payments.crypto.rpcUrl`, then Antseed's built-in Base defaults.
+Runtime precedence is: `--base-rpc-url` flag, then `TORVE_BASE_RPC_URL`, then `payments.crypto.rpcUrl`, then Torve's built-in Base defaults.
 
 ## 5. Fund Your Wallet
 
@@ -208,26 +208,26 @@ Your wallet address needs:
 Send both to the EVM address derived from your identity key. You can find your address with:
 
 ```bash
-antseed seller status
+torve seller status
 ```
 
 ## 6. Register (Staking Optional)
 
 ```bash
 # Register your identity on-chain (ERC-8004)
-antseed seller register
+torve seller register
 
 # Verify everything is ready
-antseed seller status
+torve seller status
 ```
 
 Staking is optional. The seller registry's minimum pool stake is currently 0, so a registered seller can start selling without staking. Stake ANTS into your seller pool to earn recognized-usage rewards:
 
 ```bash
-antseed seller register
-antseed seller legacy claim-starter
-antseed seller stake 100 --epochs 4
-antseed seller pool positions
+torve seller register
+torve seller legacy claim-starter
+torve seller stake 100 --epochs 4
+torve seller pool positions
 ```
 
 `seller stake` always means ANTS; use `seller legacy stake` for USDC on networks that have not upgraded. The starter claim is only for eligible legacy sellers; new sellers register and stake ANTS without that step.
@@ -240,7 +240,7 @@ Everything you announce on the network lives in `config.json` under `seller.prov
 
 ```bash
 # OpenRouter (OpenAI-compatible): offer GLM-5, tagged for chat + coding
-antseed config seller add-service openrouter glm-5 \
+torve config seller add-service openrouter glm-5 \
   --upstream "z-ai/glm-5" \
   --input 0.8 --output 2.4 \
   --categories chat,coding \
@@ -249,7 +249,7 @@ antseed config seller add-service openrouter glm-5 \
 
 ```bash
 # Together AI (OpenAI-compatible): offer Kimi K2.5 and DeepSeek V3.1
-antseed config seller add-service together kimi-k2.5 \
+torve config seller add-service together kimi-k2.5 \
   --upstream "moonshotai/Kimi-K2.5" \
   --input 0.5 --output 2.8 \
   --categories math,coding \
@@ -257,7 +257,7 @@ antseed config seller add-service together kimi-k2.5 \
 
 # --cached is optional — set it when your upstream offers
 # a discounted price for cached-input tokens
-antseed config seller add-service together deepseek-v3.1 \
+torve config seller add-service together deepseek-v3.1 \
   --upstream "deepseek-ai/DeepSeek-V3.1" \
   --input 0.6 --cached 0.06 --output 1.7 \
   --categories chat,math,coding
@@ -265,7 +265,7 @@ antseed config seller add-service together deepseek-v3.1 \
 
 ```bash
 # Local model (Ollama) — one announced service per local model
-antseed config seller add-service local-llm llama3.2:3b \
+torve config seller add-service local-llm llama3.2:3b \
   --input 0 --output 0 \
   --capabilities '{"contextWindow":131072,"inputs":["text"],"toolUse":true}' \
   --categories chat,fast,free
@@ -273,7 +273,7 @@ antseed config seller add-service local-llm llama3.2:3b \
 
 ```bash
 # Image generation only: text prompt in, image out
-antseed config seller add-service openai flux.1-schnell \
+torve config seller add-service openai flux.1-schnell \
   --upstream "black-forest-labs/FLUX.1-schnell" \
   --input 0 --output 0 \
   --categories image,creative \
@@ -284,7 +284,7 @@ antseed config seller add-service openai flux.1-schnell \
 ```bash
 # Image generation + editing: advertise image input only when this configured
 # upstream service accepts image edit requests end to end
-antseed config seller add-service openai image-studio \
+torve config seller add-service openai image-studio \
   --upstream "edit-capable-upstream-model" \
   --input 0 --output 0 \
   --categories image,creative \
@@ -294,7 +294,7 @@ antseed config seller add-service openai image-studio \
 
 The `--upstream` flag maps the buyer-facing service name to the upstream model id. Omit it when they're the same.
 
-For an `openai-images` service, `outputs: ["image"]` identifies an image result. Input modalities are an operational routing contract: `inputs: ["text"]` means generation only, while `inputs: ["text", "image"]` means the seller can accept both `/v1/images/generations` and multipart `/v1/images/edits`. Do not advertise `image` input merely because the upstream platform offers editing somewhere; the exact configured service and provider adapter must support the edit request end to end. In particular, Venice-backed services must remain generation-only until Antseed has a native Venice edit adapter.
+For an `openai-images` service, `outputs: ["image"]` identifies an image result. Input modalities are an operational routing contract: `inputs: ["text"]` means generation only, while `inputs: ["text", "image"]` means the seller can accept both `/v1/images/generations` and multipart `/v1/images/edits`. Do not advertise `image` input merely because the upstream platform offers editing somewhere; the exact configured service and provider adapter must support the edit request end to end. In particular, Venice-backed services must remain generation-only until Torve has a native Venice edit adapter.
 
 Unit billing is supported by the `openai` provider for `openai-images` and by the `venice-video` and `fal-video` providers for video; startup warns if a different plugin ignores the setting. Image and video services remain advertised but are skipped by periodic health checks to avoid generating paid probes.
 
@@ -303,10 +303,10 @@ Unit billing is supported by the `openai` provider for `openai-images` and by th
 To integrate your video model, implement the [Venice video API](https://docs.venice.ai/api-reference/endpoint/video/queue) specification, then point the `venice-video` provider at it:
 
 ```bash
-antseed config seller add-provider venice-video --plugin venice-video \
+torve config seller add-provider venice-video --plugin venice-video \
   --base-url https://video.example.com
 
-antseed config seller add-service venice-video <video-model> \
+torve config seller add-service venice-video <video-model> \
   --capabilities '{"video":{"durationsSeconds":[5,10],"resolutions":["720p"]}}' \
   --unit-billing-models '{"venice-video":{"version":1,"components":[{"unit":"video_generations","priceUsd":0.5}]}}'
 ```
@@ -317,9 +317,9 @@ To serve [fal.ai](https://fal.ai/models) video models, use the `fal-video` provi
 
 ```bash
 export FAL_VIDEO_API_KEY=<your-fal-key>
-antseed config seller add-provider fal --plugin fal-video
+torve config seller add-provider fal --plugin fal-video
 
-antseed config seller add-service fal fal-ai/kling-video/v2.1/standard/text-to-video \
+torve config seller add-service fal fal-ai/kling-video/v2.1/standard/text-to-video \
   --unit-billing-models '{"fal-video":{"version":1,"components":[{"unit":"video_seconds","priceUsd":0.1}]}}'
 ```
 
@@ -365,7 +365,7 @@ A video is charged only when it is delivered as a complete MP4 of at least 90% o
 You only have to do this once per service. To see what you've configured:
 
 ```bash
-antseed config seller show
+torve config seller show
 ```
 
 ## 8. Set Your API Key and Start Selling
@@ -377,22 +377,22 @@ That means the common startup flow is:
 ```bash
 # Anthropic config in config.json, secret in env
 export ANTHROPIC_API_KEY=<your-key>
-antseed seller start
+torve seller start
 
 # OpenAI-compatible config in config.json, secret in env
 export OPENAI_API_KEY=<your-key>
-antseed seller start
+torve seller start
 
 # Local model
-antseed seller start
+torve seller start
 ```
 
-If you configured Together or OpenRouter with `--base-url` during setup, you do not need to export `OPENAI_BASE_URL` separately. `antseed seller start` reads `baseUrl` from `config.json` and passes it to the `openai` plugin automatically.
+If you configured Together or OpenRouter with `--base-url` during setup, you do not need to export `OPENAI_BASE_URL` separately. `torve seller start` reads `baseUrl` from `config.json` and passes it to the `openai` plugin automatically.
 
 Runtime overrides for a one-off session (without editing `config.json`):
 
 ```bash
-antseed seller start --provider anthropic --input-usd-per-million 3 --output-usd-per-million 15
+torve seller start --provider anthropic --input-usd-per-million 3 --output-usd-per-million 15
 ```
 
 ## 9. Verify
@@ -401,10 +401,10 @@ Once running, your node is discoverable on the network:
 
 ```bash
 # From another terminal, browse available providers
-antseed network browse
+torve network browse
 ```
 
-For production monitoring, expose seller metrics with `antseed metrics serve --role seller`. See [Metrics](/docs/guides/metrics).
+For production monitoring, expose seller metrics with `torve metrics serve --role seller`. See [Metrics](/docs/guides/metrics).
 
 :::warning Upgrade buyers before sellers
 This release emits discovery metadata v12. Older buyers reject newer metadata and will not see upgraded sellers. Follow the [metadata v12 upgrade guide](/docs/guides/metadata-v12-upgrade) when rolling out a mixed buyer/seller fleet.
@@ -445,4 +445,4 @@ that principal penalty is separate from the usage-points filter.
 
 If you're using Claude Code or another agent, this skill can walk you through the full provider setup:
 
-- [`@skills/join-provider`](https://github.com/AntSeed/antseed/tree/main/skills/join-provider) — step-by-step provider setup for Claude Code agents
+- [`@skills/join-provider`](https://github.com/Torve/torve/tree/main/skills/join-provider) — step-by-step provider setup for Claude Code agents

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type { SerializedHttpRequest } from '@antseed/node';
-import { validateRequestService } from '@antseed/provider-core';
+import type { SerializedHttpRequest } from '@torveai/node';
+import { validateRequestService } from '@torveai/provider-core';
 
 function makeRequest(body: string): SerializedHttpRequest {
   return {

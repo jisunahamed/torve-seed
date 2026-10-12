@@ -138,7 +138,7 @@ function RunFirstBanner() {
         <div>
           <p className={styles.runFirstKicker}>
             <span className={styles.runFirstDot} aria-hidden="true" />
-            Run Antseed first
+            Run Torve first
           </p>
           <p className={styles.runFirstSub}>
             Every integration assumes a buyer proxy at <code>http://localhost:8377</code>.
@@ -162,17 +162,17 @@ function RunFirstBanner() {
             <li>
               <strong>Buyer proxy</strong> - a small server on{' '}
               <code>localhost:8377</code> that accepts API calls from your tools and
-              forwards them to the Antseed network. It speaks{' '}
+              forwards them to the Torve network. It speaks{' '}
               <em>all four LLM protocols</em> at once -{' '}
               <code>/v1/messages</code> (Anthropic),{' '}
               <code>/v1/chat/completions</code> (OpenAI Chat),{' '}
               <code>/v1/responses</code> (OpenAI Responses), and{' '}
               <code>/v1/completions</code> (legacy) - and translates between them via{' '}
               <a
-                href="https://github.com/AntSeed/antseed/tree/main/packages/api-adapter"
+                href="https://github.com/Torve/torve/tree/main/packages/api-adapter"
                 target="_blank"
                 rel="noreferrer">
-                <code>@antseed/api-adapter</code>
+                <code>@torveai/api-adapter</code>
               </a>
               . So a tool that only knows Anthropic Messages can still reach an OpenAI
               peer (and vice versa).
@@ -213,9 +213,9 @@ function RunFirstBanner() {
               by the desktop and can fail over on retryable peer failures. A
               recognized conversation softly prefers its previous successful
               seller; pin only when you want one specific seller: a session-wide pin via{' '}
-              <code>antseed buyer connection set --peer &lt;id&gt;</code> (saved to{' '}
-              <code>~/.antseed/buyer.state.json</code>), or a per-request{' '}
-              <code>x-antseed-pin-peer: &lt;id&gt;</code> header (no session state
+              <code>torve buyer connection set --peer &lt;id&gt;</code> (saved to{' '}
+              <code>~/.torve/buyer.state.json</code>), or a per-request{' '}
+              <code>x-torve-pin-peer: &lt;id&gt;</code> header (no session state
               needed). See Step 4.
             </li>
           </ul>
@@ -235,10 +235,10 @@ function RunFirstBanner() {
                 The CLI flow below is for headless machines and scripts:
               </p>
               <CodeBlock
-                snippet={`# 1. Install\nnpm install -g @antseed/cli\n\n# 2. Set a buyer identity (64-char hex private key).\n#    This signs requests; it never holds USDC. Generate once, reuse forever.\nexport ANTSEED_IDENTITY_HEX=$(openssl rand -hex 32)\n\n# 3. Start the proxy on http://localhost:8377\nantseed buyer start`}
+                snippet={`# 1. Install\nnpm install -g @torveai/cli\n\n# 2. Set a buyer identity (64-char hex private key).\n#    This signs requests; it never holds USDC. Generate once, reuse forever.\nexport TORVE_IDENTITY_HEX=$(openssl rand -hex 32)\n\n# 3. Start the proxy on http://localhost:8377\ntorve buyer start`}
               />
               <p className={styles.runFirstHint}>
-                Save the value of <code>ANTSEED_IDENTITY_HEX</code> somewhere safe -
+                Save the value of <code>TORVE_IDENTITY_HEX</code> somewhere safe -
                 losing it means losing access to whatever USDC you've deposited under that
                 buyer address.
               </p>
@@ -252,7 +252,7 @@ function RunFirstBanner() {
                 Browse the network as JSON - see who's selling what.
               </p>
               <p className={styles.runFirstHint}>
-                Pretty TUI table: <code>antseed network browse</code>. For docs and
+                Pretty TUI table: <code>torve network browse</code>. For docs and
                 scripts we use the JSON form instead - it's compact, agent-readable, and
                 tells you exactly which fields exist.
               </p>
@@ -264,7 +264,7 @@ function RunFirstBanner() {
                 projects the raw response down to just those fields.
               </p>
               <CodeBlock
-                snippet={`antseed network browse --json --top 5 \\
+                snippet={`torve network browse --json --top 5 \\
   | jq '.peers | map({
       peerId, name: .displayName,
       services: [
@@ -318,10 +318,10 @@ function RunFirstBanner() {
                 the operators currently online.
               </p>
               <p className={styles.runFirstHint}>
-                Prefer the visual version? <code>antseed network browse</code> (no flags)
+                Prefer the visual version? <code>torve network browse</code> (no flags)
                 prints a table with prices, sessions, on-chain volume, and a{' '}
                 <code>✓</code> for vouched peers. Or open the same view in a browser:{' '}
-                <a href="https://antseedstats.com/network" target="_blank" rel="noopener noreferrer">live network page</a>.
+                <a href="https://torvestats.com/network" target="_blank" rel="noopener noreferrer">live network page</a>.
               </p>
             </div>
           </li>
@@ -333,7 +333,7 @@ function RunFirstBanner() {
                 Inspect one peer's full menu - every service, every price.
               </p>
               <CodeBlock
-                snippet={`antseed network peer cccccccccccccccccccccccccccccccccccccccc --json \\
+                snippet={`torve network peer cccccccccccccccccccccccccccccccccccccccc --json \\
   | jq '{
       peer: (.peer | { peerId, name: .displayName,
                        sessions: .onChainChannelCount,
@@ -384,7 +384,7 @@ function RunFirstBanner() {
                   <code>providerServiceApiProtocols</code>; the wire formats this
                   service accepts <em>natively</em>. Match your tool's wire format
                   against this list: if it's in there, the request passes through untouched; if not,{' '}
-                  <code>@antseed/api-adapter</code> translates on the fly. Note:{' '}
+                  <code>@torveai/api-adapter</code> translates on the fly. Note:{' '}
                   <code>openai-responses</code>-only services require streaming.
                 </li>
                 <li>
@@ -414,7 +414,7 @@ function RunFirstBanner() {
               </ul>
               <p className={styles.runFirstHint}>
                 Free-text version with on-chain stats and pin command:{' '}
-                <code>antseed network peer &lt;peerId&gt;</code> (without{' '}
+                <code>torve network peer &lt;peerId&gt;</code> (without{' '}
                 <code>--json</code>).
               </p>
             </div>
@@ -465,21 +465,21 @@ function RunFirstBanner() {
               <p className={styles.runFirstHint} style={{marginTop: 6}}>
                 <strong>Option A - session pin.</strong> One command, every
                 future request goes to that peer. Persists in{' '}
-                <code>~/.antseed/buyer.state.json</code> across restarts.
+                <code>~/.torve/buyer.state.json</code> across restarts.
               </p>
               <CodeBlock
-                snippet={`# Pin the peer you chose for every request from now on (survives restart).\n# Replace the id below with one from your real \`antseed network browse\` output.\nantseed buyer connection set --peer cccccccccccccccccccccccccccccccccccccccc`}
+                snippet={`# Pin the peer you chose for every request from now on (survives restart).\n# Replace the id below with one from your real \`torve network browse\` output.\ntorve buyer connection set --peer cccccccccccccccccccccccccccccccccccccccc`}
               />
               <p className={styles.runFirstHint} style={{marginTop: 12}}>
                 <strong>Option B - per-request header.</strong> Send{' '}
-                <code>x-antseed-pin-peer: &lt;peerId&gt;</code> on each call. Overrides
+                <code>x-torve-pin-peer: &lt;peerId&gt;</code> on each call. Overrides
                 any session pin for that one request. Best for scripts, schedulers, and
                 multi-tenant deployments that fan out to different peers per call.
               </p>
               <CodeBlock
                 snippet={`curl http://localhost:8377/v1/chat/completions \\
   -H 'content-type: application/json' \\
-  -H 'x-antseed-pin-peer: cccccccccccccccccccccccccccccccccccccccc' \\
+  -H 'x-torve-pin-peer: cccccccccccccccccccccccccccccccccccccccc' \\
   -d '{
     "model": "minimax-m2.7",
     "messages": [{"role": "user", "content": "hi"}]
@@ -510,14 +510,14 @@ function RunFirstBanner() {
                 <span className={styles.runFirstOptionalTag}>Optional</span>
                 Deposit USDC - only needed for paid services:
               </p>
-              <CodeBlock snippet={`antseed buyer deposit`} />
+              <CodeBlock snippet={`torve buyer deposit`} />
               <p className={styles.runFirstHint}>
                 Prints your buyer&apos;s funding address and a QR code (an EIP-681
                 payment request). Send USDC to it from any wallet or exchange —
                 incoming funds are swept into the Deposits contract and credited to
                 your buyer automatically: a permissionless relayer submits the
                 transaction for a fixed ~$0.05 USDC fee, so the buyer never needs
-                ETH. Verify with <code>antseed buyer balance</code>.
+                ETH. Verify with <code>torve buyer balance</code>.
               </p>
               <p className={styles.runFirstHint}>
                 <strong>Send USDC on the Base network only</strong> - other tokens or
@@ -533,7 +533,7 @@ function RunFirstBanner() {
 }
 
 /**
- * Explains, in one block, exactly what wire format the tool sends, what Antseed
+ * Explains, in one block, exactly what wire format the tool sends, what Torve
  * peers advertise per service (the `protocols` array), and what happens when
  * they differ.
  *
@@ -552,8 +552,8 @@ function WireFormatPanel({i}: {i: Integration}) {
       <section className={styles.wireFormat}>
         <p className={styles.wireFormatTitle}>Wire format • multi-protocol</p>
         <p className={styles.wireFormatBody}>
-          {i.name} can send <strong>any</strong> of Antseed's supported protocols -
-          configure per call. Antseed will match each request to the peer's advertised
+          {i.name} can send <strong>any</strong> of Torve's supported protocols -
+          configure per call. Torve will match each request to the peer's advertised
           service protocols (see <code>providerServiceApiProtocols</code> on a peer)
           and translate when they don't match.
         </p>
@@ -580,7 +580,7 @@ function WireFormatPanel({i}: {i: Integration}) {
 
   return (
     <section className={styles.wireFormat}>
-      <p className={styles.wireFormatTitle}>How {i.name} talks to Antseed</p>
+      <p className={styles.wireFormatTitle}>How {i.name} talks to Torve</p>
       <ul className={styles.wireFormatFacts}>
         <li>
           <strong>Wire format sent by {i.name}:</strong>{' '}
@@ -597,17 +597,17 @@ function WireFormatPanel({i}: {i: Integration}) {
         </li>
         <li>
           <strong>How to check a peer:</strong> run{' '}
-          <code>antseed network peer &lt;peerId&gt; --json</code> and look at{' '}
+          <code>torve network peer &lt;peerId&gt; --json</code> and look at{' '}
           <code>providerServiceApiProtocols[provider].services[service]</code>. The
           browse command exposes the same field per peer.
         </li>
         <li>
-          <strong>What happens when protocols don't match:</strong> Antseed's{' '}
+          <strong>What happens when protocols don't match:</strong> Torve's{' '}
           <a
-            href="https://github.com/AntSeed/antseed/tree/main/packages/api-adapter"
+            href="https://github.com/Torve/torve/tree/main/packages/api-adapter"
             target="_blank"
             rel="noreferrer">
-            <code>@antseed/api-adapter</code>
+            <code>@torveai/api-adapter</code>
           </a>{' '}
           translates between {FORMAT_LABELS[fmt]} and the service's native protocol on
           the fly. So a request from {i.name} can still reach a service that only
@@ -655,7 +655,7 @@ export default function IntegrationPage({integration}: {integration: Integration
 
   // Trailing slash matches `trailingSlash: true` in docusaurus.config.ts, so the
   // URLs in JSON-LD are the same ones the canonical tag and sitemap point at.
-  const pageUrl = `https://antseed.com/integrations/${i.slug}/`;
+  const pageUrl = `https://torveai.com/integrations/${i.slug}/`;
 
   // `oneLiner` is authored with markdown backticks for on-page code styling.
   // Meta descriptions are plain text, so Google and social cards would print the
@@ -665,15 +665,15 @@ export default function IntegrationPage({integration}: {integration: Integration
   // Mirrors what Docusaurus renders into <title> (Layout title + site title), so
   // og:title can't drift from the page title (X falls back to og:title).
   const titleText = i.seoTitle ?? i.name;
-  const pageTitle = `${titleText} | Antseed`;
+  const pageTitle = `${titleText} | Torve`;
 
   // Marks up the breadcrumb rendered below so search engines read the hierarchy.
   const breadcrumbLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      {'@type': 'ListItem', position: 1, name: 'Home', item: 'https://antseed.com/'},
-      {'@type': 'ListItem', position: 2, name: 'Integrations', item: 'https://antseed.com/integrations/'},
+      {'@type': 'ListItem', position: 1, name: 'Home', item: 'https://torveai.com/'},
+      {'@type': 'ListItem', position: 2, name: 'Integrations', item: 'https://torveai.com/integrations/'},
       {'@type': 'ListItem', position: 3, name: i.name, item: pageUrl},
     ],
   };
@@ -691,8 +691,8 @@ export default function IntegrationPage({integration}: {integration: Integration
   }
   howToSteps.push({
     '@type': 'HowToStep',
-    name: `Point ${i.name} at Antseed`,
-    text: `Configure ${i.name} to send requests to the local Antseed proxy at http://localhost:8377.`,
+    name: `Point ${i.name} at Torve`,
+    text: `Configure ${i.name} to send requests to the local Torve proxy at http://localhost:8377.`,
     url: `${pageUrl}#configure`,
   });
   if (i.modelHints) {
@@ -714,15 +714,15 @@ export default function IntegrationPage({integration}: {integration: Integration
   const howToLd = {
     '@context': 'https://schema.org',
     '@type': 'HowTo',
-    name: `Connect ${i.name} to Antseed`,
-    description: `Route ${i.name} through the Antseed peer-to-peer inference network.`,
+    name: `Connect ${i.name} to Torve`,
+    description: `Route ${i.name} through the Torve peer-to-peer inference network.`,
     step: howToSteps,
   };
 
   return (
     <Layout
       title={titleText}
-      description={`Connect ${i.name} to the Antseed peer-to-peer inference network. ${metaOneLiner}`}>
+      description={`Connect ${i.name} to the Torve peer-to-peer inference network. ${metaOneLiner}`}>
       <Head>
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={metaOneLiner} />
@@ -786,7 +786,7 @@ export default function IntegrationPage({integration}: {integration: Integration
 
         <Section
           eyebrow={i.install.length > 0 ? 'Step 2' : 'Step 1'}
-          title={`Point ${i.name} at Antseed`}>
+          title={`Point ${i.name} at Torve`}>
           <div className={styles.configList}>
             {i.configure.map((b, idx) => <ConfigBlockRenderer key={idx} b={b} />)}
           </div>
@@ -801,8 +801,8 @@ export default function IntegrationPage({integration}: {integration: Integration
             <p className={styles.modelNote}>
               The full list is every model on the network. Run{' '}
               <code>curl -s localhost:8377/v1/models</code>,{' '}
-              <code>antseed network browse</code>, or open the{' '}
-              <a href="https://antseedstats.com/network" target="_blank" rel="noopener noreferrer">live network page</a> to see what's available right now.
+              <code>torve network browse</code>, or open the{' '}
+              <a href="https://torvestats.com/network" target="_blank" rel="noopener noreferrer">live network page</a> to see what's available right now.
             </p>
           </Section>
         )}
@@ -853,7 +853,7 @@ export default function IntegrationPage({integration}: {integration: Integration
             <h3>For agents</h3>
             <p><Ticks>{i.agentSummary}</Ticks></p>
             <p>
-              Give your agent the skill: <code>gh skill install Antseed/antseed join-buyer</code>
+              Give your agent the skill: <code>gh skill install Torve/torve join-buyer</code>
             </p>
           </aside>
         )}
@@ -872,14 +872,14 @@ export default function IntegrationPage({integration}: {integration: Integration
 
       <FinalCta
         title={`Run ${i.name} on the open market`}
-        sub="Install Antseed, point this tool at your local proxy, and pay per request in USDC."
+        sub="Install Torve, point this tool at your local proxy, and pay per request in USDC."
         note={
           <>
             <a href="/integrations">All integrations</a>
             <a href="/docs/guides/using-the-api">Protocol guide</a>
           </>
         }>
-        <Button to="/docs/install" variant="white" size="lg" arrow>Install Antseed</Button>
+        <Button to="/docs/install" variant="white" size="lg" arrow>Install Torve</Button>
         <Button to="/providers" variant="light" size="lg">Become a provider</Button>
       </FinalCta>
     </Layout>

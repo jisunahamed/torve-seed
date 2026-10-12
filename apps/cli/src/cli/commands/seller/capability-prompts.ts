@@ -4,7 +4,7 @@ import {
   validateServiceCapabilityFields,
   type ServiceCapabilities,
   type ServiceCapabilityModality,
-} from '@antseed/node';
+} from '@torveai/node';
 import { parseServiceCapabilitiesInput } from '../../../config/service-metadata.js';
 
 export type Prompt = { question(query: string): Promise<string> };

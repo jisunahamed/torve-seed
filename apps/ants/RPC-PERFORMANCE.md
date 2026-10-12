@@ -153,7 +153,7 @@ These read reductions do not establish a whole-dashboard performance percentage.
 Use the repository's pinned Node.js version and install/build workspace dependencies.
 
 ```sh
-pnpm --filter '@antseed/node^...' run build
+pnpm --filter '@torveai/node^...' run build
 pnpm --dir packages/node run build
 pnpm --dir packages/node exec vitest run src/payments/evm/multicall.test.ts src/payments/evm/seller-pools-batching.test.ts
 pnpm --dir apps/ants exec vitest run src/service/rpc-provider.test.ts src/service/positions.test.ts

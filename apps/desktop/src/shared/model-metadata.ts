@@ -1,4 +1,4 @@
-import { canonicalModelKey } from '@antseed/node/model-identity';
+import { canonicalModelKey } from '@torveai/node/model-identity';
 import registry from './model-metadata.json' with { type: 'json' };
 
 export type ModelMetadata = {

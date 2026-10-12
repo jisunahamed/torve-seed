@@ -7,7 +7,7 @@ hide_title: true
 
 # ANTS Staking
 
-`antseed ants` opens a local staking dashboard for the recognized-usage
+`torve ants` opens a local staking dashboard for the recognized-usage
 protocol: stake ANTS into seller pools, manage locked positions, claim or
 restake rewards, and handle seller-side verification. Every dashboard action is
 also a CLI command, so the dashboard is optional. The protocol mechanics
@@ -18,10 +18,10 @@ tooling.
 ## Opening the dashboard
 
 ```bash
-antseed ants                # start on http://127.0.0.1:3119 and open the browser
-antseed ants --no-open      # print the URL only
-antseed ants --port 4000    # use another port
-antseed ants --address 0x…  # pin the dashboard to one account
+torve ants                # start on http://127.0.0.1:3119 and open the browser
+torve ants --no-open      # print the URL only
+torve ants --port 4000    # use another port
+torve ants --address 0x…  # pin the dashboard to one account
 ```
 
 The dashboard opens in your system browser. Browse pools before connecting, then
@@ -268,7 +268,7 @@ the new id to use when retrying. Legacy stake is shown in USDC; starter grant
 availability is a count, separate from the ANTS amount of each grant.
 
 **Wash-trading status** shows the registry facts and this seller's proven wash
-share. Proof artifacts produced by the `antseed-loop-proof` host are submitted
+share. Proof artifacts produced by the `torve-loop-proof` host are submitted
 from the CLI; submission is permanent and permissionless.
 
 ## Network and addresses
@@ -281,28 +281,28 @@ epoch, dynamic staker and usage shares, and network volume per epoch.
 ## CLI equivalents
 
 ```bash
-antseed ants status                                   # phase, epoch countdown, balances, claimable rewards
-antseed ants pools                                    # the Pools table
-antseed ants pool 84990                               # one pool in detail
-antseed ants stake 250 --agent 84990 --epochs 12
-antseed ants positions
-antseed ants move 7 --to 84991
-antseed ants split 7 100
-antseed ants merge 8 9
-antseed ants extend 7 --epochs 4
-antseed ants max-lock 7 [--off]
-antseed ants withdraw 7 --preview                     # estimate first
-antseed ants withdraw 7 --accept-slashing             # early exit with consent
-antseed ants rewards                                  # all buckets
-antseed ants rewards claim [--staker|--seller|--buyer|--legacy|--locked]
-antseed ants rewards compound --epochs 8 --to 59096   # bulk Stake rewards
-antseed ants rewards restake --epochs 8               # staker pool rewards only
-antseed ants rewards stake-usage --side seller --epochs 8
-antseed ants seller [register|claim-starter]
-antseed ants verify [seller]
-antseed ants verify submit seller-proof.json          # resumable
-antseed ants verify proof <proofId>
-antseed ants usage | emissions | addresses
+torve ants status                                   # phase, epoch countdown, balances, claimable rewards
+torve ants pools                                    # the Pools table
+torve ants pool 84990                               # one pool in detail
+torve ants stake 250 --agent 84990 --epochs 12
+torve ants positions
+torve ants move 7 --to 84991
+torve ants split 7 100
+torve ants merge 8 9
+torve ants extend 7 --epochs 4
+torve ants max-lock 7 [--off]
+torve ants withdraw 7 --preview                     # estimate first
+torve ants withdraw 7 --accept-slashing             # early exit with consent
+torve ants rewards                                  # all buckets
+torve ants rewards claim [--staker|--seller|--buyer|--legacy|--locked]
+torve ants rewards compound --epochs 8 --to 59096   # bulk Stake rewards
+torve ants rewards restake --epochs 8               # staker pool rewards only
+torve ants rewards stake-usage --side seller --epochs 8
+torve ants seller [register|claim-starter]
+torve ants verify [seller]
+torve ants verify submit seller-proof.json          # resumable
+torve ants verify proof <proofId>
+torve ants usage | emissions | addresses
 ```
 
 Every read command accepts `--json`. See the
@@ -325,7 +325,7 @@ account. There is no staking sidebar entry or separate Electron staking window.
 reuse the server session and preserve their destination through authentication.
 Opening a page never submits a transaction. Old payments claim links show an
 **Open rewards dashboard** handoff instead of a separate claim form; standalone
-payments sessions explain how to open `antseed ants` when no host launcher exists.
+payments sessions explain how to open `torve ants` when no host launcher exists.
 
 VPR keeps the local server alive while the browser is open. Reopening reuses its
 session. Wallet/network switching cancels unsigned steps; transactions already
@@ -354,7 +354,7 @@ the indexer catches up; without an indexer, older unknown closed positions may b
 From the worktree root, build and start a disposable restricted-transfer fork:
 
 ```bash
-pnpm --filter @antseed/ants build
+pnpm --filter @torveai/ants build
 node scripts/ants-sandbox.mjs --restricted --browser --port 3136
 ```
 
@@ -404,7 +404,7 @@ The matrix seeds synthetic points into a finalized pre-cutover epoch for the
 fresh sandbox identities. It derives storage slots from the Solidity compiler's
 layout, checks them against fork getters, and verifies the seeded V1/V2 points before
 testing the real deployed claims and escrow. The M002 cases deploy the actual
-`AntseedLegacySellerClaimPolicy` locally with a controlled wash-status test
+`TorveLegacySellerClaimPolicy` locally with a controlled wash-status test
 contract; they do not test production wash-proof verification. Every scenario
 runs inside a reverted snapshot, including policy deployment and permission
 changes. No production writes are made.
@@ -413,7 +413,7 @@ These fixtures require native Solidity **0.8.24** (Foundry's
 `~/.svm/0.8.24/solc-0.8.24`, `solc` on PATH, or `SOLC_BIN`). Only the needed policy
 bytecode and legacy storage layout are compiled; a full Foundry suite build is
 not required. Reward-row labels, scoped request payloads, disabled states, and
-confirmation contents are also covered by `pnpm --filter @antseed/ants test`.
+confirmation contents are also covered by `pnpm --filter @torveai/ants test`.
 
 For browser UI QA without a real wallet extension:
 
@@ -451,13 +451,13 @@ node scripts/ants-browser-e2e.mjs /path/to/ants-sandbox-directory/scenario.json 
 To verify VPR's browser launcher after building the desktop main process:
 
 ```bash
-pnpm --filter @antseed/desktop build:main
-pnpm --filter @antseed/desktop exec electron scripts/test-staking-window.mjs --data-dir /path/to/ants-sandbox-directory
+pnpm --filter @torveai/desktop build:main
+pnpm --filter @torveai/desktop exec electron scripts/test-staking-window.mjs --data-dir /path/to/ants-sandbox-directory
 ```
 
 The smoke test intercepts the system-browser launch, verifies that repeated launches
 reuse one authenticated localhost session, and verifies no Electron staking window
 or local transaction signer is created. Add `--open` to open the browser and keep
-that test session alive, or `--bundle /path/to/AntSeed.app/Contents/Resources/app.asar`
+that test session alive, or `--bundle /path/to/Torve.app/Contents/Resources/app.asar`
 to use packaged assets. Signed installer and real wallet-extension checks remain
 separate release checks.

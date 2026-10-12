@@ -1,6 +1,6 @@
 /**
  * HeroDemo — the live AI VPN demo animation from the hero prototype
- * (antseed-website.vercel.app), ported 1:1 from its Remotion
+ * (torve-website.vercel.app), ported 1:1 from its Remotion
  * composition: a 2048×1152 scene at 30 fps over 582 frames.
  *
  * No Remotion dependency: a rAF clock drives the same frame-based
@@ -791,7 +791,7 @@ function StackConnector({
 }
 
 /* ============================================================
-   Antseed network searching bar (`al`)
+   Torve network searching bar (`al`)
    ============================================================ */
 function NetworkBar({
   opacity = 1,
@@ -811,7 +811,7 @@ function NetworkBar({
   return (
     <div style={{position: 'absolute', left, top, width: 852, height: 192, opacity, transform: `scale(${scale})`}}>
       <img
-        src={asset('antseed-searching.svg')}
+        src={asset('torve-searching.svg')}
         alt=""
         style={{position: 'absolute', inset: 0, width: '100%', height: '100%'}}
       />

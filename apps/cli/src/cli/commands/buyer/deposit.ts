@@ -4,7 +4,7 @@ import ora, { type Ora } from 'ora'
 import QRCode from 'qrcode'
 import { getGlobalOptions } from '../types.js'
 import { loadConfig } from '../../../config/loader.js'
-import type { AntseedConfig } from '../../../config/types.js'
+import type { TorveConfig } from '../../../config/types.js'
 import {
   loadCryptoContext,
   createDepositsClient,
@@ -13,9 +13,9 @@ import {
   formatUsdc,
   parseUsdcToBaseUnits,
 } from '../../payment-utils.js'
-import { AntseedNode, peerRelaysSweeps } from '@antseed/node'
-import type { SweepReceiptPayload } from '@antseed/node'
-import { parseBootstrapList, toBootstrapConfig } from '@antseed/node/discovery'
+import { TorveNode, peerRelaysSweeps } from '@torveai/node'
+import type { SweepReceiptPayload } from '@torveai/node'
+import { parseBootstrapList, toBootstrapConfig } from '@torveai/node/discovery'
 import { buildBuyerBootstrapEntries } from './start.js'
 import {
   DepositWatcher,
@@ -60,9 +60,9 @@ interface WebCheckout {
  */
 async function startWebCheckout(dataDir: string, amountUsdc: string | null): Promise<WebCheckout | null> {
   try {
-    const { createServer } = await import('@antseed/payments')
+    const { createServer } = await import('@torveai/payments')
     let done = false
-    const rawHex = process.env['ANTSEED_IDENTITY_HEX'] || undefined
+    const rawHex = process.env['TORVE_IDENTITY_HEX'] || undefined
     const identityHex = rawHex ? rawHex.replace(/^0x/i, '') : undefined
     const server = await createServer({
       port: PAYMENTS_PORT,
@@ -110,7 +110,7 @@ function renderEvent(spinner: Ora, event: DepositWatchEvent): boolean {
   }
 }
 
-async function printFinalBalance(config: AntseedConfig, address: string): Promise<void> {
+async function printFinalBalance(config: TorveConfig, address: string): Promise<void> {
   try {
     const depositsClient = createDepositsClient(config)
     const balance = await depositsClient.getBuyerBalance(address)
@@ -127,14 +127,14 @@ async function printFinalBalance(config: AntseedConfig, address: string): Promis
  * wallet never moves, so watcher events alone would miss it).
  */
 interface WatchContext {
-  config: AntseedConfig
+  config: TorveConfig
   address: string
   web: WebCheckout | null
   depositsTotal: () => Promise<bigint | null>
   initialTotal: bigint | null
 }
 
-async function makeWatchContext(config: AntseedConfig, dataDir: string, address: string, amountUsdc: string | null): Promise<WatchContext> {
+async function makeWatchContext(config: TorveConfig, dataDir: string, address: string, amountUsdc: string | null): Promise<WatchContext> {
   const depositsClient = createDepositsClient(config)
   const depositsTotal = async (): Promise<bigint | null> => {
     try {
@@ -234,14 +234,14 @@ async function watchStandalone(
   const spinner = ora({ text: 'Waiting for USDC to arrive (Ctrl+C to stop watching)...', discardStdin: false }).start()
   const { config, address } = ctx
 
-  let node: AntseedNode | null = null
+  let node: TorveNode | null = null
   let latestReceipt: SweepReceiptPayload | null = null
-  const ensureNode = async (): Promise<AntseedNode> => {
+  const ensureNode = async (): Promise<TorveNode> => {
     if (node) return node
     const bootstrapNodes = toBootstrapConfig(
       parseBootstrapList(buildBuyerBootstrapEntries(config.network?.bootstrapNodes)),
     )
-    node = new AntseedNode({ role: 'buyer', bootstrapNodes, allowPrivateIPs: true, dataDir })
+    node = new TorveNode({ role: 'buyer', bootstrapNodes, allowPrivateIPs: true, dataDir })
     await node.start()
     node.on('sweep:receipt', (event: { peerId: string; payload: SweepReceiptPayload }) => {
       latestReceipt = event.payload
@@ -276,7 +276,7 @@ async function watchStandalone(
 
   process.on('SIGINT', () => {
     watcher.stop()
-    spinner.info('Stopped watching. Funds already sent stay safe in the hot wallet — run `antseed buyer sweep` to deposit them.')
+    spinner.info('Stopped watching. Funds already sent stay safe in the hot wallet — run `torve buyer sweep` to deposit them.')
     // Let the ephemeral node close cleanly, but never hang the exit on it.
     setTimeout(() => process.exit(0), 2_000)
     void (node ? node.stop().catch(() => {}) : Promise.resolve()).then(() => process.exit(0))
@@ -295,13 +295,13 @@ async function watchStandalone(
   watcher.stop()
   if (externalMessage) spinner.succeed(chalk.green(externalMessage))
   await printFinalBalance(config, address)
-  if (node) await (node as AntseedNode).stop().catch(() => {})
+  if (node) await (node as TorveNode).stop().catch(() => {})
   process.exit(0)
 }
 
 // ─── Legacy direct on-chain deposit (hot wallet pays gas) ───
 
-async function depositOnchain(config: AntseedConfig, dataDir: string, amount: string): Promise<void> {
+async function depositOnchain(config: TorveConfig, dataDir: string, amount: string): Promise<void> {
   let amountBaseUnits: bigint
   try {
     amountBaseUnits = parseUsdcToBaseUnits(amount)
@@ -357,13 +357,13 @@ export async function runDepositAction(cmd: Command, options: DepositCommandOpti
 
     if (!crypto.depositRelayAddress) {
       console.log(chalk.yellow('Automatic deposit is not available on this chain (no deposit relay).'))
-      console.log(chalk.dim('After funding, run `antseed buyer deposit --onchain <amount>` (requires ETH for gas).'))
+      console.log(chalk.dim('After funding, run `torve buyer deposit --onchain <amount>` (requires ETH for gas).'))
       return
     }
 
     if (!options.watch) {
       console.log(chalk.dim('Not watching (--no-watch). A running buyer connection sweeps incoming USDC automatically;'))
-      console.log(chalk.dim('without one, run `antseed buyer sweep` once the funds arrive.'))
+      console.log(chalk.dim('without one, run `torve buyer sweep` once the funds arrive.'))
       return
     }
 
@@ -379,7 +379,7 @@ export async function runDepositAction(cmd: Command, options: DepositCommandOpti
       // predates deposit watching). An ephemeral node here would collide
       // with the daemon's peerId, so hand off to the manual command.
       console.log(chalk.yellow('The running buyer connection cannot watch deposits (payments disabled or older version).'))
-      console.log(chalk.dim('Once the funds arrive, run `antseed buyer sweep` to deposit them.'))
+      console.log(chalk.dim('Once the funds arrive, run `torve buyer sweep` to deposit them.'))
     } else {
       await watchStandalone(ctx, globalOpts.dataDir, { ...crypto, depositRelayAddress: crypto.depositRelayAddress })
     }
@@ -406,7 +406,7 @@ export function registerBuyerDepositCommand(buyerCmd: Command): void {
   })
 }
 
-/** Hidden top-level alias: `antseed deposit` → `antseed buyer deposit`. */
+/** Hidden top-level alias: `torve deposit` → `torve buyer deposit`. */
 export function registerDepositAlias(program: Command): void {
   addDepositOptions(program.command('deposit', { hidden: true }))
     .action(async (options: DepositCommandOptions) => {

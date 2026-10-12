@@ -1,4 +1,4 @@
-import { ANTSEED_BUYER_FAULT_ERROR_CODE } from '@antseed/node/types';
+import { TORVE_BUYER_FAULT_ERROR_CODE } from '@torveai/node/types';
 
 // Note: `payment_required` is part of this union but is intentionally never
 // produced by `classifyChatStreamFailure`. Payment-required stops are emitted
@@ -52,7 +52,7 @@ const COMMON_HTTP_STATUS_TEXT: Record<number, string> = {
 
 const DEFAULT_FAILURE_MESSAGE = 'The request ended unexpectedly.';
 const PROTOCOL_PEER_ERROR_MARKERS = [
-  'Antseed is a peer-to-peer network.',
+  'Torve is a peer-to-peer network.',
   'Original Response:',
 ];
 
@@ -192,7 +192,7 @@ type EmbeddedErrorBody = {
  * be able to put attacker-chosen prose into the chat as a system message.
  */
 const BUYER_AUTHORED_ERROR_IDS = new Set([
-  ANTSEED_BUYER_FAULT_ERROR_CODE,
+  TORVE_BUYER_FAULT_ERROR_CODE,
   'payment_negotiation_failed',
   'buyer_payments_inactive',
   'payment_required',
@@ -242,12 +242,12 @@ function extractEmbeddedErrorBody(raw: string): EmbeddedErrorBody | undefined {
  * peer-blaming 502. Matched on the codes the proxy and negotiator emit.
  */
 function isBuyerFault(errorCodes: string[]): boolean {
-  return errorCodes.some((code) => code.toLowerCase() === ANTSEED_BUYER_FAULT_ERROR_CODE);
+  return errorCodes.some((code) => code.toLowerCase() === TORVE_BUYER_FAULT_ERROR_CODE);
 }
 
 /** The buyer-fault code as a JSON field, as it appears in a stringified proxy error body. */
 const BUYER_FAULT_JSON_MARKER = new RegExp(
-  `"(?:code|type|errorCode)"\\s*:\\s*"${ANTSEED_BUYER_FAULT_ERROR_CODE}"`,
+  `"(?:code|type|errorCode)"\\s*:\\s*"${TORVE_BUYER_FAULT_ERROR_CODE}"`,
   'i',
 );
 

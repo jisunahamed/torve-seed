@@ -1,4 +1,4 @@
-import { parseJsonObject } from '@antseed/api-adapter'
+import { parseJsonObject } from '@torveai/api-adapter'
 import { createHash } from 'node:crypto'
 import { SYSTEM_PROXY_SOURCE_HEADER } from './request-utils.js'
 

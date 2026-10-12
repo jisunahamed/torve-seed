@@ -15,7 +15,7 @@ type EcosystemProject = {
   color: string;
   colorSoft: string;
   logo?: string;
-  theme: 'stats' | 'scan' | 'diem' | 'antseedmarkets' | 'lants';
+  theme: 'stats' | 'scan' | 'diem' | 'torvemarkets' | 'lants';
 };
 
 type Resource = {
@@ -28,14 +28,14 @@ type Resource = {
 const resources: Resource[] = [
   {
     title: 'Network Explorer',
-    href: 'https://antseedstats.com/network',
-    body: 'Watch live providers, market prices, usage, and routing activity across the Antseed network.',
+    href: 'https://torvestats.com/network',
+    body: 'Watch live providers, market prices, usage, and routing activity across the Torve network.',
     cta: 'Explore network',
   },
   {
     title: 'Developer Docs',
     href: '/docs',
-    body: 'Use Antseed as peer-to-peer AI infrastructure from apps, agents, routers, and existing tools.',
+    body: 'Use Torve as peer-to-peer AI infrastructure from apps, agents, routers, and existing tools.',
     cta: 'Read docs',
   },
   {
@@ -48,12 +48,12 @@ const resources: Resource[] = [
 
 const projects: EcosystemProject[] = [
   {
-    name: 'Diem Antseed',
-    href: 'https://diemantseed.com',
+    name: 'Diem Torve',
+    href: 'https://diemtorveai.com',
     category: 'Capacity program',
-    oneLiner: 'A DIEM provider capacity program built around Antseed.',
+    oneLiner: 'A DIEM provider capacity program built around Torve.',
     description:
-      'Lock DIEM to participate in provider capacity on Antseed, with allocations and incentives governed by program rules.',
+      'Lock DIEM to participate in provider capacity on Torve, with allocations and incentives governed by program rules.',
     glyph: 'DA',
     status: 'Live',
     color: '#e8a33d',
@@ -61,51 +61,51 @@ const projects: EcosystemProject[] = [
     theme: 'diem',
   },
   {
-    name: 'AntSeedStats',
-    href: 'https://antseedstats.com',
+    name: 'TorveStats',
+    href: 'https://torvestats.com',
     category: 'Analytics',
-    oneLiner: 'The metrics and intelligence layer of the Antseed ecosystem.',
+    oneLiner: 'The metrics and intelligence layer of the Torve ecosystem.',
     description:
       'Real-time onchain data for active users, network revenue, providers, buyers, models, staking, DIEM, $ANTS, channels, and transactions.',
     glyph: '🐜',
     status: 'Live',
     color: '#84cc16',
     colorSoft: 'rgba(132, 204, 22, 0.18)',
-    logo: 'https://antseedstats.com/icon.png?cc9996558aa48202',
+    logo: 'https://torvestats.com/icon.png?cc9996558aa48202',
     theme: 'stats',
   },
   {
     name: 'Antscan',
     href: 'https://antscan.co/',
     category: 'Explorer',
-    oneLiner: 'An Antseed explorer for Base settlements, service offers, channels, and emissions.',
+    oneLiner: 'An Torve explorer for Base settlements, service offers, channels, and emissions.',
     description:
       'Explore daily active users, settled volume, service offers, payment channels, providers, buyers, epochs, and ANTS emissions.',
     glyph: 'AN',
     status: 'Live',
     color: '#1fd87a',
     colorSoft: 'rgba(31, 216, 122, 0.18)',
-    logo: 'https://antscan.co/logos/antseed-public-ant.svg',
+    logo: 'https://antscan.co/logos/torve-public-ant.svg',
     theme: 'scan',
   },
   {
-    name: 'antseedmarkets',
-    href: 'https://antseedmarkets.com',
+    name: 'torvemarkets',
+    href: 'https://torvemarkets.com',
     category: 'lANTS marketplace',
     oneLiner: "Trade lANTS with 0 fees, built on OpenSea's Seaport, Opensourced since day 1.",
     description:
-      'Trade staked ANTS NFTs through a Seaport-based marketplace. Staked ANTS go to the buyer with specific terms such as locked period and staked Antseed seller.',
+      'Trade staked ANTS NFTs through a Seaport-based marketplace. Staked ANTS go to the buyer with specific terms such as locked period and staked Torve seller.',
     glyph: 'AM',
     status: 'Live',
     color: '#22c55e',
     colorSoft: 'rgba(34, 197, 94, 0.2)',
-    theme: 'antseedmarkets',
+    theme: 'torvemarkets',
   },
   {
     name: 'lANTS Market',
     href: 'https://lants.eth.limo',
     category: 'lANTS marketplace',
-    oneLiner: 'A board and USDC market for lANTS staking positions on Antseed.',
+    oneLiner: 'A board and USDC market for lANTS staking positions on Torve.',
     description:
       'Browse every lANTS position — amount, lock, provider pool, weight, exit penalty, and pending reward — then list or buy it through a non-custodial, USDC-only contract priced per locked ANTS.',
     glyph: 'lA',
@@ -119,7 +119,7 @@ const projects: EcosystemProject[] = [
 const pillars = [
   {
     title: 'Applications',
-    body: 'Products that turn Antseed providers into user-facing AI workflows.',
+    body: 'Products that turn Torve providers into user-facing AI workflows.',
   },
   {
     title: 'Infrastructure',
@@ -131,7 +131,7 @@ const pillars = [
   },
   {
     title: 'Integrations',
-    body: 'Tools and frameworks that connect existing developer workflows to the local Antseed endpoint.',
+    body: 'Tools and frameworks that connect existing developer workflows to the local Torve endpoint.',
   },
 ];
 
@@ -152,10 +152,10 @@ function ResourceCard({resource}: {resource: Resource}) {
 }
 
 function ProductPreview({project}: {project: EcosystemProject}) {
-  if (project.theme === 'antseedmarkets') {
+  if (project.theme === 'torvemarkets') {
     return (
       <div className={`${styles.preview} ${styles.previewMarket}`}>
-        <div className={styles.previewTop}><span>antseedmarkets</span><i>Seaport</i></div>
+        <div className={styles.previewTop}><span>torvemarkets</span><i>Seaport</i></div>
         <div className={styles.marketNft}>
           <small>lANTS NFT</small>
           <strong>Staking positions</strong>
@@ -172,7 +172,7 @@ function ProductPreview({project}: {project: EcosystemProject}) {
   if (project.theme === 'stats') {
     return (
       <div className={`${styles.preview} ${styles.previewStats}`}>
-        <div className={styles.previewTop}><span>🐜 AntSeedStats</span><i>Overview</i></div>
+        <div className={styles.previewTop}><span>🐜 TorveStats</span><i>Overview</i></div>
         <div className={styles.statsGrid}>
           <div><small>Total users</small><strong>1,084</strong></div>
           <div><small>Revenue</small><strong>$194.29k</strong></div>
@@ -215,7 +215,7 @@ function ProductPreview({project}: {project: EcosystemProject}) {
 
   return (
     <div className={`${styles.preview} ${styles.previewDiem}`}>
-      <div className={styles.diemBrand}><span>Antseed</span><b>DIEM</b></div>
+      <div className={styles.diemBrand}><span>Torve</span><b>DIEM</b></div>
       <div className={styles.diemPanel}>
         <small>Provider capacity</small>
         <strong>Lock DIEM</strong>
@@ -255,21 +255,21 @@ export default function Ecosystem(): JSX.Element {
   return (
     <Layout
       title="Ecosystem"
-      description="Explore projects, explorers, dashboards, and applications built on top of Antseed.">
+      description="Explore projects, explorers, dashboards, and applications built on top of Torve.">
       <PageHero
         kicker="Ecosystem"
-        title="Explore the Antseed ecosystem"
+        title="Explore the Torve ecosystem"
         lead="Connect with builders, providers, explorers, and AI-focused projects growing around peer-to-peer AI infrastructure.">
-        <Button href="https://antseedstats.com/network" arrow>Explore live network</Button>
-        <Button to="/docs" variant="ghost">Build on Antseed</Button>
+        <Button href="https://torvestats.com/network" arrow>Explore live network</Button>
+        <Button to="/docs" variant="ghost">Build on Torve</Button>
       </PageHero>
 
       <Section width="xl">
         <div className={styles.sectionHead}>
           <SectionHeader
-            kicker="Discover Antseed ecosystem"
+            kicker="Discover Torve ecosystem"
             title="Live projects"
-            lead="A directory of applications, tools, and infrastructure built on or around Antseed."
+            lead="A directory of applications, tools, and infrastructure built on or around Torve."
           />
         </div>
         <div className={styles.grid}>
@@ -285,7 +285,7 @@ export default function Ecosystem(): JSX.Element {
             <SectionHeader
               kicker="Build, explore, connect"
               title="An AI-first market for builders"
-              lead="Antseed gives projects a local API surface, open provider marketplace, and onchain payments so teams can build products on top of independent AI supply."
+              lead="Torve gives projects a local API surface, open provider marketplace, and onchain payments so teams can build products on top of independent AI supply."
             />
           </div>
           <div className={styles.resourceGrid}>
@@ -319,31 +319,31 @@ export default function Ecosystem(): JSX.Element {
           <div>
             <h3>Ecosystem amplification</h3>
             <p>
-              Building an app, explorer, provider, agent, router, or managed product on Antseed? Share it with the community and we can add it to this directory.
+              Building an app, explorer, provider, agent, router, or managed product on Torve? Share it with the community and we can add it to this directory.
             </p>
           </div>
           <div>
             <h3>Submission guidelines</h3>
             <p>
-              Projects should add value on top of Antseed infrastructure. Raw API-key resale and subscription credential sharing do not belong in the ecosystem.
+              Projects should add value on top of Torve infrastructure. Raw API-key resale and subscription credential sharing do not belong in the ecosystem.
             </p>
           </div>
         </div>
         <div className={styles.disclosure}>
           <p>
-            * Ecosystem listings are for discovery only and do not represent endorsement, sponsorship, verification, or approval by Antseed. Review each project independently before using it.
+            * Ecosystem listings are for discovery only and do not represent endorsement, sponsorship, verification, or approval by Torve. Review each project independently before using it.
           </p>
         </div>
       </Section>
 
       <FinalCta
-        title="Build, learn, and grow with Antseed"
+        title="Build, learn, and grow with Torve"
         sub="Use the docs, connect your tools, or launch a provider to help expand the peer-to-peer AI network."
         note={
           <>
             <Link to="/docs">Docs</Link>
             <Link to="/integrations">Integrations</Link>
-            <a href="https://t.me/antseed" target="_blank" rel="noopener noreferrer">Telegram</a>
+            <a href="https://t.me/torve" target="_blank" rel="noopener noreferrer">Telegram</a>
           </>
         }>
         <Button to="/docs" variant="white" size="lg" arrow>Explore resources</Button>

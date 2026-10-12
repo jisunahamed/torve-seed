@@ -2,12 +2,12 @@ import type { Command } from 'commander'
 import chalk from 'chalk'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { getServiceMetadataId } from '@antseed/node'
-import { canonicalModelKey } from '@antseed/node/model-identity'
+import { getServiceMetadataId } from '@torveai/node'
+import { canonicalModelKey } from '@torveai/node/model-identity'
 import { getGlobalOptions } from '../types.js'
 import { BAKED_COMPARABLE_PRICES_URL } from '../../../generated/baked-defaults.js'
 import { loadConfig } from '../../../config/loader.js'
-import type { AntseedConfig } from '../../../config/types.js'
+import type { TorveConfig } from '../../../config/types.js'
 import {
   loadCryptoContext,
   createChannelsClient,
@@ -17,7 +17,7 @@ import {
   formatAnts,
   formatUsdc,
 } from '../../payment-utils.js'
-import { ChannelsClient } from '@antseed/node'
+import { ChannelsClient } from '@torveai/node'
 import { daemonJson } from './daemon.js'
 import { pastEpochs } from '../emissions.js'
 
@@ -31,7 +31,7 @@ const HISTORY_WINDOWS = [7, 30, 90]
  * with neither env nor baked value, the savings baseline is off. Setting the
  * env to an empty string disables a baked default.
  */
-const COMPARABLE_PRICES_URL_ENV = 'ANTSEED_COMPARABLE_PRICES_URL'
+const COMPARABLE_PRICES_URL_ENV = 'TORVE_COMPARABLE_PRICES_URL'
 const COMPARABLE_PRICES_TIMEOUT_MS = 8_000
 const CHART_WIDTH = 24
 const ONCHAIN_READ_CONCURRENCY = 8
@@ -100,7 +100,7 @@ function normalizeChannelRow(entry: unknown): DaemonChannelRow | null {
     status: str(raw, 'status', 'unknown'),
     requestCount: num(raw, 'requestCount'),
     // Daemon channel rows name cumulative input tokens `tokensDelivered`
-    // (BuyerChannelSummary in @antseed/node).
+    // (BuyerChannelSummary in @torveai/node).
     inputTokens: str(raw, 'tokensDelivered'),
     outputTokens: str(raw, 'outputTokens'),
   }
@@ -344,7 +344,7 @@ async function runInBatches<T>(items: T[], batchSize: number, task: (item: T) =>
 
 // ─── On-chain reads (each degrades to null/empty on failure) ───
 
-async function fetchDepositsBalance(config: AntseedConfig, address: string): Promise<{ available: bigint; reserved: bigint } | null> {
+async function fetchDepositsBalance(config: TorveConfig, address: string): Promise<{ available: bigint; reserved: bigint } | null> {
   try {
     return await createDepositsClient(config).getBuyerBalance(address)
   } catch {
@@ -352,7 +352,7 @@ async function fetchDepositsBalance(config: AntseedConfig, address: string): Pro
   }
 }
 
-async function fetchClaimableRewards(config: AntseedConfig, address: string): Promise<{ pendingAnts: bigint; epoch: number } | null> {
+async function fetchClaimableRewards(config: TorveConfig, address: string): Promise<{ pendingAnts: bigint; epoch: number } | null> {
   try {
     const emissionsClient = createEmissionsClient(config)
     const epochInfo = await emissionsClient.getEpochInfo()
@@ -382,7 +382,7 @@ interface OnChainChannelState {
   status: Map<string, { status: number; closeRequestedAt: number }>
 }
 
-async function readOnChainChannelState(config: AntseedConfig, rows: DaemonChannelRow[]): Promise<OnChainChannelState> {
+async function readOnChainChannelState(config: TorveConfig, rows: DaemonChannelRow[]): Promise<OnChainChannelState> {
   const state: OnChainChannelState = { locked: new Map(), status: new Map() }
   try {
     const crypto = requireCryptoConfig(config)
@@ -448,12 +448,12 @@ export function registerBuyerActivityCommand(buyerCmd: Command): void {
 
       const proxyPort = config.buyer.proxyPort
       const [channelsBody, usageBody] = await Promise.all([
-        daemonJson(proxyPort, '/_antseed/channels?all=1'),
-        daemonJson(proxyPort, '/_antseed/buyer-usage'),
+        daemonJson(proxyPort, '/_torve/channels?all=1'),
+        daemonJson(proxyPort, '/_torve/buyer-usage'),
       ])
       if (!channelsBody || !usageBody) {
         console.error(chalk.red(`No buyer connection reachable on port ${proxyPort}.`))
-        console.error(chalk.dim('Activity is served by the running connection — start it with `antseed buyer start`.'))
+        console.error(chalk.dim('Activity is served by the running connection — start it with `torve buyer start`.'))
         process.exit(1)
       }
 
@@ -463,7 +463,7 @@ export function registerBuyerActivityCommand(buyerCmd: Command): void {
       const usage = normalizeUsageTotals(usageBody['totals'])
 
       // The daemon may run with a different key than the local identity.key
-      // (the desktop injects its managed key via ANTSEED_IDENTITY_HEX), so
+      // (the desktop injects its managed key via TORVE_IDENTITY_HEX), so
       // take the buyer address from the daemon's own channel rows and only
       // fall back to the local identity when there are none.
       const address = channels.find((row) => row.buyer)?.buyer
@@ -603,19 +603,19 @@ export function registerBuyerActivityCommand(buyerCmd: Command): void {
           console.log(chalk.dim(`    ${row.channelId}`))
         }
         if (activeRows.length > MAX_CHANNEL_ROWS) {
-          console.log(chalk.dim(`  … ${activeRows.length - MAX_CHANNEL_ROWS} more — see \`antseed buyer channels\``))
+          console.log(chalk.dim(`  … ${activeRows.length - MAX_CHANNEL_ROWS} more — see \`torve buyer channels\``))
         }
         console.log('')
-        console.log(chalk.dim('  Close a channel with `antseed buyer channels close <channelId>` — asks the seller to settle and release the remainder instantly.'))
-        console.log(chalk.dim('  If the seller is unreachable, `antseed buyer channels request-close <channelId>` starts an on-chain close; after the'))
-        console.log(chalk.dim('  15-minute grace period, `antseed buyer channels withdraw <channelId>` reclaims the remaining locked funds.'))
+        console.log(chalk.dim('  Close a channel with `torve buyer channels close <channelId>` — asks the seller to settle and release the remainder instantly.'))
+        console.log(chalk.dim('  If the seller is unreachable, `torve buyer channels request-close <channelId>` starts an on-chain close; after the'))
+        console.log(chalk.dim('  15-minute grace period, `torve buyer channels withdraw <channelId>` reclaims the remaining locked funds.'))
       }
       console.log('')
 
       if (rewards) {
         console.log(chalk.bold('Rewards') + chalk.dim(`   epoch ${rewards.epoch}`))
         if (rewards.pendingAnts > 0n) {
-          console.log(`  ${chalk.green(`${formatAnts(rewards.pendingAnts)} ANTS`)} available to claim — run \`${chalk.bold('antseed buyer emissions claim')}\``)
+          console.log(`  ${chalk.green(`${formatAnts(rewards.pendingAnts)} ANTS`)} available to claim — run \`${chalk.bold('torve buyer emissions claim')}\``)
         } else {
           console.log(chalk.dim('  No ANTS available to claim yet.'))
         }

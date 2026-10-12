@@ -13,7 +13,7 @@ export interface ConfigField {
 /** @deprecated Use ConfigField instead */
 export type PluginConfigKey = ConfigField
 
-export interface AntseedPluginBase {
+export interface TorvePluginBase {
   name: string
   displayName: string
   version: string
@@ -23,18 +23,18 @@ export interface AntseedPluginBase {
   configKeys?: ConfigField[]
 }
 
-export interface AntseedProviderPlugin extends AntseedPluginBase {
+export interface TorveProviderPlugin extends TorvePluginBase {
   type: 'provider'
   createProvider(config: Record<string, string>): Provider | Promise<Provider>
 }
 
-export interface AntseedRouterPlugin extends AntseedPluginBase {
+export interface TorveRouterPlugin extends TorvePluginBase {
   type: 'router'
   createRouter(config: Record<string, string>): Router | Promise<Router>
 }
 
 export interface ClaimResult {
-  /** Namespaced claim id, e.g. 'antseed-tee/dcap:hardware-genuine'. */
+  /** Namespaced claim id, e.g. 'torve-tee/dcap:hardware-genuine'. */
   claim: string
   ok: boolean
   detail?: string
@@ -70,16 +70,16 @@ export interface VerifyContext {
   signal?: AbortSignal
 }
 
-export interface AntseedVerifierPlugin extends AntseedPluginBase {
+export interface TorveVerifierPlugin extends TorvePluginBase {
   type: 'verifier'
   verify(ctx: VerifyContext): VerifyResult | Promise<VerifyResult>
 }
 
-export const ANTSEED_ATTEST_PATH = '/_antseed/attest'
+export const TORVE_ATTEST_PATH = '/_torve/attest'
 
-export interface Prover extends AntseedPluginBase {
+export interface Prover extends TorvePluginBase {
   type: 'prover'
   prove(req: SellerRequest): SellerResponse | Promise<SellerResponse>
 }
 
-export type AntseedPlugin = AntseedProviderPlugin | AntseedRouterPlugin | AntseedVerifierPlugin | Prover
+export type TorvePlugin = TorveProviderPlugin | TorveRouterPlugin | TorveVerifierPlugin | Prover

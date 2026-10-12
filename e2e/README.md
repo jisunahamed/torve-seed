@@ -1,9 +1,9 @@
-# antseed-e2e
+# torve-e2e
 
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org/)
 [![Vitest](https://img.shields.io/badge/vitest-1.2+-yellow.svg)](https://vitest.dev/)
 
-End-to-end tests for the Antseed Network. These tests exercise the full P2P inference flow: DHT discovery, peer connection, request proxying, and SSE streaming -- all running against a local bootstrap node with mock providers.
+End-to-end tests for the Torve Network. These tests exercise the full P2P inference flow: DHT discovery, peer connection, request proxying, and SSE streaming -- all running against a local bootstrap node with mock providers.
 
 ## Running Tests
 
@@ -17,10 +17,10 @@ npm run test:watch  # Watch mode
 Run a complete local payment + networking flow (no external API keys):
 
 1. Start a local Anvil chain
-2. Build and deploy `MockUSDC` + `AntseedIdentity` + `AntseedStaking` + `AntseedDeposits` + `AntseedChannels` with Foundry
+2. Build and deploy `MockUSDC` + `TorveIdentity` + `TorveStaking` + `TorveDeposits` + `TorveChannels` with Foundry
 3. Start isolated local DHT bootstrap + seller + buyer nodes
 4. Mint/fund buyer + seller wallets
-5. Buyer deposits into AntseedDeposits, sends a real P2P request, then triggers settlement
+5. Buyer deposits into TorveDeposits, sends a real P2P request, then triggers settlement
 6. Verify on-chain settled state, balances, and reputation updates
 
 ```bash
@@ -87,7 +87,7 @@ All nodes use OS-assigned ports (`dhtPort: 0`, `signalingPort: 0`) and temporary
 
 1. Create a new file in `tests/` (e.g. `tests/my-scenario.test.ts`)
 2. Use `createLocalBootstrap()` to set up an isolated DHT
-3. Create seller and buyer `AntseedNode` instances with OS-assigned ports
+3. Create seller and buyer `TorveNode` instances with OS-assigned ports
 4. Register a mock provider on the seller (or write a custom one)
 5. Start both nodes, wait for DHT propagation (~3 seconds), then run assertions
 6. Clean up in `afterEach`: stop buyer, seller, bootstrap, and remove temp dirs
@@ -95,15 +95,15 @@ All nodes use OS-assigned ports (`dhtPort: 0`, `signalingPort: 0`) and temporary
 ```ts
 import { createLocalBootstrap } from './helpers/local-bootstrap.js';
 import { MockAnthropicProvider } from './helpers/mock-provider.js';
-import { AntseedNode } from '@antseed/node';
+import { TorveNode } from '@torveai/node';
 
 // See existing tests for the full pattern
 ```
 
 ## Dependencies
 
-This package depends on all three core Antseed packages:
+This package depends on all three core Torve packages:
 
-- [`@antseed/node`](../@antseed/node) -- core protocol SDK
-- [`antseed-provider-anthropic`](../antseed-provider-anthropic) -- Anthropic provider plugin
-- [`antseed-router-claude-code`](../antseed-router-claude-code) -- Claude Code router plugin
+- [`@torveai/node`](../@torveai/node) -- core protocol SDK
+- [`torve-provider-anthropic`](../torve-provider-anthropic) -- Anthropic provider plugin
+- [`torve-router-claude-code`](../torve-router-claude-code) -- Claude Code router plugin

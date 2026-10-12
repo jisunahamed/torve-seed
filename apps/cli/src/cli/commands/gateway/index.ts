@@ -13,11 +13,11 @@ export function registerGatewayCommands(program: Command): void {
     .description('Serve the buyer API to multiple users with per-key spend limits and usage')
 
   gateway.command('start')
-    .description('Run the API-key gateway locally (use `antseed tunnel start` to publish it)')
+    .description('Run the API-key gateway locally (use `torve tunnel start` to publish it)')
     .option('--port <number>', 'gateway listen port', parsePositiveInteger, DEFAULT_GATEWAY_PORT)
     .option('--host <host>', 'listen address; use 0.0.0.0 to serve your LAN', '127.0.0.1')
     .option('--buyer-port <number>', 'port of the running buyer (default: buyer.proxyPort from config)', parsePositiveInteger)
-    .option('--x402-facilitator <url>', 'accept x402 top-ups of key wallets, settled by this facilitator: a URL, "cdp" or "payai" (env: ANTSEED_X402_FACILITATOR_URL)')
+    .option('--x402-facilitator <url>', 'accept x402 top-ups of key wallets, settled by this facilitator: a URL, "cdp" or "payai" (env: TORVE_X402_FACILITATOR_URL)')
     .option('--topup-min-usd <usd>', 'smallest top-up accepted (default: 2)')
     .option('--topup-max-usd <usd>', 'largest top-up accepted (default: 500)')
     .action(async (options: { port: number; host: string; buyerPort?: number; x402Facilitator?: string; topupMinUsd?: string; topupMaxUsd?: string }) => {
@@ -33,7 +33,7 @@ export function registerGatewayCommands(program: Command): void {
         onLog: (message) => process.stderr.write(`[gateway] ${message}\n`),
       })
       console.log(chalk.green(`API-key gateway listening on http://${options.host}:${runtime.port}/v1`))
-      console.log(chalk.dim(`${runtime.store.countActiveKeys()} active key(s). Manage them with \`antseed gateway key …\`.`))
+      console.log(chalk.dim(`${runtime.store.countActiveKeys()} active key(s). Manage them with \`torve gateway key …\`.`))
       if (topup) console.log(chalk.dim(`x402 top-ups: POST /v1/key/topup, settled by ${topup.facilitatorUrl}`))
       setupShutdownHandler(async () => {
         await runtime.stop()

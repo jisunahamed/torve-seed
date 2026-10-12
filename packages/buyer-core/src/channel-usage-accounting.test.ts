@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getServiceMetadataId, OUTPUT_IMAGE_TOKEN_EQUIVALENT, ZERO_METADATA } from '@antseed/protocol/signatures';
+import { getServiceMetadataId, OUTPUT_IMAGE_TOKEN_EQUIVALENT, ZERO_METADATA } from '@torveai/protocol/signatures';
 import { advanceUsageMetadata, normalizeRequestUsageDelta } from './channel-usage-accounting.js';
 
 describe('normalizeRequestUsageDelta', () => {

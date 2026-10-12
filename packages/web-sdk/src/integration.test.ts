@@ -1,6 +1,6 @@
 /**
  * End-to-end: web SDK (node-datachannel polyfill standing in for the browser)
- * → relay WS bridge → REAL @antseed/node seller-side code (ConnectionManager
+ * → relay WS bridge → REAL @torveai/node seller-side code (ConnectionManager
  * listener + ProxyMux), including the payment handshake.
  */
 
@@ -12,11 +12,11 @@ import {
   ConnectionManager,
   FrameDecoder as NodeFrameDecoder,
   encodeFrame as nodeEncodeFrame,
-} from '@antseed/node/p2p';
-import { ProxyMux, toPeerId } from '@antseed/node';
+} from '@torveai/node/p2p';
+import { ProxyMux, toPeerId } from '@torveai/node';
 import { RelayServer } from '../../../apps/relay/src/server.js';
 import { SellerCache } from '../../../apps/relay/src/seller-cache.js';
-import { AntseedWebClient, type SellerSession } from './client.js';
+import { TorveWebClient, type SellerSession } from './client.js';
 import {
   MessageType,
   decodeSpendingAuth,
@@ -27,7 +27,7 @@ import {
   RESERVE_AUTH_TYPES,
   makeChannelsDomain,
   type SpendingAuthPayload,
-} from '@antseed/protocol';
+} from '@torveai/protocol';
 
 const CHAIN_ID = 31337;
 const CHANNELS_ADDRESS = '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853';
@@ -110,7 +110,7 @@ function wireSellerConnection(conn: InstanceType<typeof ConnectionManager>['prot
       mux.sendProxyResponse({
         requestId: request.requestId,
         statusCode: 200,
-        headers: { 'content-type': 'text/event-stream', 'x-antseed-streaming': '1' },
+        headers: { 'content-type': 'text/event-stream', 'x-torve-streaming': '1' },
         body: new Uint8Array(0),
       });
       mux.sendProxyChunk({
@@ -210,7 +210,7 @@ beforeAll(async () => {
   });
   await relay.start();
 
-  const client = AntseedWebClient.ephemeral({
+  const client = TorveWebClient.ephemeral({
     relayUrl: `http://127.0.0.1:${relay.address().port}`,
     privateKey: buyerWallet.privateKey,
     payment: { chainId: CHAIN_ID, channelsContractAddress: CHANNELS_ADDRESS, rpcUrl: '' },

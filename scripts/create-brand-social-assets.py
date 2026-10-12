@@ -145,7 +145,7 @@ ad.ellipse((908,870,936,898), fill=CLAY+(210,))
 glow_ellipse(avatar, (860,822,984,946), CLAY, 58, 24)
 # rounded square export (X crops to circle but square looks polished)
 avatar.putalpha(rounded_mask((S,S), 128))
-avatar.save(OUT / 'x-avatar-antseed.png')
+avatar.save(OUT / 'x-avatar-torve.png')
 
 # ---------------- Banner PNG ----------------
 W,H = 1500,500
@@ -194,4 +194,4 @@ for r,a in [(96,24),(52,44),(17,210)]:
         bd.ellipse((1298-r,250-r,1298+r,250+r), fill=CLAY+(a,))
     else:
         bd.ellipse((1298-r,250-r,1298+r,250+r), outline=CLAY+(a,), width=2)
-banner.save(OUT / 'x-banner-antseed.png')
+banner.save(OUT / 'x-banner-torve.png')

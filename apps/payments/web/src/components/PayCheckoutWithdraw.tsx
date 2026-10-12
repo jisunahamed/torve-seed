@@ -17,7 +17,7 @@ interface PayCheckoutWithdrawProps {
 }
 
 /**
- * Checkout-style withdraw: sends AntseedDeposits.withdraw() from the
+ * Checkout-style withdraw: sends TorveDeposits.withdraw() from the
  * connected wallet, which must be the account's authorized operator — the
  * USDC is paid out to that wallet.
  */

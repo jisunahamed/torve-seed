@@ -18,12 +18,12 @@ test('Linux config separates install identity from visible branding and other pl
   const base = await getConfig(desktopDir, path.join(desktopDir, 'electron-builder.yml'));
   const linux = await getConfig(desktopDir, path.join(desktopDir, 'electron-builder.linux.cjs'));
   await validateConfiguration(linux, { isEnabled: false });
-  assert.equal(base.productName, 'Antseed AI VPN');
-  assert.equal(base.executableName, 'AntSeed VPR');
-  assert.equal(linux.productName, 'antseed-ai-vpn');
-  assert.equal(linux.linux.executableName, 'antseed-ai-vpn');
-  assert.equal(linux.deb.packageName, 'antseed-ai-vpn');
-  assert.equal(linux.linux.artifactName, 'Antseed-AI-VPN-${version}-${arch}.${ext}');
+  assert.equal(base.productName, 'Torve AI VPN');
+  assert.equal(base.executableName, 'Torve VPR');
+  assert.equal(linux.productName, 'torve-ai-vpn');
+  assert.equal(linux.linux.executableName, 'torve-ai-vpn');
+  assert.equal(linux.deb.packageName, 'torve-ai-vpn');
+  assert.equal(linux.linux.artifactName, 'Torve-AI-VPN-${version}-${arch}.${ext}');
   assert.deepEqual(linux.mac, base.mac);
   assert.deepEqual(linux.win, base.win);
   assert.deepEqual(linux.linux.target, base.linux.target);
@@ -39,10 +39,10 @@ test('Linux config separates install identity from visible branding and other pl
     appInfo: { productName: linux.productName, sanitizedProductName: linux.productName },
   });
   const desktopEntry = await helper.computeDesktopEntry(linux.linux);
-  assert.match(desktopEntry, /^Name=Antseed AI VPN$/m);
-  assert.match(desktopEntry, /^Exec=\/opt\/antseed-ai-vpn\/antseed-ai-vpn %U$/m);
-  assert.match(desktopEntry, /^Icon=antseed-ai-vpn$/m);
-  assert.match(desktopEntry, /^StartupWMClass=Antseed AI VPN$/m);
+  assert.match(desktopEntry, /^Name=Torve AI VPN$/m);
+  assert.match(desktopEntry, /^Exec=\/opt\/torve-ai-vpn\/torve-ai-vpn %U$/m);
+  assert.match(desktopEntry, /^Icon=torve-ai-vpn$/m);
+  assert.match(desktopEntry, /^StartupWMClass=Torve AI VPN$/m);
   assert.deepEqual(linux.deb.fpm, ['--before-install', path.join(desktopDir, 'scripts/linux/preinst.sh')]);
   for (const hook of [linux.deb.afterInstall, linux.deb.afterRemove, linux.deb.fpm[1]]) {
     assert.ok((await readFile(hook, 'utf8')).startsWith('#!/bin/sh\n'));
@@ -70,7 +70,7 @@ test('generic distribution selects the target platform without changing cross-bu
 });
 
 test('Linux afterPack sets the sandbox helper mode before archiving', { skip: process.platform === 'win32' }, async () => {
-  const appOutDir = await mkdtemp(path.join(tmpdir(), 'antseed-linux-sandbox-'));
+  const appOutDir = await mkdtemp(path.join(tmpdir(), 'torve-linux-sandbox-'));
   try {
     const helper = path.join(appOutDir, 'chrome-sandbox');
     await writeFile(helper, 'sandbox fixture', { mode: 0o755 });

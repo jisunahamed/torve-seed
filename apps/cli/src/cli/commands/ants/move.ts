@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { parsePositiveInteger } from '../parse-positive-integer.js';
-import { move } from '@antseed/ants';
+import { move } from '@torveai/ants';
 import { parseIds, runAction } from './shared.js';
 
 export function registerAntsMoveCommand(antsCmd: Command): void {

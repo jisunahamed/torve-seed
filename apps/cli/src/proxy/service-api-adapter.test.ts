@@ -4,7 +4,7 @@ import {
   transformRequest,
   transformResponse,
 } from './service-api-adapter.js'
-import type { SerializedHttpRequest, SerializedHttpResponse, ServiceApiProtocol } from '@antseed/node'
+import type { SerializedHttpRequest, SerializedHttpResponse, ServiceApiProtocol } from '@torveai/node'
 
 const enc = new TextEncoder()
 const dec = new TextDecoder()

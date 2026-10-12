@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
 import { ProxyMux } from '../src/proxy/proxy-mux.js';
-import { decodeFrame } from '@antseed/protocol/framing';
+import { decodeFrame } from '@torveai/protocol/framing';
 import type { PeerConnection } from '../src/p2p/connection-manager.js';
 
 function pair() {
@@ -10,8 +10,8 @@ function pair() {
   return { buyer, seller, errors };
 }
 
-const request = { requestId: 'download', method: 'POST', path: '/video', headers: { 'x-antseed-video-download': 'video-stream-v1' }, body: new TextEncoder().encode('{"queue_id":"queue-1"}') };
-const start = { requestId: request.requestId, statusCode: 200, headers: { 'x-antseed-streaming': '1' }, body: new Uint8Array() };
+const request = { requestId: 'download', method: 'POST', path: '/video', headers: { 'x-torve-video-download': 'video-stream-v1' }, body: new TextEncoder().encode('{"queue_id":"queue-1"}') };
+const start = { requestId: request.requestId, statusCode: 200, headers: { 'x-torve-streaming': '1' }, body: new Uint8Array() };
 
 it('waits for the consumer before acknowledging each bounded chunk', async () => {
   const { buyer, seller, errors } = pair();

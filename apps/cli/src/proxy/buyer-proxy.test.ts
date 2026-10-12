@@ -7,8 +7,8 @@ import { Readable } from 'node:stream'
 import test from 'node:test'
 import { ResourceRoutes } from './resource-routes.js'
 import {
-  ANTSEED_BUYER_FAULT_ERROR_CODE,
-  ANTSEED_FAULT_ATTRIBUTION_HEADER,
+  TORVE_BUYER_FAULT_ERROR_CODE,
+  TORVE_FAULT_ATTRIBUTION_HEADER,
   CONNECTION_CAPABILITY_COOPERATIVE_CLOSE_V1,
   CONNECTION_CAPABILITY_RELAYS_SWEEPS_V1,
   adaptPeerFaultErrorResponse,
@@ -18,7 +18,7 @@ import {
   type PeerInfo,
   type SerializedHttpRequest,
   type SerializedHttpResponse,
-} from '@antseed/node'
+} from '@torveai/node'
 import { DEFAULT_BUYER_PEER_REFRESH_INTERVAL_MS } from '../config/defaults.js'
 import { TeeVerification } from './tee-verification.js'
 import {
@@ -66,7 +66,7 @@ for (const provider of ['venice'] as const) {
       await writeFile(join(directory, 'buyer.state.json'), JSON.stringify({ unrelated: 'preserved' }))
       const calls: Array<{ peer: string; path: string; service?: string; provider?: string }> = []
       const send = async (peer: PeerInfo, request: { requestId: string; method: string; path: string; headers: Record<string, string> }) => {
-        calls.push({ peer: peer.peerId, path: request.path, service: request.headers['x-antseed-service'], provider: request.headers['x-antseed-provider'] })
+        calls.push({ peer: peer.peerId, path: request.path, service: request.headers['x-torve-service'], provider: request.headers['x-torve-provider'] })
         if (request.method === 'POST' && peer === peers[0]) await new Promise(resolve => setTimeout(resolve, 10))
         return { requestId: request.requestId, statusCode: 200, headers: { 'content-type': 'application/json' }, body: Buffer.from(JSON.stringify({ queue_id: resourceId(peer.peerId[0]!) })) }
       }
@@ -94,7 +94,7 @@ for (const provider of ['venice'] as const) {
         assert.equal(calls.at(-1)?.service, `model-${index}`)
         assert.equal(calls.at(-1)?.provider, provider)
       }
-      const recorded = await invokeProxy(restarted, makeProxyRequest({ method: 'POST', path: statusPath, body: { model: 'model-0', queue_id: resourceId('a') }, headers: { 'x-antseed-pin-peer': peers[1]!.peerId } }))
+      const recorded = await invokeProxy(restarted, makeProxyRequest({ method: 'POST', path: statusPath, body: { model: 'model-0', queue_id: resourceId('a') }, headers: { 'x-torve-pin-peer': peers[1]!.peerId } }))
       assert.equal(recorded.statusCode, 200)
       assert.equal(calls.at(-1)?.peer, peers[0]!.peerId)
       await (proxy as any)._stateWriteChain
@@ -105,14 +105,14 @@ for (const provider of ['venice'] as const) {
   })
 }
 
-test('native video resolves antseed and peer-pinned models like images', async () => {
+test('native video resolves torve and peer-pinned models like images', async () => {
   const cases = [
     { provider: 'venice', protocol: 'venice-video', path: '/api/v1/video/queue', acceptance: { queue_id: 'queue' } },
   ] as const
   for (const { provider, protocol, path, acceptance } of cases) {
     const peers = [makePeer('a', [provider]), makePeer('b', [provider])]
     for (const peer of peers) peer.providerServiceApiProtocols = { [provider]: { services: { 'video-model': [protocol] } } }
-    for (const model of ['antseed', `${peers[1]!.peerId}@video-model`]) {
+    for (const model of ['torve', `${peers[1]!.peerId}@video-model`]) {
       const proxy = makeBuyerProxyWithPeers(peers, peers, permissiveRouter())
       ;(proxy as any)._defaultRoutedModel = `${peers[1]!.peerId}@video-model`
       ;(proxy as any)._persistResourceRoutes = async () => {}
@@ -158,7 +158,7 @@ test('native video creates are not retried automatically', async () => {
   const result = await invokeProxy(proxy, makeProxyRequest({ path: '/api/v1/video/queue', body: { model: 'model', duration: '8s' } }))
   assert.ok(result.statusCode >= 400)
   assert.equal(sent.length, 1)
-  assert.equal(sent[0]!.headers['x-antseed-pin-peer'], undefined)
+  assert.equal(sent[0]!.headers['x-torve-pin-peer'], undefined)
 })
 
 test('native video options are validated by the seller without buyer filtering or retries', async () => {
@@ -196,14 +196,14 @@ test('existing required CLI verification rejects a failed pin without payment/in
   const rejected = makePeer('a', ['openai'])
   const accepted = makePeer('b', ['openai'])
   for (const peer of [rejected, accepted]) {
-    peer.capabilities = ['verifier.antseed-verifier']
+    peer.capabilities = ['verifier.torve-verifier']
     peer.providerServiceApiProtocols = { openai: { services: { 'gpt-4o': ['openai-chat-completions'] } } }
   }
   rejected.reputationScore = 99
   accepted.reputationScore = 90
   const peers = [rejected, accepted]
   const proxy = makeBuyerProxyWithPeers(peers, peers, permissiveRouter())
-  const policy = { require: true, prefer: ['antseed-verifier'] }
+  const policy = { require: true, prefer: ['torve-verifier'] }
   const verification = new TeeVerification(policy)
   ;(proxy as any)._verifier = policy
   ;(proxy as any)._teeVerification = verification
@@ -215,14 +215,14 @@ test('existing required CLI verification rejects a failed pin without payment/in
     dispatches.push(peer.peerId)
     return { requestId: request.requestId, statusCode: 200, headers: { 'content-type': 'application/json' }, body: Buffer.from('{}') }
   }
-  const pinned = await invokeProxy(proxy, makeProxyRequest({ headers: { 'x-antseed-pin-peer': rejected.peerId } }))
+  const pinned = await invokeProxy(proxy, makeProxyRequest({ headers: { 'x-torve-pin-peer': rejected.peerId } }))
   assert.equal(pinned.statusCode, 502)
   assert.match(pinned.body, /failed required verification/)
   assert.deepEqual(dispatches, [])
   const automatic = await invokeProxy(proxy, makeProxyRequest({}))
   assert.equal(automatic.statusCode, 200)
   assert.deepEqual(dispatches, [accepted.peerId])
-  const explicit = await invokeProxy(proxy, makeProxyRequest({ headers: { 'x-antseed-pin-peer': accepted.peerId } }))
+  const explicit = await invokeProxy(proxy, makeProxyRequest({ headers: { 'x-torve-pin-peer': accepted.peerId } }))
   assert.equal(explicit.statusCode, 200)
   assert.deepEqual(dispatches, [accepted.peerId, accepted.peerId])
 });
@@ -300,7 +300,7 @@ function makeBuyerProxyWithPeers(
 ): BuyerProxy {
   const proxy = new BuyerProxy({
     port: 0,
-    dataDir: '/tmp/antseed-test',
+    dataDir: '/tmp/torve-test',
     node: {
       router,
     } as any,
@@ -350,7 +350,7 @@ async function failRepeatedly(
   times = 3,
 ): Promise<void> {
   for (let i = 0; i < times; i += 1) {
-    await invokeProxy(proxy, makeProxyRequest({ headers: { 'x-antseed-pin-peer': peer.peerId } }))
+    await invokeProxy(proxy, makeProxyRequest({ headers: { 'x-torve-pin-peer': peer.peerId } }))
     clock.advance(5_000)
   }
 }
@@ -368,7 +368,7 @@ async function invokeProxy(proxy: BuyerProxy, req: Readable): Promise<ReturnType
 test('BuyerProxy defaults to the configured 5 min background refresh interval', () => {
   const proxy = new BuyerProxy({
     port: 0,
-    dataDir: '/tmp/antseed-test',
+    dataDir: '/tmp/torve-test',
     node: { router: null } as any,
   })
 
@@ -378,7 +378,7 @@ test('BuyerProxy defaults to the configured 5 min background refresh interval', 
 test('BuyerProxy accepts a custom background refresh interval', () => {
   const proxy = new BuyerProxy({
     port: 0,
-    dataDir: '/tmp/antseed-test',
+    dataDir: '/tmp/torve-test',
     node: { router: null } as any,
     backgroundRefreshIntervalMs: 15_000,
   })
@@ -389,7 +389,7 @@ test('BuyerProxy accepts a custom background refresh interval', () => {
 test('BuyerProxy rewrites upstream 413 responses into a clear request size error', () => {
   const proxy = new BuyerProxy({
     port: 0,
-    dataDir: '/tmp/antseed-test',
+    dataDir: '/tmp/torve-test',
     node: { router: null } as any,
   })
   const upstream = {
@@ -409,7 +409,7 @@ test('BuyerProxy rewrites upstream 413 responses into a clear request size error
 })
 
 test('BuyerProxy reloads model routing preferences from config', async (t) => {
-  const dataDir = await mkdtemp(join(tmpdir(), 'antseed-routing-config-'))
+  const dataDir = await mkdtemp(join(tmpdir(), 'torve-routing-config-'))
   const configPath = join(dataDir, 'config.json')
   t.after(() => rm(dataDir, { recursive: true, force: true }))
   const allowedPeerId = 'a'.repeat(40)
@@ -446,7 +446,7 @@ test('BuyerProxy reloads model routing preferences from config', async (t) => {
 })
 
 test('BuyerProxy starts incremental discovery on startup', async (t) => {
-  const dir = await mkdtemp(join(tmpdir(), 'antseed-buyer-proxy-'))
+  const dir = await mkdtemp(join(tmpdir(), 'torve-buyer-proxy-'))
   t.after(() => rm(dir, { recursive: true, force: true }))
   let sweepCalls = 0
   const proxy = new BuyerProxy({
@@ -519,7 +519,7 @@ test('sweep control endpoint validates and dispatches sequentially via the runni
   const listeners = new Map<string, (event: unknown) => void>()
   const proxy = new BuyerProxy({
     port: 0,
-    dataDir: '/tmp/antseed-test',
+    dataDir: '/tmp/torve-test',
     node: {
       router: null,
       on: (event: string, listener: (event: unknown) => void) => listeners.set(event, listener),
@@ -530,14 +530,14 @@ test('sweep control endpoint validates and dispatches sequentially via the runni
     } as any,
   })
 
-  const res = await invokeProxy(proxy, makeProxyRequest({ path: '/_antseed/sweep', body: validSweep }))
+  const res = await invokeProxy(proxy, makeProxyRequest({ path: '/_torve/sweep', body: validSweep }))
   assert.equal(res.statusCode, 200)
   assert.deepEqual(JSON.parse(res.body), { ok: true, sent: 3, accepted: true })
   assert.equal(dispatches.length, 1)
 
   // Malformed payloads are rejected by the wire codec, not dispatched.
   const bad = await invokeProxy(proxy, makeProxyRequest({
-    path: '/_antseed/sweep',
+    path: '/_torve/sweep',
     body: { ...validSweep, sig3009: 'garbage' },
   }))
   assert.equal(bad.statusCode, 400)
@@ -548,14 +548,14 @@ test('sweep control endpoint validates and dispatches sequentially via the runni
   assert.ok(emit, 'proxy subscribes to sweep:receipt')
   emit!({ peerId: 'p1', payload: { version: 1, authNonce: validSweep.nonce, status: 'confirmed', txHash: '0x' + '77'.repeat(32) } })
 
-  const receiptRes = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: `/_antseed/sweep/${validSweep.nonce}` }))
+  const receiptRes = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: `/_torve/sweep/${validSweep.nonce}` }))
   assert.equal(receiptRes.statusCode, 200)
   const receiptBody = JSON.parse(receiptRes.body) as { ok: boolean; receipt: { status: string; txHash: string } }
   assert.equal(receiptBody.receipt.status, 'confirmed')
   assert.equal(receiptBody.receipt.txHash, '0x' + '77'.repeat(32))
 
   // Unknown nonce returns null receipt.
-  const missing = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: `/_antseed/sweep/0x${'bb'.repeat(32)}` }))
+  const missing = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: `/_torve/sweep/0x${'bb'.repeat(32)}` }))
   assert.deepEqual(JSON.parse(missing.body), { ok: true, receipt: null })
 })
 
@@ -568,7 +568,7 @@ test('peer refresh control endpoint triggers immediate refresh', async () => {
     return [refreshedPeer]
   }
 
-  const res = await invokeProxy(proxy, makeProxyRequest({ path: '/_antseed/peers/refresh' }))
+  const res = await invokeProxy(proxy, makeProxyRequest({ path: '/_torve/peers/refresh' }))
   const body = JSON.parse(res.body) as { ok: boolean; total: number }
 
   assert.equal(refreshCalled, true)
@@ -581,7 +581,7 @@ test('peers control endpoint exposes relay capability metadata', async () => {
   peer.capabilities = [CONNECTION_CAPABILITY_RELAYS_SWEEPS_V1]
   const proxy = makeBuyerProxyWithPeers([peer])
 
-  const res = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_antseed/peers' }))
+  const res = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_torve/peers' }))
   const body = JSON.parse(res.body) as { peers: Array<{ capabilities: string[] }> }
 
   assert.equal(res.statusCode, 200)
@@ -600,7 +600,7 @@ test('channels endpoint exposes cooperative-close support from peer capabilities
     { sessionId: 'unknown', peerId: 'c'.repeat(40) },
   ]
 
-  const res = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_antseed/channels?all=1' }))
+  const res = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_torve/channels?all=1' }))
   const body = JSON.parse(res.body) as {
     channels: Array<{ sessionId: string; sellerDisplayName: string | null; cooperativeCloseSupported: boolean }>
   }
@@ -855,13 +855,13 @@ test('required parameters filter automatic routes and are stripped before seller
 
   const res = await invokeProxy(proxy, makeProxyRequest({
     path: '/v1/images/generations',
-    headers: { 'x-antseed-required-parameters': 'moderation' },
+    headers: { 'x-torve-required-parameters': 'moderation' },
     body: { model: 'venice-sd35', prompt: 'a landscape', moderation: 'low' },
   }))
 
   assert.equal(res.statusCode, 200)
   assert.equal(selectedPeerId, supported.peerId)
-  assert.equal(forwardedHeaders['x-antseed-required-parameters'], undefined)
+  assert.equal(forwardedHeaders['x-torve-required-parameters'], undefined)
 })
 
 test('required parameters fail clearly when no automatic route advertises support', async () => {
@@ -881,7 +881,7 @@ test('required parameters fail clearly when no automatic route advertises suppor
 
   const res = await invokeProxy(proxy, makeProxyRequest({
     path: '/v1/images/generations',
-    headers: { 'x-antseed-required-parameters': 'moderation' },
+    headers: { 'x-torve-required-parameters': 'moderation' },
     body: { model: 'venice-sd35', prompt: 'a landscape', moderation: 'low' },
   }))
 
@@ -908,8 +908,8 @@ test('pinned routes fail clearly when the seller lacks a required parameter', as
   const res = await invokeProxy(proxy, makeProxyRequest({
     path: '/v1/images/generations',
     headers: {
-      'x-antseed-pin-peer': peer.peerId,
-      'x-antseed-required-parameters': 'moderation',
+      'x-torve-pin-peer': peer.peerId,
+      'x-torve-required-parameters': 'moderation',
     },
     body: { model: 'venice-sd35', prompt: 'a landscape', moderation: 'low' },
   }))
@@ -937,7 +937,7 @@ test('conversation routing keeps the actual peer as a soft preference and fails 
     attempts.push(peer.peerId)
     assert.equal(request.headers['x-vpr-session-id'], undefined)
     assert.equal(request.headers['x-antstation-session-id'], undefined)
-    assert.equal(request.headers['x-antseed-prefer-peer'], undefined)
+    assert.equal(request.headers['x-torve-prefer-peer'], undefined)
     return {
       requestId: request.requestId,
       statusCode: peer.peerId === preferred.peerId && !preferredReachable ? 503 : 200,
@@ -948,7 +948,7 @@ test('conversation routing keeps the actual peer as a soft preference and fails 
 
   const conversationHeaders = {
     'x-vpr-session-id': 'conversation-soft-affinity',
-    'x-antseed-prefer-peer': preferred.peerId,
+    'x-torve-prefer-peer': preferred.peerId,
   }
   await invokeProxy(proxy, makeProxyRequest({
     headers: conversationHeaders,
@@ -977,7 +977,7 @@ test('conversation routing keeps the actual peer as a soft preference and fails 
 
   const route = await invokeProxy(proxy, makeProxyRequest({
     method: 'GET',
-    path: `/_antseed/conversations/${encodeURIComponent('vpr:conversation-soft-affinity')}`,
+    path: `/_torve/conversations/${encodeURIComponent('vpr:conversation-soft-affinity')}`,
   }))
   assert.equal(route.statusCode, 200)
   assert.equal(JSON.parse(route.body).conversation.lastModel, `${rankedFirst.peerId}@Kimi K3`)
@@ -1183,7 +1183,7 @@ test('model-only request uses the cheapest duplicate service advertised by one p
   assert.equal(selectedBody?.['model'], 'gpt-56-sol')
 })
 
-test('antseed alias with a model-only default route uses automatic peer selection', async () => {
+test('torve alias with a model-only default route uses automatic peer selection', async () => {
   const lower = makePeer('a', ['openai'])
   lower.onChainReputationScore = 40
   lower.providerServiceApiProtocols = {
@@ -1209,7 +1209,7 @@ test('antseed alias with a model-only default route uses automatic peer selectio
     }
   }
 
-  const res = await invokeProxy(proxy, makeProxyRequest({ body: { model: 'antseed', messages: [] } }))
+  const res = await invokeProxy(proxy, makeProxyRequest({ body: { model: 'torve', messages: [] } }))
 
   assert.equal(res.statusCode, 200)
   assert.equal(selectedPeerId, higher.peerId)
@@ -1551,7 +1551,7 @@ test('model-only routing does not fail over after a buyer-attributed failure', a
 
   assert.equal(res.statusCode, 503)
   assert.deepEqual(attempts, [first.peerId])
-  assert.equal(JSON.parse(res.body).error.code, ANTSEED_BUYER_FAULT_ERROR_CODE)
+  assert.equal(JSON.parse(res.body).error.code, TORVE_BUYER_FAULT_ERROR_CODE)
 })
 
 test('video validation and buyer budget failures return client errors without penalizing sellers', async () => {
@@ -1562,7 +1562,7 @@ test('video validation and buyer budget failures return client errors without pe
     ;(proxy as any)._node.sendRequest = async () => { throw buyerFault('Invalid video request', code) }
     const result = await invokeProxy(proxy, makeProxyRequest({ path: '/api/v1/video/queue', body: { model: 'video', prompt: 'boat' } }))
     assert.equal(result.statusCode, status)
-    assert.equal(JSON.parse(result.body).error.code, ANTSEED_BUYER_FAULT_ERROR_CODE)
+    assert.equal(JSON.parse(result.body).error.code, TORVE_BUYER_FAULT_ERROR_CODE)
     assert.equal((proxy as any)._peerHealth.get(peer.peerId)?.failureStreak ?? 0, 0)
   }
 })
@@ -1573,7 +1573,7 @@ test('pinned proxy request reports when the pinned peer is not discoverable', as
   const proxy = makeBuyerProxyWithPeers([otherPeer])
   const req = makeProxyRequest({
     headers: {
-      'x-antseed-pin-peer': pinnedPeerId,
+      'x-torve-pin-peer': pinnedPeerId,
     },
   })
 
@@ -1608,7 +1608,7 @@ test('pinned proxy request surfaces a 403 without failing over to another peer',
   }
 
   const res = await invokeProxy(proxy, makeProxyRequest({
-    headers: { 'x-antseed-pin-peer': pinnedPeer.peerId },
+    headers: { 'x-torve-pin-peer': pinnedPeer.peerId },
     body: { model: 'gpt-5', messages: [] },
   }))
 
@@ -1666,7 +1666,7 @@ test('pinned proxy request rewrites a canonical alias to the advertised service 
   }
 
   const res = await invokeProxy(proxy, makeProxyRequest({
-    headers: { 'x-antseed-pin-peer': pinnedPeer.peerId },
+    headers: { 'x-torve-pin-peer': pinnedPeer.peerId },
     body: { model: 'gpt-56-sol', messages: [] },
   }))
 
@@ -1692,7 +1692,7 @@ test('pinned proxy request dispatches when stale metadata misses the requested m
   }
 
   const res = await invokeProxy(proxy, makeProxyRequest({
-    headers: { 'x-antseed-pin-peer': pinnedPeer.peerId },
+    headers: { 'x-torve-pin-peer': pinnedPeer.peerId },
     body: { model: 'new-helper-model', messages: [] },
   }))
 
@@ -1705,8 +1705,8 @@ test('pinned proxy request reports explicit provider mismatch separately', async
   const proxy = makeBuyerProxyWithPeers([pinnedPeer])
   const req = makeProxyRequest({
     headers: {
-      'x-antseed-pin-peer': pinnedPeer.peerId,
-      'x-antseed-provider': 'openai',
+      'x-torve-pin-peer': pinnedPeer.peerId,
+      'x-torve-provider': 'openai',
     },
   })
 
@@ -1715,7 +1715,7 @@ test('pinned proxy request reports explicit provider mismatch separately', async
   assert.equal(res.statusCode, 502)
   assert.match(res.body, /does not offer provider=openai/)
   assert.match(res.body, /Available providers: local-llm/)
-  assert.match(res.body, /x-antseed-provider header/)
+  assert.match(res.body, /x-torve-provider header/)
 })
 
 test('pinned proxy request reports protocol or service mismatch when provider is available', async () => {
@@ -1731,8 +1731,8 @@ test('pinned proxy request reports protocol or service mismatch when provider is
   const req = makeProxyRequest({
     path: '/v1/responses',
     headers: {
-      'x-antseed-pin-peer': pinnedPeer.peerId,
-      'x-antseed-provider': 'local-llm',
+      'x-torve-pin-peer': pinnedPeer.peerId,
+      'x-torve-provider': 'local-llm',
     },
     body: { model: 'llama', input: 'hello' },
   })
@@ -1753,7 +1753,7 @@ test('pinned proxy request enforces buyer routing policy', async () => {
   const proxy = makeBuyerProxyWithPeers([pinnedPeer], [pinnedPeer], router)
   const req = makeProxyRequest({
     headers: {
-      'x-antseed-pin-peer': pinnedPeer.peerId,
+      'x-torve-pin-peer': pinnedPeer.peerId,
     },
   })
 
@@ -1784,16 +1784,16 @@ test('a buyer-attributed failure returns 503 and never blames the peer', async (
 
   const res = await invokeProxy(proxy, makeProxyRequest({
     headers: {
-      'x-antseed-pin-peer': peer.peerId,
+      'x-torve-pin-peer': peer.peerId,
     },
   }))
 
   // 503, not 502: our empty deposit is not the seller's fault, and the user
   // should be pointed at the deposit rather than at a different peer.
   assert.equal(res.statusCode, 503)
-  assert.equal(JSON.parse(res.body).error.code, ANTSEED_BUYER_FAULT_ERROR_CODE)
+  assert.equal(JSON.parse(res.body).error.code, TORVE_BUYER_FAULT_ERROR_CODE)
   assert.equal(JSON.parse(res.body).error.param, 'buyer-deposits-insufficient')
-  assert.equal(res.headers[ANTSEED_FAULT_ATTRIBUTION_HEADER], 'buyer')
+  assert.equal(res.headers[TORVE_FAULT_ATTRIBUTION_HEADER], 'buyer')
   assert.equal(routerResults.length, 0)
 
   const health = (proxy as any)._peerHealth.get(peer.peerId)
@@ -1818,7 +1818,7 @@ test('a buyer-authored 503 does not affect router metrics or peer health', async
     statusCode: 503,
     headers: {
       'content-type': 'application/json',
-      [ANTSEED_FAULT_ATTRIBUTION_HEADER]: 'buyer',
+      [TORVE_FAULT_ATTRIBUTION_HEADER]: 'buyer',
     },
     body: Buffer.from(JSON.stringify({
       error: 'payment_negotiation_failed',
@@ -1827,11 +1827,11 @@ test('a buyer-authored 503 does not affect router metrics or peer health', async
   })
 
   const res = await invokeProxy(proxy, makeProxyRequest({
-    headers: { 'x-antseed-pin-peer': peer.peerId },
+    headers: { 'x-torve-pin-peer': peer.peerId },
   }))
 
   assert.equal(res.statusCode, 503)
-  assert.equal(JSON.parse(res.body).error.code, ANTSEED_BUYER_FAULT_ERROR_CODE)
+  assert.equal(JSON.parse(res.body).error.code, TORVE_BUYER_FAULT_ERROR_CODE)
   assert.equal(JSON.parse(res.body).error.param, 'chain_rpc_unavailable')
   assert.equal(routerResults.length, 0)
   const health = healthOf(proxy, peer)
@@ -1856,29 +1856,29 @@ test('a pinned seller failure explains the peer boundary and preserves the selle
   })
 
   const res = await invokeProxy(proxy, makeProxyRequest({
-    headers: { 'x-antseed-pin-peer': peer.peerId },
+    headers: { 'x-torve-pin-peer': peer.peerId },
   }))
 
   const parsed = JSON.parse(res.body) as {
     error: {
       type: string
       message: string
-      antseed_fault: string
-      antseed_pinned: boolean
+      torve_fault: string
+      torve_pinned: boolean
       peer_message: string
       peer_status: number
     }
   }
   assert.equal(res.statusCode, 503)
-  assert.equal(res.headers[ANTSEED_FAULT_ATTRIBUTION_HEADER], 'peer')
+  assert.equal(res.headers[TORVE_FAULT_ATTRIBUTION_HEADER], 'peer')
   assert.equal(parsed.error.type, 'billing_configuration_error')
-  assert.equal(parsed.error.antseed_fault, 'peer')
-  assert.equal(parsed.error.antseed_pinned, true)
+  assert.equal(parsed.error.torve_fault, 'peer')
+  assert.equal(parsed.error.torve_pinned, true)
   assert.equal(parsed.error.peer_message, 'No billing tier matches this request.')
   assert.equal(parsed.error.peer_status, 503)
   assert.equal(parsed.error.message, [
     'Oops, pinned peer could not complete the request.',
-    'Antseed is a peer-to-peer network. Try another peer or use Auto routing.',
+    'Torve is a peer-to-peer network. Try another peer or use Auto routing.',
     'Original Response: {"message":"No billing tier matches this request.","status":503}',
   ].join('\n'))
 })
@@ -1892,18 +1892,18 @@ test('a seller cannot inject the reserved buyer-fault error code', async () => {
     headers: { 'content-type': 'application/json' },
     body: Buffer.from(JSON.stringify({
       error: {
-        code: ANTSEED_BUYER_FAULT_ERROR_CODE,
-        message: `literal ${ANTSEED_BUYER_FAULT_ERROR_CODE}`,
+        code: TORVE_BUYER_FAULT_ERROR_CODE,
+        message: `literal ${TORVE_BUYER_FAULT_ERROR_CODE}`,
       },
     })),
   })
 
   const res = await invokeProxy(proxy, makeProxyRequest({
-    headers: { 'x-antseed-pin-peer': peer.peerId },
+    headers: { 'x-torve-pin-peer': peer.peerId },
   }))
 
   assert.equal(JSON.parse(res.body).error.code, 'upstream_error')
-  assert.match(JSON.parse(res.body).error.message, new RegExp(ANTSEED_BUYER_FAULT_ERROR_CODE))
+  assert.match(JSON.parse(res.body).error.message, new RegExp(TORVE_BUYER_FAULT_ERROR_CODE))
 })
 
 test('an untagged transport failure records a streak without evicting the peer', async () => {
@@ -1923,7 +1923,7 @@ test('an untagged transport failure records a streak without evicting the peer',
 
   const res = await invokeProxy(proxy, makeProxyRequest({
     headers: {
-      'x-antseed-pin-peer': peer.peerId,
+      'x-torve-pin-peer': peer.peerId,
     },
   }))
 
@@ -1931,7 +1931,7 @@ test('an untagged transport failure records a streak without evicting the peer',
   const parsed = JSON.parse(res.body) as { error: { message: string; peer_message: string } }
   assert.match(parsed.error.message, /Oops, pinned peer could not complete the request/)
   assert.equal(parsed.error.peer_message, 'Request abc123 timed out')
-  assert.equal(res.headers[ANTSEED_FAULT_ATTRIBUTION_HEADER], 'peer')
+  assert.equal(res.headers[TORVE_FAULT_ATTRIBUTION_HEADER], 'peer')
   assert.equal(routerResults.length, 0)
   assert.equal((proxy as any)._peerHealth.get(peer.peerId)?.lastReason, 'request-failed')
   // Cooldown never evicts discovery metadata — the peer stays routable.
@@ -1986,7 +1986,7 @@ test('a cooling-down peer is still dispatched to when a request names it', async
     }
   }
 
-  const res = await invokeProxy(proxy, makeProxyRequest({ headers: { 'x-antseed-pin-peer': peer.peerId } }))
+  const res = await invokeProxy(proxy, makeProxyRequest({ headers: { 'x-torve-pin-peer': peer.peerId } }))
   assert.equal(dispatched, true, 'cooldown is advisory; a named peer must still be tried')
   assert.equal(res.statusCode, 200)
   // And the response clears the cooldown, because the peer plainly answered.
@@ -2078,7 +2078,7 @@ test('a clean 4xx counts as proof of life and clears a cooldown', async () => {
     headers: { 'content-type': 'text/plain' },
     body: Buffer.from('bad request'),
   })
-  await invokeProxy(proxy, makeProxyRequest({ headers: { 'x-antseed-pin-peer': peer.peerId } }))
+  await invokeProxy(proxy, makeProxyRequest({ headers: { 'x-torve-pin-peer': peer.peerId } }))
 
   const health = healthOf(proxy, peer)
   assert.equal(health?.cooldownUntil, 0)
@@ -2102,7 +2102,7 @@ test('a non-standard seller 5xx proves reachability and restarts the failure str
     headers: { 'content-type': 'text/plain' },
     body: Buffer.from('insufficient storage'),
   })
-  await invokeProxy(proxy, makeProxyRequest({ headers: { 'x-antseed-pin-peer': peer.peerId } }))
+  await invokeProxy(proxy, makeProxyRequest({ headers: { 'x-torve-pin-peer': peer.peerId } }))
 
   assert.equal(healthOf(proxy, peer)?.cooldownUntil, 0)
   assert.equal(healthOf(proxy, peer)?.failureStreak, 1)
@@ -2165,7 +2165,7 @@ test('GET /v1/models is answered locally with the network-wide model list', asyn
   const res = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/v1/models' }))
   assert.equal(res.statusCode, 200)
   // The port-reuse probe in `buyer start` identifies the proxy by this header.
-  assert.ok(res.headers['x-antseed-request-id'])
+  assert.ok(res.headers['x-torve-request-id'])
   const body = JSON.parse(res.body)
   assert.equal(body.object, 'list')
   assert.deepEqual(body.data.map((model: { id: string }) => model.id), ['Claude Opus 5', 'flux-1-schnell', 'qwen3-coder'])
@@ -2265,7 +2265,7 @@ test('a buyer-side outage rolls back the cooldowns it caused', async () => {
   }
 })
 
-test('GET /_antseed/peer-health reports cooldowns and buyer health', async () => {
+test('GET /_torve/peer-health reports cooldowns and buyer health', async () => {
   const clock = makeTestClock()
   const peer = makePeer('a', ['openai'])
   const other = makePeer('b', ['openai'])
@@ -2277,7 +2277,7 @@ test('GET /_antseed/peer-health reports cooldowns and buyer health', async () =>
   }
   await failRepeatedly(proxy, peer, clock)
 
-  const res = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_antseed/peer-health' }))
+  const res = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_torve/peer-health' }))
   assert.equal(res.statusCode, 200)
   const body = JSON.parse(res.body)
   assert.equal(body.ok, true)
@@ -2288,7 +2288,7 @@ test('GET /_antseed/peer-health reports cooldowns and buyer health', async () =>
   assert.equal(entry.lastReason, 'request-failed')
 })
 
-test('POST /_antseed/peer-health/clear gives a peer another chance', async () => {
+test('POST /_torve/peer-health/clear gives a peer another chance', async () => {
   const clock = makeTestClock()
   const peer = makePeer('a', ['openai'])
   const other = makePeer('b', ['openai'])
@@ -2303,20 +2303,20 @@ test('POST /_antseed/peer-health/clear gives a peer another chance', async () =>
 
   const res = await invokeProxy(proxy, makeProxyRequest({
     method: 'POST',
-    path: '/_antseed/peer-health/clear',
+    path: '/_torve/peer-health/clear',
     body: { peerId: peer.peerId },
   }))
   assert.equal(res.statusCode, 200)
   assert.equal(healthOf(proxy, peer)?.cooldownUntil, 0)
 })
 
-test('POST /_antseed/peer-health/clear rejects a malformed peer id', async () => {
+test('POST /_torve/peer-health/clear rejects a malformed peer id', async () => {
   const peer = makePeer('a', ['openai'])
   const proxy = makeBuyerProxyWithPeers([peer], [peer], { allowsPeerForPolicy: () => true })
 
   const res = await invokeProxy(proxy, makeProxyRequest({
     method: 'POST',
-    path: '/_antseed/peer-health/clear',
+    path: '/_torve/peer-health/clear',
     body: { peerId: 'nope' },
   }))
   assert.equal(res.statusCode, 400)
@@ -2368,7 +2368,7 @@ test('non-stream transformed responses requests force upstream stream without st
   const res = await invokeProxy(proxy, makeProxyRequest({
     path: '/v1/messages',
     headers: {
-      'x-antseed-pin-peer': peer.peerId,
+      'x-torve-pin-peer': peer.peerId,
     },
     body: {
       model: 'gpt-5.6-sol',
@@ -2381,7 +2381,7 @@ test('non-stream transformed responses requests force upstream stream without st
   assert.equal(sendRequestCalls, 1)
   assert.equal(sendRequestStreamCalls, 0)
   assert.equal(capturedRequestBody?.['stream'], true)
-  assert.equal(capturedRequestHeaders?.['x-antseed-client-stream-requested'], 'false')
+  assert.equal(capturedRequestHeaders?.['x-torve-client-stream-requested'], 'false')
   const body = JSON.parse(res.body) as { content?: Array<{ type: string; text: string }> }
   assert.equal(body.content?.[0]?.text, 'hi')
 })
@@ -2445,7 +2445,7 @@ test('accept-sse transformed responses requests stream adapted client events wit
     path: '/v1/messages',
     headers: {
       'accept': 'text/event-stream',
-      'x-antseed-pin-peer': peer.peerId,
+      'x-torve-pin-peer': peer.peerId,
     },
     body: {
       model: 'gpt-5.6-sol',
@@ -2458,7 +2458,7 @@ test('accept-sse transformed responses requests stream adapted client events wit
   assert.equal(sendRequestCalls, 0)
   assert.equal(sendRequestStreamCalls, 1)
   assert.equal(capturedRequestBody?.['stream'], true)
-  assert.equal(capturedRequestHeaders?.['x-antseed-client-stream-requested'], 'true')
+  assert.equal(capturedRequestHeaders?.['x-torve-client-stream-requested'], 'true')
   assert.match(res.body, /event: message_start/)
   assert.match(res.body, /event: content_block_delta/)
   assert.match(res.body, /"text":"hi"/)
@@ -2494,7 +2494,7 @@ test('transformed pre-stream seller errors preserve peer guidance', async () => 
     path: '/v1/messages',
     headers: {
       accept: 'text/event-stream',
-      'x-antseed-pin-peer': peer.peerId,
+      'x-torve-pin-peer': peer.peerId,
     },
     body: {
       model: 'gpt-5.6-sol',
@@ -2504,7 +2504,7 @@ test('transformed pre-stream seller errors preserve peer guidance', async () => 
   }))
 
   assert.equal(res.statusCode, 503)
-  assert.equal(res.headers[ANTSEED_FAULT_ATTRIBUTION_HEADER], 'peer')
+  assert.equal(res.headers[TORVE_FAULT_ATTRIBUTION_HEADER], 'peer')
   assert.match(res.headers['content-type'] ?? '', /text\/event-stream/)
   assert.match(res.body, /Oops, pinned peer could not complete the request/)
   assert.match(res.body, /Original Response:.*The seller upstream is unavailable\./)
@@ -2534,7 +2534,7 @@ test('model peer prefix pins the request peer and strips the routed model', asyn
   assert.equal(capturedRequestBody?.['service'], 'gpt-4o')
 })
 
-test('x-antseed-pin-peer header takes precedence over model peer prefix', async () => {
+test('x-torve-pin-peer header takes precedence over model peer prefix', async () => {
   const modelPinnedPeer = makePeer('a', ['openai'])
   const headerPinnedPeer = makePeer('b', ['openai'])
   let capturedRequestBody: Record<string, unknown> | null = null
@@ -2549,7 +2549,7 @@ test('x-antseed-pin-peer header takes precedence over model peer prefix', async 
   const proxy = makeBuyerProxyWithPeers([modelPinnedPeer, headerPinnedPeer], [modelPinnedPeer, headerPinnedPeer], router)
   const req = makeProxyRequest({
     headers: {
-      'x-antseed-pin-peer': headerPinnedPeer.peerId,
+      'x-torve-pin-peer': headerPinnedPeer.peerId,
     },
     body: { model: `${modelPinnedPeer.peerId}@gpt-4o`, messages: [] },
   })
@@ -3112,7 +3112,7 @@ test('rewritePeerPinnedServiceInBody returns original when body is not JSON cont
 })
 
 test('substituteRoutedModelAlias replaces the alias model with the default routed model', () => {
-  const body = makeJsonBody({ model: 'antseed', messages: [] })
+  const body = makeJsonBody({ model: 'torve', messages: [] })
   const result = substituteRoutedModelAlias(body, jsonHeaders, `${validPeerId}@gpt-4o`)
   assert.equal(result.aliasRequested, true)
   assert.equal(result.substituted, true)
@@ -3121,7 +3121,7 @@ test('substituteRoutedModelAlias replaces the alias model with the default route
 })
 
 test('substituteRoutedModelAlias handles the alias in the service field and is case-insensitive', () => {
-  const body = makeJsonBody({ service: 'AntSeed', messages: [] })
+  const body = makeJsonBody({ service: 'Torve', messages: [] })
   const result = substituteRoutedModelAlias(body, jsonHeaders, `${validPeerId}@gpt-4o`)
   assert.equal(result.substituted, true)
   const parsed = parseJsonBody(result.body)
@@ -3129,7 +3129,7 @@ test('substituteRoutedModelAlias handles the alias in the service field and is c
 })
 
 test('substituteRoutedModelAlias reports an unresolvable alias when no default route is set', () => {
-  const body = makeJsonBody({ model: 'antseed', messages: [] })
+  const body = makeJsonBody({ model: 'torve', messages: [] })
   const result = substituteRoutedModelAlias(body, jsonHeaders, null)
   assert.equal(result.aliasRequested, true)
   assert.equal(result.substituted, false)
@@ -3177,7 +3177,7 @@ test('overrideRoutedModelInBody no-ops on a matching model, a missing model, or 
 })
 
 test('route control endpoint sets, persists, and returns the default routed model', async (t) => {
-  const dir = await mkdtemp(join(tmpdir(), 'antseed-buyer-route-'))
+  const dir = await mkdtemp(join(tmpdir(), 'torve-buyer-route-'))
   t.after(() => rm(dir, { recursive: true, force: true }))
   const proxy = new BuyerProxy({
     port: 0,
@@ -3185,44 +3185,44 @@ test('route control endpoint sets, persists, and returns the default routed mode
     node: { router: null } as any,
   })
 
-  const set = await invokeProxy(proxy, makeProxyRequest({ path: '/_antseed/route', body: { model: `${validPeerId}@gpt-4o` } }))
+  const set = await invokeProxy(proxy, makeProxyRequest({ path: '/_torve/route', body: { model: `${validPeerId}@gpt-4o` } }))
   assert.equal(set.statusCode, 200)
   assert.deepEqual(JSON.parse(set.body), { ok: true, model: `${validPeerId}@gpt-4o` })
 
-  const get = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_antseed/route' }))
+  const get = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_torve/route' }))
   assert.deepEqual(JSON.parse(get.body), { ok: true, model: `${validPeerId}@gpt-4o` })
 
   const persisted = JSON.parse(await readFile(join(dir, 'buyer.state.json'), 'utf-8')) as Record<string, unknown>
   assert.equal(persisted['defaultRoutedModel'], `${validPeerId}@gpt-4o`)
 
-  const automatic = await invokeProxy(proxy, makeProxyRequest({ path: '/_antseed/route', body: { model: 'gpt-4o' } }))
+  const automatic = await invokeProxy(proxy, makeProxyRequest({ path: '/_torve/route', body: { model: 'gpt-4o' } }))
   assert.equal(automatic.statusCode, 200)
   assert.deepEqual(JSON.parse(automatic.body), { ok: true, model: 'gpt-4o' })
 
   const automaticPersisted = JSON.parse(await readFile(join(dir, 'buyer.state.json'), 'utf-8')) as Record<string, unknown>
   assert.equal(automaticPersisted['defaultRoutedModel'], 'gpt-4o')
 
-  const invalid = await invokeProxy(proxy, makeProxyRequest({ path: '/_antseed/route', body: { model: 'not-a-peer@gpt-4o' } }))
+  const invalid = await invokeProxy(proxy, makeProxyRequest({ path: '/_torve/route', body: { model: 'not-a-peer@gpt-4o' } }))
   assert.equal(invalid.statusCode, 400)
 
-  const cleared = await invokeProxy(proxy, makeProxyRequest({ path: '/_antseed/route', body: { model: '' } }))
+  const cleared = await invokeProxy(proxy, makeProxyRequest({ path: '/_torve/route', body: { model: '' } }))
   assert.deepEqual(JSON.parse(cleared.body), { ok: true, model: null })
 })
 
 test('buyer-usage endpoint reports lastActivityAt, null until a request is dispatched', async () => {
   const proxy = new BuyerProxy({
     port: 0,
-    dataDir: '/tmp/antseed-test',
+    dataDir: '/tmp/torve-test',
     node: { router: null, getBuyerUsageTotals: () => ({ totalRequests: 0 }) } as any,
   })
 
-  const before = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_antseed/buyer-usage' }))
+  const before = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_torve/buyer-usage' }))
   assert.equal(before.statusCode, 200)
   assert.equal((JSON.parse(before.body) as { lastActivityAt: number | null }).lastActivityAt, null)
 
   ;(proxy as any)._markModelActivity()
 
-  const after = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_antseed/buyer-usage' }))
+  const after = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_torve/buyer-usage' }))
   const parsed = JSON.parse(after.body) as { ok: boolean; lastActivityAt: number | null }
   assert.equal(parsed.ok, true)
   assert.equal(typeof parsed.lastActivityAt, 'number')
@@ -3232,14 +3232,14 @@ test('buyer-usage endpoint reports lastActivityAt, null until a request is dispa
 test('requests with the routed-model alias fail clearly when no default route is set', async () => {
   const proxy = makeBuyerProxyWithPeers([makePeer('a', ['openai'])])
 
-  const res = await invokeProxy(proxy, makeProxyRequest({ body: { model: 'antseed', messages: [] } }))
+  const res = await invokeProxy(proxy, makeProxyRequest({ body: { model: 'torve', messages: [] } }))
   assert.equal(res.statusCode, 400)
   const parsed = JSON.parse(res.body) as { error?: { code?: string } }
   assert.equal(parsed.error?.code, 'no_default_route')
 })
 
 test('substituteRoutedModelAlias updates content-length when substituting', () => {
-  const original = makeJsonBody({ model: 'antseed', messages: [] })
+  const original = makeJsonBody({ model: 'torve', messages: [] })
   const headers = { 'content-type': 'application/json', 'content-length': String(original.length) }
   const result = substituteRoutedModelAlias(original, headers, `${validPeerId}@gpt-4o`)
   assert.equal(result.headers['content-length'], String(result.body.length))
@@ -3262,7 +3262,7 @@ test('rewritePeerPinnedServiceInBody returns original when body is not a JSON ob
 // ---------- Per-chat conversations (tracking, pins, control endpoints) ----------
 
 async function makeConversationProxy(): Promise<{ proxy: BuyerProxy; dir: string }> {
-  const dir = await mkdtemp(join(tmpdir(), 'antseed-buyer-conv-'))
+  const dir = await mkdtemp(join(tmpdir(), 'torve-buyer-conv-'))
   const proxy = new BuyerProxy({
     port: 0,
     dataDir: dir,
@@ -3273,7 +3273,7 @@ async function makeConversationProxy(): Promise<{ proxy: BuyerProxy; dir: string
   return { proxy, dir }
 }
 
-test('per-chat pin overrides the default routed model for the antseed alias', async () => {
+test('per-chat pin overrides the default routed model for the torve alias', async () => {
   const { proxy, dir } = await makeConversationProxy()
   try {
     const defaultRoute = `${'aa'.repeat(20)}@default-model`
@@ -3287,7 +3287,7 @@ test('per-chat pin overrides the default routed model for the antseed alias', as
       path: '/v1/responses',
       headers: { originator: 'codex_exec', 'session-id': 'sess-1' },
       body: {
-        model: 'antseed',
+        model: 'torve',
         input: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text: 'hello there' }] }],
       },
     }))
@@ -3302,7 +3302,7 @@ test('per-chat pin overrides the default routed model for the antseed alias', as
       path: '/v1/responses',
       headers: { originator: 'codex_exec', 'session-id': 'sess-2' },
       body: {
-        model: 'antseed',
+        model: 'torve',
         input: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text: 'second chat' }] }],
       },
     }))
@@ -3426,7 +3426,7 @@ test('conversation control endpoints list, rename, pin, reject bad pins, delete'
     const store = (proxy as any)._conversations
     store.touch({ tool: 'opencode', sessionKey: 'ses_x', snippet: 'refactor the login flow' })
 
-    const list = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_antseed/conversations' }))
+    const list = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_torve/conversations' }))
     assert.equal(list.statusCode, 200)
     const listed = JSON.parse(list.body) as { ok: boolean; conversations: Array<{ id: string; snippet: string }> }
     assert.equal(listed.ok, true)
@@ -3434,47 +3434,47 @@ test('conversation control endpoints list, rename, pin, reject bad pins, delete'
     assert.equal(listed.conversations[0]?.id, 'opencode:ses_x')
 
     const rename = await invokeProxy(proxy, makeProxyRequest({
-      path: '/_antseed/conversations/update',
+      path: '/_torve/conversations/update',
       body: { id: 'opencode:ses_x', label: 'Login refactor' },
     }))
     assert.equal(rename.statusCode, 200)
     assert.equal(store.get('opencode:ses_x')?.label, 'Login refactor')
 
     const automaticPin = await invokeProxy(proxy, makeProxyRequest({
-      path: '/_antseed/conversations/update',
+      path: '/_torve/conversations/update',
       body: { id: 'opencode:ses_x', pinnedModel: 'gpt-5.6-sol', peerSource: 'auto' },
     }))
     assert.equal(automaticPin.statusCode, 200)
     assert.equal(store.getPinnedModel('opencode', 'ses_x'), 'gpt-5.6-sol')
 
     const badPin = await invokeProxy(proxy, makeProxyRequest({
-      path: '/_antseed/conversations/update',
+      path: '/_torve/conversations/update',
       body: { id: 'opencode:ses_x', pinnedModel: 'not-a-peer@gpt-5.6-sol' },
     }))
     assert.equal(badPin.statusCode, 400)
 
     const goodPin = await invokeProxy(proxy, makeProxyRequest({
-      path: '/_antseed/conversations/update',
+      path: '/_torve/conversations/update',
       body: { id: 'opencode:ses_x', pinnedModel: `${'cc'.repeat(20)}@glm-5` },
     }))
     assert.equal(goodPin.statusCode, 200)
     assert.equal(store.getPinnedModel('opencode', 'ses_x'), `${'cc'.repeat(20)}@glm-5`)
 
     const clearPin = await invokeProxy(proxy, makeProxyRequest({
-      path: '/_antseed/conversations/update',
+      path: '/_torve/conversations/update',
       body: { id: 'opencode:ses_x', pinnedModel: '' },
     }))
     assert.equal(clearPin.statusCode, 200)
     assert.equal(store.getPinnedModel('opencode', 'ses_x'), null)
 
     const missing = await invokeProxy(proxy, makeProxyRequest({
-      path: '/_antseed/conversations/update',
+      path: '/_torve/conversations/update',
       body: { id: 'nope:missing', label: 'x' },
     }))
     assert.equal(missing.statusCode, 404)
 
     const removed = await invokeProxy(proxy, makeProxyRequest({
-      path: '/_antseed/conversations/update',
+      path: '/_torve/conversations/update',
       body: { id: 'opencode:ses_x', delete: true },
     }))
     assert.equal(removed.statusCode, 200)
@@ -3494,7 +3494,7 @@ test('subagent requests roll up into the parent conversation', async () => {
     await invokeProxy(proxy, makeProxyRequest({
       path: '/v1/chat/completions',
       headers: { 'user-agent': 'opencode/1.0', 'x-session-id': 'ses_child', 'x-parent-session-id': 'ses_parent' },
-      body: { model: 'antseed', messages: [{ role: 'user', content: 'subtask prompt' }] },
+      body: { model: 'torve', messages: [{ role: 'user', content: 'subtask prompt' }] },
     }))
 
     assert.equal(store.get('opencode:ses_child'), null)
@@ -3516,7 +3516,7 @@ test('title request racing ahead of the first turn does not name the chat', asyn
       path: '/v1/chat/completions',
       headers: { 'user-agent': 'opencode/1.0', 'x-session-id': 'ses_race' },
       body: {
-        model: 'antseed',
+        model: 'torve',
         messages: [
           { role: 'user', content: 'Generate a title for this conversation:\n' },
           { role: 'user', content: 'hi' },
@@ -3532,7 +3532,7 @@ test('title request racing ahead of the first turn does not name the chat', asyn
       path: '/v1/messages',
       headers: { 'user-agent': 'claude-cli/2.0 (external)', 'x-claude-code-session-id': 'cc_race' },
       body: {
-        model: 'antseed',
+        model: 'torve',
         messages: [{ role: 'user', content: 'You write concise thread titles for a coding chat.' }],
       },
     }))
@@ -3545,7 +3545,7 @@ test('title request racing ahead of the first turn does not name the chat', asyn
       path: '/v1/chat/completions',
       headers: { originator: 'droid', 'user-agent': 'factory-cli/0.202.0' },
       body: {
-        model: 'antseed',
+        model: 'torve',
         messages: [
           { role: 'system', content: 'You are Droid, an AI software engineering agent.' },
           { role: 'user', content: 'wowow' },
@@ -3559,7 +3559,7 @@ test('title request racing ahead of the first turn does not name the chat', asyn
         'user-agent': 'factory-cli/0.202.0',
       },
       body: {
-        model: 'antseed',
+        model: 'torve',
         messages: [
           {
             role: 'system',
@@ -3579,7 +3579,7 @@ Input: one user message from the start of a session.`,
       path: '/v1/chat/completions',
       headers: { originator: 'other-agent', 'user-agent': 'other-agent/1.0' },
       body: {
-        model: 'antseed',
+        model: 'torve',
         messages: [
           {
             role: 'system',
@@ -3598,7 +3598,7 @@ Input: one user message from the start of a session.`,
       path: '/v1/messages',
       headers: { 'user-agent': 'claude-cli/2.0 (external)', 'x-claude-code-session-id': 'cc_race' },
       body: {
-        model: 'antseed',
+        model: 'torve',
         messages: [{ role: 'user', content: 'fix the login bug' }],
       },
     }))
@@ -3615,7 +3615,7 @@ test('makeVerifierReach: rejects non-attest paths, sends the attest route as a p
 
   const rejectNode = { sendRequest: async () => ({ statusCode: 200, headers: {}, body: new Uint8Array() }) }
   await assert.rejects(
-    makeVerifierReach(rejectNode as never, peer, 'antseed-verifier', signal)({ method: 'POST', path: '/v1/chat/completions' }),
+    makeVerifierReach(rejectNode as never, peer, 'torve-verifier', signal)({ method: 'POST', path: '/v1/chat/completions' }),
     /may only call its attestation route/,
   )
 
@@ -3626,8 +3626,8 @@ test('makeVerifierReach: rejects non-attest paths, sends the attest route as a p
       return { statusCode: 200, headers: {}, body: new Uint8Array() }
     },
   }
-  const resp = await makeVerifierReach(captureNode as never, peer, 'antseed-verifier', signal)(
-    { method: 'POST', path: '/_antseed/attest/antseed-verifier', body: new Uint8Array([1]) },
+  const resp = await makeVerifierReach(captureNode as never, peer, 'torve-verifier', signal)(
+    { method: 'POST', path: '/_torve/attest/torve-verifier', body: new Uint8Array([1]) },
   )
   assert.equal(resp.statusCode, 200)
   assert.equal(opts!.controlPlane, true)
@@ -3663,7 +3663,7 @@ test('isModelNotFoundResponse: detects seller and upstream model_not_found rejec
 })
 
 test('mergeJsonStateFile: merges into existing state and leaves no temp files', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'antseed-buyer-state-'))
+  const dir = await mkdtemp(join(tmpdir(), 'torve-buyer-state-'))
   try {
     const stateFile = join(dir, 'buyer.state.json')
     await mergeJsonStateFile(dir, stateFile, { a: 1, pinnedPeerId: 'old' })
@@ -3678,7 +3678,7 @@ test('mergeJsonStateFile: merges into existing state and leaves no temp files', 
 })
 
 test('mergeJsonStateFile: unlinks the temp file when the rename fails', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'antseed-buyer-state-'))
+  const dir = await mkdtemp(join(tmpdir(), 'torve-buyer-state-'))
   try {
     // A directory at the state-file path makes rename() fail on every platform
     // with a non-retryable code, exercising the cleanup path.
@@ -3693,7 +3693,7 @@ test('mergeJsonStateFile: unlinks the temp file when the rename fails', async ()
 })
 
 test('sweepStaleStateTmpFiles: removes aged temp files, keeps fresh and unrelated ones', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'antseed-buyer-state-'))
+  const dir = await mkdtemp(join(tmpdir(), 'torve-buyer-state-'))
   try {
     const stale = join(dir, '.buyer.state.11111111-1111-1111-1111-111111111111.json.tmp')
     const fresh = join(dir, '.buyer.state.22222222-2222-2222-2222-222222222222.json.tmp')
@@ -3717,7 +3717,7 @@ test('sweepStaleStateTmpFiles: removes aged temp files, keeps fresh and unrelate
 })
 
 test('sweepStaleStateTmpFiles: tolerates a missing directory', async () => {
-  await sweepStaleStateTmpFiles(join(tmpdir(), 'antseed-does-not-exist', randomUUID()))
+  await sweepStaleStateTmpFiles(join(tmpdir(), 'torve-does-not-exist', randomUUID()))
 })
 
 // ---------- Deposit watcher control plane ----------
@@ -3725,18 +3725,18 @@ test('sweepStaleStateTmpFiles: tolerates a missing directory', async () => {
 test('deposits/status reports no watcher until one is attached', async () => {
   const proxy = new BuyerProxy({
     port: 0,
-    dataDir: '/tmp/antseed-test',
+    dataDir: '/tmp/torve-test',
     node: { router: null } as any,
   })
 
-  const res = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_antseed/deposits/status' }))
+  const res = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_torve/deposits/status' }))
   assert.equal(res.statusCode, 200)
   assert.deepEqual(JSON.parse(res.body), { ok: true, watcher: false, reason: null, payments: null, status: null })
 })
 
 test('sanitizePeerBuyerFaultMarker scrubs the marker at any nesting depth', () => {
   let deeplyNested: Record<string, unknown> = {
-    code: ANTSEED_BUYER_FAULT_ERROR_CODE,
+    code: TORVE_BUYER_FAULT_ERROR_CODE,
     message: 'seller-controlled message',
   }
   for (let depth = 0; depth < 20; depth += 1) {
@@ -3746,8 +3746,8 @@ test('sanitizePeerBuyerFaultMarker scrubs the marker at any nesting depth', () =
     error: {
       type: 'server_error',
       details: {
-        code: ANTSEED_BUYER_FAULT_ERROR_CODE,
-        inner: [{ errorCode: ANTSEED_BUYER_FAULT_ERROR_CODE }, deeplyNested],
+        code: TORVE_BUYER_FAULT_ERROR_CODE,
+        inner: [{ errorCode: TORVE_BUYER_FAULT_ERROR_CODE }, deeplyNested],
       },
     },
   }
@@ -3781,7 +3781,7 @@ test('adaptPeerFaultErrorResponse leaves actionable request errors unchanged', (
   }, 'openai-chat-completions')
 
   assert.equal(Buffer.from(response.body).toString('utf8'), body.toString('utf8'))
-  assert.equal(response.headers[ANTSEED_FAULT_ATTRIBUTION_HEADER], 'peer')
+  assert.equal(response.headers[TORVE_FAULT_ATTRIBUTION_HEADER], 'peer')
 })
 
 test('adaptPeerFaultErrorResponse upgrades a generic wrapper for a pinned route', () => {
@@ -3799,15 +3799,15 @@ test('adaptPeerFaultErrorResponse upgrades a generic wrapper for a pinned route'
   const generic = adaptPeerFaultErrorResponse(raw, 'openai-chat-completions')
   const pinned = adaptPeerFaultErrorResponse(generic, 'openai-chat-completions', { pinned: true })
   const parsed = JSON.parse(Buffer.from(pinned.body).toString('utf8')) as {
-    error: { message: string; antseed_pinned: boolean; peer_message: string; peer_status: number }
+    error: { message: string; torve_pinned: boolean; peer_message: string; peer_status: number }
   }
 
-  assert.equal(parsed.error.antseed_pinned, true)
+  assert.equal(parsed.error.torve_pinned, true)
   assert.equal(parsed.error.peer_message, 'Insufficient balance or no resource package. Please recharge.')
   assert.equal(parsed.error.peer_status, 429)
   assert.equal(parsed.error.message, [
     'Oops, pinned peer could not complete the request.',
-    'Antseed is a peer-to-peer network. Try another peer or use Auto routing.',
+    'Torve is a peer-to-peer network. Try another peer or use Auto routing.',
     'Original Response: {"message":"Insufficient balance or no resource package. Please recharge.","status":429}',
   ].join('\n'))
 })
@@ -3857,7 +3857,7 @@ test('adaptPeerFaultErrorResponse preserves payment-required control messages', 
   }, 'openai-chat-completions')
 
   assert.equal(Buffer.from(response.body).toString('utf8'), body.toString('utf8'))
-  assert.equal(response.headers[ANTSEED_FAULT_ATTRIBUTION_HEADER], undefined)
+  assert.equal(response.headers[TORVE_FAULT_ATTRIBUTION_HEADER], undefined)
 })
 
 test('deposits/status reports the recorded watcher-absence reason and payments health', async () => {
@@ -3870,19 +3870,19 @@ test('deposits/status reports the recorded watcher-absence reason and payments h
   }
   const proxy = new BuyerProxy({
     port: 0,
-    dataDir: '/tmp/antseed-test',
+    dataDir: '/tmp/torve-test',
     node: { router: null, getPaymentsStatus: () => paymentsStatus } as any,
   })
   proxy.setDepositWatcher(null, 'payments-disabled')
 
-  const res = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_antseed/deposits/status' }))
+  const res = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_torve/deposits/status' }))
   assert.equal(res.statusCode, 200)
   const body = JSON.parse(res.body) as { watcher: boolean; reason: string | null; payments: unknown }
   assert.equal(body.watcher, false)
   assert.equal(body.reason, 'payments-disabled')
   assert.deepEqual(body.payments, paymentsStatus)
 
-  const watchRes = await invokeProxy(proxy, makeProxyRequest({ path: '/_antseed/deposits/watch', body: { mode: 'active' } }))
+  const watchRes = await invokeProxy(proxy, makeProxyRequest({ path: '/_torve/deposits/watch', body: { mode: 'active' } }))
   assert.equal(watchRes.statusCode, 503)
   const watchBody = JSON.parse(watchRes.body) as { ok: boolean; reason: string | null; error: string }
   assert.equal(watchBody.ok, false)
@@ -3893,11 +3893,11 @@ test('deposits/status reports the recorded watcher-absence reason and payments h
 test('deposits/watch returns 503 when no watcher is attached', async () => {
   const proxy = new BuyerProxy({
     port: 0,
-    dataDir: '/tmp/antseed-test',
+    dataDir: '/tmp/torve-test',
     node: { router: null } as any,
   })
 
-  const res = await invokeProxy(proxy, makeProxyRequest({ path: '/_antseed/deposits/watch', body: { mode: 'active' } }))
+  const res = await invokeProxy(proxy, makeProxyRequest({ path: '/_torve/deposits/watch', body: { mode: 'active' } }))
   assert.equal(res.statusCode, 503)
   assert.equal((JSON.parse(res.body) as { ok: boolean }).ok, false)
 })
@@ -3905,7 +3905,7 @@ test('deposits/watch returns 503 when no watcher is attached', async () => {
 test('deposits/watch promotes and demotes an attached watcher and returns its status', async () => {
   const proxy = new BuyerProxy({
     port: 0,
-    dataDir: '/tmp/antseed-test',
+    dataDir: '/tmp/torve-test',
     node: { router: null } as any,
   })
   const calls: string[] = []
@@ -3922,26 +3922,26 @@ test('deposits/watch promotes and demotes an attached watcher and returns its st
     status: () => fakeStatus,
   } as any)
 
-  const active = await invokeProxy(proxy, makeProxyRequest({ path: '/_antseed/deposits/watch', body: { mode: 'active' } }))
+  const active = await invokeProxy(proxy, makeProxyRequest({ path: '/_torve/deposits/watch', body: { mode: 'active' } }))
   assert.equal(active.statusCode, 200)
   assert.deepEqual(JSON.parse(active.body), { ok: true, status: fakeStatus })
 
-  const background = await invokeProxy(proxy, makeProxyRequest({ path: '/_antseed/deposits/watch', body: { mode: 'background' } }))
+  const background = await invokeProxy(proxy, makeProxyRequest({ path: '/_torve/deposits/watch', body: { mode: 'background' } }))
   assert.equal(background.statusCode, 200)
   assert.deepEqual(calls, ['promote', 'demote'])
 
-  const invalid = await invokeProxy(proxy, makeProxyRequest({ path: '/_antseed/deposits/watch', body: { mode: 'nonsense' } }))
+  const invalid = await invokeProxy(proxy, makeProxyRequest({ path: '/_torve/deposits/watch', body: { mode: 'nonsense' } }))
   assert.equal(invalid.statusCode, 400)
   assert.deepEqual(calls, ['promote', 'demote'])
 
-  const status = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_antseed/deposits/status' }))
+  const status = await invokeProxy(proxy, makeProxyRequest({ method: 'GET', path: '/_torve/deposits/status' }))
   assert.deepEqual(JSON.parse(status.body), { ok: true, watcher: true, reason: null, payments: null, status: fakeStatus })
 })
 
 test('getSweepReceipt returns cached relayer receipts case-insensitively', () => {
   const proxy = new BuyerProxy({
     port: 0,
-    dataDir: '/tmp/antseed-test',
+    dataDir: '/tmp/torve-test',
     node: { router: null } as any,
   })
   const nonce = '0x' + 'AB'.repeat(32)
@@ -3954,7 +3954,7 @@ test('getSweepReceipt returns cached relayer receipts case-insensitively', () =>
 })
 
 test('switching a chat route while a request is in flight is not reverted when that request completes', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'antseed-buyer-route-race-'))
+  const dir = await mkdtemp(join(tmpdir(), 'torve-buyer-route-race-'))
   try {
     const oldPeer = makePeer('a', ['openai'])
     oldPeer.providerServiceApiProtocols = { openai: { services: { 'gpt-5': ['openai-chat-completions'] } } }
@@ -3996,7 +3996,7 @@ test('switching a chat route while a request is in flight is not reverted when t
     // Turn 1 settles the chat on the old route as soft (auto) affinity.
     const first = await invokeProxy(proxy, makeProxyRequest({
       headers,
-      body: { model: 'antseed', messages: [{ role: 'user', content: 'first turn' }] },
+      body: { model: 'torve', messages: [{ role: 'user', content: 'first turn' }] },
     }))
     assert.equal(first.statusCode, 200)
     assert.equal(store.get(chatId)?.pinnedModel, `${oldPeer.peerId}@gpt-5`)
@@ -4006,13 +4006,13 @@ test('switching a chat route while a request is in flight is not reverted when t
     holdNext = true
     const inFlight = invokeProxy(proxy, makeProxyRequest({
       headers,
-      body: { model: 'antseed', messages: [{ role: 'user', content: 'long turn' }] },
+      body: { model: 'torve', messages: [{ role: 'user', content: 'long turn' }] },
     }))
     await dispatched
 
     // The user switches the chat's model mid-flight.
     const update = await invokeProxy(proxy, makeProxyRequest({
-      path: '/_antseed/conversations/update',
+      path: '/_torve/conversations/update',
       body: { id: chatId, pinnedModel: 'claude-sonnet', peerSource: 'auto' },
     }))
     assert.equal(update.statusCode, 200)
@@ -4029,7 +4029,7 @@ test('switching a chat route while a request is in flight is not reverted when t
     attempts.length = 0
     const next = await invokeProxy(proxy, makeProxyRequest({
       headers,
-      body: { model: 'antseed', messages: [{ role: 'user', content: 'after switch' }] },
+      body: { model: 'torve', messages: [{ role: 'user', content: 'after switch' }] },
     }))
     assert.equal(next.statusCode, 200)
     assert.deepEqual(attempts, [newPeer.peerId])

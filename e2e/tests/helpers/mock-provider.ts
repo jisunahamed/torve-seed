@@ -1,4 +1,4 @@
-import type { Provider, SerializedHttpRequest, SerializedHttpResponse } from '@antseed/node';
+import type { Provider, SerializedHttpRequest, SerializedHttpResponse } from '@torveai/node';
 
 export class MockAnthropicProvider implements Provider {
   readonly name = 'anthropic';

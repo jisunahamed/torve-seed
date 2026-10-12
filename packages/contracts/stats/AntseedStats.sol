@@ -3,15 +3,15 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import {IAntseedStats} from "../interfaces/IAntseedStats.sol";
+import {ITorveStats} from "../interfaces/ITorveStats.sol";
 
 /**
- * @title AntseedStats
+ * @title TorveStats
  * @notice Optional external stats sink keyed by ERC-8004 agentId.
  *         Authorized writers can submit cumulative per-channel metadata per buyer,
  *         which is decoded, delta-accounted, and aggregated.
  */
-contract AntseedStats is IAntseedStats, Ownable {
+contract TorveStats is ITorveStats, Ownable {
 
     // ─── Structs ────────────────────────────────────────────────────
     struct ChannelMetadataSnapshot {

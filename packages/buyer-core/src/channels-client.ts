@@ -44,8 +44,8 @@ const CHANNELS_ABI = [
 ] as const;
 
 /// @dev Probe ABI for the seller-facade passthrough. Present on
-///      AntseedSellerDelegation (and derivatives like DiemStakingProxy); absent
-///      on plain AntseedChannels. Used at init to discover the underlying
+///      TorveSellerDelegation (and derivatives like DiemStakingProxy); absent
+///      on plain TorveChannels. Used at init to discover the underlying
 ///      channels contract when the configured address is a seller facade.
 const SELLER_FACADE_PROBE_ABI = [
   'function channelsAddress() external view returns (address)',
@@ -58,7 +58,7 @@ export interface CloseRequestedEvent {
 
 export class ChannelsClient extends BaseEvmClient {
   /**
-   * The underlying AntseedChannels address used for reads + event filters.
+   * The underlying TorveChannels address used for reads + event filters.
    * When the configured `contractAddress` is a seller facade (e.g.
    * DiemStakingProxy), this resolves to the real channels contract via the
    * facade's `channelsAddress()` view. Otherwise it equals `_contractAddress`.
@@ -71,7 +71,7 @@ export class ChannelsClient extends BaseEvmClient {
   }
 
   /**
-   * Resolve the read address (underlying AntseedChannels). If the configured
+   * Resolve the read address (underlying TorveChannels). If the configured
    * contract exposes `channelsAddress()` (i.e. is a seller facade), use that.
    * Otherwise fall back to the configured address.
    *
@@ -262,7 +262,7 @@ export class ChannelsClient extends BaseEvmClient {
   }
 
   /**
-   * Query CloseRequested events from the underlying AntseedChannels contract.
+   * Query CloseRequested events from the underlying TorveChannels contract.
    * Returns matching events between fromBlock and toBlock (inclusive).
    */
   async getCloseRequestedEvents(fromBlock: number | 'latest', toBlock: number | 'latest' = 'latest'): Promise<CloseRequestedEvent[]> {

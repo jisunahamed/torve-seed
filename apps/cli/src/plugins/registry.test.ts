@@ -17,6 +17,6 @@ test('trusted plugin registry keeps typed lists and verifier invariants', () => 
     assert.match(v.version ?? '', /^\d+\.\d+\.\d+/, `verifier ${v.name} must pin a locked binary version`)
   }
   assert.ok(TRUSTED_PLUGINS.filter((p) => p.type === 'provider').every((p) => !p.version))
-  assert.equal(TRUSTED_PLUGINS.some((p) => p.name === 'antseed/noop' || p.package === '@antseed/verifier-noop'), false)
-  assert.equal(resolvePluginPackage('antseed-verifier'), '@antseed/antseed-verifier')
+  assert.equal(TRUSTED_PLUGINS.some((p) => p.name === 'torve/noop' || p.package === '@torveai/verifier-noop'), false)
+  assert.equal(resolvePluginPackage('torve-verifier'), '@torveai/torve-verifier')
 })

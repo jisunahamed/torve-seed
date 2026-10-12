@@ -45,11 +45,11 @@ export interface CryptoPaymentConfig {
   rpcUrl: string;
   /** Additional RPC endpoints for failover via ethers FallbackProvider. */
   fallbackRpcUrls?: string[];
-  /** Deployed AntseedDeposits contract address */
+  /** Deployed TorveDeposits contract address */
   depositsContractAddress: string;
-  /** Deployed AntseedChannels contract address */
+  /** Deployed TorveChannels contract address */
   channelsContractAddress: string;
-  /** Optional deployed AntseedFreeUsage contract address */
+  /** Optional deployed TorveFreeUsage contract address */
   freeUsageContractAddress?: string;
   /** USDC token contract address */
   usdcAddress: string;

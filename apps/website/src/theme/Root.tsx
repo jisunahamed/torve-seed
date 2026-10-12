@@ -51,7 +51,7 @@ function useScrollState() {
  *
  * Emits:
  *   download_vpr   — a download link (our download proxy on
- *                    download.antseed.com, or the GitHub releases fallback),
+ *                    download.torveai.com, or the GitHub releases fallback),
  *                    on viewports wide enough to actually download (the
  *                    desktop conversion event). The proxy then reports
  *                    download started/completed/aborted server-side, so this
@@ -60,7 +60,7 @@ function useScrollState() {
  *                    download link tapped on a phone viewport, where
  *                    useMobileGetStarted reroutes to /get-started instead
  *                    of downloading
- *   outbound_click — any link leaving antseed.com
+ *   outbound_click — any link leaving torveai.com
  */
 function useClickTracking() {
   useEffect(() => {

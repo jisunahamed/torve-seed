@@ -3,20 +3,20 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import {IAntseedSlashing} from "../interfaces/IAntseedSlashing.sol";
-import {IAntseedRegistry} from "../interfaces/IAntseedRegistry.sol";
-import {IAntseedChannels} from "../interfaces/IAntseedChannels.sol";
-import {IAntseedStaking} from "../interfaces/IAntseedStaking.sol";
+import {ITorveSlashing} from "../interfaces/ITorveSlashing.sol";
+import {ITorveRegistry} from "../interfaces/ITorveRegistry.sol";
+import {ITorveChannels} from "../interfaces/ITorveChannels.sol";
+import {ITorveStaking} from "../interfaces/ITorveStaking.sol";
 
 /**
- * @title AntseedSlashing
+ * @title TorveSlashing
  * @notice Swappable slashing logic for seller staking.
  *         Staking delegates slash calculation here. Deploy a new version
  *         and point Staking to it to change slashing rules without
  *         touching the contract that holds funds.
  */
-contract AntseedSlashing is IAntseedSlashing, Ownable {
-    IAntseedRegistry public registry;
+contract TorveSlashing is ITorveSlashing, Ownable {
+    ITorveRegistry public registry;
 
     uint256 public SLASH_RATIO_THRESHOLD = 30;
     uint256 public SLASH_GHOST_THRESHOLD = 5;
@@ -25,14 +25,14 @@ contract AntseedSlashing is IAntseedSlashing, Ownable {
 
     constructor(address _registry) Ownable(msg.sender) {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     function calculateSlash(address seller, uint256 stakeAmount) external view override returns (uint256) {
-        uint256 agentId = IAntseedStaking(registry.staking()).getAgentId(seller);
+        uint256 agentId = ITorveStaking(registry.staking()).getAgentId(seller);
         if (agentId == 0) return 0;
 
-        IAntseedChannels.AgentStats memory stats = IAntseedChannels(registry.channels()).getAgentStats(agentId);
+        ITorveChannels.AgentStats memory stats = ITorveChannels(registry.channels()).getAgentStats(agentId);
 
         uint256 channels = uint256(stats.channelCount);
         uint256 ghosts = uint256(stats.ghostCount);
@@ -54,7 +54,7 @@ contract AntseedSlashing is IAntseedSlashing, Ownable {
 
     function setRegistry(address _registry) external onlyOwner {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     function setSlashRatioThreshold(uint256 value) external onlyOwner {

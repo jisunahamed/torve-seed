@@ -9,7 +9,7 @@ import {
   resolveContractStack,
   resolveLegacyContractAddresses,
   type ContractStackResolution,
-} from '@antseed/node';
+} from '@torveai/node';
 import {
   IdentityClient,
   EmissionsClient,
@@ -22,11 +22,11 @@ import {
   SellerPoolsClient,
   SellerPoolsRewardsClient,
   SellerRegistryClient,
-} from '@antseed/node/payments';
-import type { Identity } from '@antseed/node';
-import type { AntseedConfig } from '../config/types.js';
+} from '@torveai/node/payments';
+import type { Identity } from '@torveai/node';
+import type { TorveConfig } from '../config/types.js';
 
-export const ANTSEED_BASE_RPC_URL_ENV = 'ANTSEED_BASE_RPC_URL';
+export const TORVE_BASE_RPC_URL_ENV = 'TORVE_BASE_RPC_URL';
 
 export interface RpcUrlOverrideInput {
   /** Runtime-only CLI flag value. Wins over environment variables. */
@@ -38,11 +38,11 @@ export interface RpcUrlOverrideInput {
 export interface CryptoConfigOverrides {
   /** Runtime-only RPC URL override. Wins over environment variables and config.json. */
   rpcUrl?: string;
-  /** Environment to read ANTSEED_BASE_RPC_URL from. Defaults to process.env. */
+  /** Environment to read TORVE_BASE_RPC_URL from. Defaults to process.env. */
   env?: NodeJS.ProcessEnv;
 }
 
-export function normalizeHttpRpcUrl(value: string | undefined, label = ANTSEED_BASE_RPC_URL_ENV): string | undefined {
+export function normalizeHttpRpcUrl(value: string | undefined, label = TORVE_BASE_RPC_URL_ENV): string | undefined {
   const trimmed = value?.trim();
   if (!trimmed) return undefined;
 
@@ -61,16 +61,16 @@ export function normalizeHttpRpcUrl(value: string | undefined, label = ANTSEED_B
 }
 
 function normalizeRpcUrl(value: string | undefined): string | undefined {
-  return normalizeHttpRpcUrl(value, ANTSEED_BASE_RPC_URL_ENV);
+  return normalizeHttpRpcUrl(value, TORVE_BASE_RPC_URL_ENV);
 }
 
 /**
  * Resolve the runtime Base JSON-RPC URL override used by seller infrastructure.
- * Precedence: CLI flag > ANTSEED_BASE_RPC_URL env var > config/defaults.
+ * Precedence: CLI flag > TORVE_BASE_RPC_URL env var > config/defaults.
  */
 export function resolveBaseRpcUrlOverride(input: RpcUrlOverrideInput = {}): string | undefined {
   return normalizeRpcUrl(
-    input.flagValue ?? (input.env ?? process.env)[ANTSEED_BASE_RPC_URL_ENV],
+    input.flagValue ?? (input.env ?? process.env)[TORVE_BASE_RPC_URL_ENV],
   );
 }
 
@@ -126,7 +126,7 @@ export interface CryptoContext {
   address: string;
 }
 
-type ResolvedCryptoConfig = NonNullable<AntseedConfig['payments']['crypto']> & {
+type ResolvedCryptoConfig = NonNullable<TorveConfig['payments']['crypto']> & {
   rpcUrl: string;
   depositsContractAddress: string;
   channelsContractAddress: string;
@@ -169,7 +169,7 @@ export async function loadCryptoContext(dataDir: string): Promise<CryptoContext>
  * Exits with error if not configured.
  */
 export function requireCryptoConfig(
-  config: AntseedConfig,
+  config: TorveConfig,
   overrides: CryptoConfigOverrides = {},
 ): ResolvedCryptoConfig {
   const crypto = config.payments?.crypto;
@@ -232,7 +232,7 @@ export function requireContractAddress(
 }
 
 export function resolveCliContractStack(
-  config: AntseedConfig,
+  config: TorveConfig,
   overrides?: CryptoConfigOverrides,
 ): Promise<ContractStackResolution> {
   return resolveContractStack(requireCryptoConfig(config, overrides));
@@ -247,7 +247,7 @@ function fallbackClientOpts(crypto: ReturnType<typeof requireCryptoConfig>) {
 /**
  * Create a DepositsClient from the CLI config.
  */
-export function createDepositsClient(config: AntseedConfig, overrides?: CryptoConfigOverrides): DepositsClient {
+export function createDepositsClient(config: TorveConfig, overrides?: CryptoConfigOverrides): DepositsClient {
   const crypto = requireCryptoConfig(config, overrides);
   return new DepositsClient({
     rpcUrl: crypto.rpcUrl,
@@ -261,7 +261,7 @@ export function createDepositsClient(config: AntseedConfig, overrides?: CryptoCo
 /**
  * Create a ChannelsClient from the CLI config.
  */
-export function createChannelsClient(config: AntseedConfig, overrides?: CryptoConfigOverrides): ChannelsClient {
+export function createChannelsClient(config: TorveConfig, overrides?: CryptoConfigOverrides): ChannelsClient {
   const crypto = requireCryptoConfig(config, overrides);
   return new ChannelsClient({
     rpcUrl: crypto.rpcUrl,
@@ -274,7 +274,7 @@ export function createChannelsClient(config: AntseedConfig, overrides?: CryptoCo
 /**
  * Create an IdentityClient from the CLI config.
  */
-export function createIdentityClient(config: AntseedConfig, overrides?: CryptoConfigOverrides): IdentityClient {
+export function createIdentityClient(config: TorveConfig, overrides?: CryptoConfigOverrides): IdentityClient {
   const crypto = requireCryptoConfig(config, overrides);
   if (!crypto.identityRegistryAddress) {
     throw new Error('No identity registry address configured. Set payments.crypto.identityRegistryAddress in your config file.');
@@ -290,7 +290,7 @@ export function createIdentityClient(config: AntseedConfig, overrides?: CryptoCo
 /**
  * Create a StakingClient from the CLI config.
  */
-export function createStakingClient(config: AntseedConfig, overrides?: CryptoConfigOverrides): StakingClient {
+export function createStakingClient(config: TorveConfig, overrides?: CryptoConfigOverrides): StakingClient {
   const crypto = requireCryptoConfig(config, overrides);
   if (!crypto.stakingContractAddress) {
     throw new Error('No staking contract address configured. Set payments.crypto.stakingContractAddress in your config file.');
@@ -307,7 +307,7 @@ export function createStakingClient(config: AntseedConfig, overrides?: CryptoCon
 /**
  * Create an EmissionsClient from the CLI config.
  */
-export function createEmissionsClient(config: AntseedConfig, overrides?: CryptoConfigOverrides): EmissionsClient {
+export function createEmissionsClient(config: TorveConfig, overrides?: CryptoConfigOverrides): EmissionsClient {
   const crypto = requireCryptoConfig(config, overrides);
   if (!crypto.emissionsContractAddress) {
     throw new Error('No emissions contract address configured. Set payments.crypto.emissionsContractAddress in your config file.');
@@ -329,17 +329,17 @@ function contractClientConfig(crypto: ReturnType<typeof requireCryptoConfig>, co
   };
 }
 
-export function createUsageAccountingClient(config: AntseedConfig): UsageAccountingClient {
+export function createUsageAccountingClient(config: TorveConfig): UsageAccountingClient {
   const crypto = requireCryptoConfig(config);
   return new UsageAccountingClient(contractClientConfig(crypto, requireContractAddress(crypto, 'usageAccountingAddress', 'usageAccounting')));
 }
 
-export function createUsageRewardsClient(config: AntseedConfig): UsageRewardsClient {
+export function createUsageRewardsClient(config: TorveConfig): UsageRewardsClient {
   const crypto = requireCryptoConfig(config);
   return new UsageRewardsClient(contractClientConfig(crypto, requireContractAddress(crypto, 'usageRewardsAddress', 'usageRewards')));
 }
 
-export function createSellerPoolsClient(config: AntseedConfig): SellerPoolsClient {
+export function createSellerPoolsClient(config: TorveConfig): SellerPoolsClient {
   const crypto = requireCryptoConfig(config);
   return new SellerPoolsClient({
     ...contractClientConfig(crypto, requireContractAddress(crypto, 'sellerPoolsAddress', 'sellerPools')),
@@ -347,38 +347,38 @@ export function createSellerPoolsClient(config: AntseedConfig): SellerPoolsClien
   });
 }
 
-export function createSellerPoolsRewardsClient(config: AntseedConfig): SellerPoolsRewardsClient {
+export function createSellerPoolsRewardsClient(config: TorveConfig): SellerPoolsRewardsClient {
   const crypto = requireCryptoConfig(config);
   return new SellerPoolsRewardsClient(contractClientConfig(crypto, requireContractAddress(crypto, 'sellerPoolsRewardsAddress', 'sellerPoolsRewards')));
 }
 
-export function createSellerRegistryClient(config: AntseedConfig): SellerRegistryClient {
+export function createSellerRegistryClient(config: TorveConfig): SellerRegistryClient {
   const crypto = requireCryptoConfig(config);
   return new SellerRegistryClient(contractClientConfig(crypto, requireContractAddress(crypto, 'sellerRegistryAddress', 'sellerRegistry')));
 }
 
-export function createPositionInitClient(config: AntseedConfig): PositionInitClient {
+export function createPositionInitClient(config: TorveConfig): PositionInitClient {
   const crypto = requireCryptoConfig(config);
   return new PositionInitClient(contractClientConfig(crypto, requireContractAddress(crypto, 'positionInitAddress', 'positionInit')));
 }
 
-export function createEmissionsGateClient(config: AntseedConfig): EmissionsGateClient {
+export function createEmissionsGateClient(config: TorveConfig): EmissionsGateClient {
   const crypto = requireCryptoConfig(config);
   return new EmissionsGateClient(contractClientConfig(crypto, requireContractAddress(crypto, 'emissionsGateAddress', 'emissionsGate')));
 }
 
-export function createAntsTokenClient(config: AntseedConfig): ANTSTokenClient {
+export function createAntsTokenClient(config: TorveConfig): ANTSTokenClient {
   const crypto = requireCryptoConfig(config);
   return new ANTSTokenClient(contractClientConfig(crypto, requireContractAddress(crypto, 'antsTokenAddress', 'antsToken')));
 }
 
-export function createLegacyEmissionsClient(config: AntseedConfig): EmissionsClient {
+export function createLegacyEmissionsClient(config: TorveConfig): EmissionsClient {
   const crypto = requireCryptoConfig(config);
   const legacy = { ...crypto, ...resolveLegacyContractAddresses(crypto) };
   return new EmissionsClient(contractClientConfig(legacy, requireContractAddress(legacy, 'legacyEmissionsContractAddress', 'legacyEmissions')));
 }
 
-export function createLegacyStakingClient(config: AntseedConfig): StakingClient {
+export function createLegacyStakingClient(config: TorveConfig): StakingClient {
   const crypto = requireCryptoConfig(config);
   const legacy = { ...crypto, ...resolveLegacyContractAddresses(crypto) };
   return new StakingClient({
@@ -390,7 +390,7 @@ export function createLegacyStakingClient(config: AntseedConfig): StakingClient 
 /**
  * Create a DepositRelayClient from the CLI config.
  */
-export function createDepositRelayClient(config: AntseedConfig, overrides?: CryptoConfigOverrides): DepositRelayClient {
+export function createDepositRelayClient(config: TorveConfig, overrides?: CryptoConfigOverrides): DepositRelayClient {
   const crypto = requireCryptoConfig(config, overrides);
   if (!crypto.depositRelayAddress) {
     throw new Error('No deposit relay address configured for this chain. Set payments.crypto.depositRelayAddress in your config file.');

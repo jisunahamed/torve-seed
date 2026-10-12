@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 
 /* ── ANTS emission clock ──────────────────────────────────────────
-   Weekly epochs, 104-epoch halving. Genesis read from AntseedEmissions
+   Weekly epochs, 104-epoch halving. Genesis read from TorveEmissions
    on Base mainnet (block 44469557): eth_call genesis() on
    0xF13bE52c4A3afC6AE29536f073588d01A0564088. See docs/recognized-usage. */
 const EPOCH_DURATION = 604_800; // 1 week in seconds

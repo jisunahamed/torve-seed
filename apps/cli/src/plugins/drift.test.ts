@@ -17,7 +17,7 @@ import {
  * for cleanup via `rmSync(dir, { recursive: true, force: true })`.
  */
 function makeFakePluginsDir(plugins: Record<string, { version: string; dependencies?: Record<string, string> }>): string {
-  const root = mkdtempSync(join(tmpdir(), 'antseed-drift-test-'))
+  const root = mkdtempSync(join(tmpdir(), 'torve-drift-test-'))
   for (const [name, spec] of Object.entries(plugins)) {
     const pluginDir = join(root, 'node_modules', ...name.split('/'))
     mkdirSync(pluginDir, { recursive: true })
@@ -46,23 +46,23 @@ test('getCliBundledVersion returns null for a package that is not bundled', () =
 
 test('getPluginPinnedCoreVersion reads the pinned dep from the plugin package.json', () => {
   const root = makeFakePluginsDir({
-    '@antseed/provider-openai': {
+    '@torveai/provider-openai': {
       version: '0.2.40',
-      dependencies: { '@antseed/provider-core': '0.2.48' },
+      dependencies: { '@torveai/provider-core': '0.2.48' },
     },
   })
   try {
     assert.equal(
-      getPluginPinnedCoreVersion('@antseed/provider-openai', '@antseed/provider-core', root),
+      getPluginPinnedCoreVersion('@torveai/provider-openai', '@torveai/provider-core', root),
       '0.2.48',
     )
     assert.equal(
-      getPluginPinnedCoreVersion('@antseed/provider-openai', '@antseed/node', root),
+      getPluginPinnedCoreVersion('@torveai/provider-openai', '@torveai/node', root),
       null,
       'should return null when the plugin does not depend on the core package at all',
     )
     assert.equal(
-      getPluginPinnedCoreVersion('@antseed/not-installed', '@antseed/provider-core', root),
+      getPluginPinnedCoreVersion('@torveai/not-installed', '@torveai/provider-core', root),
       null,
       'should return null when the plugin is not installed',
     )
@@ -74,11 +74,11 @@ test('getPluginPinnedCoreVersion reads the pinned dep from the plugin package.js
 test('getPluginPinnedCoreVersion refuses paths that escape the plugins dir', () => {
   // Even with a malicious plugin name containing path separators, the function
   // must NOT read files outside the supplied plugins dir.
-  const root = mkdtempSync(join(tmpdir(), 'antseed-drift-test-'))
+  const root = mkdtempSync(join(tmpdir(), 'torve-drift-test-'))
   try {
     // No file is created; we only need to confirm we get null (not a throw,
     // not an external file read).
-    const malicious = getPluginPinnedCoreVersion('../../../../etc/passwd', '@antseed/provider-core', root)
+    const malicious = getPluginPinnedCoreVersion('../../../../etc/passwd', '@torveai/provider-core', root)
     assert.equal(malicious, null)
   } finally {
     rmSync(root, { recursive: true, force: true })
@@ -87,25 +87,25 @@ test('getPluginPinnedCoreVersion refuses paths that escape the plugins dir', () 
 
 test('detectPluginDrift flags plugins whose pinned core deps differ from CLI-bundled versions', () => {
   const root = makeFakePluginsDir({
-    '@antseed/provider-openai': {
+    '@torveai/provider-openai': {
       version: '0.2.40',
-      dependencies: { '@antseed/provider-core': '0.2.48' }, // STALE
+      dependencies: { '@torveai/provider-core': '0.2.48' }, // STALE
     },
-    '@antseed/provider-anthropic': {
+    '@torveai/provider-anthropic': {
       version: '0.1.42',
-      dependencies: { '@antseed/provider-core': '0.2.49' }, // current
+      dependencies: { '@torveai/provider-core': '0.2.49' }, // current
     },
   })
   try {
     const report = detectPluginDrift(
-      ['@antseed/provider-openai', '@antseed/provider-anthropic'],
+      ['@torveai/provider-openai', '@torveai/provider-anthropic'],
       root,
-      { '@antseed/provider-core': '0.2.49', '@antseed/node': null, '@antseed/router-core': null, '@antseed/api-adapter': null },
+      { '@torveai/provider-core': '0.2.49', '@torveai/node': null, '@torveai/router-core': null, '@torveai/api-adapter': null },
     )
     assert.equal(report.driftedPlugins.length, 1)
-    assert.equal(report.driftedPlugins[0]!.plugin, '@antseed/provider-openai')
+    assert.equal(report.driftedPlugins[0]!.plugin, '@torveai/provider-openai')
     assert.equal(report.driftedPlugins[0]!.staleCorePackages.length, 1)
-    assert.equal(report.driftedPlugins[0]!.staleCorePackages[0]!.pkg, '@antseed/provider-core')
+    assert.equal(report.driftedPlugins[0]!.staleCorePackages[0]!.pkg, '@torveai/provider-core')
     assert.equal(report.driftedPlugins[0]!.staleCorePackages[0]!.pluginPinnedVersion, '0.2.48')
     assert.equal(report.driftedPlugins[0]!.staleCorePackages[0]!.cliBundledVersion, '0.2.49')
     assert.equal(report.missingPlugins.length, 0)
@@ -116,19 +116,19 @@ test('detectPluginDrift flags plugins whose pinned core deps differ from CLI-bun
 
 test('detectPluginDrift reports missing plugins separately from drifted plugins', () => {
   const root = makeFakePluginsDir({
-    '@antseed/provider-openai': {
+    '@torveai/provider-openai': {
       version: '0.2.41',
-      dependencies: { '@antseed/provider-core': '0.2.49' },
+      dependencies: { '@torveai/provider-core': '0.2.49' },
     },
   })
   try {
     const report = detectPluginDrift(
-      ['@antseed/provider-openai', '@antseed/provider-anthropic'],
+      ['@torveai/provider-openai', '@torveai/provider-anthropic'],
       root,
-      { '@antseed/provider-core': '0.2.49', '@antseed/node': null, '@antseed/router-core': null, '@antseed/api-adapter': null },
+      { '@torveai/provider-core': '0.2.49', '@torveai/node': null, '@torveai/router-core': null, '@torveai/api-adapter': null },
     )
     assert.deepEqual(report.driftedPlugins, [])
-    assert.deepEqual(report.missingPlugins, ['@antseed/provider-anthropic'])
+    assert.deepEqual(report.missingPlugins, ['@torveai/provider-anthropic'])
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
@@ -139,16 +139,16 @@ test('detectPluginDrift treats a plugin pin newer than the CLI bundle as drift t
   // against a core API the CLI may not yet ship. We surface that so the
   // operator can decide whether to upgrade the CLI or hold back the plugin.
   const root = makeFakePluginsDir({
-    '@antseed/provider-openai': {
+    '@torveai/provider-openai': {
       version: '0.2.99',
-      dependencies: { '@antseed/provider-core': '0.3.0' }, // newer than bundled
+      dependencies: { '@torveai/provider-core': '0.3.0' }, // newer than bundled
     },
   })
   try {
     const report = detectPluginDrift(
-      ['@antseed/provider-openai'],
+      ['@torveai/provider-openai'],
       root,
-      { '@antseed/provider-core': '0.2.49', '@antseed/node': null, '@antseed/router-core': null, '@antseed/api-adapter': null },
+      { '@torveai/provider-core': '0.2.49', '@torveai/node': null, '@torveai/router-core': null, '@torveai/api-adapter': null },
     )
     assert.equal(report.driftedPlugins.length, 1)
     assert.equal(report.driftedPlugins[0]!.staleCorePackages[0]!.pluginPinnedVersion, '0.3.0')
@@ -160,22 +160,22 @@ test('detectPluginDrift treats a plugin pin newer than the CLI bundle as drift t
 
 test('detectPluginDrift ignores core packages the CLI does not bundle', () => {
   const root = makeFakePluginsDir({
-    '@antseed/provider-openai': {
+    '@torveai/provider-openai': {
       version: '0.2.40',
-      dependencies: { '@antseed/provider-core': '0.2.48', '@antseed/router-core': '0.1.0' },
+      dependencies: { '@torveai/provider-core': '0.2.48', '@torveai/router-core': '0.1.0' },
     },
   })
   try {
     // CLI bundles provider-core but NOT router-core. We should only complain
     // about provider-core.
     const report = detectPluginDrift(
-      ['@antseed/provider-openai'],
+      ['@torveai/provider-openai'],
       root,
-      { '@antseed/provider-core': '0.2.49', '@antseed/node': null, '@antseed/router-core': null, '@antseed/api-adapter': null },
+      { '@torveai/provider-core': '0.2.49', '@torveai/node': null, '@torveai/router-core': null, '@torveai/api-adapter': null },
     )
     assert.equal(report.driftedPlugins.length, 1)
     assert.equal(report.driftedPlugins[0]!.staleCorePackages.length, 1)
-    assert.equal(report.driftedPlugins[0]!.staleCorePackages[0]!.pkg, '@antseed/provider-core')
+    assert.equal(report.driftedPlugins[0]!.staleCorePackages[0]!.pkg, '@torveai/provider-core')
   } finally {
     rmSync(root, { recursive: true, force: true })
   }
@@ -191,13 +191,13 @@ test('ensurePluginsUpToDate is a no-op when no plugins are passed', async () => 
   assert.equal(refreshCalls, 0)
 })
 
-test('ensurePluginsUpToDate skips when ANTSEED_SKIP_PLUGIN_UPDATE_CHECK=1', async () => {
+test('ensurePluginsUpToDate skips when TORVE_SKIP_PLUGIN_UPDATE_CHECK=1', async () => {
   let refreshCalls = 0
-  await ensurePluginsUpToDate(['@antseed/provider-openai'], {
+  await ensurePluginsUpToDate(['@torveai/provider-openai'], {
     log: () => {},
     warn: () => {},
     refresh: async () => { refreshCalls += 1; return { refreshed: [], failed: [] } },
-    env: { ANTSEED_SKIP_PLUGIN_UPDATE_CHECK: '1' },
+    env: { TORVE_SKIP_PLUGIN_UPDATE_CHECK: '1' },
   })
   assert.equal(refreshCalls, 0)
 })
@@ -207,7 +207,7 @@ test('ensurePluginsUpToDate skips third-party (non-trusted) plugins', async () =
   const root = makeFakePluginsDir({
     '@third-party/some-plugin': {
       version: '1.0.0',
-      dependencies: { '@antseed/provider-core': '0.2.48' },
+      dependencies: { '@torveai/provider-core': '0.2.48' },
     },
   })
   try {
@@ -218,7 +218,7 @@ test('ensurePluginsUpToDate skips third-party (non-trusted) plugins', async () =
       warn: () => {},
       refresh: async () => { refreshCalls += 1; return { refreshed: [], failed: [] } },
       pluginsDir: root,
-      bundledVersions: { '@antseed/provider-core': '0.2.49' },
+      bundledVersions: { '@torveai/provider-core': '0.2.49' },
     })
     assert.equal(refreshCalls, 0)
     assert.ok(
@@ -232,21 +232,21 @@ test('ensurePluginsUpToDate skips third-party (non-trusted) plugins', async () =
 
 test('ensurePluginsUpToDate is silent on the happy path (no drift, no missing)', async () => {
   const root = makeFakePluginsDir({
-    '@antseed/provider-openai': {
+    '@torveai/provider-openai': {
       version: '0.2.41',
-      dependencies: { '@antseed/provider-core': '0.2.49' },
+      dependencies: { '@torveai/provider-core': '0.2.49' },
     },
   })
   try {
     let refreshCalls = 0
     const logs: string[] = []
     const warns: string[] = []
-    await ensurePluginsUpToDate(['@antseed/provider-openai'], {
+    await ensurePluginsUpToDate(['@torveai/provider-openai'], {
       log: (m) => logs.push(m),
       warn: (m) => warns.push(m),
       refresh: async () => { refreshCalls += 1; return { refreshed: [], failed: [] } },
       pluginsDir: root,
-      bundledVersions: { '@antseed/provider-core': '0.2.49' },
+      bundledVersions: { '@torveai/provider-core': '0.2.49' },
     })
     assert.equal(refreshCalls, 0, 'should not call refresh when no drift')
     assert.equal(logs.length, 0, `expected no logs on happy path, got: ${JSON.stringify(logs)}`)
@@ -258,15 +258,15 @@ test('ensurePluginsUpToDate is silent on the happy path (no drift, no missing)',
 
 test('ensurePluginsUpToDate triggers refresh on drift and reports success', async () => {
   const root = makeFakePluginsDir({
-    '@antseed/provider-openai': {
+    '@torveai/provider-openai': {
       version: '0.2.40',
-      dependencies: { '@antseed/provider-core': '0.2.48' }, // stale
+      dependencies: { '@torveai/provider-core': '0.2.48' }, // stale
     },
   })
   try {
     const refreshCalls: string[][] = []
     const logs: string[] = []
-    await ensurePluginsUpToDate(['@antseed/provider-openai'], {
+    await ensurePluginsUpToDate(['@torveai/provider-openai'], {
       log: (m) => logs.push(m),
       warn: () => {},
       refresh: async (plugins) => {
@@ -274,9 +274,9 @@ test('ensurePluginsUpToDate triggers refresh on drift and reports success', asyn
         return { refreshed: plugins, failed: [] } satisfies RefreshResult
       },
       pluginsDir: root,
-      bundledVersions: { '@antseed/provider-core': '0.2.49' },
+      bundledVersions: { '@torveai/provider-core': '0.2.49' },
     })
-    assert.deepEqual(refreshCalls, [['@antseed/provider-openai']])
+    assert.deepEqual(refreshCalls, [['@torveai/provider-openai']])
     // Should mention the drift detection and the successful refresh.
     assert.ok(logs.some((l) => l.includes('stale')), `expected drift warning, got: ${JSON.stringify(logs)}`)
     assert.ok(logs.some((l) => l.includes('Refreshed')), `expected success message, got: ${JSON.stringify(logs)}`)
@@ -287,15 +287,15 @@ test('ensurePluginsUpToDate triggers refresh on drift and reports success', asyn
 
 test('ensurePluginsUpToDate logs a manual-retry hint and continues when refresh fails', async () => {
   const root = makeFakePluginsDir({
-    '@antseed/provider-openai': {
+    '@torveai/provider-openai': {
       version: '0.2.40',
-      dependencies: { '@antseed/provider-core': '0.2.48' },
+      dependencies: { '@torveai/provider-core': '0.2.48' },
     },
   })
   try {
     const warns: string[] = []
     const logs: string[] = []
-    await ensurePluginsUpToDate(['@antseed/provider-openai'], {
+    await ensurePluginsUpToDate(['@torveai/provider-openai'], {
       log: (m) => logs.push(m),
       warn: (m) => warns.push(m),
       refresh: async (plugins) => ({
@@ -303,10 +303,10 @@ test('ensurePluginsUpToDate logs a manual-retry hint and continues when refresh 
         failed: plugins.map((p) => ({ plugin: p, reason: 'simulated EAI_AGAIN' })),
       }),
       pluginsDir: root,
-      bundledVersions: { '@antseed/provider-core': '0.2.49' },
+      bundledVersions: { '@torveai/provider-core': '0.2.49' },
     })
     assert.ok(
-      warns.some((w) => w.includes('Failed to refresh @antseed/provider-openai') && w.includes('EAI_AGAIN')),
+      warns.some((w) => w.includes('Failed to refresh @torveai/provider-openai') && w.includes('EAI_AGAIN')),
       `expected per-plugin failure warning, got: ${JSON.stringify(warns)}`,
     )
     assert.ok(

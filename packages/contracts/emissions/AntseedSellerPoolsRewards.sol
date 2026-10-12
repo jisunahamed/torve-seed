@@ -9,13 +9,13 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 
-import { IAntseedEmissionsGate } from "../interfaces/IAntseedEmissionsGate.sol";
-import { IAntseedSellerPools } from "../interfaces/IAntseedSellerPools.sol";
-import { IAntseedUsageAccounting } from "../interfaces/IAntseedUsageAccounting.sol";
-import { AntseedShareMath } from "./AntseedShareMath.sol";
+import { ITorveEmissionsGate } from "../interfaces/ITorveEmissionsGate.sol";
+import { ITorveSellerPools } from "../interfaces/ITorveSellerPools.sol";
+import { ITorveUsageAccounting } from "../interfaces/ITorveUsageAccounting.sol";
+import { TorveShareMath } from "./TorveShareMath.sol";
 
 /**
- * @title AntseedSellerPoolsRewards
+ * @title TorveSellerPoolsRewards
  * @notice Lazy seller-pool reward controller for recognized usage.
  *
  *         Usage accounting records raw seller usage and weighted pool points
@@ -39,7 +39,7 @@ import { AntseedShareMath } from "./AntseedShareMath.sol";
  *           - Position reward claims use indexed pool accounting and do not
  *             loop over every epoch since the position started.
  */
-contract AntseedSellerPoolsRewards is Ownable2Step, Pausable, ReentrancyGuard {
+contract TorveSellerPoolsRewards is Ownable2Step, Pausable, ReentrancyGuard {
     using Math for uint256;
     using SafeERC20 for IERC20;
     using Checkpoints for Checkpoints.Trace256;
@@ -51,9 +51,9 @@ contract AntseedSellerPoolsRewards is Ownable2Step, Pausable, ReentrancyGuard {
     uint32 public constant MAX_STAKER_SHARE_BPS = 40_000;
 
     // ─── External Contracts ──────────────────────────────────────────
-    IAntseedEmissionsGate public immutable emissionsGate;
-    IAntseedSellerPools public immutable sellerPools;
-    IAntseedUsageAccounting public immutable usageAccounting;
+    ITorveEmissionsGate public immutable emissionsGate;
+    ITorveSellerPools public immutable sellerPools;
+    ITorveUsageAccounting public immutable usageAccounting;
     uint256 public immutable initialEmission;
     /// @dev ANTS resolved once at construction from the pools contract,
     ///      which pins it immutably at deployment — keeping principal and
@@ -145,13 +145,13 @@ contract AntseedSellerPoolsRewards is Ownable2Step, Pausable, ReentrancyGuard {
         if (_emissionsGate == address(0) || _sellerPools == address(0) || _usageAccounting == address(0)) {
             revert InvalidAddress();
         }
-        emissionsGate = IAntseedEmissionsGate(_emissionsGate);
-        sellerPools = IAntseedSellerPools(_sellerPools);
-        usageAccounting = IAntseedUsageAccounting(_usageAccounting);
-        initialEmission = IAntseedEmissionsGate(_emissionsGate).INITIAL_EMISSION();
+        emissionsGate = ITorveEmissionsGate(_emissionsGate);
+        sellerPools = ITorveSellerPools(_sellerPools);
+        usageAccounting = ITorveUsageAccounting(_usageAccounting);
+        initialEmission = ITorveEmissionsGate(_emissionsGate).INITIAL_EMISSION();
         if (initialEmission == 0) revert InvalidValue();
-        initialIndexEpoch = IAntseedUsageAccounting(_usageAccounting).currentEpoch();
-        IERC20 token = IAntseedSellerPools(_sellerPools).antsToken();
+        initialIndexEpoch = ITorveUsageAccounting(_usageAccounting).currentEpoch();
+        IERC20 token = ITorveSellerPools(_sellerPools).antsToken();
         if (address(token) == address(0)) revert InvalidAddress();
         _antsToken = token;
 
@@ -338,7 +338,7 @@ contract AntseedSellerPoolsRewards is Ownable2Step, Pausable, ReentrancyGuard {
         uint256 epochEmission = emissionsGate.getEpochEmission(epoch);
         uint256 scaledTarget = Math.mulDiv(config.stakeShareTarget, epochEmission, initialEmission);
         uint32 shareBps =
-            AntseedShareMath.saturatingShareBps(activeStake, config.minShareBps, config.maxShareBps, scaledTarget);
+            TorveShareMath.saturatingShareBps(activeStake, config.minShareBps, config.maxShareBps, scaledTarget);
         if (shareBps == 0) return 0;
 
         uint256 desiredBudget = Math.mulDiv(epochEmission, shareBps, GATE_SHARE_DENOMINATOR);
@@ -477,7 +477,7 @@ contract AntseedSellerPoolsRewards is Ownable2Step, Pausable, ReentrancyGuard {
     {
         if (agentId == 0 || epoch < positionClaimCursor[positionId]) return 0;
 
-        IAntseedSellerPools pools = sellerPools;
+        ITorveSellerPools pools = sellerPools;
         uint256 positionWeight = pools.positionWeightAtEpoch(positionId, epoch);
         if (positionWeight == 0) return 0;
 
@@ -510,7 +510,7 @@ contract AntseedSellerPoolsRewards is Ownable2Step, Pausable, ReentrancyGuard {
     }
 
     function _poolGrossReward(uint256 agentId, uint256 epoch) internal view returns (uint256) {
-        IAntseedUsageAccounting accounting = usageAccounting;
+        ITorveUsageAccounting accounting = usageAccounting;
         uint256 poolPoints = accounting.weightedPoolPointsByEpoch(epoch, agentId);
         uint256 totalPoints = accounting.totalWeightedPoolPointsByEpoch(epoch);
         if (poolPoints == 0 || totalPoints == 0) return 0;

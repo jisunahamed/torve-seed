@@ -4,13 +4,13 @@ import { fetchProxyConversationRoute, makeProxyService } from './proxy-service.j
 
 test('makeProxyService sends soft affinity for auto routes and hard pins explicit routes', () => {
   const auto = makeProxyService('model-a', 8377, 'openai-chat-completions', 'peer-a', null, false, 'auto', 'conv-a');
-  assert.equal(auto.headers?.['x-antseed-prefer-peer'], 'peer-a');
-  assert.equal(auto.headers?.['x-antseed-pin-peer'], undefined);
+  assert.equal(auto.headers?.['x-torve-prefer-peer'], 'peer-a');
+  assert.equal(auto.headers?.['x-torve-pin-peer'], undefined);
   assert.equal(auto.headers?.['x-vpr-session-id'], 'conv-a');
 
   const pinned = makeProxyService('model-a', 8377, 'openai-chat-completions', 'peer-b', null, false, 'pinned', 'conv-b');
-  assert.equal(pinned.headers?.['x-antseed-pin-peer'], 'peer-b');
-  assert.equal(pinned.headers?.['x-antseed-prefer-peer'], undefined);
+  assert.equal(pinned.headers?.['x-torve-pin-peer'], 'peer-b');
+  assert.equal(pinned.headers?.['x-torve-prefer-peer'], undefined);
 });
 
 test('fetchProxyConversationRoute reads the actual routed peer from the buyer conversation', async () => {

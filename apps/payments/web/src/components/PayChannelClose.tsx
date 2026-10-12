@@ -8,7 +8,7 @@ import { useAuthorizedWallet } from '../context/AuthorizedWalletContext';
 import { ConnectWalletAction } from './ConnectWalletAction';
 import { formatUsd, truncateAddress } from '../utils/format';
 
-const GRACE_PERIOD = 900; // seconds — AntseedChannels close grace period
+const GRACE_PERIOD = 900; // seconds — TorveChannels close grace period
 
 const parsedAbi = parseAbi(CHANNELS_ABI);
 

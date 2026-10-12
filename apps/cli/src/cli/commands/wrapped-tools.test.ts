@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { ANTSEED_MODEL_CONTEXT_WINDOW, ANTSEED_MODEL_MAX_OUTPUT_TOKENS } from '@antseed/node/types'
+import { TORVE_MODEL_CONTEXT_WINDOW, TORVE_MODEL_MAX_OUTPUT_TOKENS } from '@torveai/node/types'
 import { spawnSync } from 'node:child_process'
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -9,16 +9,16 @@ import { fileURLToPath } from 'node:url'
 import {
   buildCodexConfigArgs,
   buildOpenCodeConfigContent,
-  normalizeAntseedBaseUrl,
+  normalizeTorveBaseUrl,
   parseWrappedToolArgs,
-  resolveDefaultAntseedBaseUrl,
+  resolveDefaultTorveBaseUrl,
 } from './wrapped-tools.js'
 
 const ROOT_PROXY_URL = 'http://localhost:8378'
 const V1_PROXY_URL = `${ROOT_PROXY_URL}/v1`
 const MODEL_ID = 'deepseek-v4-flash'
 const CLI_INDEX = join(dirname(fileURLToPath(import.meta.url)), '..', 'index.js')
-const RECORDED_ENV_KEYS = ['ANTHROPIC_BASE_URL', 'ANTHROPIC_API_KEY', 'ANTSEED_API_KEY', 'OPENCODE_CONFIG'] as const
+const RECORDED_ENV_KEYS = ['ANTHROPIC_BASE_URL', 'ANTHROPIC_API_KEY', 'TORVE_API_KEY', 'OPENCODE_CONFIG'] as const
 
 type OpenCodeConfig = {
   provider: Record<string, {
@@ -45,7 +45,7 @@ type RecordingChildCli = {
 }
 
 async function withTempWorkspace<T>(fn: (paths: TempWorkspace) => Promise<T>): Promise<T> {
-  const root = await mkdtemp(join(tmpdir(), 'antseed-wrapper-'))
+  const root = await mkdtemp(join(tmpdir(), 'torve-wrapper-'))
   try {
     const binDir = join(root, 'bin')
     const dataDir = join(root, 'data')
@@ -94,17 +94,17 @@ function runWrapper(workspace: TempWorkspace, args: string[]): ReturnType<typeof
 }
 
 test('parseWrappedToolArgs', async (t) => {
-  await t.test('consumes AntSeed flags and forwards child args', () => {
+  await t.test('consumes Torve flags and forwards child args', () => {
     const parsed = parseWrappedToolArgs([
       '--model',
       'gpt-oss-120b',
       '--sandbox',
       'workspace-write',
-      '--antseed-base-url=localhost:8378',
+      '--torve-base-url=localhost:8378',
     ])
 
     assert.equal(parsed.model, 'gpt-oss-120b')
-    assert.equal(parsed.antseedBaseUrl, 'localhost:8378')
+    assert.equal(parsed.torveBaseUrl, 'localhost:8378')
     assert.deepEqual(parsed.childArgs, ['--sandbox', 'workspace-write'])
   })
 
@@ -115,37 +115,37 @@ test('parseWrappedToolArgs', async (t) => {
     assert.deepEqual(parsed.childArgs, ['--model', 'child-model'])
   })
 
-  await t.test('rejects unsupported AntSeed wrapper flags', () => {
+  await t.test('rejects unsupported Torve wrapper flags', () => {
     assert.throws(
-      () => parseWrappedToolArgs(['--antseed-peer', 'peer-id']),
-      /--antseed-peer is not supported by this wrapper/,
+      () => parseWrappedToolArgs(['--torve-peer', 'peer-id']),
+      /--torve-peer is not supported by this wrapper/,
     )
   })
 })
 
-test('normalizeAntseedBaseUrl', async (t) => {
+test('normalizeTorveBaseUrl', async (t) => {
   await t.test('adds protocol and /v1 to a root URL', () => {
-    assert.deepEqual(normalizeAntseedBaseUrl('localhost:8377'), {
+    assert.deepEqual(normalizeTorveBaseUrl('localhost:8377'), {
       root: 'http://localhost:8377',
       v1: 'http://localhost:8377/v1',
     })
   })
 
   await t.test('derives root from a /v1 URL', () => {
-    assert.deepEqual(normalizeAntseedBaseUrl('http://localhost:8377/v1'), {
+    assert.deepEqual(normalizeTorveBaseUrl('http://localhost:8377/v1'), {
       root: 'http://localhost:8377',
       v1: 'http://localhost:8377/v1',
     })
   })
 })
 
-test('resolveDefaultAntseedBaseUrl prefers active buyer state over config', async () => {
+test('resolveDefaultTorveBaseUrl prefers active buyer state over config', async () => {
   await withTempWorkspace(async ({ dataDir, configPath }) => {
     await writeFile(configPath, JSON.stringify({ buyer: { proxyPort: 8390 } }))
-    assert.equal(await resolveDefaultAntseedBaseUrl(dataDir, configPath), 'http://localhost:8390')
+    assert.equal(await resolveDefaultTorveBaseUrl(dataDir, configPath), 'http://localhost:8390')
 
     await writeFile(join(dataDir, 'buyer.state.json'), JSON.stringify({ port: 8378 }))
-    assert.equal(await resolveDefaultAntseedBaseUrl(dataDir, configPath), 'http://localhost:8378')
+    assert.equal(await resolveDefaultTorveBaseUrl(dataDir, configPath), 'http://localhost:8378')
   })
 })
 
@@ -154,30 +154,30 @@ test('buildCodexConfigArgs uses ephemeral config overrides on the real Codex hom
 
   assert.equal(args.includes('--profile'), false)
   assert.equal(args.includes('CODEX_HOME'), false)
-  assert.ok(args.includes('model_providers.antseed.name="AntSeed"'))
-  assert.ok(args.includes(`model_providers.antseed.base_url="${V1_PROXY_URL}"`))
-  assert.ok(args.includes('model_providers.antseed.wire_api="responses"'))
-  assert.ok(args.includes('model_providers.antseed.env_key="ANTSEED_API_KEY"'))
+  assert.ok(args.includes('model_providers.torve.name="Torve"'))
+  assert.ok(args.includes(`model_providers.torve.base_url="${V1_PROXY_URL}"`))
+  assert.ok(args.includes('model_providers.torve.wire_api="responses"'))
+  assert.ok(args.includes('model_providers.torve.env_key="TORVE_API_KEY"'))
   assert.ok(args.includes(`model="${MODEL_ID}"`))
-  assert.ok(args.includes('model_provider="antseed"'))
-  assert.ok(args.includes(`model_context_window=${ANTSEED_MODEL_CONTEXT_WINDOW}`))
+  assert.ok(args.includes('model_provider="torve"'))
+  assert.ok(args.includes(`model_context_window=${TORVE_MODEL_CONTEXT_WINDOW}`))
 })
 
-test('buildOpenCodeConfigContent configures AntSeed provider and selected model', () => {
+test('buildOpenCodeConfigContent configures Torve provider and selected model', () => {
   const model = 'gpt-oss-120b'
   const parsed = JSON.parse(buildOpenCodeConfigContent(V1_PROXY_URL, model)) as OpenCodeConfig
 
-  assert.ok(parsed.provider.antseed)
-  assert.equal(parsed.provider.antseed.options.baseURL, V1_PROXY_URL)
-  assert.equal(parsed.model, `antseed/${model}`)
-  assert.deepEqual(parsed.provider.antseed.models[model], {
-    name: `${model} (via AntSeed)`,
-    limit: { context: ANTSEED_MODEL_CONTEXT_WINDOW, output: ANTSEED_MODEL_MAX_OUTPUT_TOKENS },
+  assert.ok(parsed.provider.torve)
+  assert.equal(parsed.provider.torve.options.baseURL, V1_PROXY_URL)
+  assert.equal(parsed.model, `torve/${model}`)
+  assert.deepEqual(parsed.provider.torve.models[model], {
+    name: `${model} (via Torve)`,
+    limit: { context: TORVE_MODEL_CONTEXT_WINDOW, output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
   })
 })
 
 test('wrapped tool execution', async (t) => {
-  await t.test('codex receives AntSeed config overrides and forwarded child args', async () => {
+  await t.test('codex receives Torve config overrides and forwarded child args', async () => {
     await withTempWorkspace(async (workspace) => {
       const codex = await createRecordingChildCli(workspace, 'codex')
 
@@ -185,7 +185,7 @@ test('wrapped tool execution', async (t) => {
         'codex',
         '--model',
         'minimax-m2.5',
-        '--antseed-base-url',
+        '--torve-base-url',
         'localhost:8125',
         '--',
         '--version',
@@ -194,10 +194,10 @@ test('wrapped tool execution', async (t) => {
 
       assert.equal(result.status, 0)
       assert.equal(String(result.stderr), '')
-      assert.match(String(result.stdout), /AntSeed proxy: http:\/\/localhost:8125\/v1/)
-      assert.ok(invocation.argv.includes('model_provider="antseed"'))
+      assert.match(String(result.stdout), /Torve proxy: http:\/\/localhost:8125\/v1/)
+      assert.ok(invocation.argv.includes('model_provider="torve"'))
       assert.equal(invocation.argv.at(-1), '--version')
-      assert.equal(invocation.env.ANTSEED_API_KEY, 'antseed')
+      assert.equal(invocation.env.TORVE_API_KEY, 'torve')
     })
   })
 
@@ -209,7 +209,7 @@ test('wrapped tool execution', async (t) => {
         'claude',
         '--model',
         'claude-sonnet',
-        '--antseed-base-url',
+        '--torve-base-url',
         'localhost:8123/v1',
         '--print',
       ])
@@ -217,10 +217,10 @@ test('wrapped tool execution', async (t) => {
 
       assert.equal(result.status, 0)
       assert.equal(String(result.stderr), '')
-      assert.match(String(result.stdout), /AntSeed proxy: http:\/\/localhost:8123/)
+      assert.match(String(result.stdout), /Torve proxy: http:\/\/localhost:8123/)
       assert.deepEqual(invocation.argv, ['--model', 'claude-sonnet', '--print'])
       assert.equal(invocation.env.ANTHROPIC_BASE_URL, 'http://localhost:8123')
-      assert.equal(invocation.env.ANTHROPIC_API_KEY, 'antseed')
+      assert.equal(invocation.env.ANTHROPIC_API_KEY, 'torve')
     })
   })
 
@@ -232,21 +232,21 @@ test('wrapped tool execution', async (t) => {
         'opencode',
         '--model',
         'gpt-oss-120b',
-        '--antseed-base-url',
+        '--torve-base-url',
         'http://localhost:8124/v1',
         'run',
       ])
       const invocation = await opencode.readInvocation()
-      const antseedProvider = invocation.opencodeConfig?.provider.antseed
+      const torveProvider = invocation.opencodeConfig?.provider.torve
 
       assert.equal(result.status, 0)
       assert.equal(String(result.stderr), '')
-      assert.match(String(result.stdout), /AntSeed proxy: http:\/\/localhost:8124\/v1/)
+      assert.match(String(result.stdout), /Torve proxy: http:\/\/localhost:8124\/v1/)
       assert.deepEqual(invocation.argv, ['run'])
-      assert.equal(invocation.opencodeConfig?.model, 'antseed/gpt-oss-120b')
-      assert.ok(antseedProvider)
-      assert.equal(antseedProvider.options.baseURL, 'http://localhost:8124/v1')
-      assert.ok(antseedProvider.models['gpt-oss-120b'])
+      assert.equal(invocation.opencodeConfig?.model, 'torve/gpt-oss-120b')
+      assert.ok(torveProvider)
+      assert.equal(torveProvider.options.baseURL, 'http://localhost:8124/v1')
+      assert.ok(torveProvider.models['gpt-oss-120b'])
     })
   })
 })

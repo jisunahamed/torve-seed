@@ -51,7 +51,7 @@ describe('seller proof artifacts', () => {
   const chunkA = { index: 0, references: [{ number: 100, blockHash: `0x${'aa'.repeat(32)}` }, { number: 101, blockHash: `0x${'ab'.repeat(32)}` }], proof: [`0x${'11'.repeat(32)}`] };
   const chunkB = { index: 1, references: [{ number: 102, blockHash: `0x${'ac'.repeat(32)}` }], proof: [`0x${'22'.repeat(32)}`] };
   const artifact = {
-    version: 3, kind: 'antseed-wash-trading-seller-proof', proofArchitecture: 'direct-seller-v1', chainId: 8453,
+    version: 3, kind: 'torve-wash-trading-seller-proof', proofArchitecture: 'direct-seller-v1', chainId: 8453,
     seller: '0x48F4142F4AbF7b77a03f0cDffcd511eDD9B6d54a', publicValues: '0x1234', proofBytes: '0xabcdef',
     blockReferenceCount: 3, blockAuthenticationChunkSize: 2, blockAuthenticationChunkCount: 2, blockAuthenticationChunks: [chunkA, chunkB],
   };
@@ -64,7 +64,7 @@ describe('seller proof artifacts', () => {
   });
 
   it('rejects other artifact kinds, unordered references, and count mismatches', () => {
-    expect(() => validateSellerProofArtifact({ ...artifact, kind: 'antseed-wash-trading-proof-result' })).toThrow(/kind/);
+    expect(() => validateSellerProofArtifact({ ...artifact, kind: 'torve-wash-trading-proof-result' })).toThrow(/kind/);
     expect(() => validateSellerProofArtifact({ ...artifact, blockReferenceCount: 4 })).toThrow(/declare 4/);
     expect(() => validateSellerProofArtifact({ ...artifact, blockAuthenticationChunks: [chunkA, { ...chunkB, references: [{ number: 50, blockHash: chunkB.references[0]!.blockHash }] }] })).toThrow(/strictly increasing/);
     expect(() => validateSellerProofArtifact({ ...artifact, blockAuthenticationChunks: [{ ...chunkA, references: chunkA.references.slice(0, 1) }, chunkB], blockReferenceCount: 2 })).toThrow(/exactly 2/);

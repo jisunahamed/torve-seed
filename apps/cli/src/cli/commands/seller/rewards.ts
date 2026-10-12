@@ -1,8 +1,8 @@
 import type { Command } from 'commander';
 import chalk from 'chalk';
 import ora from 'ora';
-import { AntsContext, closedPositionIds } from '@antseed/ants';
-import { legacyEpochs, newEpochs } from '@antseed/node/payments';
+import { AntsContext, closedPositionIds } from '@torveai/ants';
+import { legacyEpochs, newEpochs } from '@torveai/node/payments';
 import { loadConfig } from '../../../config/loader.js';
 import { getGlobalOptions } from '../types.js';
 import {
@@ -18,7 +18,7 @@ import {
   requireCryptoConfig,
 } from '../../payment-utils.js';
 import { pastEpochs } from '../emissions.js';
-import { claimEpochRewards, claimPoolRewards, pendingEpochRewards, previewPoolRewards } from '@antseed/node/payments';
+import { claimEpochRewards, claimPoolRewards, pendingEpochRewards, previewPoolRewards } from '@torveai/node/payments';
 import { RewardClaimProgress } from '../reward-actions.js';
 
 export interface SellerRewardSummary {
@@ -87,7 +87,7 @@ export function registerSellerRewardsCommand(sellerCmd: Command): void {
         console.log(`  Pool staking rewards:     ${chalk.green(`${formatAnts(pool)} ANTS`)}`);
       }
       console.log(`  Total:                    ${chalk.green(`${formatAnts(totalSellerRewards(summary))} ANTS`)}`);
-      console.log(chalk.dim('\nRun antseed seller rewards claim to collect. Amounts reflect completed epochs at the time of this read.'));
+      console.log(chalk.dim('\nRun torve seller rewards claim to collect. Amounts reflect completed epochs at the time of this read.'));
     } catch (error) {
       spinner.fail(chalk.red(`Failed to fetch rewards: ${(error as Error).message}`));
       process.exitCode = 1;

@@ -25,9 +25,9 @@ export function normalizeRouterRuntime(value: unknown): string {
 
   if (
     raw === 'claude-code' ||
-    raw === '@antseed/router-local' ||
-    raw === 'antseed-router-claude-code' ||
-    raw === 'antseed-router-local'
+    raw === '@torveai/router-local' ||
+    raw === 'torve-router-claude-code' ||
+    raw === 'torve-router-local'
   ) {
     return 'local';
   }
@@ -40,8 +40,8 @@ export function resolveRouterPackageName(value: unknown): string {
   if (!raw) return ROUTER_PACKAGE_ALIASES[DEFAULT_ROUTER_RUNTIME];
   if (ROUTER_PACKAGE_ALIASES[raw]) return ROUTER_PACKAGE_ALIASES[raw];
   if (raw.startsWith('@')) return raw;
-  if (raw.startsWith('router-')) return `@antseed/${raw}`;
-  return `@antseed/router-${normalizePluginSlug(raw, DEFAULT_ROUTER_RUNTIME)}`;
+  if (raw.startsWith('router-')) return `@torveai/${raw}`;
+  return `@torveai/router-${normalizePluginSlug(raw, DEFAULT_ROUTER_RUNTIME)}`;
 }
 
 function toInstalledPluginSet(plugins: unknown): Set<string> {

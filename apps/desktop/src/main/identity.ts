@@ -8,11 +8,11 @@ import { existsSync } from 'node:fs';
 import { readFile, writeFile, mkdir, unlink, rename, copyFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
-import type { Identity } from '@antseed/node';
-import { bytesToHex, identityFromPrivateKeyHex } from '@antseed/node';
+import type { Identity } from '@torveai/node';
+import { bytesToHex, identityFromPrivateKeyHex } from '@torveai/node';
 
-const ENCRYPTED_IDENTITY_PATH = path.join(homedir(), '.antseed', 'identity.enc');
-const PLAINTEXT_IDENTITY_PATH = path.join(homedir(), '.antseed', 'identity.key');
+const ENCRYPTED_IDENTITY_PATH = path.join(homedir(), '.torve', 'identity.enc');
+const PLAINTEXT_IDENTITY_PATH = path.join(homedir(), '.torve', 'identity.key');
 
 export function hasStoredIdentity(): boolean {
   return existsSync(ENCRYPTED_IDENTITY_PATH) || existsSync(PLAINTEXT_IDENTITY_PATH);
@@ -90,7 +90,7 @@ async function saveEncryptedIdentity(hexKey: string): Promise<void> {
 
 export function secureIdentityEnv(): Record<string, string> {
   if (!secureIdentity) return {};
-  return { ANTSEED_IDENTITY_HEX: bytesToHex(secureIdentity.privateKey) };
+  return { TORVE_IDENTITY_HEX: bytesToHex(secureIdentity.privateKey) };
 }
 
 const MAX_IDENTITY_RETRIES = 3;

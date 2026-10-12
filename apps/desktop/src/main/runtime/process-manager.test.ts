@@ -7,20 +7,20 @@ import { fileURLToPath } from 'node:url';
 import { buildCliChildEnv, ProcessManager, resolveCommandArgs } from './process-manager.js';
 
 test('local desktop CLI runs may prepare trusted plugins', () => {
-  const env = buildCliChildEnv({ ANTSEED_SKIP_PLUGIN_UPDATE_CHECK: '1' }, true);
-  assert.equal(env['ANTSEED_SKIP_PLUGIN_UPDATE_CHECK'], undefined);
+  const env = buildCliChildEnv({ TORVE_SKIP_PLUGIN_UPDATE_CHECK: '1' }, true);
+  assert.equal(env['TORVE_SKIP_PLUGIN_UPDATE_CHECK'], undefined);
 });
 
 test('packaged desktop CLI runs remain offline-only', () => {
   const env = buildCliChildEnv({}, false);
-  assert.equal(env['ANTSEED_SKIP_PLUGIN_UPDATE_CHECK'], '1');
+  assert.equal(env['TORVE_SKIP_PLUGIN_UPDATE_CHECK'], '1');
 });
 
 test('live QA does not bypass native-module preflight', async () => {
   const previousDirectory = process.cwd();
-  const previousQa = process.env['ANTSEED_LIVE_QA'];
+  const previousQa = process.env['TORVE_LIVE_QA'];
   process.chdir(fileURLToPath(new URL('../../../', import.meta.url)));
-  process.env['ANTSEED_LIVE_QA'] = '1';
+  process.env['TORVE_LIVE_QA'] = '1';
   try {
     const manager = new ProcessManager(() => {}) as unknown as {
       ensureRuntimeNativeModules(mode: string, executable: string, isLocalDevScript: boolean): Promise<void>;
@@ -33,8 +33,8 @@ test('live QA does not bypass native-module preflight', async () => {
     assert.equal(alignments, 1);
   } finally {
     process.chdir(previousDirectory);
-    if (previousQa === undefined) delete process.env['ANTSEED_LIVE_QA'];
-    else process.env['ANTSEED_LIVE_QA'] = previousQa;
+    if (previousQa === undefined) delete process.env['TORVE_LIVE_QA'];
+    else process.env['TORVE_LIVE_QA'] = previousQa;
   }
 });
 
@@ -42,14 +42,14 @@ test('resolveCommandArgs launches the grouped buyer runtime command without forc
   const args = resolveCommandArgs({
     mode: 'connect',
     router: 'local',
-    configPath: '/tmp/antseed-config.json',
+    configPath: '/tmp/torve-config.json',
     verbose: true,
   });
 
   assert.deepEqual(args, [
     '--verbose',
-    '--config', resolve('/tmp/antseed-config.json'),
-    '--data-dir', join(homedir(), '.antseed'),
+    '--config', resolve('/tmp/torve-config.json'),
+    '--data-dir', join(homedir(), '.torve'),
     'buyer', 'start',
   ]);
 });
@@ -58,12 +58,12 @@ test('resolveCommandArgs forwards non-default routers', () => {
   const args = resolveCommandArgs({
     mode: 'connect',
     router: 'custom-router',
-    configPath: '/tmp/antseed-config.json',
+    configPath: '/tmp/torve-config.json',
   });
 
   assert.deepEqual(args, [
-    '--config', resolve('/tmp/antseed-config.json'),
-    '--data-dir', join(homedir(), '.antseed'),
+    '--config', resolve('/tmp/torve-config.json'),
+    '--data-dir', join(homedir(), '.torve'),
     'buyer', 'start', '--router', 'custom-router',
   ]);
 });
@@ -71,7 +71,7 @@ test('resolveCommandArgs forwards non-default routers', () => {
 test('resolveCommandArgs launches the System Proxy runtime with selected profiles and models', () => {
   const args = resolveCommandArgs({
     mode: 'system-proxy',
-    configPath: '/tmp/antseed-config.json',
+    configPath: '/tmp/torve-config.json',
     systemProxyPeerId: '0123456789abcdef0123456789abcdef01234567',
     systemProxyPort: 8378,
     systemProxyProfiles: ['editor', 'browser'],
@@ -81,8 +81,8 @@ test('resolveCommandArgs launches the System Proxy runtime with selected profile
   });
 
   assert.deepEqual(args, [
-    '--config', resolve('/tmp/antseed-config.json'),
-    '--data-dir', join(homedir(), '.antseed'),
+    '--config', resolve('/tmp/torve-config.json'),
+    '--data-dir', join(homedir(), '.torve'),
     'system-proxy', 'start',
     '--peer', '0123456789abcdef0123456789abcdef01234567',
     '--port', '8378',
@@ -98,13 +98,13 @@ test('resolveCommandArgs launches the System Proxy runtime with selected profile
 test('resolveCommandArgs launches the public tunnel through the CLI', () => {
   const args = resolveCommandArgs({
     mode: 'tunnel',
-    configPath: '/tmp/antseed-config.json',
+    configPath: '/tmp/torve-config.json',
     tunnelBuyerPort: 9456,
   });
 
   assert.deepEqual(args, [
-    '--config', resolve('/tmp/antseed-config.json'),
-    '--data-dir', join(homedir(), '.antseed'),
+    '--config', resolve('/tmp/torve-config.json'),
+    '--data-dir', join(homedir(), '.torve'),
     'tunnel', 'start', '--buyer-port', '9456',
   ]);
 });

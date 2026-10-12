@@ -19,7 +19,7 @@ export interface UseWithdrawResult {
 }
 
 /**
- * Submits AntseedDeposits.withdraw() through the connected wallet (wagmi).
+ * Submits TorveDeposits.withdraw() through the connected wallet (wagmi).
  *
  * The deposits contract requires `msg.sender == buyers[buyer].operator` and
  * sends the withdrawn USDC to `msg.sender`. So the connected wallet must be

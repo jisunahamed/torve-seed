@@ -11,7 +11,7 @@ import { findLimitBreach, periodResetsAt, periodStart } from './limits.js'
 import { formatUsdc, parseUsdToUsdc, usdcToDecimalString } from './money.js'
 import { GatewayServer, type GatewayTopupOptions } from './server.js'
 import { SpendFeedPoller } from './spend-feed.js'
-import { DEFAULT_BUYER_IDENTITY } from '@antseed/node'
+import { DEFAULT_BUYER_IDENTITY } from '@torveai/node'
 import { BUYER_IDENTITY_HEADER } from '../proxy/request-utils.js'
 import { GatewayStore } from './store.js'
 import { liveBuyerIdentityAddress } from './runtime.js'
@@ -30,7 +30,7 @@ import {
 const NO_LIMITS = { daily: null, monthly: null, total: null }
 
 function tempStore(): { store: GatewayStore; dir: string; cleanup: () => void } {
-  const dir = mkdtempSync(join(tmpdir(), 'antseed-gateway-'))
+  const dir = mkdtempSync(join(tmpdir(), 'torve-gateway-'))
   const store = new GatewayStore(dir)
   return { store, dir, cleanup: () => { store.close(); rmSync(dir, { recursive: true, force: true }) } }
 }
@@ -62,7 +62,7 @@ async function request(port: number, path: string, options: { method?: string; k
 }
 
 /**
- * Stand-in for `antseed buyer start`: answers API routes, records the tag the
+ * Stand-in for `torve buyer start`: answers API routes, records the tag the
  * gateway attaches, and serves the attributed-spend feed for tagged requests.
  */
 async function fakeBuyer(options: { costUsdc?: number; spendFeed?: boolean; reportIdentity?: string } = {}) {
@@ -70,7 +70,7 @@ async function fakeBuyer(options: { costUsdc?: number; spendFeed?: boolean; repo
   const captured: Array<{ url: string; auth?: string; source?: string; tag?: string; identity?: string }> = []
   let requestCounter = 0
   const server = http.createServer((req, res) => {
-    if (req.url?.startsWith('/_antseed/attributed-spend')) {
+    if (req.url?.startsWith('/_torve/attributed-spend')) {
       if (options.spendFeed === false) {
         res.writeHead(404).end()
         return
@@ -88,7 +88,7 @@ async function fakeBuyer(options: { costUsdc?: number; spendFeed?: boolean; repo
         identity,
         url: req.url ?? '',
         auth: req.headers.authorization,
-        source: req.headers['x-antseed-system-proxy-source'] as string | undefined,
+        source: req.headers['x-torve-system-proxy-source'] as string | undefined,
         tag,
       })
       const requestId = `req-${++requestCounter}`
@@ -105,7 +105,7 @@ async function fakeBuyer(options: { costUsdc?: number; spendFeed?: boolean; repo
           outputImages: '0',
         })
       }
-      res.writeHead(200, { 'content-type': 'application/json', 'x-antseed-request-id': requestId })
+      res.writeHead(200, { 'content-type': 'application/json', 'x-torve-request-id': requestId })
       res.end(JSON.stringify({ ok: true }))
     })
   })
@@ -177,15 +177,15 @@ test('store keeps keys hashed, syncs the tunnel env key, and records ledger entr
     assert.equal(store.findKeyBySecret(`${secret}x`), null)
     assert.ok(!JSON.stringify(store.listKeys()).includes(secret))
 
-    const envKey = store.syncEnvironmentKey('antseed_legacy_tunnel_key_1')
+    const envKey = store.syncEnvironmentKey('torve_legacy_tunnel_key_1')
     assert.equal(envKey.source, 'tunnel-env')
-    assert.equal(store.syncEnvironmentKey('antseed_rotated_tunnel_key_2').id, envKey.id)
-    assert.equal(store.findKeyBySecret('antseed_legacy_tunnel_key_1'), null)
-    assert.equal(store.findKeyBySecret('antseed_rotated_tunnel_key_2')?.id, envKey.id)
+    assert.equal(store.syncEnvironmentKey('torve_rotated_tunnel_key_2').id, envKey.id)
+    assert.equal(store.findKeyBySecret('torve_legacy_tunnel_key_1'), null)
+    assert.equal(store.findKeyBySecret('torve_rotated_tunnel_key_2')?.id, envKey.id)
     assert.equal(store.retireEnvironmentKey()?.status, 'revoked')
     assert.equal(store.retireEnvironmentKey(), null)
     assert.equal(store.getKey(key.id)?.status, 'active')
-    assert.equal(store.syncEnvironmentKey('antseed_rotated_tunnel_key_2').status, 'active')
+    assert.equal(store.syncEnvironmentKey('torve_rotated_tunnel_key_2').status, 'active')
 
     const entry = {
       kind: 'spend' as const,
@@ -326,7 +326,7 @@ test('gateway wallet lookup follows the live buyer until it reloads an identity'
   let address = 'original-wallet'
   let status = 200
   const server = http.createServer((req, res) => {
-    assert.equal(req.url, '/_antseed/buyer-identities')
+    assert.equal(req.url, '/_torve/buyer-identities')
     res.writeHead(status, { 'content-type': 'application/json' })
     res.end(JSON.stringify({ identities: [{ name: 'customer', address }] }))
   })
@@ -350,7 +350,7 @@ test('gateway exposes only authenticated supported API routes', async () => {
   const { secret } = store.createKey({ label: 'Cursor', buyerIdentity: DEFAULT_BUYER_IDENTITY, limits: NO_LIMITS, expiresAt: null })
   const gateway = await startGateway(store, buyer.port)
   try {
-    assert.equal((await request(gateway.port, '/_antseed/status', { key: secret })).status, 404)
+    assert.equal((await request(gateway.port, '/_torve/status', { key: secret })).status, 404)
     assert.equal((await request(gateway.port, '/v1/models')).status, 401)
     assert.equal((await request(gateway.port, '/v1/models', { key: 'wrong' })).status, 401)
     assert.equal((await request(gateway.port, '/v1/models', { key: secret })).status, 200)
@@ -541,13 +541,13 @@ test('gateway fails closed for capped keys when the buyer does not report spend'
   }
 })
 
-test('generated keys are long random antseed secrets', () => {
+test('generated keys are long random torve secrets', () => {
   const first = generateApiKey()
   const second = generateApiKey()
-  assert.match(first.secret, /^antseed_[A-Za-z0-9_-]{43}$/)
+  assert.match(first.secret, /^torve_[A-Za-z0-9_-]{43}$/)
   assert.notEqual(first.secret, second.secret)
   assert.notEqual(first.hash, first.secret)
-  assert.ok(first.hint.startsWith('antseed_') && first.hint.includes('…'))
+  assert.ok(first.hint.startsWith('torve_') && first.hint.includes('…'))
 })
 
 const TEAM_WALLET = '0x00000000000000000000000000000000000000aa'

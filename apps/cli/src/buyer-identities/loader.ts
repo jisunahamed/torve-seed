@@ -1,7 +1,7 @@
-import { DEFAULT_BUYER_IDENTITY, type AntseedNode, type Identity } from '@antseed/node'
+import { DEFAULT_BUYER_IDENTITY, type TorveNode, type Identity } from '@torveai/node'
 import { listBuyerIdentities, loadBuyerIdentity, type StoredBuyerIdentity } from './store.js'
 
-type IdentityNode = Pick<AntseedNode, 'hasBuyerIdentity' | 'addBuyerIdentity'>
+type IdentityNode = Pick<TorveNode, 'hasBuyerIdentity' | 'addBuyerIdentity'>
 
 /**
  * Loads stored buyer identities into a running buyer node. Identities are

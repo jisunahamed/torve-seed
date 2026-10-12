@@ -6,24 +6,24 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {IAntseedRegistry} from "../interfaces/IAntseedRegistry.sol";
+import {ITorveRegistry} from "../interfaces/ITorveRegistry.sol";
 import {IERC8004Registry} from "../interfaces/IERC8004Registry.sol";
-import {IAntseedChannels} from "../interfaces/IAntseedChannels.sol";
-import {IAntseedSlashing} from "../interfaces/IAntseedSlashing.sol";
+import {ITorveChannels} from "../interfaces/ITorveChannels.sol";
+import {ITorveSlashing} from "../interfaces/ITorveSlashing.sol";
 
 /**
- * @title AntseedStaking
+ * @title TorveStaking
  * @notice Seller staking and slashing.
- *         Stable contract — holds seller stake USDC. Reads stats from AntseedChannels.
+ *         Stable contract — holds seller stake USDC. Reads stats from TorveChannels.
  *         Binds each seller's stake to their ERC-8004 agentId.
  */
-contract AntseedStaking is Ownable, ReentrancyGuard {
+contract TorveStaking is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // ─── State ───────────────────────────────────────────────────────────
     IERC20 public immutable usdc;
-    IAntseedRegistry public registry;
-    IAntseedSlashing public slashing;
+    ITorveRegistry public registry;
+    ITorveSlashing public slashing;
 
     // ─── Structs ────────────────────────────────────────────────────────
     struct SellerAccount {
@@ -56,7 +56,7 @@ contract AntseedStaking is Ownable, ReentrancyGuard {
     constructor(address _usdc, address _registry) Ownable(msg.sender) {
         if (_usdc == address(0) || _registry == address(0)) revert InvalidAddress();
         usdc = IERC20(_usdc);
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -96,7 +96,7 @@ contract AntseedStaking is Ownable, ReentrancyGuard {
     function unstake() external nonReentrant {
         SellerAccount storage sa = sellers[msg.sender];
         if (sa.stake == 0) revert InsufficientStake();
-        if (IAntseedChannels(registry.channels()).activeChannelCount(msg.sender) > 0) revert ActiveChannels();
+        if (ITorveChannels(registry.channels()).activeChannelCount(msg.sender) > 0) revert ActiveChannels();
 
         uint256 slashAmount = 0;
         if (address(slashing) != address(0)) {
@@ -141,11 +141,11 @@ contract AntseedStaking is Ownable, ReentrancyGuard {
 
     function setRegistry(address _registry) external onlyOwner {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     function setSlashing(address _slashing) external onlyOwner {
-        slashing = IAntseedSlashing(_slashing);
+        slashing = ITorveSlashing(_slashing);
     }
 
     function setMinSellerStake(uint256 value) external onlyOwner {

@@ -25,7 +25,7 @@ export async function loadProductionArtifacts(directory) {
   const artifacts = [];
   for (const name of files) {
     const artifact = JSON.parse(await readFile(join(absolute, name), "utf8"));
-    if (artifact?.kind !== "antseed-wash-trading-seller-proof" || artifact.securityMode !== "production") continue;
+    if (artifact?.kind !== "torve-wash-trading-seller-proof" || artifact.securityMode !== "production") continue;
     artifacts.push(artifact);
   }
   if (artifacts.length === 0) throw new Error(`no production seller proofs in ${absolute}`);

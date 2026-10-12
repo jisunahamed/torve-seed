@@ -121,7 +121,7 @@ export function VprActivityView({ onSelectView }: Props) {
     : (snap.usage?.totalRequests ?? 0) === 0 ? '$0' : '-';
 
   const openOnChainClose = (channelId: string) => {
-    void window.antseedDesktop?.paymentsOpenPayPage?.({ kind: 'close-channel', channelId });
+    void window.torveDesktop?.paymentsOpenPayPage?.({ kind: 'close-channel', channelId });
   };
 
   const askSellerToClose = async (channelId: string, peerId: string) => {
@@ -131,7 +131,7 @@ export function VprActivityView({ onSelectView }: Props) {
       delete next[channelId];
       return next;
     });
-    const feedback = await requestSellerAssistedClose(peerId, window.antseedDesktop, {
+    const feedback = await requestSellerAssistedClose(peerId, window.torveDesktop, {
       credits: () => actions.refreshCredits(),
       summary: () => actions.refreshPaymentSummary(true),
     });

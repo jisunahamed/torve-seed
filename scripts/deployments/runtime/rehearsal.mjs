@@ -50,7 +50,7 @@ export async function runRehearsal(migration, options, { registry, runMigration 
   const { migrations, fork } = resolveRehearsal(migration, options, registry);
   await (dependencies.loadDotEnv ?? loadDotEnv)();
   requireEnvironment([fork.rpcEnv]);
-  const outputRoot = await mkdtemp(path.join(tmpdir(), `antseed-${migration.id.toLowerCase()}-deployments-`));
+  const outputRoot = await mkdtemp(path.join(tmpdir(), `torve-${migration.id.toLowerCase()}-deployments-`));
   console.log(`${migration.id} fork test records: ${outputRoot}`);
   await cp(dependencies.canonicalRoot ?? CANONICAL_DEPLOYMENTS_ROOT, outputRoot, { recursive: true });
   const withFork = dependencies.withAnvilFork ?? withAnvilFork;

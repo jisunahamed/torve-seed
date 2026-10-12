@@ -51,8 +51,8 @@ import {
   type ChatServiceProtocol,
 } from './service-catalog.js';
 import { enrichDomainVerificationLinks } from '../connected-apps/domain-site-metadata.js';
-import { isNativeVideoProtocol, resolveChainConfig } from '@antseed/node';
-import { collectPeerVerificationLinks } from '@antseed/node/discovery';
+import { isNativeVideoProtocol, resolveChainConfig } from '@torveai/node';
+import { collectPeerVerificationLinks } from '@torveai/node/discovery';
 import { augmentChatToolPath } from './tool-env.js';
 import type { AiConversation } from './conversation-types.js';
 import {
@@ -552,7 +552,7 @@ export function registerPiChatHandlers({
       const buyerPort = await resolveProxyPort(configPath);
       const statsMap = new Map<string, PeerMeteringStats>();
       // Per-peer lifetime metering. The buyer-proxy exposes
-      // /_antseed/metering/<peerId>; fetch in parallel for every catalog peer.
+      // /_torve/metering/<peerId>; fetch in parallel for every catalog peer.
       const uniqueCatalogPeerIds = Array.from(new Set(
         entries.map((e) => e.peerId ?? '').filter((p) => p.length > 0)
       ));
@@ -563,7 +563,7 @@ export function registerPiChatHandlers({
           let body: Record<string, unknown> | null;
           try {
             const resp = await fetch(
-              `${LOCALHOST_URL}:${buyerPort}/_antseed/metering/${encodeURIComponent(peerId)}`,
+              `${LOCALHOST_URL}:${buyerPort}/_torve/metering/${encodeURIComponent(peerId)}`,
               { signal: controller.signal },
             );
             if (!resp.ok) return;
@@ -983,7 +983,7 @@ export function registerPiChatHandlers({
     // Eager connection warmup via buyer proxy
     const proxyPort = await resolveProxyPort(configPath);
     try {
-      const response = await fetch(`${LOCALHOST_URL}:${proxyPort}/_antseed/connect`, {
+      const response = await fetch(`${LOCALHOST_URL}:${proxyPort}/_torve/connect`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ peerId: pinnedPeerId }),
@@ -997,7 +997,7 @@ export function registerPiChatHandlers({
 
   ipcMain.handle('chat:ai-select-peer', async (_event, payload: ChatPeerSelectionRequest | string | null) => applyPeerSelection(payload));
 
-  // Keep the buyer proxy's default route (`antseed` model alias, and the
+  // Keep the buyer proxy's default route (`torve` model alias, and the
   // route the Telegram bridge reads) on the renderer's current AI VPN selection.
   // Best-effort: the buyer proxy may not be running yet — the renderer calls
   // this again on its catalog poll, so the route lands once the proxy is up.
@@ -1010,7 +1010,7 @@ export function registerPiChatHandlers({
     if (model === lastPostedDefaultRoute) return { ok: true };
     try {
       const proxyPort = await resolveProxyPort(configPath);
-      const response = await fetch(`${LOCALHOST_URL}:${proxyPort}/_antseed/route`, {
+      const response = await fetch(`${LOCALHOST_URL}:${proxyPort}/_torve/route`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ model }),

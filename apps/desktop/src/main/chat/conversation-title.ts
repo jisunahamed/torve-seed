@@ -171,7 +171,7 @@ export async function generateConversationTitleWithModel({
     authorization: `Bearer ${PROXY_RUNTIME_API_KEY}`,
     'x-api-key': PROXY_RUNTIME_API_KEY,
   };
-  if (peerId) headers['x-antseed-pin-peer'] = peerId;
+  if (peerId) headers['x-torve-pin-peer'] = peerId;
 
   let url = `${LOCALHOST_URL}:${proxyPort}/v1/messages`;
   let body: Record<string, unknown> = {

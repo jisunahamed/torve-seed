@@ -9,7 +9,7 @@ describe('provider-typesafe plugin', () => {
     const keys = plugin.configSchema!.map((f) => f.key);
     expect(keys).toContain('TYPESAFE_API_KEY');
     expect(keys).toContain('TYPESAFE_BASE_URL');
-    expect(keys).toContain('ANTSEED_ALLOWED_SERVICES');
+    expect(keys).toContain('TORVE_ALLOWED_SERVICES');
   });
 
   it('requires an API key', () => {
@@ -19,7 +19,7 @@ describe('provider-typesafe plugin', () => {
   it('advertises every service as typesafe-systemone with input-only default pricing', () => {
     const provider = plugin.createProvider({
       TYPESAFE_API_KEY: 'ts-test-key',
-      ANTSEED_ALLOWED_SERVICES: 'jev-latest, jev',
+      TORVE_ALLOWED_SERVICES: 'jev-latest, jev',
     });
     expect(provider.name).toBe('typesafe');
     expect(provider.services).toEqual(['jev-latest', 'jev']);
@@ -45,8 +45,8 @@ describe('provider-typesafe plugin', () => {
       const provider = plugin.createProvider({
         TYPESAFE_API_KEY: 'ts-test-key',
         TYPESAFE_BASE_URL: 'https://api.example.test',
-        ANTSEED_ALLOWED_SERVICES: 'jev',
-        ANTSEED_SERVICE_ALIAS_MAP_JSON: '{"jev":"jev-latest"}',
+        TORVE_ALLOWED_SERVICES: 'jev',
+        TORVE_SERVICE_ALIAS_MAP_JSON: '{"jev":"jev-latest"}',
       });
 
       const response = await provider.handleRequest({

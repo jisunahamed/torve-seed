@@ -112,8 +112,8 @@ const BREADCRUMB_LD = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    {'@type': 'ListItem', position: 1, name: 'Home', item: 'https://antseed.com/'},
-    {'@type': 'ListItem', position: 2, name: 'Integrations', item: 'https://antseed.com/integrations/'},
+    {'@type': 'ListItem', position: 1, name: 'Home', item: 'https://torveai.com/'},
+    {'@type': 'ListItem', position: 2, name: 'Integrations', item: 'https://torveai.com/integrations/'},
   ],
 };
 
@@ -161,10 +161,10 @@ export default function ConnectHub(): JSX.Element {
   return (
     <Layout
       title="Integrations"
-      description="Every way to use Antseed: coding agents, autonomous agents, editors, SDKs, frameworks, partner platforms. Anthropic and OpenAI compatible. Drop-in via localhost:8377.">
+      description="Every way to use Torve: coding agents, autonomous agents, editors, SDKs, frameworks, partner platforms. Anthropic and OpenAI compatible. Drop-in via localhost:8377.">
       <Head>
-        <meta property="og:title" content="Integrations | Antseed" />
-        <meta property="og:description" content="Every way to use Antseed: coding agents, autonomous agents, editors, SDKs, frameworks, partner platforms. Anthropic and OpenAI compatible." />
+        <meta property="og:title" content="Integrations | Torve" />
+        <meta property="og:description" content="Every way to use Torve: coding agents, autonomous agents, editors, SDKs, frameworks, partner platforms. Anthropic and OpenAI compatible." />
         <script type="application/ld+json">{JSON.stringify(BREADCRUMB_LD)}</script>
       </Head>
 
@@ -240,11 +240,11 @@ export default function ConnectHub(): JSX.Element {
           <div>
             <h3>Don't see your tool?</h3>
             <p>
-              If your tool accepts an Anthropic or OpenAI base URL, Antseed already works with
+              If your tool accepts an Anthropic or OpenAI base URL, Torve already works with
               it - see the <Link to="/integrations/curl">raw HTTP page</Link> for the contract. Want
               it added here? Open a PR on{' '}
               <a
-                href="https://github.com/AntSeed/antseed/blob/main/apps/website/src/integrations/integrations.ts"
+                href="https://github.com/Torve/torve/blob/main/apps/website/src/integrations/integrations.ts"
                 target="_blank"
                 rel="noopener noreferrer">
                 integrations.ts
@@ -257,7 +257,7 @@ export default function ConnectHub(): JSX.Element {
             <p>
               Read the <Link to="/docs/guides/using-the-api">API guide</Link>, give your agent{' '}
               <a href="/skill.md">the skill</a>, and ping us in{' '}
-              <a href="https://t.me/antseed" target="_blank" rel="noopener noreferrer">
+              <a href="https://t.me/torve" target="_blank" rel="noopener noreferrer">
                 Telegram
               </a>{' '}
               for partner verification.
@@ -267,7 +267,7 @@ export default function ConnectHub(): JSX.Element {
       </Section>
 
       <FinalCta
-        title="Point your tools at Antseed"
+        title="Point your tools at Torve"
         sub="Install once, set one base URL, and keep the workflow you already have."
         note={
           <>

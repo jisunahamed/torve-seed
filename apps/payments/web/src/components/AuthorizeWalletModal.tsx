@@ -78,7 +78,7 @@ export function AuthorizeWalletModal({
             style={{ top: tooltipPos.top, left: tooltipPos.left }}
           >
             <p>
-              Your AntSeed signer lives on this node and authorizes spending, but it
+              Your Torve signer lives on this node and authorizes spending, but it
               never holds USDC or ANTS. To <strong>withdraw funds</strong>,{' '}
               <strong>claim ANTS rewards</strong>, or{' '}
               <strong>close a channel</strong>, you need to designate an external
@@ -86,7 +86,7 @@ export function AuthorizeWalletModal({
             </p>
             <p>
               Without an authorized wallet, if you lose access to this node (deleted{' '}
-              <code>.antseed</code> directory, lost machine, etc.) your funds are{' '}
+              <code>.torve</code> directory, lost machine, etc.) your funds are{' '}
               <strong>unrecoverable</strong>. Set this now to keep your funds safe.
             </p>
           </div>,

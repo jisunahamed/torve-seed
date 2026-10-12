@@ -1,9 +1,9 @@
-import type { ResponseAuthPayload } from '@antseed/protocol/messages';
+import type { ResponseAuthPayload } from '@torveai/protocol/messages';
 import {
   parseJsonObject,
   requireFiniteNumberField,
   requireStringField,
-} from '@antseed/protocol/json-codec';
+} from '@torveai/protocol/json-codec';
 
 const encoder = new TextEncoder();
 

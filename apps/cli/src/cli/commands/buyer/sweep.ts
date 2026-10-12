@@ -11,9 +11,9 @@ import {
   formatUsdc,
   parseUsdcToBaseUnits,
 } from '../../payment-utils.js'
-import { AntseedNode, buildReceiveAuthorization, makeUsdcDomain, peerRelaysSweeps } from '@antseed/node'
-import type { DepositRelayClient, DepositsClient, SweepRequestPayload, SweepReceiptPayload } from '@antseed/node'
-import { parseBootstrapList, toBootstrapConfig } from '@antseed/node/discovery'
+import { TorveNode, buildReceiveAuthorization, makeUsdcDomain, peerRelaysSweeps } from '@torveai/node'
+import type { DepositRelayClient, DepositsClient, SweepRequestPayload, SweepReceiptPayload } from '@torveai/node'
+import { parseBootstrapList, toBootstrapConfig } from '@torveai/node/discovery'
 import { buildBuyerBootstrapEntries } from './start.js'
 import { daemonFetch } from './daemon.js'
 
@@ -48,7 +48,7 @@ async function daemonBroadcast(
   port: number,
   payload: SweepRequestPayload,
 ): Promise<{ sent: number; accepted?: boolean } | null> {
-  const res = await daemonFetch(port, '/_antseed/sweep', {
+  const res = await daemonFetch(port, '/_torve/sweep', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
@@ -64,15 +64,15 @@ async function daemonBroadcast(
 
 /** Ask the daemon to refresh discovery and eagerly connect to a few sellers. */
 async function daemonRefreshAndConnect(port: number): Promise<void> {
-  await daemonFetch(port, '/_antseed/peers/refresh', { method: 'POST' }, 30_000)
-  const res = await daemonFetch(port, '/_antseed/peers')
+  await daemonFetch(port, '/_torve/peers/refresh', { method: 'POST' }, 30_000)
+  const res = await daemonFetch(port, '/_torve/peers')
   const body = await res?.json().catch(() => null) as {
     peers?: Array<{ peerId: string; capabilities?: string[]; metadata?: { capabilities?: string[] } }>
   } | null
   const peers = (body?.peers ?? []).filter(peerRelaysSweeps)
   await Promise.allSettled(
     peers.slice(0, MAX_PEERS_TO_CONNECT).map((p) =>
-      daemonFetch(port, '/_antseed/connect', {
+      daemonFetch(port, '/_torve/connect', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ peerId: p.peerId }),
@@ -82,7 +82,7 @@ async function daemonRefreshAndConnect(port: number): Promise<void> {
 }
 
 async function daemonGetReceipt(port: number, nonce: string): Promise<SweepReceiptPayload | null> {
-  const res = await daemonFetch(port, `/_antseed/sweep/${nonce}`, undefined, 3000)
+  const res = await daemonFetch(port, `/_torve/sweep/${nonce}`, undefined, 3000)
   const body = await res?.json().catch(() => null) as { receipt?: SweepReceiptPayload | null } | null
   return body?.receipt ?? null
 }
@@ -193,7 +193,7 @@ export function registerBuyerSweepCommand(buyerCmd: Command): void {
       const globalOpts = getGlobalOptions(buyerCmd)
       const config = await loadConfig(globalOpts.config)
 
-      let node: AntseedNode | null = null
+      let node: TorveNode | null = null
       try {
         const crypto = requireCryptoConfig(config)
         if (!crypto.depositRelayAddress) {
@@ -330,7 +330,7 @@ export function registerBuyerSweepCommand(buyerCmd: Command): void {
           const bootstrapNodes = toBootstrapConfig(
             parseBootstrapList(buildBuyerBootstrapEntries(config.network?.bootstrapNodes)),
           )
-          node = new AntseedNode({
+          node = new TorveNode({
             role: 'buyer',
             bootstrapNodes,
             allowPrivateIPs: true,

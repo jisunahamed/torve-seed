@@ -83,7 +83,7 @@ function watcherAbsenceBanner(reason: string | null): string {
 }
 
 async function daemonWatchStatus(): Promise<{ watcher: boolean; reason: string | null; status: DaemonWatchStatus | null } | null> {
-  const res = await buyerDaemonFetch('/_antseed/deposits/status', undefined, 3_000);
+  const res = await buyerDaemonFetch('/_torve/deposits/status', undefined, 3_000);
   if (!res) return null;
   const body = await res.json().catch(() => null) as { ok?: boolean; watcher?: boolean; reason?: string | null; status?: DaemonWatchStatus | null } | null;
   if (!res.ok || !body?.ok) return null;
@@ -91,7 +91,7 @@ async function daemonWatchStatus(): Promise<{ watcher: boolean; reason: string |
 }
 
 async function daemonSetWatchMode(mode: 'active' | 'background'): Promise<boolean> {
-  const res = await buyerDaemonFetch('/_antseed/deposits/watch', {
+  const res = await buyerDaemonFetch('/_torve/deposits/watch', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ mode }),

@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { merge } from '@antseed/ants';
+import { merge } from '@torveai/ants';
 import { parseIds, runAction } from './shared.js';
 
 export function registerAntsMergeCommand(antsCmd: Command): void {

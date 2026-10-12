@@ -1,4 +1,4 @@
-# CLAUDE.md -- Agent Context for AntSeed Monorepo
+# CLAUDE.md -- Agent Context for Torve Monorepo
 
 ## Commit & push policy (IMPORTANT)
 
@@ -25,30 +25,30 @@ desktop, protocol, configuration, or documentation behavior change. If a PR has
 no user-facing change, say that explicitly in the PR description.
 
 ## Project Overview
-AntSeed is a peer-to-peer AI services network. Providers offer differentiated
+Torve is a peer-to-peer AI services network. Providers offer differentiated
 AI services and buyers route requests to the best available peer. This monorepo
 contains the core SDK, provider/router plugins, CLI, desktop app, dashboard,
 and website.
 
-**Important context for all documentation and code:** AntSeed is NOT for raw
+**Important context for all documentation and code:** Torve is NOT for raw
 resale of API keys or subscription access. Providers must add value (TEE, skills,
 agents, fine-tuned models, managed products). Subscription-based plugins
 (provider-claude-code, provider-claude-oauth) are for testing/development only.
 Reselling subscription credentials violates upstream provider terms of service.
 
-**AntSeed is not a crypto company.** Settlement happens in USDC on Base, but
+**Torve is not a crypto company.** Settlement happens in USDC on Base, but
 buyers are not required to already hold or handle crypto: the desktop app
 offers a card checkout (Stripe-backed onramp, region-gated) alongside crypto
 funding, and USDC can be funded from an exchange withdrawal, another wallet,
 or a card on-ramp (see `apps/website/docs/guides/payments.md`,
 `apps/desktop/src/renderer/ui/components/views/VprDepositView.tsx`, and
-`apps/cli/README.md`). Never describe AntSeed as crypto-only, wallet-only, or
+`apps/cli/README.md`). Never describe Torve as crypto-only, wallet-only, or
 as requiring the user to already own cryptocurrency.
 
-**When writing marketing or blog content that states a fact about AntSeed**
+**When writing marketing or blog content that states a fact about Torve**
 (pricing, payment flow, CLI behavior, protocol mechanics, what is or isn't
 free) — source it only from this repository (code, docs, CHANGELOG) or the
-live antseed.com website. Never state an AntSeed-specific fact from general
+live torveai.com website. Never state an Torve-specific fact from general
 knowledge, a web search, or inference from silence in a doc (e.g. "the doc
 doesn't mention a free tier, so there must not be one" is not a valid basis
 for a claim). If a fact can't be verified from those two sources, say so
@@ -56,7 +56,7 @@ explicitly rather than asserting it.
 
 ## Repository Structure
 ```
-packages/           Core libraries (published to npm as @antseed/*)
+packages/           Core libraries (published to npm as @torveai/*)
   node/             Core protocol SDK — P2P, discovery, metering, payments
   provider-core/    Shared provider infrastructure
   router-core/      Shared router infrastructure
@@ -68,10 +68,10 @@ plugins/            Provider and router plugins (extend core)
   provider-local-llm/     Local LLM (Ollama/llama.cpp) provider
   router-local/           Local router (Claude Code, Aider, Continue.dev)
 apps/               Applications
-  cli/              CLI tool (@antseed/cli) — bin: antseed
+  cli/              CLI tool (@torveai/cli) — bin: torve
   desktop/          Electron desktop app
   dashboard/        Web dashboard (Fastify server + React frontend)
-  ants/             ANTS staking dashboard (@antseed/ants: Fastify server + React web + service layer shared with the CLI)
+  ants/             ANTS staking dashboard (@torveai/ants: Fastify server + React web + service layer shared with the CLI)
   website/          Marketing website (React + Vite + Tailwind)
 e2e/                End-to-end tests
 docs/protocol/      Protocol specification and plugin templates
@@ -87,16 +87,16 @@ docs/protocol/      Protocol specification and plugin templates
 
 ## Dependency Graph
 ```
-@antseed/node (no internal deps)
-  ├── @antseed/provider-core (peer: node)
+@torveai/node (no internal deps)
+  ├── @torveai/provider-core (peer: node)
   │     └── provider-anthropic, provider-claude-code, provider-claude-oauth,
   │         provider-openai, provider-local-llm
-  ├── @antseed/router-core (peer: node)
+  ├── @torveai/router-core (peer: node)
   │     └── router-local
-  ├── antseed-dashboard (peer: node)
-  │     └── @antseed/cli (depends: node + dashboard)
-  │           └── @antseed/desktop (builds: cli + dashboard)
-  └── @antseed/website (standalone, no internal deps)
+  ├── torve-dashboard (peer: node)
+  │     └── @torveai/cli (depends: node + dashboard)
+  │           └── @torveai/desktop (builds: cli + dashboard)
+  └── @torveai/website (standalone, no internal deps)
 ```
 
 ## Key Commands
@@ -110,7 +110,7 @@ pnpm run clean        # Remove all dist/ directories
 
 ## Nix
 `flake.nix` provides a dev shell (`nix develop`) and a buildable CLI package:
-`nix build .#` / `nix run .# -- <args>` produces/runs `antseed` from
+`nix build .#` / `nix run .# -- <args>` produces/runs `torve` from
 `apps/cli` (esbuild bundle + pinned native prebuilds for better-sqlite3,
 node-datachannel, keytar). The prebuild versions/hashes in `flake.nix` must be
 updated when those dependencies change in `pnpm-lock.yaml`.
@@ -121,26 +121,26 @@ The root build script handles this via tiered execution.
 
 ## Internal Dependencies
 All cross-package references use `workspace:*` protocol in package.json.
-Peer dependencies (e.g., @antseed/node) are declared in peerDependencies
+Peer dependencies (e.g., @torveai/node) are declared in peerDependencies
 and resolved via the workspace.
 
 ## Plugin Architecture
-- Provider plugins implement the `AntseedProviderPlugin` interface from @antseed/node
-- Router plugins implement the `AntseedRouterPlugin` interface from @antseed/node
+- Provider plugins implement the `TorveProviderPlugin` interface from @torveai/node
+- Router plugins implement the `TorveRouterPlugin` interface from @torveai/node
 - Both extend shared infrastructure from provider-core / router-core
 - The CLI loads plugins dynamically via the registry in apps/cli/src/plugins/registry.ts
 
 ## Smart Contracts
 ```
 packages/contracts/
-├── interfaces/              Shared Solidity interfaces (IAntseed*.sol, IERC8004Registry.sol)
-├── AntseedRegistry.sol      Central address book for all protocol contracts
-├── AntseedStaking.sol       Seller staking (holds stake USDC, binds to agentId)
-├── AntseedDeposits.sol      Buyer deposits, seller payouts (holds buyer USDC)
-├── AntseedChannels.sol      Payment channel lifecycle, ReserveAuth + SpendingAuth (swappable, holds NO USDC)
-├── AntseedEmissions.sol     ANTS token emissions (USDC volume-based)
-├── AntseedSlashing.sol      Swappable slashing logic for staked sellers
-├── AntseedSubPool.sol       Subscription pool
+├── interfaces/              Shared Solidity interfaces (ITorve*.sol, IERC8004Registry.sol)
+├── TorveRegistry.sol      Central address book for all protocol contracts
+├── TorveStaking.sol       Seller staking (holds stake USDC, binds to agentId)
+├── TorveDeposits.sol      Buyer deposits, seller payouts (holds buyer USDC)
+├── TorveChannels.sol      Payment channel lifecycle, ReserveAuth + SpendingAuth (swappable, holds NO USDC)
+├── TorveEmissions.sol     ANTS token emissions (USDC volume-based)
+├── TorveSlashing.sol      Swappable slashing logic for staked sellers
+├── TorveSubPool.sol       Subscription pool
 ├── ANTSToken.sol            ANTS ERC-20 token (52M max supply)
 ├── MockERC8004Registry.sol  Mock ERC-8004 IdentityRegistry (local testing only)
 └── MockUSDC.sol             Test USDC
@@ -151,14 +151,14 @@ All contracts use OpenZeppelin Ownable, ReentrancyGuard, SafeERC20.
 Build/test: `cd packages/contracts && forge build && forge test`
 
 ### Payment Flow (Cumulative Streaming SpendingAuth)
-1. Buyer deposits USDC into AntseedDeposits
+1. Buyer deposits USDC into TorveDeposits
 2. Buyer signs ReserveAuth(channelId, maxAmount, deadline) off-chain
-3. Seller calls `reserve()` on AntseedChannels with buyer's ReserveAuth sig → Deposits.lockForChannel()
+3. Seller calls `reserve()` on TorveChannels with buyer's ReserveAuth sig → Deposits.lockForChannel()
 4. Per request: buyer signs SpendingAuth(channelId, cumulativeAmount, metadataHash)
 5. Seller calls `settle()` or `close()` with latest SpendingAuth → Deposits.chargeAndCreditPayouts()
 6. If seller disappears: buyer calls `requestClose()` → `withdraw()` after 15min grace
 
-EIP-712 domain: name="AntseedChannels", version="1"
+EIP-712 domain: name="TorveChannels", version="1"
 
 ### Contract Separation Design
 - **Stable contracts** (Staking, Deposits) hold funds and rarely change
@@ -180,8 +180,8 @@ pnpm run build
 ./scripts/setup-local-test.sh
 
 # 4. Start seller (in a separate terminal)
-node apps/cli/dist/cli/index.js --data-dir ~/.antseed-seller seed \
-  --provider openai-responses --verbose --config ~/.antseed-seller/config.json
+node apps/cli/dist/cli/index.js --data-dir ~/.torve-seller seed \
+  --provider openai-responses --verbose --config ~/.torve-seller/config.json
 
 # 5. Start desktop (in a separate terminal)
 cd apps/desktop && npm run dev

@@ -3,7 +3,7 @@ import type {
   DomainVerificationMethod,
   GithubVerificationConfig,
   HierarchicalPricingConfig,
-  AntseedConfig,
+  TorveConfig,
   SellerProviderConfig,
   TokenPricingUsdPerMillion,
 } from './types.js';
@@ -239,7 +239,7 @@ function validateGithubVerification(
 
 function validateVerifications(
   path: string,
-  verifications: AntseedConfig['seller']['verifications'],
+  verifications: TorveConfig['seller']['verifications'],
   errors: string[],
 ): void {
   if (verifications === undefined) return;
@@ -260,7 +260,7 @@ function validateVerifications(
 
 function validateBuyerVerification(
   path: string,
-  verification: AntseedConfig['buyer']['verification'],
+  verification: TorveConfig['buyer']['verification'],
   errors: string[],
 ): void {
   if (verification === undefined) return;
@@ -285,7 +285,7 @@ function validateBuyerVerification(
 /**
  * Validate the full config and return all issues.
  */
-export function validateConfig(config: AntseedConfig): string[] {
+export function validateConfig(config: TorveConfig): string[] {
   const errors: string[] = [];
 
   validateSellerProviders('seller.providers', config.seller.providers, errors);
@@ -476,7 +476,7 @@ export function validateConfig(config: AntseedConfig): string[] {
 /**
  * Assert that config is valid. Throws with all discovered violations.
  */
-export function assertValidConfig(config: AntseedConfig): void {
+export function assertValidConfig(config: TorveConfig): void {
   const errors = validateConfig(config);
   if (errors.length === 0) return;
 

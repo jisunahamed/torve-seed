@@ -584,7 +584,7 @@ function mergeThinkingBlocks(blocks: ContentBlock[], fallbackIndex = 0): Content
   };
 }
 
-// The antseed-videos skill waits for a queued video by polling the native video retrieve route.
+// The torve-videos skill waits for a queued video by polling the native video retrieve route.
 const VIDEO_GENERATION_COMMAND = /\/v1\/video\/retrieve\b/;
 
 export function isRunningVideoGenerationTool(block: ContentBlock): boolean {
@@ -720,7 +720,7 @@ function FileAttachmentBlock({ block, conversationId }: { block: ContentBlock; c
     ...(typeof block.size === 'number' ? { size: block.size } : {}),
     ...(canPreview && attachmentId && conversationId
       ? {
-          src: `antseed-attachment://${encodeURIComponent(conversationId)}/${encodeURIComponent(attachmentId)}`,
+          src: `torve-attachment://${encodeURIComponent(conversationId)}/${encodeURIComponent(attachmentId)}`,
           downloadIpc: { conversationId, attachmentId },
         }
       : {}),
@@ -926,7 +926,7 @@ function CopyResponseButton({ content }: { content: unknown }) {
     const artifacts = findSensitiveChatArtifacts(text);
     if (artifacts.length === 0) return true;
     return window.confirm(
-      'This response contains hidden addresses or gated links. Antseed will never ask you to send funds, deposit, top up, connect a wallet, or approve transactions from chat. Copy the original response anyway?',
+      'This response contains hidden addresses or gated links. Torve will never ask you to send funds, deposit, top up, connect a wallet, or approve transactions from chat. Copy the original response anyway?',
     );
   }, []);
 
@@ -948,7 +948,7 @@ type ChatBubbleProps = {
   streaming?: boolean;
   onOpenPreview?: (url: string) => void;
   /** Identifies the surrounding conversation so file-block previews can
-   *  build `antseed-attachment://<conversationId>/<attachmentId>` URLs. */
+   *  build `torve-attachment://<conversationId>/<attachmentId>` URLs. */
   conversationId?: string;
   searchQuery?: string;
   searchActive?: boolean;

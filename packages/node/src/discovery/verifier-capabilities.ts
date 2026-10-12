@@ -27,5 +27,5 @@ export function parseVerifierCapabilities(caps: unknown): { supported: string[];
 }
 
 export function advertisesTeeSupport(offer: { advertisedVerifierIds?: string[] }): boolean {
-  return normalizeAdvertisedVerifierIds(offer.advertisedVerifierIds).includes('antseed-verifier');
+  return normalizeAdvertisedVerifierIds(offer.advertisedVerifierIds).includes('torve-verifier');
 }

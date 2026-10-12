@@ -474,7 +474,7 @@ export function createWindow(config: WindowConfig): void {
   mainWindow.webContents.on('did-finish-load', () => {
     if (!config.isDev || !mainWindow) return;
     void mainWindow.webContents
-      .executeJavaScript('Boolean(window.antseedDesktop)', true)
+      .executeJavaScript('Boolean(window.torveDesktop)', true)
       .then((ok) => {
         console.log(`[desktop] preload bridge ${ok ? 'ready' : 'missing'}`);
       })

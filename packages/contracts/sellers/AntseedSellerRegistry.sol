@@ -4,17 +4,17 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 import { IERC8004Registry } from "../interfaces/IERC8004Registry.sol";
-import { IAntseedSellerPools } from "../interfaces/IAntseedSellerPools.sol";
-import { IAntseedStaking } from "../interfaces/IAntseedStaking.sol";
+import { ITorveSellerPools } from "../interfaces/ITorveSellerPools.sol";
+import { ITorveStaking } from "../interfaces/ITorveStaking.sol";
 
 /**
- * @title AntseedSellerRegistry
+ * @title TorveSellerRegistry
  * @notice Seller identity and eligibility adapter for the seller-pool era.
  *
- *         AntseedChannels already reads registry.staking() for two things:
+ *         TorveChannels already reads registry.staking() for two things:
  *         seller eligibility via isStakedAboveMin() and agent stats via getAgentId().
  *         This contract preserves that interface while moving the economic stake
- *         signal to AntseedSellerPools.
+ *         signal to TorveSellerPools.
  *
  *         Agent identity is stored locally for new sellers and falls back to the
  *         deprecated USDC staking contract for sellers that registered before
@@ -25,20 +25,20 @@ import { IAntseedStaking } from "../interfaces/IAntseedStaking.sol";
  *           - This contract is an adapter for existing channel checks. It does
  *             not custody stake and does not create seller pools.
  *           - `stakeFor` is deliberately unsupported here. ANTS staking must go
- *             through AntseedSellerPools.
+ *             through TorveSellerPools.
  *           - Seller registration binds a seller address to an ERC-8004 agent
  *             id for routing and legacy compatibility. Economic pool ownership
- *             remains agent-id based in AntseedSellerPools.
+ *             remains agent-id based in TorveSellerPools.
  *           - ERC-8004 ownership is the source of truth for that binding. A
  *             seller resolves to an agent only while it still owns it, so an
  *             agent transfer immediately ends the old binding — local or
  *             legacy — without the new owner having to register.
  */
-contract AntseedSellerRegistry is IAntseedStaking, Ownable2Step {
+contract TorveSellerRegistry is ITorveStaking, Ownable2Step {
     // ─── External Contracts ──────────────────────────────────────────
     address public immutable identityRegistry;
-    IAntseedSellerPools public sellerPools;
-    IAntseedStaking public legacyStaking;
+    ITorveSellerPools public sellerPools;
+    ITorveStaking public legacyStaking;
 
     // ─── Eligibility Config ──────────────────────────────────────────
     uint256 public minSellerPoolStake = 1;
@@ -75,8 +75,8 @@ contract AntseedSellerRegistry is IAntseedStaking, Ownable2Step {
     constructor(address _identityRegistry, address _sellerPools, address _legacyStaking) Ownable(msg.sender) {
         if (_identityRegistry == address(0) || _sellerPools == address(0)) revert InvalidAddress();
         identityRegistry = _identityRegistry;
-        sellerPools = IAntseedSellerPools(_sellerPools);
-        legacyStaking = IAntseedStaking(_legacyStaking);
+        sellerPools = ITorveSellerPools(_sellerPools);
+        legacyStaking = ITorveStaking(_legacyStaking);
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -126,7 +126,7 @@ contract AntseedSellerRegistry is IAntseedStaking, Ownable2Step {
     }
 
     function _stakeForAgent(uint256 agentId) internal view returns (uint256) {
-        IAntseedSellerPools pools = sellerPools;
+        ITorveSellerPools pools = sellerPools;
         uint256 epoch = pools.currentEpoch();
         if (agentId == 0 || !pools.hasPoolAtEpoch(agentId, epoch)) return 0;
         return pools.poolActiveStakeAtEpoch(agentId, epoch);
@@ -161,12 +161,12 @@ contract AntseedSellerRegistry is IAntseedStaking, Ownable2Step {
 
     function setSellerPools(address _sellerPools) external onlyOwner {
         if (_sellerPools == address(0)) revert InvalidAddress();
-        sellerPools = IAntseedSellerPools(_sellerPools);
+        sellerPools = ITorveSellerPools(_sellerPools);
         emit SellerPoolsSet(_sellerPools);
     }
 
     function setLegacyStaking(address _legacyStaking) external onlyOwner {
-        legacyStaking = IAntseedStaking(_legacyStaking);
+        legacyStaking = ITorveStaking(_legacyStaking);
         emit LegacyStakingSet(_legacyStaking);
     }
 
@@ -186,7 +186,7 @@ contract AntseedSellerRegistry is IAntseedStaking, Ownable2Step {
 
     function _legacyStakedAboveMin(address seller) internal view returns (bool) {
         if (!legacyStakeEligibilityEnabled) return false;
-        IAntseedStaking legacy = legacyStaking;
+        ITorveStaking legacy = legacyStaking;
         if (address(legacy) == address(0)) return false;
 
         try legacy.isStakedAboveMin(seller) returns (bool staked) {
@@ -196,7 +196,7 @@ contract AntseedSellerRegistry is IAntseedStaking, Ownable2Step {
         }
     }
 
-    /// @dev Fails closed rather than reverting: AntseedChannels is already
+    /// @dev Fails closed rather than reverting: TorveChannels is already
     ///      deployed and calls getAgentId() unguarded while settling and
     ///      closing, so a revert here would trap buyer funds in a channel.
     function _ownsAgent(address seller, uint256 agentId) internal view returns (bool) {
@@ -208,7 +208,7 @@ contract AntseedSellerRegistry is IAntseedStaking, Ownable2Step {
     }
 
     function _legacyAgentId(address seller) internal view returns (uint256) {
-        IAntseedStaking legacy = legacyStaking;
+        ITorveStaking legacy = legacyStaking;
         if (address(legacy) == address(0)) return 0;
         return legacy.getAgentId(seller);
     }

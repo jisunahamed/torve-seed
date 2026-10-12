@@ -1,5 +1,5 @@
 /**
- * Environment interfaces for the buyer machinery. @antseed/node satisfies
+ * Environment interfaces for the buyer machinery. @torveai/node satisfies
  * them with its PeerConnection / sqlite ChannelStore / verification storage;
  * other transports and storage backends can provide their own. All are
  * structural — implementations don't need to import this package.
@@ -18,7 +18,7 @@ import type {
   ResponseAuthPayload,
   SerializedHttpRequest,
   SerializedHttpResponse,
-} from '@antseed/protocol';
+} from '@torveai/protocol';
 
 /** Minimum transport surface the muxes need: raw frame bytes out. */
 export interface FrameSender {
@@ -47,7 +47,7 @@ export interface BuyerIdentity {
 }
 
 /**
- * The subset of peer knowledge the buyer machinery reads. @antseed/node's
+ * The subset of peer knowledge the buyer machinery reads. @torveai/node's
  * PeerInfo is a structural superset.
  */
 export interface BuyerPeerView {

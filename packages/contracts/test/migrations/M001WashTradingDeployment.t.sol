@@ -2,17 +2,17 @@ pragma solidity ^0.8.24;
 
 import { Test, Vm } from "forge-std/Test.sol";
 import { M001DeployRecognizedUsage } from "../../script/migrations/M001RecognizedUsage/Deploy.s.sol";
-import { AntseedWashTradingRegistry } from "../../integrity/AntseedWashTradingRegistry.sol";
-import { AntseedRegistry } from "../../core/AntseedRegistry.sol";
+import { TorveWashTradingRegistry } from "../../integrity/TorveWashTradingRegistry.sol";
+import { TorveRegistry } from "../../core/TorveRegistry.sol";
 import { ANTSToken } from "../../core/ANTSToken.sol";
-import { AntseedPositionInit } from "../../sellers/AntseedPositionInit.sol";
-import { AntseedWashTradingPointsPolicy } from "../../policies/AntseedWashTradingPointsPolicy.sol";
-import { AntseedPointsPolicyRegistry } from "../../policies/AntseedPointsPolicyRegistry.sol";
+import { TorvePositionInit } from "../../sellers/TorvePositionInit.sol";
+import { TorveWashTradingPointsPolicy } from "../../policies/TorveWashTradingPointsPolicy.sol";
+import { TorvePointsPolicyRegistry } from "../../policies/TorvePointsPolicyRegistry.sol";
 import { MockERC8004Registry } from "../mocks/MockERC8004Registry.sol";
-import { MockSP1Verifier, MockBlockhashStore } from "../AntseedWashTradingRegistry.t.sol";
+import { MockSP1Verifier, MockBlockhashStore } from "../TorveWashTradingRegistry.t.sol";
 
 contract M001WashTradingDeployHarness is M001DeployRecognizedUsage {
-    function deployWashTradingRegistry() external returns (AntseedWashTradingRegistry) {
+    function deployWashTradingRegistry() external returns (TorveWashTradingRegistry) {
         return _deployWashTradingRegistry();
     }
 }
@@ -107,7 +107,7 @@ contract M001WashTradingDeploymentTest is Test {
 
     function _checkVerifierReleaseMismatch() internal {
         vm.setEnv("SP1_VERIFIER_HASH", vm.toString(bytes32(uint256(999))));
-        vm.expectRevert(AntseedWashTradingRegistry.InvalidVerifier.selector);
+        vm.expectRevert(TorveWashTradingRegistry.InvalidVerifier.selector);
         script.deployWashTradingRegistry();
     }
 
@@ -119,7 +119,7 @@ contract M001WashTradingDeploymentTest is Test {
 
     function _checkInvalidBlockRange() internal {
         vm.setEnv("HISTORICAL_PERIOD_START_BLOCK", "200");
-        vm.expectRevert(AntseedWashTradingRegistry.InvalidConfiguration.selector);
+        vm.expectRevert(TorveWashTradingRegistry.InvalidConfiguration.selector);
         script.deployWashTradingRegistry();
     }
 
@@ -128,7 +128,7 @@ contract M001WashTradingDeploymentTest is Test {
         vm.deal(deployer, 100 ether);
         deployCodeTo("ANTSToken.sol:ANTSToken", ANTS_TOKEN);
         ANTSToken token = ANTSToken(ANTS_TOKEN);
-        AntseedRegistry registry = new AntseedRegistry();
+        TorveRegistry registry = new TorveRegistry();
         M001LegacyClock legacy = new M001LegacyClock(deployer);
         registry.setAntsToken(ANTS_TOKEN);
         registry.setIdentityRegistry(address(new MockERC8004Registry()));
@@ -141,7 +141,7 @@ contract M001WashTradingDeploymentTest is Test {
         token.setRegistry(address(registry));
         token.transferOwnership(deployer);
         vm.setEnv("DEPLOYER", vm.toString(deployer));
-        vm.setEnv("ANTSEED_REGISTRY", vm.toString(address(registry)));
+        vm.setEnv("TORVE_REGISTRY", vm.toString(address(registry)));
         vm.setEnv("EXPECTED_ANTS_TOKEN", vm.toString(ANTS_TOKEN));
         vm.setEnv("EXPECTED_CHANNELS", vm.toString(address(legacy)));
         vm.setEnv("EXPECTED_LEGACY_EMISSIONS", vm.toString(address(legacy)));
@@ -172,16 +172,16 @@ contract M001WashTradingDeploymentTest is Test {
         }
         assertTrue(faucet != address(0));
         assertTrue(policy != address(0));
-        assertEq(address(AntseedWashTradingPointsPolicy(policy).washTradingRegistry()), expectedWashRegistry);
-        assertEq(AntseedPointsPolicyRegistry(policyRegistry).policyCount(), 1);
-        assertTrue(AntseedPointsPolicyRegistry(policyRegistry).isPolicyRegistered(policy));
-        _assertRegistry(AntseedWashTradingRegistry(expectedWashRegistry));
+        assertEq(address(TorveWashTradingPointsPolicy(policy).washTradingRegistry()), expectedWashRegistry);
+        assertEq(TorvePointsPolicyRegistry(policyRegistry).policyCount(), 1);
+        assertTrue(TorvePointsPolicyRegistry(policyRegistry).isPolicyRegistered(policy));
+        _assertRegistry(TorveWashTradingRegistry(expectedWashRegistry));
         assertEq(registry.emissions(), address(legacy));
         assertEq(registry.staking(), address(legacy));
         assertTrue(token.transferWhitelist(faucet));
     }
 
-    function _assertRegistry(AntseedWashTradingRegistry registry) internal view {
+    function _assertRegistry(TorveWashTradingRegistry registry) internal view {
         assertEq(address(registry.verifier()), address(verifier));
         assertEq(registry.verifierHash(), verifier.VERIFIER_HASH());
         assertEq(address(registry.blockhashStore()), CHAINLINK_STORE);

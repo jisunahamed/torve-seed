@@ -2,7 +2,7 @@ import type { Command } from 'commander';
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import { readFile } from 'node:fs/promises';
-import { verification, proofStatus, submitProof, formatBps, formatUsdc, validateSellerProofArtifact, sellerProofId } from '@antseed/ants';
+import { verification, proofStatus, submitProof, formatBps, formatUsdc, validateSellerProofArtifact, sellerProofId } from '@torveai/ants';
 import { confirm, printJson, runAction, runRead } from './shared.js';
 
 export function registerAntsVerifyCommand(antsCmd: Command): void {

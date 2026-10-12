@@ -1,5 +1,5 @@
-import type { PeerInfo, SerializedHttpRequest } from '@antseed/node'
-import { extractUsage, toNonNegativeInt } from '@antseed/api-adapter'
+import type { PeerInfo, SerializedHttpRequest } from '@torveai/node'
+import { extractUsage, toNonNegativeInt } from '@torveai/api-adapter'
 import { pickProviderForPeer } from './routing.js'
 import { extractRequestedService } from './request-utils.js'
 
@@ -222,12 +222,12 @@ function setFiniteNumberHeader(
 }
 
 function setPeerIdentityHeaders(headers: Record<string, string>, selectedPeer: PeerInfo): void {
-  headers['x-antseed-peer-id'] = selectedPeer.peerId
+  headers['x-torve-peer-id'] = selectedPeer.peerId
   if (selectedPeer.publicAddress) {
-    headers['x-antseed-peer-address'] = selectedPeer.publicAddress
+    headers['x-torve-peer-address'] = selectedPeer.publicAddress
   }
   if (selectedPeer.providers.length > 0) {
-    headers['x-antseed-peer-providers'] = selectedPeer.providers.join(',')
+    headers['x-torve-peer-providers'] = selectedPeer.providers.join(',')
   }
 }
 
@@ -314,7 +314,7 @@ export function computeResponseTelemetry(
   }
 }
 
-export function attachAntseedTelemetryHeaders(
+export function attachTorveTelemetryHeaders(
   upstreamHeaders: Record<string, string>,
   selectedPeer: PeerInfo,
   telemetry: ResponseTelemetry,
@@ -322,37 +322,37 @@ export function attachAntseedTelemetryHeaders(
   latencyMs: number,
 ): Record<string, string> {
   const headers: Record<string, string> = { ...upstreamHeaders }
-  headers['x-antseed-request-id'] = requestId
-  headers['x-antseed-latency-ms'] = String(Math.max(0, Math.floor(latencyMs)))
+  headers['x-torve-request-id'] = requestId
+  headers['x-torve-latency-ms'] = String(Math.max(0, Math.floor(latencyMs)))
   setPeerIdentityHeaders(headers, selectedPeer)
-  setFiniteNumberHeader(headers, 'x-antseed-peer-reputation', selectedPeer.reputationScore)
-  setFiniteNumberHeader(headers, 'x-antseed-peer-current-load', selectedPeer.currentLoad)
-  setFiniteNumberHeader(headers, 'x-antseed-peer-max-concurrency', selectedPeer.maxConcurrency)
-  headers['x-antseed-provider'] = telemetry.pricing.provider
+  setFiniteNumberHeader(headers, 'x-torve-peer-reputation', selectedPeer.reputationScore)
+  setFiniteNumberHeader(headers, 'x-torve-peer-current-load', selectedPeer.currentLoad)
+  setFiniteNumberHeader(headers, 'x-torve-peer-max-concurrency', selectedPeer.maxConcurrency)
+  headers['x-torve-provider'] = telemetry.pricing.provider
   if (telemetry.pricing.service) {
-    headers['x-antseed-service'] = telemetry.pricing.service
+    headers['x-torve-service'] = telemetry.pricing.service
   }
-  setFiniteNumberHeader(headers, 'x-antseed-input-usd-per-million', telemetry.pricing.inputUsdPerMillion)
-  setFiniteNumberHeader(headers, 'x-antseed-output-usd-per-million', telemetry.pricing.outputUsdPerMillion)
-  setFiniteNumberHeader(headers, 'x-antseed-cached-input-usd-per-million', telemetry.pricing.cachedInputUsdPerMillion)
-  headers['x-antseed-token-source'] = telemetry.usage.source
-  headers['x-antseed-input-tokens'] = String(telemetry.usage.inputTokens)
-  headers['x-antseed-cached-input-tokens'] = String(telemetry.usage.cachedInputTokens)
-  headers['x-antseed-output-tokens'] = String(telemetry.usage.outputTokens)
-  headers['x-antseed-total-tokens'] = String(telemetry.usage.totalTokens)
+  setFiniteNumberHeader(headers, 'x-torve-input-usd-per-million', telemetry.pricing.inputUsdPerMillion)
+  setFiniteNumberHeader(headers, 'x-torve-output-usd-per-million', telemetry.pricing.outputUsdPerMillion)
+  setFiniteNumberHeader(headers, 'x-torve-cached-input-usd-per-million', telemetry.pricing.cachedInputUsdPerMillion)
+  headers['x-torve-token-source'] = telemetry.usage.source
+  headers['x-torve-input-tokens'] = String(telemetry.usage.inputTokens)
+  headers['x-torve-cached-input-tokens'] = String(telemetry.usage.cachedInputTokens)
+  headers['x-torve-output-tokens'] = String(telemetry.usage.outputTokens)
+  headers['x-torve-total-tokens'] = String(telemetry.usage.totalTokens)
   if (telemetry.estimatedCostUsd !== null && Number.isFinite(telemetry.estimatedCostUsd)) {
-    headers['x-antseed-estimated-cost-usd'] = telemetry.estimatedCostUsd.toFixed(6)
+    headers['x-torve-estimated-cost-usd'] = telemetry.estimatedCostUsd.toFixed(6)
   }
   return headers
 }
 
-export function attachStreamingAntseedHeaders(
+export function attachStreamingTorveHeaders(
   upstreamHeaders: Record<string, string>,
   selectedPeer: PeerInfo,
   requestId: string,
 ): Record<string, string> {
   const headers: Record<string, string> = { ...upstreamHeaders }
-  headers['x-antseed-request-id'] = requestId
+  headers['x-torve-request-id'] = requestId
   setPeerIdentityHeaders(headers, selectedPeer)
   return headers
 }

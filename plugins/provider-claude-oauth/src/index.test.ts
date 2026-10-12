@@ -17,10 +17,10 @@ describe('provider-claude-oauth plugin manifest', () => {
     expect(keys).toContain('CLAUDE_REFRESH_TOKEN');
     expect(keys).toContain('CLAUDE_TOKEN_EXPIRES_AT');
     expect(keys).toContain('CLAUDE_OAUTH_CLIENT_ID');
-    expect(keys).toContain('ANTSEED_INPUT_USD_PER_MILLION');
-    expect(keys).toContain('ANTSEED_OUTPUT_USD_PER_MILLION');
-    expect(keys).toContain('ANTSEED_MAX_CONCURRENCY');
-    expect(keys).toContain('ANTSEED_ALLOWED_SERVICES');
+    expect(keys).toContain('TORVE_INPUT_USD_PER_MILLION');
+    expect(keys).toContain('TORVE_OUTPUT_USD_PER_MILLION');
+    expect(keys).toContain('TORVE_MAX_CONCURRENCY');
+    expect(keys).toContain('TORVE_ALLOWED_SERVICES');
     const accessField = plugin.configSchema!.find(f => f.key === 'CLAUDE_ACCESS_TOKEN');
     expect(keys).toContain('CLAUDE_AUTH_FILE');
     expect(accessField!.required).toBe(false);
@@ -67,9 +67,9 @@ describe('createProvider', () => {
     const provider = plugin.createProvider({
       CLAUDE_ACCESS_TOKEN: 'test-access-token',
       CLAUDE_OAUTH_CLIENT_ID: 'test-client-id',
-      ANTSEED_INPUT_USD_PER_MILLION: '15',
-      ANTSEED_OUTPUT_USD_PER_MILLION: '30',
-      ANTSEED_MAX_CONCURRENCY: '3',
+      TORVE_INPUT_USD_PER_MILLION: '15',
+      TORVE_OUTPUT_USD_PER_MILLION: '30',
+      TORVE_MAX_CONCURRENCY: '3',
     });
     expect(provider.name).toBe('claude-oauth');
     expect(provider.pricing).toEqual({
@@ -154,7 +154,7 @@ describe('Claude Code identity system prompt', () => {
   it('keeps the buyer system prompt blocks after the identity', async () => {
     const buyerBlocks = [
       { type: 'text', text: 'App instructions', cache_control: { type: 'ephemeral' } },
-      { type: 'text', text: '<available_skills>antseed-videos</available_skills>' },
+      { type: 'text', text: '<available_skills>torve-videos</available_skills>' },
     ];
     expect(await upstreamSystem(buyerBlocks)).toEqual([identityBlock, ...buyerBlocks]);
   });

@@ -128,7 +128,7 @@ jobs:
         run: pnpm run typecheck
 
   nix-build:
-    name: Nix build (antseed CLI)
+    name: Nix build (torve CLI)
     runs-on: ubuntu-latest
 
     steps:
@@ -145,10 +145,10 @@ jobs:
       # Fails when the pnpmDeps fixed-output hash in flake.nix is stale —
       # after touching pnpm-lock.yaml, regenerate with
       # ./scripts/update-nix-hash.sh (see NIX-PNPM-HASH in flake.nix).
-      - name: Build antseed CLI
+      - name: Build torve CLI
         run: nix build .#
 
       - name: Smoke test
         run: |
-          ./result/bin/antseed --version
-          ./result/bin/antseed --help > /dev/null
+          ./result/bin/torve --version
+          ./result/bin/torve --help > /dev/null

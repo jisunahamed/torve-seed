@@ -1,7 +1,7 @@
 import { Option, InvalidArgumentError, type Command } from 'commander';
 import { getAddress, ZeroAddress } from 'ethers';
 import chalk from 'chalk';
-import { createAntsServer } from '@antseed/ants';
+import { createAntsServer } from '@torveai/ants';
 import { loadAntsContext } from './shared.js';
 
 export const DEFAULT_ANTS_PORT = 3119;
@@ -27,10 +27,10 @@ export function registerAntsDashboardAction(antsCmd: Command): void {
       try {
         const { ctx, chain, dataDir, configPath } = await loadAntsContext(antsCmd, { address: options.address });
         const selectedAddress = options.address ? ctx.address : undefined;
-        let payments: Awaited<ReturnType<typeof import('@antseed/payments').createServer>> | undefined;
+        let payments: Awaited<ReturnType<typeof import('@torveai/payments').createServer>> | undefined;
         const server = await createAntsServer({ port, dataDir, configPath, chain, browserWallet: true, address: ctx.address, selectedAddress, onAuthorize: options.address ? undefined : async () => {
           if (!payments) {
-            const { createServer } = await import('@antseed/payments');
+            const { createServer } = await import('@torveai/payments');
             payments = await createServer({ port: 0, dataDir, configPath, chainOverrides: { ...chain } });
             await payments.listen({ port: 0, host: '127.0.0.1' });
           }
@@ -47,7 +47,7 @@ export function registerAntsDashboardAction(antsCmd: Command): void {
         console.log(`  Chain:   ${chain.chainId} (${chain.rpcUrl})`);
         console.log(`  URL:     ${chalk.cyan(url)}`);
         console.log(chalk.dim('  The URL carries a one-time session token; connect your wallet in the browser to approve transactions.'));
-        console.log(chalk.dim('  Every dashboard action has a CLI equivalent: antseed ants --help. Press Ctrl+C to stop.'));
+        console.log(chalk.dim('  Every dashboard action has a CLI equivalent: torve ants --help. Press Ctrl+C to stop.'));
         console.log('');
         if (options.open) {
           try {

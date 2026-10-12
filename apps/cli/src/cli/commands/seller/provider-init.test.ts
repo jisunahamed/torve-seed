@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import type { Provider } from '@antseed/node'
+import type { Provider } from '@torveai/node'
 import { initializeProvider } from './provider-init.js'
 
 function makeProvider(error?: Error): Provider {
@@ -20,7 +20,7 @@ function makeProvider(error?: Error): Provider {
 }
 
 function authFailure(): Error {
-  return Object.assign(new Error('OAuth refresh failed (401)'), { code: 'ANTSEED_OAUTH_REFRESH_FAILED' })
+  return Object.assign(new Error('OAuth refresh failed (401)'), { code: 'TORVE_OAUTH_REFRESH_FAILED' })
 }
 
 describe('provider initialization isolation', () => {

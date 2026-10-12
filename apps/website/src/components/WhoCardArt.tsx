@@ -1,6 +1,6 @@
 
 /**
- * Illustrations for the "Who it's for" cards — from the Antseed design
+ * Illustrations for the "Who it's for" cards — from the Torve design
  * system (assets/card-*.svg), inlined so the page's fonts apply to the
  * labels and the logos load from this site's own /logos and /img paths.
  * Canvas is 300×130; the wrapper scales it to the card's inner panel.
@@ -18,7 +18,7 @@ const svgProps = {
   style: {fontFamily: MONO, display: 'block'},
 };
 
-/** Agents: three agent apps → Antseed → cheapest price, 24/7 */
+/** Agents: three agent apps → Torve → cheapest price, 24/7 */
 export function AgentsArt() {
   return (
     <svg {...svgProps}>
@@ -45,7 +45,7 @@ export function AgentsArt() {
   );
 }
 
-/** Coding tools: the AI app hits its limit; Antseed keeps going */
+/** Coding tools: the AI app hits its limit; Torve keeps going */
 export function CodingToolsArt() {
   return (
     <svg {...svgProps}>
@@ -60,7 +60,7 @@ export function CodingToolsArt() {
       <rect x="8" y="72" width="284" height="36" rx="12" fill="#fff" stroke="rgba(16,185,129,0.25)" strokeWidth="9" />
       <rect x="8" y="72" width="284" height="36" rx="12" fill="#fff" stroke="#10B981" strokeWidth="1.5" />
       <image href="/logo.svg" x="20" y="82" width="16" height="16" />
-      <text x="46" y="94.5" fontFamily={SANS} fontWeight="600" fontSize="12.5" fill="#001E12">Antseed</text>
+      <text x="46" y="94.5" fontFamily={SANS} fontWeight="600" fontSize="12.5" fill="#001E12">Torve</text>
       {[105.5, 113.5, 121.5, 129.5, 137.5, 145.5, 153.5, 161.5].map((cx) => (
         <circle key={cx} cx={cx} cy="90" r="1.5" fill="#10B981" />
       ))}

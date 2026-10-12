@@ -48,17 +48,17 @@ export interface CliCommandResult {
 }
 
 const MIN_NODE_MAJOR_VERSION = 20;
-const DEFAULT_CLI_COMMAND = 'antseed';
-const CLI_COMMAND_ENV = 'ANTSEED_CLI_BIN';
-const CLI_NODE_BIN_ENV = 'ANTSEED_NODE_BIN';
+const DEFAULT_CLI_COMMAND = 'torve';
+const CLI_COMMAND_ENV = 'TORVE_CLI_BIN';
+const CLI_NODE_BIN_ENV = 'TORVE_NODE_BIN';
 const LOCAL_CLI_BIN_RELATIVE = ['..', 'cli', 'dist', 'cli', 'index.js'] as const;
 const RUNTIME_NATIVE_SCRIPT_RELATIVE = ['scripts', 'ensure-runtime-native-modules.mjs'] as const;
 const RUNTIME_NATIVE_MARKER_FILE = '.runtime-native-meta.json';
-const DEFAULT_CONFIG_PATH = join(homedir(), '.antseed', 'config.json');
-const DEFAULT_CONNECT_DATA_DIR = join(homedir(), '.antseed');
-const LEGACY_DESKTOP_DATA_ROOT = join(homedir(), '.antseed-desktop');
+const DEFAULT_CONFIG_PATH = join(homedir(), '.torve', 'config.json');
+const DEFAULT_CONNECT_DATA_DIR = join(homedir(), '.torve');
+const LEGACY_DESKTOP_DATA_ROOT = join(homedir(), '.torve-desktop');
 const LEGACY_DESKTOP_CONNECT_DATA_DIR = join(LEGACY_DESKTOP_DATA_ROOT, 'connect');
-const CONNECT_DATA_DIR_ENV = 'ANTSEED_DESKTOP_CONNECT_DATA_DIR';
+const CONNECT_DATA_DIR_ENV = 'TORVE_DESKTOP_CONNECT_DATA_DIR';
 
 function normalizeRouterIdentifier(value: string | undefined): string {
   const raw = (value ?? 'local').trim().toLowerCase();
@@ -66,9 +66,9 @@ function normalizeRouterIdentifier(value: string | undefined): string {
 
   if (
     raw === 'claude-code'
-    || raw === '@antseed/router-local'
-    || raw === 'antseed-router-local'
-    || raw === 'antseed-router-claude-code'
+    || raw === '@torveai/router-local'
+    || raw === 'torve-router-local'
+    || raw === 'torve-router-claude-code'
   ) {
     return 'local';
   }
@@ -322,9 +322,9 @@ export function buildCliChildEnv(
 ): NodeJS.ProcessEnv {
   const childEnv = { ...baseEnv };
   if (isLocalDevScript) {
-    delete childEnv['ANTSEED_SKIP_PLUGIN_UPDATE_CHECK'];
+    delete childEnv['TORVE_SKIP_PLUGIN_UPDATE_CHECK'];
   } else {
-    childEnv['ANTSEED_SKIP_PLUGIN_UPDATE_CHECK'] = '1';
+    childEnv['TORVE_SKIP_PLUGIN_UPDATE_CHECK'] = '1';
   }
   return childEnv;
 }
@@ -452,7 +452,7 @@ export class ProcessManager {
   }
 
   getDaemonStateSnapshot(): DaemonStateSnapshot {
-    const stateFile = join(homedir(), '.antseed', 'daemon.state.json');
+    const stateFile = join(homedir(), '.torve', 'daemon.state.json');
     if (!existsSync(stateFile)) {
       return { exists: false, state: null };
     }
@@ -635,7 +635,7 @@ export class ProcessManager {
         if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
           rejectCommand(
             new Error(
-              `CLI command "${cliExecution.cliCommand}" was not found. Install antseed on PATH or set ${CLI_COMMAND_ENV} to a valid executable path.`,
+              `CLI command "${cliExecution.cliCommand}" was not found. Install torve on PATH or set ${CLI_COMMAND_ENV} to a valid executable path.`,
             ),
           );
           return;

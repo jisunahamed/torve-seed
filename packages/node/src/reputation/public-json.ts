@@ -41,7 +41,7 @@ export async function fetchPublicJson(value: string, options: { maxBytes?: numbe
         const req = request(url, {
           signal: controller.signal,
           family: 4,
-          headers: { accept: 'application/json', 'user-agent': 'AntSeed-public-history/1', 'accept-encoding': 'identity' },
+          headers: { accept: 'application/json', 'user-agent': 'Torve-public-history/1', 'accept-encoding': 'identity' },
           lookup: (_hostname, _options, callback) => callback(null, address, 4),
         }, (response) => {
           if (response.statusCode !== 200 || (response.headers['content-encoding'] && response.headers['content-encoding'] !== 'identity')) {

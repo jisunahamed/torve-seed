@@ -3,11 +3,11 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import {AntseedDepositRelay} from "../payments/AntseedDepositRelay.sol";
-import {AntseedDeposits} from "../payments/AntseedDeposits.sol";
+import {TorveDepositRelay} from "../payments/TorveDepositRelay.sol";
+import {TorveDeposits} from "../payments/TorveDeposits.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 
-contract AntseedDepositRelayTest is Test {
+contract TorveDepositRelayTest is Test {
     uint256 constant BUYER_PK = 0xA11CE;
     uint256 constant RANDOM_PK = 0xDEAD;
 
@@ -16,8 +16,8 @@ contract AntseedDepositRelayTest is Test {
     address frontRunner = address(0xF00D);
 
     MockUSDC usdc;
-    AntseedDeposits deposits;
-    AntseedDepositRelay relay;
+    TorveDeposits deposits;
+    TorveDepositRelay relay;
 
     uint256 constant MIN_DEPOSIT = 1_000_000; // Deposits default
     uint256 constant FEE = 50_000; // deploy-time fixed fee ($0.05)
@@ -26,8 +26,8 @@ contract AntseedDepositRelayTest is Test {
         buyer = vm.addr(BUYER_PK);
 
         usdc = new MockUSDC();
-        deposits = new AntseedDeposits(address(usdc));
-        relay = new AntseedDepositRelay(address(usdc), address(deposits), FEE);
+        deposits = new TorveDeposits(address(usdc));
+        relay = new TorveDepositRelay(address(usdc), address(deposits), FEE);
 
         usdc.mint(buyer, 100_000_000); // 100 USDC in the hot wallet
         vm.warp(1_700_000_000);
@@ -79,7 +79,7 @@ contract AntseedDepositRelayTest is Test {
         uint256 amount = 5_000_000; // 5 USDC
 
         vm.expectEmit(true, true, false, true, address(relay));
-        emit AntseedDepositRelay.SweepExecuted(buyer, relayer, amount - FEE, FEE, bytes32(uint256(1)));
+        emit TorveDepositRelay.SweepExecuted(buyer, relayer, amount - FEE, FEE, bytes32(uint256(1)));
         _sweep(relayer, amount, bytes32(uint256(1)));
 
         assertEq(_buyerDepositBalance(), amount - FEE, "buyer credited exactly amount - FEE");
@@ -94,7 +94,7 @@ contract AntseedDepositRelayTest is Test {
     }
 
     function test_sweep_zeroFeeDeployment() public {
-        AntseedDepositRelay freeRelay = new AntseedDepositRelay(address(usdc), address(deposits), 0);
+        TorveDepositRelay freeRelay = new TorveDepositRelay(address(usdc), address(deposits), 0);
         uint256 amount = 5_000_000;
         uint256 validAfter = block.timestamp - 60;
         uint256 validBefore = block.timestamp + 3600;
@@ -188,7 +188,7 @@ contract AntseedDepositRelayTest is Test {
                 _sign3009(BUYER_PK, buyer, address(relay), amount, validAfter, validBefore, nonce);
 
             vm.prank(relayer);
-            vm.expectRevert(AntseedDepositRelay.FeeExceedsAmount.selector);
+            vm.expectRevert(TorveDepositRelay.FeeExceedsAmount.selector);
             relay.sweepDeposit(buyer, amount, validAfter, validBefore, nonce, sig3009);
         }
     }
@@ -202,7 +202,7 @@ contract AntseedDepositRelayTest is Test {
             _sign3009(BUYER_PK, buyer, address(relay), 1_000_000, validAfter, validBefore, nonce);
 
         vm.prank(relayer);
-        vm.expectRevert(AntseedDepositRelay.NetBelowMinDeposit.selector);
+        vm.expectRevert(TorveDepositRelay.NetBelowMinDeposit.selector);
         relay.sweepDeposit(buyer, 1_000_000, validAfter, validBefore, nonce, sig3009);
 
         assertEq(usdc.balanceOf(buyer), 100_000_000, "funds never left the buyer");
@@ -224,7 +224,7 @@ contract AntseedDepositRelayTest is Test {
             _sign3009(BUYER_PK, buyer, address(relay), 20_000_000, validAfter, validBefore, nonce);
 
         vm.prank(relayer);
-        vm.expectRevert(AntseedDepositRelay.NetExceedsCreditLimit.selector);
+        vm.expectRevert(TorveDepositRelay.NetExceedsCreditLimit.selector);
         relay.sweepDeposit(buyer, 20_000_000, validAfter, validBefore, nonce, sig3009);
 
         assertEq(usdc.balanceOf(buyer), 100_000_000, "funds never left the buyer");
@@ -251,15 +251,15 @@ contract AntseedDepositRelayTest is Test {
             _sign3009(BUYER_PK, buyer, address(relay), 500_000, validAfter, validBefore, nonce);
 
         vm.prank(relayer);
-        vm.expectRevert(AntseedDepositRelay.NetExceedsCreditLimit.selector);
+        vm.expectRevert(TorveDepositRelay.NetExceedsCreditLimit.selector);
         relay.sweepDeposit(buyer, 500_000, validAfter, validBefore, nonce, sig3009);
     }
 
     function test_constructor_rejectsZeroAddresses() public {
-        vm.expectRevert(AntseedDepositRelay.InvalidAddress.selector);
-        new AntseedDepositRelay(address(0), address(deposits), FEE);
-        vm.expectRevert(AntseedDepositRelay.InvalidAddress.selector);
-        new AntseedDepositRelay(address(usdc), address(0), FEE);
+        vm.expectRevert(TorveDepositRelay.InvalidAddress.selector);
+        new TorveDepositRelay(address(0), address(deposits), FEE);
+        vm.expectRevert(TorveDepositRelay.InvalidAddress.selector);
+        new TorveDepositRelay(address(usdc), address(0), FEE);
     }
 
     // ─── Fuzz ────────────────────────────────────────────────────────

@@ -2,9 +2,9 @@
 
 ## Overview
 
-`DiemStakingProxy` is a Solidity contract on Base that lets DIEM token holders pool their stake, re-stake it into Venice (for API inference credit), and share the resulting Antseed seller revenue (USDC + ANTS) pro-rata.
+`DiemStakingProxy` is a Solidity contract on Base that lets DIEM token holders pool their stake, re-stake it into Venice (for API inference credit), and share the resulting Torve seller revenue (USDC + ANTS) pro-rata.
 
-Venice's DIEM token (`0xf4d9…a024`) is both an ERC20 and its own staking contract — `stake(uint256)` / `initiateUnstake(uint256)` / `unstake()` live on the token itself. The proxy re-stakes via that same contract, acts as the permanent on-chain seller address for Antseed, and relays channel actions through an operator EOA. It also implements ERC-1271 so Venice's API-key issuance flow can verify signed challenges against the operator.
+Venice's DIEM token (`0xf4d9…a024`) is both an ERC20 and its own staking contract — `stake(uint256)` / `initiateUnstake(uint256)` / `unstake()` live on the token itself. The proxy re-stakes via that same contract, acts as the permanent on-chain seller address for Torve, and relays channel actions through an operator EOA. It also implements ERC-1271 so Venice's API-key issuance flow can verify signed challenges against the operator.
 
 The on-chain seller changes from "peerId's derived EVM address" to "the proxy contract address". Buyers learn this at runtime from a signed `SellerDelegation` attestation the peer publishes in its metadata.
 
@@ -31,14 +31,14 @@ The on-chain seller changes from "peerId's derived EVM address" to "the proxy co
        ▼ reserve/topUp/        ▼ operatorClaimEmissions  ▼ getReward()
          settle/close            (epochs[])               (by user)
        ┌─────────────┐       ┌──────────────────┐       ┌──────────────────┐
-       │ AntseedCh-  │       │AntseedEmissionsV2│       │ USDC / ANTS      │
+       │ TorveCh-  │       │TorveEmissionsV2│       │ USDC / ANTS      │
        │ annels      │       │                  │       │ safeTransfer     │
        └──────┬──────┘       └────────┬─────────┘       └──────────────────┘
               │                       │
               │ chargeAndCredit       │ claimSellerEmissions
               ▼                       ▼
        ┌─────────────┐         mints ANTS to msg.sender = proxy
-       │ AntseedDep- │         ──► proxy._notifyRewardAmount(antsStream, Δ)
+       │ TorveDep- │         ──► proxy._notifyRewardAmount(antsStream, Δ)
        │ osits       │
        │ safeTransfer│
        │ (seller=prxy)         ──► proxy._notifyRewardAmount(usdcStream, Δ)
@@ -125,7 +125,7 @@ Cache TTL: 5 minutes. Rotation detection: when the cached `operator` value no lo
 
 ## Reward accounting
 
-The DIEM pool applies a 10% fee before USDC reaches the staking pool. That fee flows to the Protocol Reserve to strengthen the Antseed ecosystem and ANTS. The remaining USDC is streamed pro-rata to stakers.
+The DIEM pool applies a 10% fee before USDC reaches the staking pool. That fee flows to the Protocol Reserve to strengthen the Torve ecosystem and ANTS. The remaining USDC is streamed pro-rata to stakers.
 
 Two parallel streams: `usdcStream` and `antsStream`. Each uses the Uniswap StakingRewards pattern:
 
@@ -161,37 +161,37 @@ Venice's DIEM contract imposes a cooldown on unstake (currently 1 day; admin-set
 
 ## Deployment runbook
 
-Prerequisites: Base mainnet (or Sepolia); owner EOA with ETH for gas; operator EOA for channel ops; USDC for Antseed staking minimum.
+Prerequisites: Base mainnet (or Sepolia); owner EOA with ETH for gas; operator EOA for channel ops; USDC for Torve staking minimum.
 
 1. **Deploy `DiemStakingProxy`** with constructor args:
    - `_diem`: `0xf4d97f2da56e8c3098f3a8d538db630a2606a024` (DIEM — both ERC20 and staking contract)
    - `_usdc`: Base USDC (mainnet: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`)
-   - `_ants`: Antseed ANTS token address (check `packages/node/chain-config.json`)
-   - `_channels`: real `AntseedChannels` address (not the proxy itself)
-   - `_emissions`: `AntseedEmissionsV2` address
-   - `_antseedStaking`: `AntseedStaking` address (needed so the owner can later recover the seller stake via `withdrawAntseedStake`)
+   - `_ants`: Torve ANTS token address (check `packages/node/chain-config.json`)
+   - `_channels`: real `TorveChannels` address (not the proxy itself)
+   - `_emissions`: `TorveEmissionsV2` address
+   - `_torveStaking`: `TorveStaking` address (needed so the owner can later recover the seller stake via `withdrawTorveStake`)
    - `_operator`: the operator EOA (= the peer identity wallet address)
    - `_usdcRewardsDuration`: `86400` (1 day)
    - `_antsRewardsDuration`: `86400` (1 day)
 
 2. **(Optional) transfer ownership to a multisig** via `Ownable.transferOwnership`. Distributes operator-rotation risk across N signers.
 
-3. **Register an ERC-8004 agentId** for the proxy address. Call `IdentityRegistry.register(<proxyAddress>)` (or whatever the deployed registry's signature is) — this is a separate tx targeting the ERC-8004 contract, not the proxy. The returned `agentId` is used by `AntseedStaking` and `AntseedEmissionsV2` to identify the proxy as a seller.
+3. **Register an ERC-8004 agentId** for the proxy address. Call `IdentityRegistry.register(<proxyAddress>)` (or whatever the deployed registry's signature is) — this is a separate tx targeting the ERC-8004 contract, not the proxy. The returned `agentId` is used by `TorveStaking` and `TorveEmissionsV2` to identify the proxy as a seller.
 
-4. **Stake minimum on `AntseedStaking`** so the proxy can call `reserve()`:
-   - Owner approves USDC to `AntseedStaking` for at least `MIN_SELLER_STAKE`.
+4. **Stake minimum on `TorveStaking`** so the proxy can call `reserve()`:
+   - Owner approves USDC to `TorveStaking` for at least `MIN_SELLER_STAKE`.
    - Owner calls `staking.stakeFor(<proxyAddress>, <agentId>, <amount>)`. Because `stakeFor` pulls USDC from `msg.sender`, the owner funds this, not the proxy.
 
 5. **`setOperator(address)`** — only if the operator needs to be different from what was set in the constructor.
 
 6. **Configure the seller peer**:
-   - In the seller CLI config (`~/.antseed/config.json` or equivalent), set `payments.crypto.channelsContractAddress` to the **proxy address** (not the real `AntseedChannels` address). The seller's `ChannelsClient` will now call `reserve/topUp/settle/close` on the proxy.
+   - In the seller CLI config (`~/.torve/config.json` or equivalent), set `payments.crypto.channelsContractAddress` to the **proxy address** (not the real `TorveChannels` address). The seller's `ChannelsClient` will now call `reserve/topUp/settle/close` on the proxy.
    - Set `payments.sellerDelegation.sellerContract` to the proxy address.
-   - The peer identity wallet (loaded from the normal Antseed identity store) signs `SellerDelegation`. No separate operator private key / env var is introduced — the `operator` set on the proxy **must** equal the peer identity's EVM address.
+   - The peer identity wallet (loaded from the normal Torve identity store) signs `SellerDelegation`. No separate operator private key / env var is introduced — the `operator` set on the proxy **must** equal the peer identity's EVM address.
 
 7. **Restart the seller peer**. Verify:
    - Peer metadata on announce includes `sellerDelegation` (check decoded metadata output).
-   - First buyer connects and opens a channel: tx on-chain is `proxy.reserve(...)` → emits `ForwardedReserve`, internally calls `AntseedChannels.reserve` with `seller = proxy`.
+   - First buyer connects and opens a channel: tx on-chain is `proxy.reserve(...)` → emits `ForwardedReserve`, internally calls `TorveChannels.reserve` with `seller = proxy`.
    - On settle: `ForwardedSettle(channelId, cumulative, inflow)` emits with `inflow > 0`; stream rates update.
 
 ## Operator runbook
@@ -199,7 +199,7 @@ Prerequisites: Base mainnet (or Sepolia); owner EOA with ETH for gas; operator E
 - **Rotate operator**: because the operator is the peer identity, rotation is a two-step process — (a) generate a new peer identity (start the new peer instance), (b) owner calls `setOperator(newPeerIdentityAddress)` on the proxy. Event `OperatorRotated(old, new)`. Buyers re-verify within ≤5 min (resolver cache TTL). The new peer's announcer automatically publishes a fresh `SellerDelegation` signed by the new identity; older signatures no longer verify. Shift traffic from old to new peer as desired.
 - **Change reward duration**: call `setRewardsDuration(streamIndex, seconds)` where `streamIndex` is `0` for USDC, `1` for ANTS. Only valid while the stream's `periodFinish` has passed. To force a window close, wait out the existing period or pause settles.
 - **Venice cooldown changes** propagate automatically — `cooldownDuration()` is read from Venice on each `initiateUnstake`. Existing pending withdrawals retain the `unlockAt` set at the time of their request.
-- **Decommission / recover seller stake**: owner calls `withdrawAntseedStake(recipient)` to invoke `AntseedStaking.unstake()` on the proxy and forward the recovered USDC to `recipient`. AntseedStaking enforces "no active channels" itself. Slashed amounts (if any) stay with Antseed's protocol reserve. This USDC is owner capital, not staker reward — it does not flow through the reward streams.
+- **Decommission / recover seller stake**: owner calls `withdrawTorveStake(recipient)` to invoke `TorveStaking.unstake()` on the proxy and forward the recovered USDC to `recipient`. TorveStaking enforces "no active channels" itself. Slashed amounts (if any) stay with Torve's protocol reserve. This USDC is owner capital, not staker reward — it does not flow through the reward streams.
 - **Emissions claim cadence**: operator chooses when to call `operatorClaimEmissions(epochs[])`. Claiming more frequently smooths reward rate spikes but costs gas per tx. Weekly is a reasonable default; monthly acceptable.
 
 ## Out of scope / known limitations

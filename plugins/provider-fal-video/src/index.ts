@@ -1,6 +1,6 @@
-import type { AntseedProviderPlugin, Provider, ProviderStreamCallbacks, SerializedHttpRequest } from '@antseed/node';
-import { VIDEO_DOWNLOAD_STREAM_HEADER, VIDEO_DOWNLOAD_STREAM_VERSION } from '@antseed/node';
-import { nativeVideoRoute, parseJsonObject, requestService } from '@antseed/api-adapter';
+import type { TorveProviderPlugin, Provider, ProviderStreamCallbacks, SerializedHttpRequest } from '@torveai/node';
+import { VIDEO_DOWNLOAD_STREAM_HEADER, VIDEO_DOWNLOAD_STREAM_VERSION } from '@torveai/node';
+import { nativeVideoRoute, parseJsonObject, requestService } from '@torveai/api-adapter';
 import {
   parseCsv,
   parseServiceCapabilitiesJson,
@@ -8,7 +8,7 @@ import {
   streamVideoResponse,
   videoDownloadError as error,
   videoDownloadSignal,
-} from '@antseed/provider-core';
+} from '@torveai/provider-core';
 
 export const FAL_DEFAULT_BASE_URL = 'https://queue.fal.run';
 
@@ -37,7 +37,7 @@ export function falAppId(endpointId: string): string {
   return endpointId.split('/').slice(0, 2).join('/');
 }
 
-const plugin: AntseedProviderPlugin = {
+const plugin: TorveProviderPlugin = {
   name: 'fal-video',
   displayName: 'fal Video',
   version: '0.1.0-beta.0',
@@ -46,10 +46,10 @@ const plugin: AntseedProviderPlugin = {
   configSchema: [
     { key: 'FAL_VIDEO_BASE_URL', label: 'fal Queue URL', type: 'string', default: FAL_DEFAULT_BASE_URL },
     { key: 'FAL_VIDEO_API_KEY', label: 'fal API Key', type: 'secret', required: true },
-    { key: 'ANTSEED_ALLOWED_SERVICES', label: 'Services', type: 'string[]', required: true },
-    { key: 'ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON', label: 'Unit Pricing', type: 'string', required: true },
-    { key: 'ANTSEED_SERVICE_CAPABILITIES_JSON', label: 'Capabilities', type: 'string' },
-    { key: 'ANTSEED_MAX_CONCURRENCY', label: 'Concurrency', type: 'number', default: 10 },
+    { key: 'TORVE_ALLOWED_SERVICES', label: 'Services', type: 'string[]', required: true },
+    { key: 'TORVE_SERVICE_UNIT_BILLING_MODELS_JSON', label: 'Unit Pricing', type: 'string', required: true },
+    { key: 'TORVE_SERVICE_CAPABILITIES_JSON', label: 'Capabilities', type: 'string' },
+    { key: 'TORVE_MAX_CONCURRENCY', label: 'Concurrency', type: 'number', default: 10 },
   ],
   createProvider(config): Provider {
     const apiKey = config['FAL_VIDEO_API_KEY']?.trim();
@@ -59,18 +59,18 @@ const plugin: AntseedProviderPlugin = {
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
       throw new Error('FAL_VIDEO_BASE_URL must be an HTTP(S) URL without credentials, query, or fragment');
     }
-    if (config['ANTSEED_SERVICE_ALIAS_MAP_JSON']) throw new Error('fal video services must use fal endpoint IDs');
+    if (config['TORVE_SERVICE_ALIAS_MAP_JSON']) throw new Error('fal video services must use fal endpoint IDs');
 
-    const services = parseCsv(config['ANTSEED_ALLOWED_SERVICES']);
-    if (services.length === 0) throw new Error('ANTSEED_ALLOWED_SERVICES is required');
+    const services = parseCsv(config['TORVE_ALLOWED_SERVICES']);
+    if (services.length === 0) throw new Error('TORVE_ALLOWED_SERVICES is required');
     const invalid = services.find(service => service.length > 64 || !ENDPOINT_ID.test(service));
     if (invalid) throw new Error(`Invalid fal endpoint ID: ${invalid}`);
-    const serviceUnitBillingModels = parseServiceUnitBillingModelsJson(config['ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON']);
+    const serviceUnitBillingModels = parseServiceUnitBillingModelsJson(config['TORVE_SERVICE_UNIT_BILLING_MODELS_JSON']);
     const missingPricing = services.find(service => !serviceUnitBillingModels?.[service]?.[PROTOCOL]);
     if (missingPricing) throw new Error(`Missing ${PROTOCOL} unit pricing for ${missingPricing}`);
-    const maxConcurrency = Number(config['ANTSEED_MAX_CONCURRENCY'] ?? 10);
-    if (!Number.isSafeInteger(maxConcurrency) || maxConcurrency < 1) throw new Error('ANTSEED_MAX_CONCURRENCY must be a positive integer');
-    const configuredCapabilities = parseServiceCapabilitiesJson(config['ANTSEED_SERVICE_CAPABILITIES_JSON']);
+    const maxConcurrency = Number(config['TORVE_MAX_CONCURRENCY'] ?? 10);
+    if (!Number.isSafeInteger(maxConcurrency) || maxConcurrency < 1) throw new Error('TORVE_MAX_CONCURRENCY must be a positive integer');
+    const configuredCapabilities = parseServiceCapabilitiesJson(config['TORVE_SERVICE_CAPABILITIES_JSON']);
     const authorization = `Key ${apiKey}`;
 
     const route = (request: SerializedHttpRequest) => {

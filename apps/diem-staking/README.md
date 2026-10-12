@@ -1,7 +1,7 @@
-# @antseed/diem-staking
+# @torveai/diem-staking
 
 Static web app for the DIEM Provider Capacity Program portal at
-[`diemantseed.com`](https://diemantseed.com).
+[`diemtorveai.com`](https://diemtorveai.com).
 
 Users lock Venice's DIEM token (on Base) into the `DiemStakingProxy` contract
 to participate in provider capacity. If connected provider infrastructure
@@ -22,10 +22,10 @@ existing `apps/payments/web` portal — see `src/wagmi-config.ts`.
 ## Scripts
 
 ```bash
-pnpm --filter=@antseed/diem-staking run dev        # vite dev server (:5180)
-pnpm --filter=@antseed/diem-staking run typecheck  # strict tsc
-pnpm --filter=@antseed/diem-staking run build      # typecheck + vite build → dist/
-pnpm --filter=@antseed/diem-staking run preview    # serve built output
+pnpm --filter=@torveai/diem-staking run dev        # vite dev server (:5180)
+pnpm --filter=@torveai/diem-staking run typecheck  # strict tsc
+pnpm --filter=@torveai/diem-staking run build      # typecheck + vite build → dist/
+pnpm --filter=@torveai/diem-staking run preview    # serve built output
 ```
 
 `dist/` and `node_modules/` are ignored by the repo-root `.gitignore`; this
@@ -71,7 +71,7 @@ moved. No keeper service required.
 ## ANTS incentive epochs
 
 The proxy no longer relies on an operator tick to decide incentive boundaries.
-Incentive epochs are aligned to `AntseedEmissions.currentEpoch()`:
+Incentive epochs are aligned to `TorveEmissions.currentEpoch()`:
 
 - `firstRewardEpoch` pins the emissions epoch at proxy deployment.
 - `syncedRewardEpoch` is the next incentive epoch that still needs a local
@@ -81,7 +81,7 @@ Incentive epochs are aligned to `AntseedEmissions.currentEpoch()`:
 - `syncRewardEpochs(maxEpochs)` permissionlessly checkpoints finalized epochs in
   bounded chunks.
 - `claimAnts(uint32[] rewardEpochs)` accepts explicit epoch ids, lazily syncs a
-  bounded backlog, lazily funds each epoch's ANTS pot from `AntseedEmissions`,
+  bounded backlog, lazily funds each epoch's ANTS pot from `TorveEmissions`,
   and marks zero-payout epochs processed so the user can advance to later
   epochs.
 
@@ -101,20 +101,20 @@ For ABI consumers migrating from the earlier proxy surface:
 
 `index.html` uses DIEM Provider Capacity Program specific metadata:
 
-- `<title>`, `og:title`, and `twitter:title`: `DIEM Provider Capacity Program | AntSeed`.
+- `<title>`, `og:title`, and `twitter:title`: `DIEM Provider Capacity Program | Torve`.
 - `description`, `og:description`, and `twitter:description` describe DIEM locking,
   variable USDC allocations, and variable $ANTS incentives without APY/yield phrasing.
-- `canonical` is `https://diemantseed.com/`.
+- `canonical` is `https://diemtorveai.com/`.
 
 Everything else — keywords, `og:type`, `og:image` / `twitter:image`,
-`twitter:card`, favicon, fonts — is byte-for-byte what antseed.com emits.
+`twitter:card`, favicon, fonts — is byte-for-byte what torveai.com emits.
 
 Static assets copied from the website:
 
-- **Favicon**: `public/logo.svg` — same AntSeed ant as antseed.com. Copied
+- **Favicon**: `public/logo.svg` — same Torve ant as torveai.com. Copied
   verbatim from `apps/website/static/logo.svg`; keep the two in sync.
 - **Fonts**: same Google Fonts stylesheet (Space Grotesk + JetBrains Mono).
-- **`og:image` / `twitter:image`**: `https://antseed.com/og-image.jpg` — the
+- **`og:image` / `twitter:image`**: `https://torveai.com/og-image.jpg` — the
   parent site's card. If a dedicated DIEM capacity hero card is ever designed,
   drop it at `public/og-image.jpg` and update the two URLs here.
 - **`robots.txt`**: copied from `apps/website/static/robots.txt` — same AI
@@ -126,7 +126,7 @@ The website also ships `google-site-verification` and a JSON-LD
 `SoftwareApplication` schema. Neither is copied:
 
 - `google-site-verification` is per-host; Search Console wants a separate
-  token for the `diemantseed.com` subdomain. Add one to `index.html` when
+  token for the `diemtorveai.com` subdomain. Add one to `index.html` when
   the subdomain is verified.
 - The `SoftwareApplication` JSON-LD describes the VPR desktop app —
   wrong schema for this page. Avoid adding financial-product structured data

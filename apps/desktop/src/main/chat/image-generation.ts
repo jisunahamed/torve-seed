@@ -194,8 +194,8 @@ export async function generateChatImage(
     let endpoint = '/v1/images/generations';
     let body: string | FormData;
     const headers: Record<string, string> = {
-      authorization: 'Bearer antseed-desktop',
-      ...(request.moderation ? { 'x-antseed-required-parameters': 'moderation' } : {}),
+      authorization: 'Bearer torve-desktop',
+      ...(request.moderation ? { 'x-torve-required-parameters': 'moderation' } : {}),
     };
     if (sourceImageAttachmentId) {
       const source = await (dependencies.loadSourceAttachment ?? loadSourceAttachment)(conversationId, sourceImageAttachmentId);
@@ -213,7 +213,7 @@ export async function generateChatImage(
       form.append('image', new Blob([source.bytes], { type: sourceMimeType }), source.fileName);
       endpoint = '/v1/images/edits';
       body = form;
-      if (peerId) headers['x-antseed-pin-peer'] = peerId;
+      if (peerId) headers['x-torve-pin-peer'] = peerId;
     } else {
       headers['content-type'] = 'application/json';
       body = JSON.stringify({
@@ -240,8 +240,8 @@ export async function generateChatImage(
     }
     const image = payload?.data?.[0];
     if (!image) throw new Error('Image service returned no image.');
-    const routedPeerId = response.headers.get('x-antseed-peer-id')?.trim() || peerId;
-    const routedService = response.headers.get('x-antseed-service')?.trim() || service;
+    const routedPeerId = response.headers.get('x-torve-peer-id')?.trim() || peerId;
+    const routedService = response.headers.get('x-torve-service')?.trim() || service;
 
     let bytes: Buffer;
     let mimeType = 'image/png';
@@ -282,7 +282,7 @@ export async function generateChatImage(
       createdAt: persisted.assistant.timestamp,
       meta: {
         ...(routedPeerId ? { peerId: routedPeerId } : {}),
-        provider: 'antseed',
+        provider: 'torve',
         service: routedService,
         tokenSource: 'unknown',
         outputImages: 1,

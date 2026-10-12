@@ -2,16 +2,16 @@
 sidebar_position: 1
 slug: /guides/vpr
 title: AI VPN Desktop Guide
-description: Use the Antseed AI VPN—like a VPN for AI—to choose sellers, connect AI apps, manage credits, understand privacy, and troubleshoot requests.
+description: Use the Torve AI VPN—like a VPN for AI—to choose sellers, connect AI apps, manage credits, understand privacy, and troubleshoot requests.
 ---
 
 # AI VPN Desktop Guide
 
-The Antseed **AI VPN** is like a **VPN for AI**: your AI apps connect to one local router, while the AI VPN discovers available sellers, applies your routing preferences, and sends each compatible request through the selected route. You can change models or sellers without reconfiguring every connected tool.
+The Torve **AI VPN** is like a **VPN for AI**: your AI apps connect to one local router, while the AI VPN discovers available sellers, applies your routing preferences, and sends each compatible request through the selected route. You can change models or sellers without reconfiguring every connected tool.
 
-The AI VPN also manages pay-per-request settlement from your Antseed credits, so connected tools can use network sellers without maintaining a separate Antseed subscription or central AI account.
+The AI VPN also manages pay-per-request settlement from your Torve credits, so connected tools can use network sellers without maintaining a separate Torve subscription or central AI account.
 
-This guide follows the AI VPN interface from first launch through troubleshooting. For a protocol-level introduction, see [How Antseed works](/docs/overview).
+This guide follows the AI VPN interface from first launch through troubleshooting. For a protocol-level introduction, see [How Torve works](/docs/overview).
 
 ## Start the router
 
@@ -19,7 +19,7 @@ Use the power button on the Home screen to start or stop the local router. Once 
 
 Discovery is not instant. After startup, allow a few seconds for peer announcements and model offers to arrive. Open **Models** and use **Refresh models** if the catalog still appears empty.
 
-The AI VPN runs locally, but the AI service is delivered by the seller selected for each route. Antseed does not put a central account or hosted chat service between the AI VPN and that seller.
+The AI VPN runs locally, but the AI service is delivered by the seller selected for each route. Torve does not put a central account or hosted chat service between the AI VPN and that seller.
 
 ## Choose a model and seller
 
@@ -76,7 +76,7 @@ The internal chat and connected-tool conversations use the same model catalog, P
 
 Open **Connected apps** and select a detected tool. Depending on the application, the AI VPN connects it by updating a supported configuration file or by routing its API domains through the local proxy.
 
-The tool keeps its normal interface. Its compatible AI requests are sent to the local AI VPN endpoint, translated when necessary, and routed to the selected Antseed seller.
+The tool keeps its normal interface. Its compatible AI requests are sent to the local AI VPN endpoint, translated when necessary, and routed to the selected Torve seller.
 
 Some config-file integrations must be restarted before they read their updated settings. When the app row shows **Restart**, use that action before testing the connection.
 
@@ -150,11 +150,11 @@ You can still open or close the floating window manually. Closing it does not st
 
 ## Privacy, transport, and seller trust
 
-The AI VPN is anonymous by default. There is no central Antseed account, platform-issued API key, or personal profile attached to your requests. Sellers generally receive a pseudonymous peer or wallet identity rather than your name, email, or identity on the tools you connected.
+The AI VPN is anonymous by default. There is no central Torve account, platform-issued API key, or personal profile attached to your requests. Sellers generally receive a pseudonymous peer or wallet identity rather than your name, email, or identity on the tools you connected.
 
 ### Anonymous access
 
-Identity anonymity and request content are separate. A standard seller can process the prompt it serves, but Antseed does not tell the seller who you are. A passing seller-node TEE check is narrower than end-to-end inference confidentiality; see the verification section below.
+Identity anonymity and request content are separate. A standard seller can process the prompt it serves, but Torve does not tell the seller who you are. A passing seller-node TEE check is narrower than end-to-end inference confidentiality; see the verification section below.
 
 ### What stays local
 
@@ -162,7 +162,7 @@ The AI VPN's configuration, signing identity, connected-app setup, routing decis
 
 ### Encrypted peer transport
 
-Between Antseed nodes, the preferred transport is a mutually authenticated encrypted TCP channel using wallet-signed ephemeral keys. **WebRTC DataChannels are a fallback** for peers that advertise WebRTC but cannot use direct encrypted TCP. WebRTC is not the primary transport for normal node-to-node AI VPN traffic.
+Between Torve nodes, the preferred transport is a mutually authenticated encrypted TCP channel using wallet-signed ephemeral keys. **WebRTC DataChannels are a fallback** for peers that advertise WebRTC but cannot use direct encrypted TCP. WebRTC is not the primary transport for normal node-to-node AI VPN traffic.
 
 See the [Transport specification](/docs/transport) for handshake, encryption, framing, and fallback details. For background on the fallback technology, see [WebRTC data channels on MDN](https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Using_data_channels).
 
@@ -172,7 +172,7 @@ In **Models**, choose **TEE advertised** from the seller filter to browse models
 
 While filtering, prices, savings, seller counts, and the Free filter reflect only matching offers, subject to the existing pricing eligibility rules. This is a **browsing filter only**: it does not change your selected seller, pins, automatic routing, or verification policy. Automatic routing may still select another seller. Use **Show all sellers** to see a selected seller hidden by the filter.
 
-The **TEE advertised** filter matches advertised support for the `antseed-verifier` verifier, not a passing verification verdict. Sellers excluded by this filter have no recognized advertised support in the available metadata; that does not prove that they have no TEE.
+The **TEE advertised** filter matches advertised support for the `torve-verifier` verifier, not a passing verification verdict. Sellers excluded by this filter have no recognized advertised support in the available metadata; that does not prove that they have no TEE.
 
 AI VPN checks advertising sellers automatically after discovery, including newly discovered sellers. No Verify or Recheck button is needed. Checks run one at a time in the background while the window is visible, with at most one new check every two seconds. Scheduling retains a small retry record per discovered advertising seller and removes it when that seller leaves discovery; sellers beyond the buyer's 512-result cache limit remain eligible, with displayed sellers prioritized. Expired or evicted results refresh for displayed sellers; cache eviction alone does not repeatedly recheck sellers in the background. Request-time verification remains responsible for enforcing the routing policy.
 
@@ -184,7 +184,7 @@ Unavailable checks retry with exponential backoff starting at 30 seconds, capped
 
 There is no desktop verification routing setting. Automatic checks and the badge do not restart the buyer or change its policy. Existing CLI verification options remain available; see [Verify a seller's TEE](/docs/guides/verify-tee).
 
-Desktop reads verification credentials from its configured buyer data directory, normally `~/.antseed`. When attaching to a buyer started with a custom `--data-dir`, set `ANTSEED_DESKTOP_CONNECT_DATA_DIR` to that same directory before launching desktop. Credentials are never searched for in other directories. Missing credentials leave the badge hidden and produce a runtime diagnostic; they can indicate an older buyer or a directory mismatch, not failed seller attestation. Repeated identical errors are logged once until verification communication succeeds again.
+Desktop reads verification credentials from its configured buyer data directory, normally `~/.torve`. When attaching to a buyer started with a custom `--data-dir`, set `TORVE_DESKTOP_CONNECT_DATA_DIR` to that same directory before launching desktop. Credentials are never searched for in other directories. Missing credentials leave the badge hidden and produce a runtime diagnostic; they can indicate an older buyer or a directory mismatch, not failed seller attestation. Repeated identical errors are logged once until verification communication succeeds again.
 
 Trusted Execution Environments can add hardware-backed confidentiality when a seller offers a verifiable TEE route. Treat a TEE label as a claim to verify, not as sufficient proof by itself. Verification must bind the attestation to the running workload, seller identity, and expected configuration.
 
@@ -192,13 +192,13 @@ See [Verify a seller's TEE](/docs/guides/verify-tee), [Security](/docs/security)
 
 ## Credits and payments
 
-Antseed is pay per use. Add credits once, then the AI VPN authorizes bounded payment channels with the sellers serving your requests. There is no Antseed subscription required for usage routed through the network.
+Torve is pay per use. Add credits once, then the AI VPN authorizes bounded payment channels with the sellers serving your requests. There is no Torve subscription required for usage routed through the network.
 
 ### Add credits
 
 Open **Profile** and choose **Add Credits**. The available funding methods can include card checkout or USDC transfers, depending on your location and the currently enabled providers.
 
-Credits are USDC on Base held by the AntseedDeposits contract for your AI VPN signing identity. Circle publishes the official [USDC contract addresses](https://developers.circle.com/stablecoins/usdc-contract-addresses); always verify the network and destination shown by the AI VPN before transferring funds.
+Credits are USDC on Base held by the TorveDeposits contract for your AI VPN signing identity. Circle publishes the official [USDC contract addresses](https://developers.circle.com/stablecoins/usdc-contract-addresses); always verify the network and destination shown by the AI VPN before transferring funds.
 
 ### Payment channels and reserved funds
 
@@ -228,9 +228,9 @@ If claims are available, the AI VPN opens a secure browser flow for the authoriz
 
 While the router is running, the AI VPN exposes a local API at `http://localhost:8377`. OpenAI-compatible clients commonly use `http://localhost:8377/v1` as their base URL, while Anthropic clients use the root URL and append `/v1/messages` themselves.
 
-The proxy binds to your computer rather than exposing the API to your local network. Antseed does not require an API key for this local endpoint, although some clients require any non-empty placeholder such as `antseed` in their API-key field.
+The proxy binds to your computer rather than exposing the API to your local network. Torve does not require an API key for this local endpoint, although some clients require any non-empty placeholder such as `torve` in their API-key field.
 
-For Hermes, OpenClaw, Cursor, or another client running elsewhere, open **Agents**, expand **Define your internet-accessible Antseed endpoint**, and start ngrok or Cloudflare. The public endpoint requires its generated bearer key; see [Connect Agents](/docs/guides/agents) and [Public HTTPS Tunnels](/docs/guides/public-tunnels).
+For Hermes, OpenClaw, Cursor, or another client running elsewhere, open **Agents**, expand **Define your internet-accessible Torve endpoint**, and start ngrok or Cloudflare. The public endpoint requires its generated bearer key; see [Connect Agents](/docs/guides/agents) and [Public HTTPS Tunnels](/docs/guides/public-tunnels).
 
 ### Browse models with `/v1/models`
 
@@ -272,11 +272,11 @@ curl http://localhost:8377/v1/chat/completions \
 
 The request's `model` field controls routing:
 
-- `"model": "antseed"` follows the model or seller route currently selected in the AI VPN. Changing the AI VPN picker updates clients that use this alias without rewriting their configuration.
+- `"model": "torve"` follows the model or seller route currently selected in the AI VPN. Changing the AI VPN picker updates clients that use this alias without rewriting their configuration.
 - `"model": "<modelId>"` uses automatic seller selection for that catalog model under your AI VPN Price + Trust preferences.
 - `"model": "<peerId>@<modelId>"` hard-pins that request to one seller and disables automatic failover.
 
-If no AI VPN route is selected, the `antseed` alias returns `no_default_route`. Use a concrete model id when you want a request to route independently of the AI VPN picker.
+If no AI VPN route is selected, the `torve` alias returns `no_default_route`. Use a concrete model id when you want a request to route independently of the AI VPN picker.
 
 See [Using the API](/docs/guides/using-the-api) for SDK configuration, format translation, response headers, routing overrides, errors, and tool-specific examples.
 
@@ -290,7 +290,7 @@ See [Using the API](/docs/guides/using-the-api) for SDK configuration, format tr
 4. Check whether local security software is blocking the AI VPN's outbound or inbound network connections.
 5. Click **Help** beside the credit balance, then open **Developer mode → Available peers** to inspect discovery directly.
 
-Antseed prefers encrypted TCP for node-to-node traffic and can fall back to WebRTC for compatible peers. Do not troubleshoot the AI VPN as if WebRTC were its only transport.
+Torve prefers encrypted TCP for node-to-node traffic and can fall back to WebRTC for compatible peers. Do not troubleshoot the AI VPN as if WebRTC were its only transport.
 
 ### A connected app does not send requests
 
@@ -302,7 +302,7 @@ Antseed prefers encrypted TCP for node-to-node traffic and can fall back to WebR
 
 ### An app reports a certificate or SSL error
 
-Open **Connected apps**, expand **HTTPS certificate**, and trust the current certificate. If an older Antseed certificate is still installed, trusting the current certificate replaces it. Restart the affected app afterward.
+Open **Connected apps**, expand **HTTPS certificate**, and trust the current certificate. If an older Torve certificate is still installed, trusting the current certificate replaces it. Restart the affected app afterward.
 
 ### Requests fail with payment errors
 
@@ -340,6 +340,6 @@ Review the report for secrets before posting it publicly.
 
 ## Get support
 
-For usage questions, join the [Antseed Telegram community](https://t.me/antseed). For reproducible bugs, [open a GitHub issue](https://github.com/AntSeed/antseed/issues/new) with the AI VPN version, operating system, affected app, expected result, actual result, and a redacted diagnostic report.
+For usage questions, join the [Torve Telegram community](https://t.me/torve). For reproducible bugs, [open a GitHub issue](https://github.com/Torve/torve/issues/new) with the AI VPN version, operating system, affected app, expected result, actual result, and a redacted diagnostic report.
 
-Follow [Antseed on X](https://x.com/antseed) for release announcements, and review the project [changelog](https://github.com/AntSeed/antseed/blob/main/CHANGELOG.md) before reporting an issue that may already be fixed.
+Follow [Torve on X](https://x.com/torve) for release announcements, and review the project [changelog](https://github.com/Torve/torve/blob/main/CHANGELOG.md) before reporting an issue that may already be fixed.

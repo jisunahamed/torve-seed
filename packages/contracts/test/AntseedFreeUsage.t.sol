@@ -2,22 +2,22 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import "../payments/AntseedFreeUsage.sol";
-import "../interfaces/IAntseedFreeUsage.sol";
-import "../interfaces/IAntseedStats.sol";
-import "../staking/AntseedStaking.sol";
-import "../core/AntseedRegistry.sol";
-import "../stats/AntseedStats.sol";
+import "../payments/TorveFreeUsage.sol";
+import "../interfaces/ITorveFreeUsage.sol";
+import "../interfaces/ITorveStats.sol";
+import "../staking/TorveStaking.sol";
+import "../core/TorveRegistry.sol";
+import "../stats/TorveStats.sol";
 import "./mocks/MockERC8004Registry.sol";
 import "./mocks/MockUSDC.sol";
 
-contract AntseedFreeUsageTest is Test {
+contract TorveFreeUsageTest is Test {
     MockUSDC public usdc;
     MockERC8004Registry public identityRegistry;
-    AntseedRegistry public registry;
-    AntseedStaking public staking;
-    AntseedStats public stats;
-    AntseedFreeUsage public freeUsage;
+    TorveRegistry public registry;
+    TorveStaking public staking;
+    TorveStats public stats;
+    TorveFreeUsage public freeUsage;
 
     uint256 constant BUYER_PK = 0xA11CE;
     uint256 constant SELLER_PK = 0xB0B;
@@ -43,10 +43,10 @@ contract AntseedFreeUsageTest is Test {
 
         usdc = new MockUSDC();
         identityRegistry = new MockERC8004Registry();
-        registry = new AntseedRegistry();
-        staking = new AntseedStaking(address(usdc), address(registry));
-        stats = new AntseedStats();
-        freeUsage = new AntseedFreeUsage(address(registry));
+        registry = new TorveRegistry();
+        staking = new TorveStaking(address(usdc), address(registry));
+        stats = new TorveStats();
+        freeUsage = new TorveFreeUsage(address(registry));
 
         registry.setStaking(address(staking));
         registry.setIdentityRegistry(address(identityRegistry));
@@ -85,16 +85,16 @@ contract AntseedFreeUsageTest is Test {
             ,
             ,
             ,
-            IAntseedFreeUsage.ChannelStatus status
+            ITorveFreeUsage.ChannelStatus status
         ) = freeUsage.channels(channelId);
 
         assertEq(storedBuyer, buyer);
         assertEq(storedSeller, seller);
         assertEq(latestSequence, 1);
         assertEq(metadataHash, keccak256(metadata));
-        assertEq(uint256(status), uint256(IAntseedFreeUsage.ChannelStatus.Active));
+        assertEq(uint256(status), uint256(ITorveFreeUsage.ChannelStatus.Active));
 
-        AntseedFreeUsage.AgentStats memory agentStats = freeUsage.getAgentStats(sellerAgentId);
+        TorveFreeUsage.AgentStats memory agentStats = freeUsage.getAgentStats(sellerAgentId);
         assertEq(agentStats.channelCount, 1);
         assertEq(agentStats.lastSettledAt, block.timestamp);
 
@@ -130,7 +130,7 @@ contract AntseedFreeUsageTest is Test {
         bytes memory usageSig = signUsage(RANDOM_PK, channelId, 1, metadata, deadline);
 
         vm.prank(seller);
-        vm.expectRevert(AntseedFreeUsage.InvalidSignature.selector);
+        vm.expectRevert(TorveFreeUsage.InvalidSignature.selector);
         freeUsage.record(channelId, 1, metadata, deadline, usageSig);
     }
 
@@ -144,7 +144,7 @@ contract AntseedFreeUsageTest is Test {
         bytes memory metadata2 = encodeMetadata(110, 50, 1, oneService(), zeroPrices());
         bytes memory usageSig2 = signUsage(BUYER_PK, channelId, 1, metadata2, deadline);
         vm.prank(seller);
-        vm.expectRevert(AntseedFreeUsage.InvalidAmount.selector);
+        vm.expectRevert(TorveFreeUsage.InvalidAmount.selector);
         freeUsage.record(channelId, 1, metadata2, deadline, usageSig2);
     }
 
@@ -158,7 +158,7 @@ contract AntseedFreeUsageTest is Test {
         vm.prank(seller);
         freeUsage.record(channelId, 2, metadata, deadline, usageSig);
 
-        IAntseedStats.BuyerMetadataStats memory buyerStats = stats.getBuyerMetadataStats(sellerAgentId, buyer);
+        ITorveStats.BuyerMetadataStats memory buyerStats = stats.getBuyerMetadataStats(sellerAgentId, buyer);
         assertEq(buyerStats.totalInputTokens, 100);
         assertEq(buyerStats.totalOutputTokens, 40);
         assertEq(buyerStats.totalRequestCount, 2);
@@ -172,7 +172,7 @@ contract AntseedFreeUsageTest is Test {
         bytes memory openSig = signOpen(BUYER_PK, channelId, deadline);
 
         vm.prank(seller);
-        vm.expectRevert(AntseedFreeUsage.ChannelExpired.selector);
+        vm.expectRevert(TorveFreeUsage.ChannelExpired.selector);
         freeUsage.open(buyer, salt, deadline, openSig);
     }
 
@@ -196,7 +196,7 @@ contract AntseedFreeUsageTest is Test {
         bytes memory openSig = signOpen(BUYER_PK, channelId, deadline);
 
         vm.prank(randomUser);
-        vm.expectRevert(AntseedFreeUsage.SellerNotStaked.selector);
+        vm.expectRevert(TorveFreeUsage.SellerNotStaked.selector);
         freeUsage.open(buyer, salt, deadline, openSig);
     }
 
@@ -208,7 +208,7 @@ contract AntseedFreeUsageTest is Test {
 
         vm.startPrank(seller);
         freeUsage.open(buyer, salt, deadline, openSig);
-        vm.expectRevert(AntseedFreeUsage.ChannelExists.selector);
+        vm.expectRevert(TorveFreeUsage.ChannelExists.selector);
         freeUsage.open(buyer, salt, deadline, openSig);
         vm.stopPrank();
     }
@@ -227,7 +227,7 @@ contract AntseedFreeUsageTest is Test {
         bytes memory usageSig = signUsage(BUYER_PK, channelId, 1, metadata, usageDeadline);
 
         vm.prank(seller);
-        vm.expectRevert(AntseedFreeUsage.ChannelExpired.selector);
+        vm.expectRevert(TorveFreeUsage.ChannelExpired.selector);
         freeUsage.record(channelId, 1, metadata, usageDeadline, usageSig);
     }
 
@@ -245,7 +245,7 @@ contract AntseedFreeUsageTest is Test {
         bytes memory usageSig = signUsage(BUYER_PK, channelId, 1, metadata, usageDeadline);
 
         vm.prank(seller);
-        vm.expectRevert(AntseedFreeUsage.ChannelExpired.selector);
+        vm.expectRevert(TorveFreeUsage.ChannelExpired.selector);
         freeUsage.close(channelId, 1, metadata, usageDeadline, usageSig);
     }
 
@@ -255,11 +255,11 @@ contract AntseedFreeUsageTest is Test {
         bytes memory usageSig = signUsage(BUYER_PK, channelId, 1, metadata, deadline);
 
         vm.prank(randomUser);
-        vm.expectRevert(AntseedFreeUsage.NotAuthorized.selector);
+        vm.expectRevert(TorveFreeUsage.NotAuthorized.selector);
         freeUsage.record(channelId, 1, metadata, deadline, usageSig);
 
         vm.prank(randomUser);
-        vm.expectRevert(AntseedFreeUsage.NotAuthorized.selector);
+        vm.expectRevert(TorveFreeUsage.NotAuthorized.selector);
         freeUsage.close(channelId, 1, metadata, deadline, usageSig);
     }
 
@@ -272,7 +272,7 @@ contract AntseedFreeUsageTest is Test {
         freeUsage.close(channelId, 1, metadata, deadline, usageSig);
 
         vm.prank(seller);
-        vm.expectRevert(AntseedFreeUsage.ChannelNotActive.selector);
+        vm.expectRevert(TorveFreeUsage.ChannelNotActive.selector);
         freeUsage.record(channelId, 1, metadata, deadline, usageSig);
     }
 
@@ -283,7 +283,7 @@ contract AntseedFreeUsageTest is Test {
         bytes memory usageSig = signUsage(BUYER_PK, otherChannelId, 1, metadata, deadline);
 
         vm.prank(seller);
-        vm.expectRevert(AntseedFreeUsage.InvalidSignature.selector);
+        vm.expectRevert(TorveFreeUsage.InvalidSignature.selector);
         freeUsage.record(channelId, 1, metadata, deadline, usageSig);
     }
 
@@ -295,7 +295,7 @@ contract AntseedFreeUsageTest is Test {
         vm.prank(seller);
         freeUsage.close(channelId, 0, metadata, deadline, usageSig);
 
-        AntseedFreeUsage.AgentStats memory agentStats = freeUsage.getAgentStats(sellerAgentId);
+        TorveFreeUsage.AgentStats memory agentStats = freeUsage.getAgentStats(sellerAgentId);
         assertEq(agentStats.channelCount, 0);
         assertEq(agentStats.lastSettledAt, 0);
         assertEq(freeUsage.activeChannelCount(seller), 0);

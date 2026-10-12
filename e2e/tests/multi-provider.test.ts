@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { AntseedNode } from '@antseed/node';
-import type { Provider, SerializedHttpRequest, SerializedHttpResponse, PeerInfo } from '@antseed/node';
+import { TorveNode } from '@torveai/node';
+import type { Provider, SerializedHttpRequest, SerializedHttpResponse, PeerInfo } from '@torveai/node';
 import { createLocalBootstrap } from './helpers/local-bootstrap.js';
 import { tmpdir } from 'node:os';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -56,7 +56,7 @@ class MockProvider implements Provider {
 }
 
 async function waitForPeers(
-  node: AntseedNode,
+  node: TorveNode,
   expectedCount: number,
   timeoutMs = 15_000,
   intervalMs = 500,
@@ -72,8 +72,8 @@ async function waitForPeers(
 
 describe('Multi-provider: single node with two provider plugins', () => {
   let bootstrap: Awaited<ReturnType<typeof createLocalBootstrap>> | null = null;
-  let sellerNode: AntseedNode | null = null;
-  let buyerNode: AntseedNode | null = null;
+  let sellerNode: TorveNode | null = null;
+  let buyerNode: TorveNode | null = null;
   let sellerDataDir: string | null = null;
   let buyerDataDir: string | null = null;
 
@@ -107,11 +107,11 @@ describe('Multi-provider: single node with two provider plugins', () => {
   }> {
     bootstrap = await createLocalBootstrap();
 
-    sellerDataDir = await mkdtemp(join(tmpdir(), 'antseed-seller-'));
+    sellerDataDir = await mkdtemp(join(tmpdir(), 'torve-seller-'));
     const providerA = new MockProvider('anthropic', ['claude-sonnet-4-5-20250929', 'claude-opus-4-1-20250903']);
     const providerB = new MockProvider('openai', ['gpt-4o', 'gpt-4o-mini']);
 
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: 'seller',
       dataDir: sellerDataDir,
       dhtPort: 0,
@@ -124,8 +124,8 @@ describe('Multi-provider: single node with two provider plugins', () => {
     sellerNode.registerProvider(providerB);
     await sellerNode.start();
 
-    buyerDataDir = await mkdtemp(join(tmpdir(), 'antseed-buyer-'));
-    buyerNode = new AntseedNode({
+    buyerDataDir = await mkdtemp(join(tmpdir(), 'torve-buyer-'));
+    buyerNode = new TorveNode({
       role: 'buyer',
       dataDir: buyerDataDir,
       dhtPort: 0,

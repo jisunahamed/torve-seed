@@ -13,7 +13,7 @@ import {
   makeDepositsDomain,
   type ChainConfig,
   type BuyerUsageTotals,
-} from '@antseed/node';
+} from '@torveai/node';
 
 const EMPTY_BUYER_USAGE: BuyerUsageTotals = {
   totalRequests: 0,
@@ -33,7 +33,7 @@ interface RouteContext {
   proxyPort: number;
 }
 
-// Use shared utilities from @antseed/node
+// Use shared utilities from @torveai/node
 const formatUsdc6 = formatUsdc;
 const RPC_READ_ATTEMPTS = 2;
 
@@ -159,7 +159,7 @@ export function registerRoutes(fastify: FastifyInstance, ctx: RouteContext): voi
 
   fastify.get('/api/balance', async (_request, reply) => {
     if (!ctx.cryptoCtx) {
-      return reply.status(503).send({ ok: false, error: 'Identity not configured — set ANTSEED_IDENTITY_HEX or run antseed seller setup' });
+      return reply.status(503).send({ ok: false, error: 'Identity not configured — set TORVE_IDENTITY_HEX or run torve seller setup' });
     }
 
     try {
@@ -253,7 +253,7 @@ export function registerRoutes(fastify: FastifyInstance, ctx: RouteContext): voi
   fastify.get('/api/channels', async () => {
     if (!ctx.cryptoCtx) return { channels: [] };
     try {
-      const url = `http://127.0.0.1:${ctx.proxyPort}/_antseed/channels?all=1`;
+      const url = `http://127.0.0.1:${ctx.proxyPort}/_torve/channels?all=1`;
       const resp = await fetch(url);
       if (!resp.ok) {
         fastify.log.warn(`[/api/channels] buyer proxy returned ${resp.status}`);
@@ -269,7 +269,7 @@ export function registerRoutes(fastify: FastifyInstance, ctx: RouteContext): voi
 
   fastify.get('/api/buyer-usage', async (): Promise<BuyerUsageTotals> => {
     try {
-      const url = `http://127.0.0.1:${ctx.proxyPort}/_antseed/buyer-usage`;
+      const url = `http://127.0.0.1:${ctx.proxyPort}/_torve/buyer-usage`;
       const resp = await fetch(url);
       if (!resp.ok) {
         fastify.log.warn(`[/api/buyer-usage] buyer proxy returned ${resp.status}`);
@@ -285,7 +285,7 @@ export function registerRoutes(fastify: FastifyInstance, ctx: RouteContext): voi
 
   fastify.get('/api/operator', async (_request, reply) => {
     if (!ctx.cryptoCtx) {
-      return reply.status(503).send({ ok: false, error: 'Identity not configured — set ANTSEED_IDENTITY_HEX or run antseed seller setup' });
+      return reply.status(503).send({ ok: false, error: 'Identity not configured — set TORVE_IDENTITY_HEX or run torve seller setup' });
     }
 
     try {

@@ -5,7 +5,7 @@ import { resolvePluginPackage } from '../../../plugins/registry.js';
 import { applySellerSetupRpcUrl, buildSellerSetupProviderEntry, getSellerSetupCredentialHint } from './setup.js';
 
 test('resolvePluginPackage resolves trusted plugin aliases', () => {
-  assert.equal(resolvePluginPackage('openai'), '@antseed/provider-openai');
+  assert.equal(resolvePluginPackage('openai'), '@torveai/provider-openai');
   assert.equal(resolvePluginPackage('@custom/provider'), '@custom/provider');
 });
 

@@ -3,14 +3,14 @@ import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 
 import type {
-  AntseedProviderPlugin,
+  TorveProviderPlugin,
   Provider,
   SerializedHttpRequest,
   SerializedHttpResponse,
   ServiceApiProtocol,
   TokenProvider,
   TokenProviderState,
-} from '@antseed/node';
+} from '@torveai/node';
 import {
   BaseProvider,
   DEFAULT_HTTP_TIMEOUT_MS,
@@ -20,7 +20,7 @@ import {
   parseServiceAliasMap,
   parseServiceCapabilitiesJson,
   parseServicePricingJson,
-} from '@antseed/provider-core';
+} from '@torveai/provider-core';
 
 const DEFAULT_AUTH_FILE = '~/.codex/auth.json';
 const DEFAULT_BASE_URL = 'https://chatgpt.com/backend-api';
@@ -34,7 +34,7 @@ const FETCH_TIMEOUT_MS = DEFAULT_HTTP_TIMEOUT_MS;
 const RESPONSE_PATH_PREFIX = '/v1/responses';
 const RELAY_PATH = '/responses';
 const AUTH_CLAIM_PATH = 'https://api.openai.com/auth';
-const CLIENT_STREAM_REQUESTED_HEADER = 'x-antseed-client-stream-requested';
+const CLIENT_STREAM_REQUESTED_HEADER = 'x-torve-client-stream-requested';
 
 function expandHome(path: string): string {
   if (path === '~') return homedir();
@@ -663,7 +663,7 @@ class OpenAIResponsesProvider implements Provider {
   }
 }
 
-const plugin: AntseedProviderPlugin = {
+const plugin: TorveProviderPlugin = {
   name: 'openai-responses',
   displayName: 'OpenAI Responses',
   version: '0.1.0',
@@ -672,37 +672,37 @@ const plugin: AntseedProviderPlugin = {
   configSchema: [
     { key: 'OPENAI_RESPONSES_AUTH_FILE', label: 'Auth File', type: 'string', required: false, default: DEFAULT_AUTH_FILE, description: 'Path to ~/.codex/auth.json' },
     { key: 'OPENAI_RESPONSES_BASE_URL', label: 'Base URL', type: 'string', required: false, default: DEFAULT_BASE_URL, description: 'Codex backend base URL' },
-    { key: 'ANTSEED_INPUT_USD_PER_MILLION', label: 'Input Price', type: 'number', required: false, default: DEFAULT_INPUT_PRICE, description: 'Input price in USD per 1M tokens' },
-    { key: 'ANTSEED_OUTPUT_USD_PER_MILLION', label: 'Output Price', type: 'number', required: false, default: DEFAULT_OUTPUT_PRICE, description: 'Output price in USD per 1M tokens' },
-    { key: 'ANTSEED_CACHED_INPUT_USD_PER_MILLION', label: 'Cached Input Price', type: 'number', required: false, description: 'Cached input price in USD per 1M tokens (defaults to input price)' },
-    { key: 'ANTSEED_SERVICE_PRICING_JSON', label: 'Service Pricing JSON', type: 'string', required: false, description: 'Per-service pricing JSON' },
-    { key: 'ANTSEED_MAX_CONCURRENCY', label: 'Max Concurrency', type: 'number', required: false, default: DEFAULT_MAX_CONCURRENCY, description: 'Max concurrent requests' },
-    { key: 'ANTSEED_ALLOWED_SERVICES', label: 'Allowed Services', type: 'string[]', required: false, description: 'Service allow-list' },
-    { key: 'ANTSEED_SERVICE_ALIAS_MAP_JSON', label: 'Service Alias Map', type: 'string', required: false, description: 'JSON map of announced service -> upstream model name' },
-    { key: 'ANTSEED_SERVICE_CAPABILITIES_JSON', label: 'Service Capabilities JSON', type: 'string', required: false, description: 'Per-service model capability JSON' },
+    { key: 'TORVE_INPUT_USD_PER_MILLION', label: 'Input Price', type: 'number', required: false, default: DEFAULT_INPUT_PRICE, description: 'Input price in USD per 1M tokens' },
+    { key: 'TORVE_OUTPUT_USD_PER_MILLION', label: 'Output Price', type: 'number', required: false, default: DEFAULT_OUTPUT_PRICE, description: 'Output price in USD per 1M tokens' },
+    { key: 'TORVE_CACHED_INPUT_USD_PER_MILLION', label: 'Cached Input Price', type: 'number', required: false, description: 'Cached input price in USD per 1M tokens (defaults to input price)' },
+    { key: 'TORVE_SERVICE_PRICING_JSON', label: 'Service Pricing JSON', type: 'string', required: false, description: 'Per-service pricing JSON' },
+    { key: 'TORVE_MAX_CONCURRENCY', label: 'Max Concurrency', type: 'number', required: false, default: DEFAULT_MAX_CONCURRENCY, description: 'Max concurrent requests' },
+    { key: 'TORVE_ALLOWED_SERVICES', label: 'Allowed Services', type: 'string[]', required: false, description: 'Service allow-list' },
+    { key: 'TORVE_SERVICE_ALIAS_MAP_JSON', label: 'Service Alias Map', type: 'string', required: false, description: 'JSON map of announced service -> upstream model name' },
+    { key: 'TORVE_SERVICE_CAPABILITIES_JSON', label: 'Service Capabilities JSON', type: 'string', required: false, description: 'Per-service model capability JSON' },
   ],
 
   createProvider(config: Record<string, string>): Provider {
-    const servicePricing = parseServicePricingJson(config['ANTSEED_SERVICE_PRICING_JSON']);
+    const servicePricing = parseServicePricingJson(config['TORVE_SERVICE_PRICING_JSON']);
     const pricing: Provider['pricing'] = {
       defaults: {
-        inputUsdPerMillion: parseNonNegativeNumber(config['ANTSEED_INPUT_USD_PER_MILLION'], 'ANTSEED_INPUT_USD_PER_MILLION', DEFAULT_INPUT_PRICE),
-        outputUsdPerMillion: parseNonNegativeNumber(config['ANTSEED_OUTPUT_USD_PER_MILLION'], 'ANTSEED_OUTPUT_USD_PER_MILLION', DEFAULT_OUTPUT_PRICE),
-        ...(config['ANTSEED_CACHED_INPUT_USD_PER_MILLION'] ? { cachedInputUsdPerMillion: parseNonNegativeNumber(config['ANTSEED_CACHED_INPUT_USD_PER_MILLION'], 'ANTSEED_CACHED_INPUT_USD_PER_MILLION', 0) } : {}),
+        inputUsdPerMillion: parseNonNegativeNumber(config['TORVE_INPUT_USD_PER_MILLION'], 'TORVE_INPUT_USD_PER_MILLION', DEFAULT_INPUT_PRICE),
+        outputUsdPerMillion: parseNonNegativeNumber(config['TORVE_OUTPUT_USD_PER_MILLION'], 'TORVE_OUTPUT_USD_PER_MILLION', DEFAULT_OUTPUT_PRICE),
+        ...(config['TORVE_CACHED_INPUT_USD_PER_MILLION'] ? { cachedInputUsdPerMillion: parseNonNegativeNumber(config['TORVE_CACHED_INPUT_USD_PER_MILLION'], 'TORVE_CACHED_INPUT_USD_PER_MILLION', 0) } : {}),
       },
       ...(servicePricing ? { services: servicePricing } : {}),
     };
 
-    const maxConcurrency = parseInt(config['ANTSEED_MAX_CONCURRENCY'] ?? String(DEFAULT_MAX_CONCURRENCY), 10);
+    const maxConcurrency = parseInt(config['TORVE_MAX_CONCURRENCY'] ?? String(DEFAULT_MAX_CONCURRENCY), 10);
     if (Number.isNaN(maxConcurrency) || maxConcurrency <= 0) {
-      throw new Error('ANTSEED_MAX_CONCURRENCY must be a positive number');
+      throw new Error('TORVE_MAX_CONCURRENCY must be a positive number');
     }
 
-    const allowedServices = parseCsv(config['ANTSEED_ALLOWED_SERVICES']);
+    const allowedServices = parseCsv(config['TORVE_ALLOWED_SERVICES']);
     const authFilePath = expandHome(config['OPENAI_RESPONSES_AUTH_FILE']?.trim() || DEFAULT_AUTH_FILE);
     const baseUrl = config['OPENAI_RESPONSES_BASE_URL']?.trim() || DEFAULT_BASE_URL;
-    const serviceRewriteMap = parseServiceAliasMap(config['ANTSEED_SERVICE_ALIAS_MAP_JSON']);
-    const serviceCapabilities = parseServiceCapabilitiesJson(config['ANTSEED_SERVICE_CAPABILITIES_JSON']);
+    const serviceRewriteMap = parseServiceAliasMap(config['TORVE_SERVICE_ALIAS_MAP_JSON']);
+    const serviceCapabilities = parseServiceCapabilitiesJson(config['TORVE_SERVICE_CAPABILITIES_JSON']);
     const serviceApiProtocols = buildServiceApiProtocols(allowedServices, 'openai-responses');
 
     return new OpenAIResponsesProvider({

@@ -2,9 +2,9 @@ import { hexlify, randomBytes } from 'ethers';
 import type { BuyerIdentity } from './interfaces.js';
 import type { PaymentMux } from './payment-mux.js';
 import type { BuyerPeerView } from './interfaces.js';
-import type { FreeUsageAckPayload, NeedFreeUsageAuthPayload } from '@antseed/protocol/messages';
+import type { FreeUsageAckPayload, NeedFreeUsageAuthPayload } from '@torveai/protocol/messages';
 import type { SellerAddressResolver } from './seller-address-resolver.js';
-import { peerIdToAddress } from '@antseed/protocol/peer-id';
+import { peerIdToAddress } from '@torveai/protocol/peer-id';
 import { debugLog, debugWarn } from './debug.js';
 import {
   computeFreeUsageChannelId,
@@ -14,7 +14,7 @@ import {
   signFreeUsageAuth,
   signFreeUsageOpen,
   type FreeUsageMetadata,
-} from '@antseed/protocol/signatures';
+} from '@torveai/protocol/signatures';
 import { CHANNEL_KIND, CHANNEL_ROLE, CHANNEL_STATUS, type BuyerChannelStore } from './channel-store-types.js';
 import { advanceUsageMetadata, RequestServiceTracker } from './channel-usage-accounting.js';
 

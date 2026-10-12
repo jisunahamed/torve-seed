@@ -7,7 +7,7 @@ import {
   modelRouteReputationScore,
   modelRouteTotalPrice,
   scoreModelRoute,
-} from '@antseed/node/model-routing';
+} from '@torveai/node/model-routing';
 
 export type VprScoredRoute = {
   row: DiscoverRow;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { PowerOffIcon } from '@hugeicons/core-free-icons';
-import { Button, Modal } from '@antseed/ui';
+import { Button, Modal } from '@torveai/ui';
 import styles from './DisconnectConfirmDialog.module.scss';
 
 type DisconnectConfirmDialogProps = {
@@ -28,7 +28,7 @@ export function DisconnectConfirmDialog({ visible, onConfirm, onCancel }: Discon
       isOpen={visible}
       onClose={onCancel}
       size="sm"
-      title="Disconnect Antseed?"
+      title="Disconnect Torve?"
     >
       <div className={styles.badge} aria-hidden="true">
         <span className={styles.ring} />
@@ -38,7 +38,7 @@ export function DisconnectConfirmDialog({ visible, onConfirm, onCancel }: Discon
         </span>
       </div>
       <p className={styles.text}>
-        Routing will stop and connected apps lose their Antseed connection until you turn it
+        Routing will stop and connected apps lose their Torve connection until you turn it
         back on. Chats in progress will be interrupted.
       </p>
       <label className={styles.dontShowRow}>

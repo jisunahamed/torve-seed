@@ -1,6 +1,6 @@
 /**
  * High-level browser buyer built on the SHARED buyer machinery from
- * @antseed/buyer-core — the same BuyerRequestHandler / BuyerPaymentManager /
+ * @torveai/buyer-core — the same BuyerRequestHandler / BuyerPaymentManager /
  * BuyerPaymentNegotiator stack the node buyer proxy runs, wired to a WebRTC
  * transport and an injectable channel store. `create()` supplies durable
  * browser persistence; the public constructor retains the in-memory default.
@@ -25,7 +25,7 @@ import {
   type BuyerSigner,
   type PaymentMux,
   type StoredChannel,
-} from '@antseed/buyer-core';
+} from '@torveai/buyer-core';
 import {
   MessageType,
   toPeerId,
@@ -34,7 +34,7 @@ import {
   type PeerId,
   type SerializedHttpRequest,
   type SerializedHttpResponse,
-} from '@antseed/protocol';
+} from '@torveai/protocol';
 import { SellerConnection, type ConnectionOptions, type RtcEnvironment } from './connection.js';
 import { IndexedDbChannelStore, MemoryChannelStore } from './channel-store.js';
 import { signerFromPrivateKey } from './identity.js';
@@ -62,7 +62,7 @@ export interface WebPaymentConfig {
 }
 
 export interface ClientOptions {
-  /** Relay base URL, e.g. https://relay.antseed.com */
+  /** Relay base URL, e.g. https://relay.torveai.com */
   relayUrl: string;
   /**
    * Buyer hot-wallet key, or any ethers AbstractSigner exposing its address
@@ -110,7 +110,7 @@ export interface RequestInput {
   path: string;
   headers?: Record<string, string>;
   body?: Uint8Array | string;
-  /** Selects the provider on the seller (x-antseed-provider). */
+  /** Selects the provider on the seller (x-torve-provider). */
   provider?: string;
 }
 
@@ -137,7 +137,7 @@ interface SessionWiring {
   verificationMux: VerificationMux;
 }
 
-export class AntseedWebClient {
+export class TorveWebClient {
   private readonly identity: BuyerIdentity;
   private readonly env: RtcEnvironment;
   private readonly payment: WebPaymentConfig;
@@ -262,7 +262,7 @@ export class AntseedWebClient {
    * Open a production browser client. This acquires the identity-wide tab lock
    * and hydrates IndexedDB before BuyerPaymentManager is constructed.
    */
-  static async create(options: ClientOptions): Promise<AntseedWebClient> {
+  static async create(options: ClientOptions): Promise<TorveWebClient> {
     const wallet = resolveWallet(options);
     const payment = { ...BASE_MAINNET, ...options.payment };
     const locks = options.persistence?.locks
@@ -276,18 +276,18 @@ export class AntseedWebClient {
       payment.channelsContractAddress.toLowerCase(),
       wallet.address.toLowerCase(),
     ].join(':');
-    const tabLock = await BuyerTabLock.acquire(`antseed:buyer:${scope}`, locks, {
+    const tabLock = await BuyerTabLock.acquire(`torve:buyer:${scope}`, locks, {
       wait: options.persistence?.waitForLock ?? false,
     });
 
     try {
       const store = options.channelStore ?? await IndexedDbChannelStore.open({
-        databaseName: options.persistence?.databaseName ?? `antseed-web-sdk:${scope}`,
+        databaseName: options.persistence?.databaseName ?? `torve-web-sdk:${scope}`,
         ...(options.persistence?.indexedDB ? { indexedDB: options.persistence.indexedDB } : {}),
         ...(options.onPersistenceError ? { onWriteError: options.onPersistenceError } : {}),
       });
       const { privateKey: _privateKey, ...safeOptions } = options;
-      return new AntseedWebClient({ ...safeOptions, wallet, channelStore: store }, tabLock);
+      return new TorveWebClient({ ...safeOptions, wallet, channelStore: store }, tabLock);
     } catch (error) {
       await tabLock.release();
       throw error;
@@ -299,8 +299,8 @@ export class AntseedWebClient {
    * applications must use `create()` so reload recovery and tab exclusion are
    * active.
    */
-  static ephemeral(options: ClientOptions): AntseedWebClient {
-    return new AntseedWebClient({ ...options, channelStore: options.channelStore ?? new MemoryChannelStore() });
+  static ephemeral(options: ClientOptions): TorveWebClient {
+    return new TorveWebClient({ ...options, channelStore: options.channelStore ?? new MemoryChannelStore() });
   }
 
   get peerId(): PeerId {
@@ -384,7 +384,7 @@ export class AntseedWebClient {
     const conn = await SellerConnection.connect(bridgeUrl, this.identity.wallet, this.env, this.options.connection);
     if (this.closed) {
       conn.close();
-      throw new Error('AntseedWebClient is closed');
+      throw new Error('TorveWebClient is closed');
     }
     const proxyMux = new ProxyMux(conn, { uploadThresholdBytes: BROWSER_UPLOAD_THRESHOLD_BYTES });
     const verificationMux = new VerificationMux(conn);
@@ -513,7 +513,7 @@ export class AntseedWebClient {
   }
 
   private assertOpen(): void {
-    if (this.closed) throw new Error('AntseedWebClient is closed');
+    if (this.closed) throw new Error('TorveWebClient is closed');
   }
 
   private assertOwnedActiveChannel(channelId: string): StoredChannel {
@@ -603,7 +603,7 @@ function mergeServiceMatrix<T>(
 
 export class SellerSession {
   constructor(
-    private readonly client: AntseedWebClient,
+    private readonly client: TorveWebClient,
     readonly peer: BuyerPeerView,
   ) {}
 
@@ -618,7 +618,7 @@ export class SellerSession {
       method: input.method ?? 'POST',
       path: input.path,
       headers: {
-        ...(input.provider ? { 'x-antseed-provider': input.provider } : {}),
+        ...(input.provider ? { 'x-torve-provider': input.provider } : {}),
         ...input.headers,
       },
       body: typeof input.body === 'string' ? new TextEncoder().encode(input.body) : input.body ?? new Uint8Array(0),

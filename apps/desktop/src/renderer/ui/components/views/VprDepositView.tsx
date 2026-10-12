@@ -322,7 +322,7 @@ function explorerTxUrl(chainId: number | undefined, txHash: string): string | nu
 }
 
 /**
- * Deposit flow: the chooser always leads with the antseed-pay Crossmint card
+ * Deposit flow: the chooser always leads with the torve-pay Crossmint card
  * checkout (hosted page in a narrow app popup) — no region gating; the pay
  * page itself shows a proper dead-end screen where a region can't be served.
  * Then the quick USDC-on-Base transfer (scan-to-pay QR), with hosted
@@ -389,7 +389,7 @@ export function VprDepositView({ onSelectView }: Props) {
   // the watcher: QR transfers and card-purchase deliveries land in the
   // same wallet.
   useEffect(() => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     let cancelled = false;
     void bridge?.depositsWatchStart?.().then((result) => {
       if (cancelled) return;
@@ -430,7 +430,7 @@ export function VprDepositView({ onSelectView }: Props) {
   const openBrowserWallet = useCallback(() => {
     recordUserAction('deposit_start', 'deposit');
     setPayPageNotice(null);
-    const call = window.antseedDesktop?.paymentsOpenPayPage?.({ kind: 'deposit', amountUsdc: amount });
+    const call = window.torveDesktop?.paymentsOpenPayPage?.({ kind: 'deposit', amountUsdc: amount });
     if (!call) {
       setPayPageNotice('Payment page unavailable in this build.');
       return;
@@ -445,7 +445,7 @@ export function VprDepositView({ onSelectView }: Props) {
   const openCardProvider = useCallback((providerId: string) => {
     recordUserAction('deposit_start', 'deposit');
     setCardNotice(null);
-    void window.antseedDesktop?.paymentsOpenCardProvider?.({ providerId, amountUsdc: amount }).then((result) => {
+    void window.torveDesktop?.paymentsOpenCardProvider?.({ providerId, amountUsdc: amount }).then((result) => {
       if (!result.ok) {
         setCardNotice(result.error ?? 'Could not open the payment page.');
       }
@@ -536,14 +536,14 @@ export function VprDepositView({ onSelectView }: Props) {
           <BalanceSummaryCard values={balanceValues} />
 
           <div className={styles.primaryMethods}>
-            {/* Primary path — always the antseed-pay Crossmint card checkout,
+            {/* Primary path — always the torve-pay Crossmint card checkout,
                 regardless of region (the pay page shows its own dead-end
                 screen where it can't serve). Delivers to the hot wallet the
                 deposit watcher sweeps. */}
             <button
               type="button"
               className={styles.funCta}
-              onClick={() => openCardProvider('antseed-pay')}
+              onClick={() => openCardProvider('torve-pay')}
             >
               <span className={styles.funCtaText}>
                 <span className={styles.funCtaTitle}>Deposit</span>
@@ -584,7 +584,7 @@ export function VprDepositView({ onSelectView }: Props) {
                   <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={2} />
                 </span>
               </button>
-              <span className={styles.methodFootnote}>* Deposited to your credits by the Antseed relayer network</span>
+              <span className={styles.methodFootnote}>* Deposited to your credits by the Torve relayer network</span>
             </div>
             {cardNotice && <div className={styles.cardNotice} role="alert">{cardNotice}</div>}
           </div>
@@ -626,7 +626,7 @@ export function VprDepositView({ onSelectView }: Props) {
               </button>
               {/* The pay page's Stripe integration. US only — elsewhere the
                   page shows its region-unavailable screen. */}
-              <button type="button" className={styles.methodCta} onClick={() => openCardProvider('antseed-pay-stripe')}>
+              <button type="button" className={styles.methodCta} onClick={() => openCardProvider('torve-pay-stripe')}>
                 <span className={styles.methodCtaIcon}>
                   <StripeMark size={20} />
                 </span>
@@ -687,7 +687,7 @@ export function VprDepositView({ onSelectView }: Props) {
               <button
                 type="button"
                 className={styles.txLink}
-                onClick={() => void window.antseedDesktop?.openExternalUrl?.(creditedTxUrl)}
+                onClick={() => void window.torveDesktop?.openExternalUrl?.(creditedTxUrl)}
               >
                 <span>View transaction</span>
                 <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} strokeWidth={2} />

@@ -54,7 +54,7 @@ function retailSavingsPct(
 export async function ensureOpenRouterPrices(): Promise<OpenRouterReferenceMap | null> {
   if (cachedMap) return cachedMap;
   if (inflight) return inflight;
-  const bridge = window.antseedDesktop;
+  const bridge = window.torveDesktop;
   if (!bridge?.getOpenRouterReferencePrices) return null;
   inflight = bridge
     .getOpenRouterReferencePrices()

@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
-import type { DesktopTeeStatus } from '@antseed/node/tee-status';
-import { advertisesTeeSupport } from '@antseed/node/verifier-capabilities';
+import type { DesktopTeeStatus } from '@torveai/node/tee-status';
+import { advertisesTeeSupport } from '@torveai/node/verifier-capabilities';
 import type { DiscoverRow } from '../../core/state';
 import { useUiSelector } from './useUiSelector';
 import { TeeAutoVerification } from './tee-auto-verification';
@@ -29,7 +29,7 @@ async function refresh(): Promise<void> {
   const startedAtRevision = revision;
   polling = true;
   try {
-    const status = await window.antseedDesktop?.getTeeStatus?.();
+    const status = await window.torveDesktop?.getTeeStatus?.();
     if (current === generation && startedAtRevision === revision) {
       const peerErrors = status?.snapshot?.sessionId === state.status.snapshot?.sessionId ? { ...state.peerErrors } : {};
       for (const evidence of status?.snapshot?.evidence ?? []) {
@@ -63,7 +63,7 @@ function subscribe(listener: () => void): () => void {
 
 async function checkNext(): Promise<void> {
   if (checking || !listeners.size || !state.status.snapshot
-    || Date.now() < nextCheckAt || document.visibilityState === 'hidden' || !window.antseedDesktop?.checkSellerTee) return;
+    || Date.now() < nextCheckAt || document.visibilityState === 'hidden' || !window.torveDesktop?.checkSellerTee) return;
   const interested = new Set([...visibleSellers.values()].flatMap((sellers) => [...sellers]));
   const attempt = automatic.next(state.status.snapshot, interested, Date.now());
   if (!attempt) return;
@@ -73,7 +73,7 @@ async function checkNext(): Promise<void> {
   nextCheckAt = Date.now() + 2000;
   publish({ checking: [peerId] });
   try {
-    const status = await window.antseedDesktop.checkSellerTee(peerId);
+    const status = await window.torveDesktop.checkSellerTee(peerId);
     if (!status?.snapshot) throw new Error(status?.error ?? 'Start the buyer to verify sellers');
     if (current === generation && automatic.current(attempt)
       && state.status.snapshot?.sessionId === attempt.sessionId && status.snapshot?.sessionId === attempt.sessionId) {

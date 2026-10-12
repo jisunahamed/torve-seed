@@ -21,7 +21,7 @@ const scannerInterface = new Interface([
 const contractsDirectory = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const defaultScannerArtifact = resolve(
   contractsDirectory,
-  "out/AntseedBlockhashStoreStorageScanner.sol/AntseedBlockhashStoreStorageScanner.json",
+  "out/TorveBlockhashStoreStorageScanner.sol/TorveBlockhashStoreStorageScanner.json",
 );
 
 const { value } = parseArguments(process.argv.slice(2));

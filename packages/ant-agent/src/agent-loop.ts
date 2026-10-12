@@ -3,7 +3,7 @@ import type {
   SerializedHttpRequest,
   SerializedHttpResponse,
   ProviderStreamCallbacks,
-} from '@antseed/node';
+} from '@torveai/node';
 import type { AntAgentDefinition } from './loader.js';
 import type { AntAgentTool } from './tools.js';
 import {
@@ -28,7 +28,7 @@ const DEFAULT_MAX_ITERATIONS = 5;
 export interface AgentLoopOptions {
   /** Maximum tool-call rounds before forcing a final request. Total LLM calls = maxIterations + 1. Default: 5. */
   maxIterations?: number;
-  /** Additional tools available to the agent loop. Auto-prefixed with `antseed_`. */
+  /** Additional tools available to the agent loop. Auto-prefixed with `torve_`. */
   tools?: AntAgentTool[];
 }
 
@@ -45,14 +45,14 @@ function normalizeDebugValue(value: string | undefined): string {
 }
 
 function isDebugEnabled(): boolean {
-  const fromAntseed = normalizeDebugValue(process.env['ANTSEED_DEBUG']);
-  if (['1', 'true', 'yes', 'on'].includes(fromAntseed)) return true;
+  const fromTorve = normalizeDebugValue(process.env['TORVE_DEBUG']);
+  if (['1', 'true', 'yes', 'on'].includes(fromTorve)) return true;
 
   return normalizeDebugValue(process.env['DEBUG'])
     .split(',')
     .some((ns) => {
       const trimmed = ns.trim();
-      return trimmed === '*' || trimmed === 'antseed' || trimmed === 'antseed:*';
+      return trimmed === '*' || trimmed === 'torve' || trimmed === 'torve:*';
     });
 }
 
@@ -76,13 +76,13 @@ function chunkHasResponseCreated(data: Uint8Array): boolean {
 
 
 /**
- * Check if an SSE chunk contains an internal (antseed_*) tool call.
+ * Check if an SSE chunk contains an internal (torve_*) tool call.
  * Used during streaming to decide whether to forward chunks to the buyer.
  */
 function chunkHasInternalToolCall(data: Uint8Array, format: RequestFormat): boolean {
   const text = decoder.decode(data);
   if (format === 'openai') {
-    // OpenAI: look for "name":"antseed_" in tool_calls deltas
+    // OpenAI: look for "name":"torve_" in tool_calls deltas
     for (const line of text.split('\n')) {
       if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
       try {
@@ -93,7 +93,7 @@ function chunkHasInternalToolCall(data: Uint8Array, format: RequestFormat): bool
       } catch { /* ignore */ }
     }
   } else {
-    // Anthropic & Responses API: look for antseed_ name in content blocks or output items
+    // Anthropic & Responses API: look for torve_ name in content blocks or output items
     if (text.includes(`"name":"${TOOL_PREFIX}`) || text.includes(`"name": "${TOOL_PREFIX}`)) return true;
   }
   return false;
@@ -226,7 +226,7 @@ export async function runAgentLoopStream(
     // Stream the call, forwarding chunks to the buyer.
     // For Anthropic format: suppress message_start on non-first iterations and
     // message_stop on non-final iterations to maintain one continuous SSE envelope.
-    // For both formats: suppress antseed_* tool call chunks.
+    // For both formats: suppress torve_* tool call chunks.
     let streamResponse: SerializedHttpResponse;
     let suppressingChunks = false;
     try {

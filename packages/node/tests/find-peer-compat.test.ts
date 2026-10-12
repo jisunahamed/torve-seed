@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AntseedNode } from '../src/node.js';
+import { TorveNode } from '../src/node.js';
 import { GITHUB_VERIFICATION_PROOF_TYPE } from '../src/discovery/github-verification.js';
 import { METADATA_VERSION, type PeerMetadata } from '../src/discovery/peer-metadata.js';
 import * as publicJson from '../src/reputation/public-json.js';
@@ -26,11 +26,11 @@ function buildMetadata(peerId: string, timestamp = Date.now()): PeerMetadata {
   };
 }
 
-describe('AntseedNode.findPeer compatibility', () => {
+describe('TorveNode.findPeer compatibility', () => {
   it('falls back to wildcard discovery for old sellers without per-peer topics', async () => {
     const targetId = 'a'.repeat(40);
     const otherId = 'b'.repeat(40);
-    const node = new AntseedNode({ role: 'buyer' });
+    const node = new TorveNode({ role: 'buyer' });
 
     (node as any)._peerLookup = {
       findByPeerId: vi.fn().mockResolvedValue([]),
@@ -58,7 +58,7 @@ describe('AntseedNode.findPeer compatibility', () => {
 
   it('does not scan wildcard when the per-peer topic returns a match', async () => {
     const targetId = 'a'.repeat(40);
-    const node = new AntseedNode({ role: 'buyer' });
+    const node = new TorveNode({ role: 'buyer' });
 
     (node as any)._peerLookup = {
       findByPeerId: vi.fn().mockResolvedValue([
@@ -79,7 +79,7 @@ describe('AntseedNode.findPeer compatibility', () => {
 
   it('awaits identity verification before returning an explicitly requested peer', async () => {
     const targetId = 'a'.repeat(40);
-    const node = new AntseedNode({ role: 'buyer' });
+    const node = new TorveNode({ role: 'buyer' });
     const metadata = buildMetadata(targetId);
     metadata.verifications = { github: [{ username: 'octocat' }] };
     (node as any)._peerLookup = {

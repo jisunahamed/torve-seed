@@ -12,7 +12,7 @@ import {
 
 const ctx: DownloadContext = {
   target: {platform: 'mac', arch: 'arm64'},
-  asset: 'AntSeed-VPR-0.2.31-arm64.dmg',
+  asset: 'Torve-VPR-0.2.31-arm64.dmg',
   tag: 'v0.2.31',
   country: 'DE',
   partial: false,

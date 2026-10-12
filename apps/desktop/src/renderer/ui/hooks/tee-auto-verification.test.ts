@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { TEE_BADGE_MAX_AGE_MS, TEE_MAX_AGE_MS, type TeeEvidence, type TeeSnapshot } from '@antseed/node/tee-status';
+import { TEE_BADGE_MAX_AGE_MS, TEE_MAX_AGE_MS, type TeeEvidence, type TeeSnapshot } from '@torveai/node/tee-status';
 import { TeeAutoVerification } from './tee-auto-verification';
 
-const peer = { peerId: 'seller', advertisedVerifierIds: ['antseed-verifier'] };
+const peer = { peerId: 'seller', advertisedVerifierIds: ['torve-verifier'] };
 const snapshot: TeeSnapshot = { sessionId: 'buyer', verificationEnabled: true, evidence: [] };
-const verdict: TeeEvidence = { peerId: 'seller', verifierId: 'antseed-verifier', fingerprint: 'caps', checkedAt: 0, expiresAt: 300_000, sellerNodeVerified: true, claims: [] };
+const verdict: TeeEvidence = { peerId: 'seller', verifierId: 'torve-verifier', fingerprint: 'caps', checkedAt: 0, expiresAt: 300_000, sellerNodeVerified: true, claims: [] };
 
 describe('automatic TEE checks', () => {
   it('rechecks when the buyer invalidates cached evidence without changing advertised IDs', () => {

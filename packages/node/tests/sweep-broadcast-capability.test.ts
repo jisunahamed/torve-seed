@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AntseedNode } from '../src/node.js';
+import { TorveNode } from '../src/node.js';
 import { ConnectionState } from '../src/types/connection.js';
 import {
   CONNECTION_CAPABILITY_RELAYS_SWEEPS_V1,
@@ -21,11 +21,11 @@ function makePayload(): SweepRequestPayload {
   };
 }
 
-describe('AntseedNode sweep broadcast capabilities', () => {
+describe('TorveNode sweep broadcast capabilities', () => {
   it('only sends sweep requests to connected peers that advertise sweep relaying', () => {
     const relayPeer = toPeerId('a'.repeat(40));
     const nonRelayPeer = toPeerId('b'.repeat(40));
-    const node = new AntseedNode({ role: 'buyer' });
+    const node = new TorveNode({ role: 'buyer' });
     const sendSweepRequest = vi.fn();
 
     const connections = new Map([
@@ -70,8 +70,8 @@ type NodeInternals = {
  *  or 'silent' to never respond. Returns the per-peer offer log. */
 function makeDispatchNode(
   peers: Array<{ peerId: string; behavior: 'submitted' | 'confirmed' | 'rejected' | 'silent'; capable?: boolean }>,
-): { node: AntseedNode; offers: string[] } {
-  const node = new AntseedNode({ role: 'buyer' });
+): { node: TorveNode; offers: string[] } {
+  const node = new TorveNode({ role: 'buyer' });
   const offers: string[] = [];
   const internals = node as unknown as NodeInternals;
 
@@ -99,7 +99,7 @@ function makeDispatchNode(
   return { node, offers };
 }
 
-describe('AntseedNode sequential sweep dispatch', () => {
+describe('TorveNode sequential sweep dispatch', () => {
   it('stops offering once a relayer reports submitted', async () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.999); // keep candidate order stable
     const a = toPeerId('a'.repeat(40));

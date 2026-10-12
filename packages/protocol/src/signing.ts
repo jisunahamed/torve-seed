@@ -1,12 +1,12 @@
 /**
- * Peer message signing: EIP-191 personal_sign with AntSeed domain prefixes to
- * prevent cross-domain signature replay. Moved from @antseed/node p2p/identity.
+ * Peer message signing: EIP-191 personal_sign with Torve domain prefixes to
+ * prevent cross-domain signature replay. Moved from @torveai/node p2p/identity.
  */
 
 import { Wallet, hashMessage, getBytes, hexlify, verifyMessage } from 'ethers';
 import { MSG_SIGNING_DOMAIN } from './connection-auth.js';
 
-const DOMAIN_DATA = new TextEncoder().encode('antseed-data-v1:');
+const DOMAIN_DATA = new TextEncoder().encode('torve-data-v1:');
 const DOMAIN_MSG = MSG_SIGNING_DOMAIN;
 
 export function hexToBytes(hex: string): Uint8Array {
@@ -25,7 +25,7 @@ export function bytesToHex(bytes: Uint8Array): string {
 }
 
 /**
- * Sign binary data. Domain-tagged with "antseed-data-v1:" to prevent
+ * Sign binary data. Domain-tagged with "torve-data-v1:" to prevent
  * cross-domain replay. Uses EIP-191 personal_sign; returns 65 bytes (r+s+v).
  */
 export function signData(
@@ -62,7 +62,7 @@ export function verifySignature(
 
 /**
  * Sign a UTF-8 message and return a hex-encoded secp256k1 signature (130 hex
- * chars = 65 bytes). Domain-tagged with "antseed-msg-v1:".
+ * chars = 65 bytes). Domain-tagged with "torve-msg-v1:".
  */
 export function signUtf8(wallet: Wallet, message: string): string {
   const tagged = DOMAIN_MSG + message;

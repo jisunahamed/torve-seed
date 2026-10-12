@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { emissions, formatAnts } from '@antseed/ants';
+import { emissions, formatAnts } from '@torveai/ants';
 import { ants, epochDate, printJson, runRead } from './shared.js';
 
 /** Share of the epoch emission as a percentage, e.g. 2000/100000 → "2%". */

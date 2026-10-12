@@ -2,9 +2,9 @@ import type { Command } from 'commander';
 import chalk from 'chalk';
 import { createInterface } from 'node:readline';
 import { resolve, isAbsolute } from 'node:path';
-import { loadAntAgent, AntAgentProvider } from '@antseed/ant-agent';
-import { BaseProvider, StaticTokenProvider } from '@antseed/provider-core';
-import type { SerializedHttpRequest } from '@antseed/node';
+import { loadAntAgent, AntAgentProvider } from '@torveai/ant-agent';
+import { BaseProvider, StaticTokenProvider } from '@torveai/provider-core';
+import type { SerializedHttpRequest } from '@torveai/node';
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -28,7 +28,7 @@ function resolveLLMConfig(options: Record<string, unknown>): LLMConfig {
     ?? '';
 
   const model = (options['model'] as string | undefined)
-    ?? process.env['ANTSEED_MODEL']
+    ?? process.env['TORVE_MODEL']
     ?? 'claude-sonnet-4-5-20250929';
 
   if (!apiKey) {

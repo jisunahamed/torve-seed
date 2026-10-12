@@ -16,7 +16,7 @@ import styles from './VprPreferencesView.module.scss';
 
 type Props = { onSelectView?: (view: import('../../types').ViewName) => void };
 
-const TELEMETRY_DOC_URL = 'https://github.com/AntSeed/antseed/blob/main/docs/telemetry.md';
+const TELEMETRY_DOC_URL = 'https://github.com/Torve/torve/blob/main/docs/telemetry.md';
 
 export function VprPreferencesView({ onSelectView }: Props) {
   const actions = useActions();
@@ -35,7 +35,7 @@ export function VprPreferencesView({ onSelectView }: Props) {
 
   useEffect(() => {
     let cancelled = false;
-    void window.antseedDesktop?.getTelemetryStatus?.()
+    void window.torveDesktop?.getTelemetryStatus?.()
       .then((status) => {
         if (!cancelled && status) setTelemetryStatus(status);
       })
@@ -44,7 +44,7 @@ export function VprPreferencesView({ onSelectView }: Props) {
   }, []);
 
   const toggleTelemetry = (next: boolean) => {
-    const setTelemetryEnabled = window.antseedDesktop?.setTelemetryEnabled;
+    const setTelemetryEnabled = window.torveDesktop?.setTelemetryEnabled;
     if (!telemetryStatus || !setTelemetryEnabled) return;
 
     const previousStatus = telemetryStatus;
@@ -254,7 +254,7 @@ export function VprPreferencesView({ onSelectView }: Props) {
             <button
               type="button"
               className={styles.telemetryDetails}
-              onClick={() => { void window.antseedDesktop?.openExternalUrl?.(TELEMETRY_DOC_URL); }}
+              onClick={() => { void window.torveDesktop?.openExternalUrl?.(TELEMETRY_DOC_URL); }}
             >
               Review every event and privacy control
             </button>

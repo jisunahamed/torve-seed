@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActionDialog, Confirm } from './components/Confirm';
 
 const modal = vi.hoisted(() => ({ close: undefined as (() => void) | undefined }));
-vi.mock('@antseed/ui', async original => ({
-  ...await original<typeof import('@antseed/ui')>(),
+vi.mock('@torveai/ui', async original => ({
+  ...await original<typeof import('@torveai/ui')>(),
   Modal: ({ children, title, onClose }: { children: ReactNode; title: string; onClose: () => void }) => {
     modal.close = onClose;
     return createElement('section', { role: 'dialog', 'aria-label': title }, createElement('h2', null, title), children);

@@ -35,7 +35,7 @@ export interface DaemonDepositsStatus {
 }
 
 export async function daemonDepositsStatus(port: number): Promise<DaemonDepositsStatus | null> {
-  const body = await daemonJson(port, '/_antseed/deposits/status', 2_000)
+  const body = await daemonJson(port, '/_torve/deposits/status', 2_000)
   if (!body || body['ok'] !== true) return null
   return {
     watcher: body['watcher'] === true,
@@ -45,7 +45,7 @@ export async function daemonDepositsStatus(port: number): Promise<DaemonDeposits
 }
 
 export async function daemonSetWatchMode(port: number, mode: 'active' | 'background'): Promise<boolean> {
-  const res = await daemonFetch(port, '/_antseed/deposits/watch', {
+  const res = await daemonFetch(port, '/_torve/deposits/watch', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ mode }),

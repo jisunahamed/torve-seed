@@ -5,7 +5,7 @@ import { readFile, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { identityFromPrivateKeyHex } from '@antseed/node';
+import { identityFromPrivateKeyHex } from '@torveai/node';
 import { StakingSessionManager } from '../dist/main/staking/session.js';
 
 async function main() {

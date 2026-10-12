@@ -1,5 +1,5 @@
-import { DHTNode, type DHTNodeConfig } from '@antseed/node/discovery';
-import { toPeerId } from '@antseed/node';
+import { DHTNode, type DHTNodeConfig } from '@torveai/node/discovery';
+import { toPeerId } from '@torveai/node';
 
 /**
  * Creates a local DHT bootstrap node for isolated testing.

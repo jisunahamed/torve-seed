@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { AntseedNode } from '@antseed/node';
-import type { SerializedHttpRequest, PeerInfo } from '@antseed/node';
+import { TorveNode } from '@torveai/node';
+import type { SerializedHttpRequest, PeerInfo } from '@torveai/node';
 import { createLocalBootstrap } from './helpers/local-bootstrap.js';
 import { MockAnthropicProvider } from './helpers/mock-provider.js';
 import { tmpdir } from 'node:os';
@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 async function waitForPeers(
-  node: AntseedNode,
+  node: TorveNode,
   expectedCount: number,
   timeoutMs = 15_000,
   intervalMs = 500,
@@ -42,8 +42,8 @@ function makeRequest(overrides?: Partial<SerializedHttpRequest>): SerializedHttp
 
 describe('Payment negotiation: seller sends PaymentRequired on 402', () => {
   let bootstrap: Awaited<ReturnType<typeof createLocalBootstrap>> | null = null;
-  let sellerNode: AntseedNode | null = null;
-  let buyerNode: AntseedNode | null = null;
+  let sellerNode: TorveNode | null = null;
+  let buyerNode: TorveNode | null = null;
   let sellerDataDir: string | null = null;
   let buyerDataDir: string | null = null;
 
@@ -59,10 +59,10 @@ describe('Payment negotiation: seller sends PaymentRequired on 402', () => {
     bootstrap = await createLocalBootstrap();
 
     // Seller with a fake payments config (will trigger 402 path)
-    sellerDataDir = await mkdtemp(join(tmpdir(), 'antseed-seller-pay-'));
+    sellerDataDir = await mkdtemp(join(tmpdir(), 'torve-seller-pay-'));
     const mockProvider = new MockAnthropicProvider();
 
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: 'seller',
       dataDir: sellerDataDir,
       dhtPort: 0,
@@ -86,8 +86,8 @@ describe('Payment negotiation: seller sends PaymentRequired on 402', () => {
     await sellerNode.start();
 
     // Buyer without payment manager (no payments config)
-    buyerDataDir = await mkdtemp(join(tmpdir(), 'antseed-buyer-pay-'));
-    buyerNode = new AntseedNode({
+    buyerDataDir = await mkdtemp(join(tmpdir(), 'torve-buyer-pay-'));
+    buyerNode = new TorveNode({
       role: 'buyer',
       dataDir: buyerDataDir,
       dhtPort: 0,
@@ -111,7 +111,7 @@ describe('Payment negotiation: seller sends PaymentRequired on 402', () => {
     const response = await buyerNode!.sendRequest(seller!, request);
 
     expect(response.statusCode).toBe(503);
-    expect(response.headers['x-antseed-fault-attribution']).toBe('buyer');
+    expect(response.headers['x-torve-fault-attribution']).toBe('buyer');
     const body = new TextDecoder().decode(response.body);
     expect(body).toContain('buyer_payments_inactive');
     expect(body).toContain('payments are not running on this buyer');
@@ -124,10 +124,10 @@ describe('Payment negotiation: seller sends PaymentRequired on 402', () => {
     bootstrap = await createLocalBootstrap();
 
     // Seller WITHOUT payments — no sessions client, no 402
-    sellerDataDir = await mkdtemp(join(tmpdir(), 'antseed-seller-free-'));
+    sellerDataDir = await mkdtemp(join(tmpdir(), 'torve-seller-free-'));
     const mockProvider = new MockAnthropicProvider();
 
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: 'seller',
       dataDir: sellerDataDir,
       dhtPort: 0,
@@ -139,8 +139,8 @@ describe('Payment negotiation: seller sends PaymentRequired on 402', () => {
     sellerNode.registerProvider(mockProvider);
     await sellerNode.start();
 
-    buyerDataDir = await mkdtemp(join(tmpdir(), 'antseed-buyer-free-'));
-    buyerNode = new AntseedNode({
+    buyerDataDir = await mkdtemp(join(tmpdir(), 'torve-buyer-free-'));
+    buyerNode = new TorveNode({
       role: 'buyer',
       dataDir: buyerDataDir,
       dhtPort: 0,
@@ -166,10 +166,10 @@ describe('Payment negotiation: seller sends PaymentRequired on 402', () => {
     bootstrap = await createLocalBootstrap();
 
     // Seller with payments (triggers 402 + PaymentRequired)
-    sellerDataDir = await mkdtemp(join(tmpdir(), 'antseed-seller-evt-'));
+    sellerDataDir = await mkdtemp(join(tmpdir(), 'torve-seller-evt-'));
     const mockProvider = new MockAnthropicProvider();
 
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: 'seller',
       dataDir: sellerDataDir,
       dhtPort: 0,
@@ -190,8 +190,8 @@ describe('Payment negotiation: seller sends PaymentRequired on 402', () => {
     await sellerNode.start();
 
     // Buyer WITH payment manager configured (but unreachable RPC)
-    buyerDataDir = await mkdtemp(join(tmpdir(), 'antseed-buyer-evt-'));
-    buyerNode = new AntseedNode({
+    buyerDataDir = await mkdtemp(join(tmpdir(), 'torve-buyer-evt-'));
+    buyerNode = new TorveNode({
       role: 'buyer',
       dataDir: buyerDataDir,
       dhtPort: 0,

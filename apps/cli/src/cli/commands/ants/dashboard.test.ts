@@ -3,7 +3,7 @@ import test from 'node:test';
 import { Command, CommanderError } from 'commander';
 import { DEFAULT_ANTS_PORT, registerAntsDashboardAction } from './dashboard.js';
 
-test('antseed ants registers a port, --no-open and an optional --address pin', () => {
+test('torve ants registers a port, --no-open and an optional --address pin', () => {
   const ants = new Command('ants');
   registerAntsDashboardAction(ants);
   const port = ants.options.find((option) => option.long === '--port');
@@ -34,7 +34,7 @@ function dashboardCommand() {
   return command;
 }
 
-test('plain antseed ants parses without an account flag', () => {
+test('plain torve ants parses without an account flag', () => {
   const command = dashboardCommand().parse([], { from: 'user' });
   assert.equal(command.opts().address, undefined);
 });

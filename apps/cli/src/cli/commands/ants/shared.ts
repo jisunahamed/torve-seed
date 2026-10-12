@@ -1,11 +1,11 @@
 import type { Command } from 'commander';
 import chalk from 'chalk';
 import ora, { type Ora } from 'ora';
-import { AntsContext, formatAnts, jsonReplacer, type StepReporter } from '@antseed/ants';
+import { AntsContext, formatAnts, jsonReplacer, type StepReporter } from '@torveai/ants';
 import { getGlobalOptions } from '../types.js';
 import { loadConfig } from '../../../config/loader.js';
 import { loadCryptoContext, requireCryptoConfig } from '../../payment-utils.js';
-import type { AntsChainConfig } from '@antseed/ants';
+import type { AntsChainConfig } from '@torveai/ants';
 
 export interface AntsCommandContext {
   ctx: AntsContext;

@@ -6,15 +6,15 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
-import { AntseedNode } from '@antseed/node';
-import type { PeerInfo } from '@antseed/node';
+import { TorveNode } from '@torveai/node';
+import type { PeerInfo } from '@torveai/node';
 import { createLocalBootstrap } from './helpers/local-bootstrap.js';
 import { MockOpenAIImageProvider } from './helpers/mock-openai-provider.js';
 
 const execFileAsync = promisify(execFile);
 
 async function waitForPeers(
-  node: AntseedNode,
+  node: TorveNode,
   expectedCount: number,
   timeoutMs = 15_000,
   intervalMs = 500,
@@ -47,17 +47,17 @@ async function getFreePort(): Promise<number> {
 describe('OpenAI SDK integration: Images API over buyer proxy', () => {
   let tempHomeDir: string | null = null;
   let bootstrap: Awaited<ReturnType<typeof createLocalBootstrap>> | null = null;
-  let sellerNode: AntseedNode | null = null;
-  let buyerNode: AntseedNode | null = null;
+  let sellerNode: TorveNode | null = null;
+  let buyerNode: TorveNode | null = null;
   let sellerDataDir: string | null = null;
   let buyerDataDir: string | null = null;
   let proxy: { start(): Promise<void>; stop(): Promise<void> } | null = null;
 
   beforeAll(async () => {
-    tempHomeDir = await mkdtemp(join(tmpdir(), 'antseed-home-'));
+    tempHomeDir = await mkdtemp(join(tmpdir(), 'torve-home-'));
     process.env['HOME'] = tempHomeDir;
     process.env['USERPROFILE'] = tempHomeDir;
-    await execFileAsync('pnpm', ['--filter', '@antseed/node', 'build'], {
+    await execFileAsync('pnpm', ['--filter', '@torveai/node', 'build'], {
       cwd: join(import.meta.dirname, '..', '..'),
     });
   });
@@ -78,9 +78,9 @@ describe('OpenAI SDK integration: Images API over buyer proxy', () => {
   }> {
     bootstrap = await createLocalBootstrap();
 
-    sellerDataDir = await mkdtemp(join(tmpdir(), 'antseed-seller-images-'));
+    sellerDataDir = await mkdtemp(join(tmpdir(), 'torve-seller-images-'));
     const provider = new MockOpenAIImageProvider();
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: 'seller',
       dataDir: sellerDataDir,
       dhtPort: 0,
@@ -92,8 +92,8 @@ describe('OpenAI SDK integration: Images API over buyer proxy', () => {
     sellerNode.registerProvider(provider);
     await sellerNode.start();
 
-    buyerDataDir = await mkdtemp(join(tmpdir(), 'antseed-buyer-images-'));
-    buyerNode = new AntseedNode({
+    buyerDataDir = await mkdtemp(join(tmpdir(), 'torve-buyer-images-'));
+    buyerNode = new TorveNode({
       role: 'buyer',
       dataDir: buyerDataDir,
       dhtPort: 0,
@@ -127,7 +127,7 @@ describe('OpenAI SDK integration: Images API over buyer proxy', () => {
     const client = new OpenAI({
       apiKey: 'sk-test',
       baseURL: `http://127.0.0.1:${port}/v1`,
-      defaultHeaders: { 'x-antseed-pin-peer': discoveredSeller.peerId },
+      defaultHeaders: { 'x-torve-pin-peer': discoveredSeller.peerId },
     });
 
     const response = await client.images.generate({

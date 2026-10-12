@@ -5,7 +5,7 @@ import {MarqueeBand} from './LogoMarquee';
 
 /**
  * Ink logo band for /agents — the same marquee as the homepage, but the
- * run is the agents Antseed supports (one entry per integration page)
+ * run is the agents Torve supports (one entry per integration page)
  * instead of model vendors. Logos render white at 60% like the homepage.
  */
 
@@ -35,7 +35,7 @@ const AGENTS: LogoItem[] = [
 ];
 
 export function AgentsLogoBar() {
-  return <LogoBar items={AGENTS} ariaLabel="Agents that work with Antseed" />;
+  return <LogoBar items={AGENTS} ariaLabel="Agents that work with Torve" />;
 }
 
 export function LogoBar({items, ariaLabel}: {items: LogoItem[]; ariaLabel: string}) {

@@ -1,4 +1,4 @@
-import { nativeVideoRoute } from '@antseed/api-adapter'
+import { nativeVideoRoute } from '@torveai/api-adapter'
 import { ResourceRoutes } from './resource-routes.js'
 import { prepareVideoRequest, recordVideoAcceptance } from './native-video-proxy.js'
 import { downloadVideo } from './video-download.js'
@@ -8,9 +8,9 @@ import { watchFile, unwatchFile } from 'node:fs'
 import { readFile, writeFile, rename, mkdir, readdir, stat, unlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import {
-  ANTSEED_BUYER_FAULT_ERROR_CODE,
-  ANTSEED_FAULT_ATTRIBUTION_HEADER,
-  ANTSEED_ATTEST_PATH,
+  TORVE_BUYER_FAULT_ERROR_CODE,
+  TORVE_FAULT_ATTRIBUTION_HEADER,
+  TORVE_ATTEST_PATH,
   adaptPeerFaultErrorResponse,
   computeTrustScore,
   decodeSweepRequest,
@@ -23,7 +23,7 @@ import {
   DEFAULT_BUYER_IDENTITY,
   rankModelRoutes,
   sanitizePeerDisplayName,
-  type AntseedNode,
+  type TorveNode,
   type FaultAttribution,
   type BuyerSpendEvent,
   type PeerInfo,
@@ -35,8 +35,8 @@ import {
   type SerializedHttpResponse,
   type SerializedHttpResponseChunk,
   type SweepReceiptPayload,
-} from '@antseed/node'
-import { canonicalModelKey } from '@antseed/node/model-identity'
+} from '@torveai/node'
+import { canonicalModelKey } from '@torveai/node/model-identity'
 import {
   createStreamingAdapter,
   detectRequestServiceApiProtocol,
@@ -84,8 +84,8 @@ import {
 } from './routing.js'
 import {
   computeResponseTelemetry,
-  attachAntseedTelemetryHeaders,
-  attachStreamingAntseedHeaders,
+  attachTorveTelemetryHeaders,
+  attachStreamingTorveHeaders,
 } from './telemetry.js'
 import { DEFAULT_BUYER_PEER_REFRESH_INTERVAL_MS } from '../config/defaults.js'
 import {
@@ -112,8 +112,8 @@ import {
 import { PeerAttributionTracker, HEARTBEAT_MS } from './peer-attribution.js'
 import { estimateAnthropicPromptTokens, isCountTokensPath } from './count-tokens.js'
 import { runVerifier, verifierSupportFingerprint, type VerifierPolicy, type SellerReach, type VerifyOutcome } from '../plugins/verifier.js'
-import { TEE_VERIFIER_ID } from '@antseed/node/tee-status'
-import { parseVerifierCapabilities } from '@antseed/node/verifier-capabilities'
+import { TEE_VERIFIER_ID } from '@torveai/node/tee-status'
+import { parseVerifierCapabilities } from '@torveai/node/verifier-capabilities'
 import { TeeVerification } from './tee-verification.js'
 import { TeeControl } from './tee-control.js'
 import { loadConfig } from '../config/loader.js'
@@ -124,7 +124,7 @@ export { parsePeerPinnedService, rewritePeerPinnedServiceInBody, substituteRoute
 
 /**
  * Why this daemon runs no hot-wallet deposit watcher — surfaced on
- * `/_antseed/deposits/status` so UIs can name the actual cause instead of
+ * `/_torve/deposits/status` so UIs can name the actual cause instead of
  * guessing (a missing watcher used to be indistinguishable from "this chain
  * has no deposit relay").
  */
@@ -138,7 +138,7 @@ const WATCHER_ABSENCE_ERRORS: Record<DepositWatcherAbsenceReason, string> = {
 
 export interface BuyerProxyConfig {
   port: number
-  node: AntseedNode
+  node: TorveNode
   /** Data directory used to persist buyer.state.json (discovered peers, session peer pin). */
   dataDir: string
   /** Config file watched for live buyer.routingPreferences updates. */
@@ -210,7 +210,7 @@ async function waitForRetry(delayMs: number, signal: AbortSignal): Promise<boole
 
 /**
  * A routed-model target is either a bare `<service>` (automatic peer
- * selection) or an explicit `<peerId>@<service>` pin. The `antseed` alias
+ * selection) or an explicit `<peerId>@<service>` pin. The `torve` alias
  * itself can never be a target — it would recurse.
  */
 function isValidRoutedModelTarget(value: string): boolean {
@@ -302,7 +302,7 @@ function failureReasonForStatus(statusCode: number): PeerFailureReason | null {
 }
 
 function responseFaultAttribution(response: SerializedHttpResponse): FaultAttribution {
-  const attribution = response.headers[ANTSEED_FAULT_ATTRIBUTION_HEADER]?.toLowerCase()
+  const attribution = response.headers[TORVE_FAULT_ATTRIBUTION_HEADER]?.toLowerCase()
   return attribution === 'buyer' || attribution === 'peer' || attribution === 'unknown'
     ? attribution
     : 'peer'
@@ -371,7 +371,7 @@ function adaptBuyerFaultErrorResponse(
 ): SerializedHttpResponse {
   if (
     response.statusCode < 400
-    || response.headers[ANTSEED_FAULT_ATTRIBUTION_HEADER]?.toLowerCase() !== 'buyer'
+    || response.headers[TORVE_FAULT_ATTRIBUTION_HEADER]?.toLowerCase() !== 'buyer'
   ) {
     return sanitizePeerBuyerFaultMarker(response)
   }
@@ -396,14 +396,14 @@ function adaptBuyerFaultErrorResponse(
     ? {
         type: 'error',
         error: {
-          type: ANTSEED_BUYER_FAULT_ERROR_CODE,
+          type: TORVE_BUYER_FAULT_ERROR_CODE,
           message: reason ? `${message} (${reason})` : message,
         },
       }
     : {
         error: {
           type: 'api_error',
-          code: ANTSEED_BUYER_FAULT_ERROR_CODE,
+          code: TORVE_BUYER_FAULT_ERROR_CODE,
           message,
           ...(reason ? { param: reason } : {}),
         },
@@ -441,7 +441,7 @@ export function sanitizePeerBuyerFaultMarker(response: SerializedHttpResponse): 
     }
     const record = value as Record<string, unknown>
     for (const key of ['code', 'type', 'errorCode']) {
-      if (record[key] === ANTSEED_BUYER_FAULT_ERROR_CODE) {
+      if (record[key] === TORVE_BUYER_FAULT_ERROR_CODE) {
         record[key] = 'upstream_error'
         changed = true
       }
@@ -688,16 +688,16 @@ export function parsePersistedPeers(
  *
  * Tools like Claude CLI set ANTHROPIC_BASE_URL=http://localhost:8377
  * and the proxy transparently routes their API calls through the
- * Antseed P2P network.
+ * Torve P2P network.
  */
 
 export function makeVerifierReach(
-  node: Pick<AntseedNode, 'sendRequest'>,
+  node: Pick<TorveNode, 'sendRequest'>,
   peer: PeerInfo,
   chosenId: string,
   signal: AbortSignal,
 ): SellerReach {
-  const attestRoute = `${ANTSEED_ATTEST_PATH}/${encodeURIComponent(chosenId)}`
+  const attestRoute = `${TORVE_ATTEST_PATH}/${encodeURIComponent(chosenId)}`
   return async (r) => {
     if (r.path !== attestRoute) {
       throw new Error(`verifier may only call its attestation route (${attestRoute}), not ${r.path}`)
@@ -739,7 +739,7 @@ export async function renameWithRetry(from: string, to: string): Promise<void> {
 /**
  * Delete leftover `.buyer.state.<uuid>.json.tmp` files from state writes whose
  * rename failed in an earlier run. The age floor protects a temp file another
- * process (e.g. `antseed buyer connection set`) is writing right now.
+ * process (e.g. `torve buyer connection set`) is writing right now.
  */
 export async function sweepStaleStateTmpFiles(dir: string, minAgeMs = STATE_TMP_SWEEP_MIN_AGE_MS): Promise<void> {
   let names: string[]
@@ -792,7 +792,7 @@ function sendUnknownBuyerIdentity(res: ServerResponse): void {
 
 export class BuyerProxy {
   private readonly _server: Server
-  private readonly _node: AntseedNode
+  private readonly _node: TorveNode
   private readonly _port: number
   private readonly _bgRefreshIntervalMs: number
   private readonly _peerCacheTtlMs: number
@@ -803,16 +803,16 @@ export class BuyerProxy {
   private _configFileWatching = false
   private _pinnedPeer: string | null
   /**
-   * Route substituted for the `antseed` model alias (`<service>` for automatic
+   * Route substituted for the `torve` model alias (`<service>` for automatic
    * peer selection, or `<peerId>@<service>` for an explicit seller pin).
-   * Set via `POST /_antseed/route` (the desktop keeps it on the current VPR
+   * Set via `POST /_torve/route` (the desktop keeps it on the current VPR
    * selection) and persisted in buyer.state.json like the session peer pin.
    */
   private _defaultRoutedModel: string | null = null
   private _conversations!: ConversationStore
   /**
    * Wall-clock of the last model-request activity (dispatch or streamed
-   * frame). Exposed on /_antseed/buyer-usage so the desktop pill can show a
+   * frame). Exposed on /_torve/buyer-usage so the desktop pill can show a
    * live "traffic" signal without depending on debug logging. A single field
    * write per frame — negligible next to the routing/payment/stream work.
    */
@@ -853,7 +853,7 @@ export class BuyerProxy {
   private readonly _sweepReceipts = new Map<string, SweepReceiptPayload>()
   /**
    * Hot-wallet deposit watcher (auto-sweep). Owned by `buyer start`, attached
-   * here so the desktop and `antseed deposit` can drive it over the control
+   * here so the desktop and `torve deposit` can drive it over the control
    * plane instead of running a second signer against the same wallet.
    */
   private _depositWatcher: DepositWatcher | null = null
@@ -904,7 +904,7 @@ export class BuyerProxy {
       })
     })
 
-    const sweepEventNode = this._node as AntseedNode & {
+    const sweepEventNode = this._node as TorveNode & {
       on?: (event: 'sweep:receipt', listener: (event: { peerId: string; payload: SweepReceiptPayload }) => void) => unknown
     }
     if (typeof sweepEventNode.on === 'function') {
@@ -917,7 +917,7 @@ export class BuyerProxy {
       })
     }
 
-    const spendEventNode = this._node as AntseedNode & {
+    const spendEventNode = this._node as TorveNode & {
       on?: (event: 'payment:spend', listener: (event: BuyerSpendEvent & { buyerIdentity?: string }) => void) => unknown
     }
     if (typeof spendEventNode.on === 'function') {
@@ -927,7 +927,7 @@ export class BuyerProxy {
       })
     }
 
-    const eventNode = this._node as AntseedNode & {
+    const eventNode = this._node as TorveNode & {
       on?: (event: 'peers:discovered', listener: (peers: PeerInfo[]) => void) => unknown
     }
     if (typeof eventNode.on === 'function') {
@@ -1121,7 +1121,7 @@ export class BuyerProxy {
     // Use watchFile (stat polling) rather than watch(): we rewrite
     // buyer.state.json via rename(tmp, stateFile), and fs.watch on Linux is
     // bound to the original inode — after the atomic rename it stops firing,
-    // silently breaking `antseed buyer connection set`. watchFile compares
+    // silently breaking `torve buyer connection set`. watchFile compares
     // stat each tick and works across inode replacement.
     try {
       watchFile(this._stateFile, { persistent: false, interval: 1000 }, (curr, prev) => {
@@ -1321,7 +1321,7 @@ export class BuyerProxy {
         defaultCachedInputUsdPerMillion: p.defaultCachedInputUsdPerMillion ?? null,
         maxConcurrency: p.maxConcurrency ?? 0,
         currentLoad: p.currentLoad ?? null,
-        // On-chain stats read authoritatively by the buyer from AntseedChannels,
+        // On-chain stats read authoritatively by the buyer from TorveChannels,
         // the seller pools, usage accounting and the wash-trading registry.
         // Persisted so CLI/desktop surfaces can render richer UI without their
         // own duplicate RPC and trust-score implementations. The node already
@@ -1660,7 +1660,7 @@ export class BuyerProxy {
     method: string,
     path: string,
   ): Promise<void> {
-    if (path.startsWith('/_antseed/verification')) {
+    if (path.startsWith('/_torve/verification')) {
       await this._teeControl.handle(req, res, method, path,
         () => this._teeVerification.snapshot(this._cachedPeers),
         async (peerId) => {
@@ -1688,7 +1688,7 @@ export class BuyerProxy {
       return
     }
 
-    if (path === '/_antseed/status' && method === 'GET') {
+    if (path === '/_torve/status' && method === 'GET') {
       // Network reachability snapshot for UI diagnostics.
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({
@@ -1703,7 +1703,7 @@ export class BuyerProxy {
       return
     }
 
-    if (path === '/_antseed/peers/refresh' && method === 'POST') {
+    if (path === '/_torve/peers/refresh' && method === 'POST') {
       try {
         const peers = await this._refreshPeersNow()
         await this._stateWriteChain
@@ -1717,7 +1717,7 @@ export class BuyerProxy {
       return
     }
 
-    if (path === '/_antseed/peers' && method === 'GET') {
+    if (path === '/_torve/peers' && method === 'GET') {
       const peers = await this._getPeers()
       const payload = peers.map((p) => ({
         peerId: p.peerId,
@@ -1748,7 +1748,7 @@ export class BuyerProxy {
       return
     }
 
-    if (path === '/_antseed/peer-health' && method === 'GET') {
+    if (path === '/_torve/peer-health' && method === 'GET') {
       const now = this._now()
       const attribution = this._attribution.snapshot(now)
       // `buyerHealthy` and `suppressedUntil` are what make "why is this peer
@@ -1777,7 +1777,7 @@ export class BuyerProxy {
       return
     }
 
-    if (path === '/_antseed/peer-health/clear' && method === 'POST') {
+    if (path === '/_torve/peer-health/clear' && method === 'POST') {
       const chunks: Buffer[] = []
       let totalSize = 0
       for await (const chunk of req) {
@@ -1812,13 +1812,13 @@ export class BuyerProxy {
       return
     }
 
-    if (path === '/_antseed/route' && method === 'GET') {
+    if (path === '/_torve/route' && method === 'GET') {
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ ok: true, model: this._defaultRoutedModel }))
       return
     }
 
-    if (path === '/_antseed/route' && method === 'POST') {
+    if (path === '/_torve/route' && method === 'POST') {
       const chunks: Buffer[] = []
       let totalSize = 0
       for await (const chunk of req) {
@@ -1852,13 +1852,13 @@ export class BuyerProxy {
       return
     }
 
-    if (path === '/_antseed/conversations' && method === 'GET') {
+    if (path === '/_torve/conversations' && method === 'GET') {
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ ok: true, conversations: this._conversations.list() }))
       return
     }
 
-    const conversationMatch = path.match(/^\/_antseed\/conversations\/(.+)$/)
+    const conversationMatch = path.match(/^\/_torve\/conversations\/(.+)$/)
     if (conversationMatch && method === 'GET') {
       let id = ''
       try {
@@ -1876,7 +1876,7 @@ export class BuyerProxy {
       return
     }
 
-    if (path === '/_antseed/conversations/update' && method === 'POST') {
+    if (path === '/_torve/conversations/update' && method === 'POST') {
       const chunks: Buffer[] = []
       let totalSize = 0
       for await (const chunk of req) {
@@ -1936,7 +1936,7 @@ export class BuyerProxy {
       return
     }
 
-    if (path === '/_antseed/connect' && method === 'POST') {
+    if (path === '/_torve/connect' && method === 'POST') {
       const chunks: Buffer[] = []
       let totalSize = 0
       for await (const chunk of req) {
@@ -1983,14 +1983,14 @@ export class BuyerProxy {
       return
     }
 
-    if (path.startsWith('/_antseed/buyer-identities') && method === 'GET') {
+    if (path.startsWith('/_torve/buyer-identities') && method === 'GET') {
       await this._buyerIdentities.loadAll()
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ ok: true, identities: this._node.buyerIdentities() }))
       return
     }
 
-    if (path.startsWith('/_antseed/channels') && method === 'GET') {
+    if (path.startsWith('/_torve/channels') && method === 'GET') {
       const all = /[?&]all=1/.test(path)
       const identity = await this._controlPlaneIdentity(path)
       if (identity === undefined) return sendUnknownBuyerIdentity(res)
@@ -2012,16 +2012,16 @@ export class BuyerProxy {
       return
     }
 
-    // Unauthenticated like every /_antseed route: it relies on the buyer
+    // Unauthenticated like every /_torve route: it relies on the buyer
     // listening on 127.0.0.1 only, since it exposes per-seller spend and tags.
-    if (path.startsWith('/_antseed/attributed-spend') && method === 'GET') {
+    if (path.startsWith('/_torve/attributed-spend') && method === 'GET') {
       const after = Number(new URL(path, 'http://localhost').searchParams.get('after') ?? '0')
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({ ok: true, ...this._spendAttribution.page(Number.isFinite(after) ? after : 0) }))
       return
     }
 
-    if (path.startsWith('/_antseed/buyer-usage') && method === 'GET') {
+    if (path.startsWith('/_torve/buyer-usage') && method === 'GET') {
       const identity = await this._controlPlaneIdentity(path)
       if (identity === undefined) return sendUnknownBuyerIdentity(res)
       const totals = this._node.getBuyerUsageTotals(identity ?? undefined)
@@ -2030,7 +2030,7 @@ export class BuyerProxy {
       return
     }
 
-    const meteringMatch = path.match(/^\/_antseed\/metering\/([^?]+)/)
+    const meteringMatch = path.match(/^\/_torve\/metering\/([^?]+)/)
     if (meteringMatch && method === 'GET') {
       const sellerPeerId = decodeURIComponent(meteringMatch[1]!)
       const identity = await this._controlPlaneIdentity(path)
@@ -2046,7 +2046,7 @@ export class BuyerProxy {
     // dispatch keeps relayers from racing the same nonce and burning gas on
     // reverted transactions. Responds only after a relayer accepts, every
     // candidate declines, or the offer round runs out of peers.
-    if (path === '/_antseed/sweep' && method === 'POST') {
+    if (path === '/_torve/sweep' && method === 'POST') {
       const chunks: Buffer[] = []
       let totalSize = 0
       for await (const chunk of req) {
@@ -2076,7 +2076,7 @@ export class BuyerProxy {
     // Ask a seller to cooperatively close a payment channel, skipping the
     // on-chain request-close → grace → withdraw flow. Needs the daemon's live
     // seller connection, so it can only run here.
-    if (path === '/_antseed/channels/close' && method === 'POST') {
+    if (path === '/_torve/channels/close' && method === 'POST') {
       const chunks: Buffer[] = []
       let totalSize = 0
       for await (const chunk of req) {
@@ -2124,10 +2124,10 @@ export class BuyerProxy {
       return
     }
 
-    // Hot-wallet deposit watcher (auto-sweep). The desktop and `antseed
+    // Hot-wallet deposit watcher (auto-sweep). The desktop and `torve
     // deposit` drive the daemon's single watcher through these instead of
     // running a second signer against the same wallet.
-    if (path === '/_antseed/deposits/status' && method === 'GET') {
+    if (path === '/_torve/deposits/status' && method === 'GET') {
       res.writeHead(200, { 'content-type': 'application/json' })
       res.end(JSON.stringify({
         ok: true,
@@ -2137,14 +2137,14 @@ export class BuyerProxy {
         reason: this._depositWatcher ? null : this._depositWatcherAbsence,
         // Live payments health: configured/active flags + chain-RPC
         // reachability from the node's background monitor. Optional call —
-        // tolerate an older @antseed/node without it.
+        // tolerate an older @torveai/node without it.
         payments: this._node.getPaymentsStatus?.() ?? null,
         status: this._depositWatcher?.status() ?? null,
       }))
       return
     }
 
-    if (path === '/_antseed/deposits/watch' && method === 'POST') {
+    if (path === '/_torve/deposits/watch' && method === 'POST') {
       const chunks: Buffer[] = []
       let totalSize = 0
       for await (const chunk of req) {
@@ -2185,7 +2185,7 @@ export class BuyerProxy {
       return
     }
 
-    const sweepReceiptMatch = path.match(/^\/_antseed\/sweep\/(0x[0-9a-fA-F]{64})$/)
+    const sweepReceiptMatch = path.match(/^\/_torve\/sweep\/(0x[0-9a-fA-F]{64})$/)
     if (sweepReceiptMatch && method === 'GET') {
       const receipt = this._sweepReceipts.get(sweepReceiptMatch[1]!.toLowerCase()) ?? null
       res.writeHead(200, { 'content-type': 'application/json' })
@@ -2200,12 +2200,12 @@ export class BuyerProxy {
   /**
    * GET /v1/models[?type=text|images] and GET /v1/models/:id — answered
    * locally from the discovered-peer cache, aggregated across the network. The
-   * `x-antseed-request-id` response header keeps the port-reuse probe in
-   * `buyer start` recognizing this as an AntSeed proxy.
+   * `x-torve-request-id` response header keeps the port-reuse probe in
+   * `buyer start` recognizing this as an Torve proxy.
    */
   private async _handleNetworkModels(res: ServerResponse, rawPath: string): Promise<void> {
     const url = new URL(rawPath, 'http://localhost')
-    const responseHeaders = { 'content-type': 'application/json', 'x-antseed-request-id': randomUUID() }
+    const responseHeaders = { 'content-type': 'application/json', 'x-torve-request-id': randomUUID() }
     const peers = await this._getPeers()
     const models = buildNetworkModels(peers, this._now(), {
       routingPreferences: this._routingPreferences,
@@ -2264,7 +2264,7 @@ export class BuyerProxy {
     log(`${method} ${path}`)
 
     // Control-plane endpoints — handle before collecting proxy body
-    if (path.startsWith('/_antseed/')) {
+    if (path.startsWith('/_torve/')) {
       return this._handleControlPlane(req, res, method, path)
     }
 
@@ -2341,7 +2341,7 @@ export class BuyerProxy {
         error: {
           type: 'invalid_request_error',
           code: 'unknown_buyer_identity',
-          message: `${BUYER_IDENTITY_HEADER} names no stored buyer identity. Create one with \`antseed buyer identity create <name>\`.`,
+          message: `${BUYER_IDENTITY_HEADER} names no stored buyer identity. Create one with \`torve buyer identity create <name>\`.`,
           param: BUYER_IDENTITY_HEADER,
         },
       }))
@@ -2416,12 +2416,12 @@ export class BuyerProxy {
     const chatPinnedModel = storedConversation?.peerSource === 'user'
       ? storedConversation.pinnedModel
       : storedAutoRoute?.service ?? storedConversation?.pinnedModel ?? null
-    const preferredPeerHeader = normalizePeerId(serializedReq.headers['x-antseed-prefer-peer'] ?? '')
+    const preferredPeerHeader = normalizePeerId(serializedReq.headers['x-torve-prefer-peer'] ?? '')
     const preferredConversationPeerId = preferredPeerHeader ?? storedAutoRoute?.peerId ?? null
     const effectiveRoutedModel = chatPinnedModel ?? this._defaultRoutedModel
     let trackedConversationId: string | null = storedConversation?.id ?? null
 
-    // Resolve the `antseed` model alias to the session's default route first,
+    // Resolve the `torve` model alias to the session's default route first,
     // so the regular `<peerId>@<service>` pin rewrite below picks up the
     // substituted value. Tool configs written by the desktop carry the alias
     // so route changes apply to running sessions without config rewrites.
@@ -2480,7 +2480,7 @@ export class BuyerProxy {
       const titleTurn = isTitleGenerationRequest(conversationBody)
       const snippet = known?.snippet ? null : extractFirstUserSnippet(conversationBody)
       // Some tools (T3/Claude) fire title-only requests when a new chat opens.
-      // Route them normally, but do not create a blank AntSeed conversation row
+      // Route them normally, but do not create a blank Torve conversation row
       // until the first genuine user turn arrives.
       if (known || !titleTurn) {
         const tracked = this._conversations.touch({
@@ -2553,10 +2553,10 @@ export class BuyerProxy {
       const errorMessage =
         'No model or peer was specified.\n'
         + 'Set the request model, or pin a peer one of three ways:\n'
-        + '  • Per-request header:   x-antseed-pin-peer: <peerId>    (40-char hex EVM address)\n'
+        + '  • Per-request header:   x-torve-pin-peer: <peerId>    (40-char hex EVM address)\n'
         + '  • Model name prefix:    <peerId>@<model>\n'
-        + '  • Session pin:          antseed buyer connection set --peer <peerId>\n'
-        + 'Discover peers with:       antseed network browse'
+        + '  • Session pin:          torve buyer connection set --peer <peerId>\n'
+        + 'Discover peers with:       torve network browse'
       res.writeHead(400, { 'content-type': 'application/json' })
       res.end(JSON.stringify({
         error: {
@@ -2565,10 +2565,10 @@ export class BuyerProxy {
           message: errorMessage,
           param: 'model',
           help: {
-            perRequestHeader: 'x-antseed-pin-peer: <peerId>',
+            perRequestHeader: 'x-torve-pin-peer: <peerId>',
             modelPrefix: '<peerId>@<model>',
-            sessionPin: 'antseed buyer connection set --peer <peerId>',
-            discoverPeers: 'antseed network browse',
+            sessionPin: 'torve buyer connection set --peer <peerId>',
+            discoverPeers: 'torve network browse',
           },
         },
       }))
@@ -2766,7 +2766,7 @@ export class BuyerProxy {
             return
           }
           lastRetry = result
-          if (result.responseHeaders[ANTSEED_FAULT_ATTRIBUTION_HEADER]?.toLowerCase() === 'buyer') {
+          if (result.responseHeaders[TORVE_FAULT_ATTRIBUTION_HEADER]?.toLowerCase() === 'buyer') {
             res.writeHead(result.statusCode, result.responseHeaders)
             res.end(result.responseBody)
             return
@@ -2856,8 +2856,8 @@ export class BuyerProxy {
     }
 
     if (!pinnedDiscovered) {
-      const logSource = serializedReq.headers['x-antseed-pin-peer']
-        ? 'x-antseed-pin-peer header'
+      const logSource = serializedReq.headers['x-torve-pin-peer']
+        ? 'x-torve-pin-peer header'
         : bodyPinnedPeer
           ? 'model peer prefix'
           : '--peer flag or session pin'
@@ -2891,7 +2891,7 @@ export class BuyerProxy {
           res.end(
             `Pinned peer ${pinnedPeerId.slice(0, 12)}... does not offer provider=${explicitProvider}. `
             + `Available providers: ${providerList}. `
-            + 'Remove or change the x-antseed-provider header, or pick a different peer. '
+            + 'Remove or change the x-torve-provider header, or pick a different peer. '
             + diagnostics,
           )
           return
@@ -3026,7 +3026,7 @@ export class BuyerProxy {
   }
 
   private _parseMaxUploadBodyBytes(headers: Record<string, string>): number | null {
-    const raw = headers['x-antseed-max-upload-body-bytes']
+    const raw = headers['x-torve-max-upload-body-bytes']
     if (!raw) return null
     const parsed = Number.parseInt(raw, 10)
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null
@@ -3150,8 +3150,8 @@ export class BuyerProxy {
     }
 
     const {
-      'x-antseed-pin-peer': _pinPeer,
-      'x-antseed-prefer-peer': _preferPeer,
+      'x-torve-pin-peer': _pinPeer,
+      'x-torve-prefer-peer': _preferPeer,
       [BUYER_IDENTITY_HEADER]: buyerIdentity,
       [REQUIRED_PARAMETERS_HEADER]: _requiredParameters,
       'x-vpr-session-id': _vprSession,
@@ -3163,8 +3163,8 @@ export class BuyerProxy {
       ...serializedReq,
       headers: {
         ...headersForPeer,
-        'x-antseed-provider': selectedRoutePlan.provider,
-        ...(requestedService ? { 'x-antseed-service': requestedService } : {}),
+        'x-torve-provider': selectedRoutePlan.provider,
+        ...(requestedService ? { 'x-torve-service': requestedService } : {}),
       },
     }
     if (selectedRoutePlan.serviceId) {
@@ -3198,7 +3198,7 @@ export class BuyerProxy {
         ...transformed.request,
         headers: {
           ...transformed.request.headers,
-          'x-antseed-provider': selectedRoutePlan.provider,
+          'x-torve-provider': selectedRoutePlan.provider,
         },
       }
       adaptResponse = (response: SerializedHttpResponse) =>
@@ -3250,7 +3250,7 @@ export class BuyerProxy {
             const adaptedStartResponse = streamResponseAdapter
               ? streamResponseAdapter.adaptStart(startResponse)
               : startResponse
-            const streamingHeaders = attachStreamingAntseedHeaders(
+            const streamingHeaders = attachStreamingTorveHeaders(
               adaptedStartResponse.headers,
               selectedPeer,
               requestForPeer.requestId,
@@ -3285,7 +3285,7 @@ export class BuyerProxy {
         if (
           !streamed
           && adaptResponse
-          && responseForClient.headers[ANTSEED_FAULT_ATTRIBUTION_HEADER]?.toLowerCase() !== 'buyer'
+          && responseForClient.headers[TORVE_FAULT_ATTRIBUTION_HEADER]?.toLowerCase() !== 'buyer'
         ) {
           responseForClient = adaptResponse(responseForClient)
         }
@@ -3341,7 +3341,7 @@ export class BuyerProxy {
         }
 
         // Non-streamed response — check if retryable
-        const responseHeaders = attachAntseedTelemetryHeaders(
+        const responseHeaders = attachTorveTelemetryHeaders(
           responseForClient.headers,
           selectedPeer,
           telemetry,
@@ -3386,7 +3386,7 @@ export class BuyerProxy {
         response = adaptPeerResponse(response)
         if (
           adaptResponse
-          && response.headers[ANTSEED_FAULT_ATTRIBUTION_HEADER]?.toLowerCase() !== 'buyer'
+          && response.headers[TORVE_FAULT_ATTRIBUTION_HEADER]?.toLowerCase() !== 'buyer'
         ) {
           response = adaptResponse(response)
         }
@@ -3405,7 +3405,7 @@ export class BuyerProxy {
         }
 
         const telemetry = computeResponseTelemetry(requestForPeer, response.headers, response.body, selectedPeer)
-        const responseHeaders = attachAntseedTelemetryHeaders(
+        const responseHeaders = attachTorveTelemetryHeaders(
           response.headers,
           selectedPeer,
           telemetry,
@@ -3508,7 +3508,7 @@ export class BuyerProxy {
           statusCode: buyerFaultStatusCode(faultCode),
           headers: {
             'content-type': 'application/json',
-            [ANTSEED_FAULT_ATTRIBUTION_HEADER]: 'buyer',
+            [TORVE_FAULT_ATTRIBUTION_HEADER]: 'buyer',
           },
           body: Buffer.from(JSON.stringify({
             error: {

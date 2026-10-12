@@ -1,16 +1,16 @@
-import type { AntseedRouterPlugin } from '@antseed/node';
+import type { TorveRouterPlugin } from '@torveai/node';
 import { LowestLatencyRouter } from './router.js';
 
 /**
  * Router plugin entry point.
  *
- * The default export must satisfy AntseedRouterPlugin.
+ * The default export must satisfy TorveRouterPlugin.
  * The CLI loads this via dynamic import() and calls createRouter(config).
  *
  * Rename the package, change the name/displayName, and replace
  * LowestLatencyRouter with your own peer selection strategy.
  */
-const plugin: AntseedRouterPlugin = {
+const plugin: TorveRouterPlugin = {
   name: 'lowest-latency',
   displayName: 'Lowest Latency',
   version: '0.1.0',

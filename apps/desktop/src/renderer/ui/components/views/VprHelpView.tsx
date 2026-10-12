@@ -19,12 +19,12 @@ declare const __APP_VERSION__: string;
 
 type Props = { onSelectView?: (view: import('../../types').ViewName) => void };
 
-const TELEGRAM_URL = 'https://t.me/antseed';
-const X_URL = 'https://x.com/antseed';
-const DOCS_BASE_URL = 'https://antseed.com/docs';
+const TELEGRAM_URL = 'https://t.me/torve';
+const X_URL = 'https://x.com/torve';
+const DOCS_BASE_URL = 'https://torveai.com/docs';
 const VPR_GUIDE_URL = `${DOCS_BASE_URL}/guides/vpr`;
-const INTEGRATIONS_URL = 'https://antseed.com/integrations';
-const GITHUB_ISSUES_URL = 'https://github.com/AntSeed/antseed/issues/new';
+const INTEGRATIONS_URL = 'https://torveai.com/integrations';
+const GITHUB_ISSUES_URL = 'https://github.com/Torve/torve/issues/new';
 
 type HelpLink = { label: string; url: string };
 type HelpSection = { heading: string; body: string; link?: HelpLink };
@@ -45,7 +45,7 @@ const HELP_TOPICS: HelpTopic[] = [
       {
         key: 'what-is',
         label: 'What the AI VPN does',
-        intro: 'The AI VPN is like a VPN for AI: it routes AI requests from the tools you already use through the Antseed network.',
+        intro: 'The AI VPN is like a VPN for AI: it routes AI requests from the tools you already use through the Torve network.',
         sections: [
           {
             heading: 'Keep using your normal tools',
@@ -58,7 +58,7 @@ const HELP_TOPICS: HelpTopic[] = [
         ],
         links: [
           { label: 'Read the complete AI VPN guide', url: VPR_GUIDE_URL },
-          { label: 'Understand the Antseed protocol', url: `${DOCS_BASE_URL}/overview` },
+          { label: 'Understand the Torve protocol', url: `${DOCS_BASE_URL}/overview` },
         ],
       },
       {
@@ -72,7 +72,7 @@ const HELP_TOPICS: HelpTopic[] = [
           },
           {
             heading: 'Stopping the router',
-            body: 'Stopping the router prevents connected apps from sending new requests through Antseed. It does not remove their saved connection settings.',
+            body: 'Stopping the router prevents connected apps from sending new requests through Torve. It does not remove their saved connection settings.',
           },
         ],
         links: [{ label: 'Start and use the AI VPN', url: `${VPR_GUIDE_URL}#start-the-router` }],
@@ -169,7 +169,7 @@ const HELP_TOPICS: HelpTopic[] = [
           },
           {
             heading: 'Choose the route',
-            body: 'Use model "antseed" to follow the model selected in AI VPN, a catalog model id for automatic seller selection, or <peerId>@<model> to pin one seller.',
+            body: 'Use model "torve" to follow the model selected in AI VPN, a catalog model id for automatic seller selection, or <peerId>@<model> to pin one seller.',
           },
         ],
         links: [
@@ -246,11 +246,11 @@ const HELP_TOPICS: HelpTopic[] = [
       {
         key: 'prompt-visibility',
         label: 'Who can see my requests?',
-        intro: 'Antseed is anonymous by default: sellers receive a pseudonymous peer or wallet identity, not Antseed account, name, email, or personal profile.',
+        intro: 'Torve is anonymous by default: sellers receive a pseudonymous peer or wallet identity, not Torve account, name, email, or personal profile.',
         sections: [
           {
             heading: 'Identity and content are separate',
-            body: 'A standard seller can process the prompt it serves, but Antseed does not tell the seller who you are. Verified TEE routes can add stronger content confidentiality.',
+            body: 'A standard seller can process the prompt it serves, but Torve does not tell the seller who you are. Verified TEE routes can add stronger content confidentiality.',
           },
           {
             heading: 'What stays local',
@@ -259,7 +259,7 @@ const HELP_TOPICS: HelpTopic[] = [
         ],
         links: [
           { label: 'Privacy and seller visibility', url: `${VPR_GUIDE_URL}#privacy-transport-and-seller-trust` },
-          { label: 'Review Antseed security boundaries', url: `${DOCS_BASE_URL}/security` },
+          { label: 'Review Torve security boundaries', url: `${DOCS_BASE_URL}/security` },
         ],
       },
       {
@@ -415,7 +415,7 @@ const HELP_TOPICS: HelpTopic[] = [
         ],
         links: [
           { label: 'Understand AI VPN rewards', url: `${VPR_GUIDE_URL}#rewards` },
-          { label: 'Read the ANTS token overview', url: 'https://antseed.com/ants-token' },
+          { label: 'Read the ANTS token overview', url: 'https://torveai.com/ants-token' },
         ],
       },
     ],
@@ -435,7 +435,7 @@ const HELP_TOPICS: HelpTopic[] = [
           },
           {
             heading: 'Check network controls',
-            body: 'Security software may be blocking peer connections. Antseed prefers encrypted TCP and uses WebRTC DataChannels as a fallback; WebRTC is not its only transport.',
+            body: 'Security software may be blocking peer connections. Torve prefers encrypted TCP and uses WebRTC DataChannels as a fallback; WebRTC is not its only transport.',
           },
         ],
         links: [{ label: 'Troubleshoot missing peers and models', url: `${VPR_GUIDE_URL}#no-peers-or-models-are-listed` }],
@@ -470,7 +470,7 @@ const HELP_TOPICS: HelpTopic[] = [
           },
           {
             heading: 'Old certificate',
-            body: 'If an older Antseed certificate is still trusted, trusting the current certificate replaces it for future intercepted connections.',
+            body: 'If an older Torve certificate is still trusted, trusting the current certificate replaces it for future intercepted connections.',
           },
         ],
         links: [{ label: 'Fix certificate errors', url: `${VPR_GUIDE_URL}#an-app-reports-a-certificate-or-ssl-error` }],
@@ -578,7 +578,7 @@ const DIAGNOSTIC_ROUTES: Array<{ view: import('../../types').ViewName; label: st
 ];
 
 function openExternal(url: string): void {
-  void window.antseedDesktop?.openExternalUrl?.(url);
+  void window.torveDesktop?.openExternalUrl?.(url);
 }
 
 // Must match the pane animation duration in VprHelpView.module.scss.
@@ -668,7 +668,7 @@ export function VprHelpView({ onSelectView }: Props) {
     typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '',
   );
   useEffect(() => {
-    window.antseedDesktop?.getAppVersion?.().then(setAppVersion).catch(() => {});
+    window.torveDesktop?.getAppVersion?.().then(setAppVersion).catch(() => {});
   }, []);
 
   // Developer mode is the single switch for diagnostics: it enables debug
@@ -684,7 +684,7 @@ export function VprHelpView({ onSelectView }: Props) {
       .map((event) => `[${event.mode}] ${event.line}`)
       .join('\n');
     const report = [
-      `Antseed AI VPN v${appVersion}`,
+      `Torve AI VPN v${appVersion}`,
       `Status: ${snap.networkHealth} | ${snap.connectBadgeLabel} | Port ${snap.proxyPort}`,
       `Network: ${snap.peers} peers, ${snap.serviceCount} services`,
       `Model: ${snap.modelLabel ?? 'none selected'}`,
@@ -899,11 +899,11 @@ export function VprHelpView({ onSelectView }: Props) {
         <div className={styles.section}>
           <p className={styles.sectionLabel}>Legal</p>
           <VprCard>
-            <button type="button" className={styles.row} onClick={() => openExternal('https://antseed.com/terms-of-service#62-sharing-data-with-ai-services')}>
+            <button type="button" className={styles.row} onClick={() => openExternal('https://torveai.com/terms-of-service#62-sharing-data-with-ai-services')}>
               <span className={styles.rowLabel}>Privacy Policy</span>
               <HugeiconsIcon icon={ArrowUpRight01Icon} size={16} strokeWidth={2} className={styles.rowGlyph} />
             </button>
-            <button type="button" className={styles.row} onClick={() => openExternal('https://antseed.com/terms-of-service')}>
+            <button type="button" className={styles.row} onClick={() => openExternal('https://torveai.com/terms-of-service')}>
               <span className={styles.rowLabel}>Terms of Service</span>
               <HugeiconsIcon icon={ArrowUpRight01Icon} size={16} strokeWidth={2} className={styles.rowGlyph} />
             </button>
@@ -913,7 +913,7 @@ export function VprHelpView({ onSelectView }: Props) {
         <div className={styles.section}>
           <p className={styles.sectionLabel}>App details</p>
           <VprCard>
-            <button type="button" className={styles.row} onClick={() => openExternal('https://github.com/AntSeed/antseed/blob/main/CHANGELOG.md')}>
+            <button type="button" className={styles.row} onClick={() => openExternal('https://github.com/Torve/torve/blob/main/CHANGELOG.md')}>
               <span className={styles.rowLabel}>Changelog</span>
               <HugeiconsIcon icon={ArrowUpRight01Icon} size={16} strokeWidth={2} className={styles.rowGlyph} />
             </button>

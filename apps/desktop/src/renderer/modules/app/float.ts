@@ -110,7 +110,7 @@ export function initVprFloatModule({
   function floatModels(): { models: VprFloatModel[]; favoriteKeys: string[] } {
     const selection = uiState.vprRouteSelection.model;
     const favorites = loadFavoriteModels();
-    // Video models only run through the Antseed Videos skill, so they are
+    // Video models only run through the Torve Videos skill, so they are
     // never offered as a route for new sessions.
     const catalog = uiState.vprModelCatalog.filter((entry) => entry.kind !== 'video');
     const favoriteEntries = selectFavoriteVprCatalog(catalog, favorites);
@@ -165,7 +165,7 @@ export function initVprFloatModule({
       DataChannel frame including streaming chunks — but are only emitted
       with debug logging on, so the buyer dispatch/response markers and the
       system proxy's `| source:` forwards back them up. Deliberately narrow:
-      control-plane polls (`GET /_antseed/...`, `GET /v1/models`) and CONNECT
+      control-plane polls (`GET /_torve/...`, `GET /v1/models`) and CONNECT
       tunnels (any app HTTPS traffic — telemetry, update checks) must not
       pulse. */
   const TRAFFIC_LINE_PATTERN = /\[ProxyMux\] (?:send|recv) |POST \/v1\/|Routing to peer |Response: \d{3} \(|\| source:/;

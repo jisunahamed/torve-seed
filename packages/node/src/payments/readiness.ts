@@ -39,8 +39,8 @@ export async function checkSellerReadiness(
   checks.push({
     name: 'Peer registration',
     passed: isReg,
-    message: isReg ? 'Registered' : 'Not registered. Run: antseed seller register',
-    command: isReg ? undefined : 'antseed seller register',
+    message: isReg ? 'Registered' : 'Not registered. Run: torve seller register',
+    command: isReg ? undefined : 'torve seller register',
   });
 
   // 3. Use the configured staking contract's eligibility rule. The seller
@@ -51,8 +51,8 @@ export async function checkSellerReadiness(
     passed: eligible,
     message: eligible
       ? 'Seller meets on-chain eligibility requirements'
-      : 'Seller does not meet on-chain eligibility requirements. Check agent binding and required stake with: antseed seller status',
-    command: eligible ? undefined : 'antseed seller status',
+      : 'Seller does not meet on-chain eligibility requirements. Check agent binding and required stake with: torve seller status',
+    command: eligible ? undefined : 'torve seller status',
   });
 
   return checks;
@@ -82,8 +82,8 @@ export async function checkBuyerReadiness(
     passed: balance.available > 0n,
     message: balance.available > 0n
       ? `Available: ${balance.available}`
-      : 'No USDC deposited. Run: antseed buyer deposit <amount>',
-    command: balance.available > 0n ? undefined : 'antseed buyer deposit 10',
+      : 'No USDC deposited. Run: torve buyer deposit <amount>',
+    command: balance.available > 0n ? undefined : 'torve buyer deposit 10',
   });
 
   return checks;

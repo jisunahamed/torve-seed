@@ -11,12 +11,12 @@ describe('provider-claude-code plugin', () => {
 
   it('has configSchema with expected fields', () => {
     const keys = plugin.configSchema!.map((f) => f.key);
-    expect(keys).toContain('ANTSEED_INPUT_USD_PER_MILLION');
-    expect(keys).toContain('ANTSEED_OUTPUT_USD_PER_MILLION');
-    expect(keys).toContain('ANTSEED_MAX_CONCURRENCY');
-    expect(keys).toContain('ANTSEED_ALLOWED_SERVICES');
+    expect(keys).toContain('TORVE_INPUT_USD_PER_MILLION');
+    expect(keys).toContain('TORVE_OUTPUT_USD_PER_MILLION');
+    expect(keys).toContain('TORVE_MAX_CONCURRENCY');
+    expect(keys).toContain('TORVE_ALLOWED_SERVICES');
     expect(keys).not.toContain('ANTHROPIC_API_KEY');
-    expect(keys).not.toContain('ANTSEED_AUTH_TYPE');
+    expect(keys).not.toContain('TORVE_AUTH_TYPE');
   });
 
   it('creates provider with default config', () => {
@@ -31,8 +31,8 @@ describe('provider-claude-code plugin', () => {
 
   it('applies custom pricing', () => {
     const provider = plugin.createProvider({
-      ANTSEED_INPUT_USD_PER_MILLION: '5',
-      ANTSEED_OUTPUT_USD_PER_MILLION: '15',
+      TORVE_INPUT_USD_PER_MILLION: '5',
+      TORVE_OUTPUT_USD_PER_MILLION: '15',
     });
     expect(provider.pricing.defaults.inputUsdPerMillion).toBe(5);
     expect(provider.pricing.defaults.outputUsdPerMillion).toBe(15);

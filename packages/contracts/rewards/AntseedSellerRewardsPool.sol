@@ -6,11 +6,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import { IAntseedRegistry } from "../interfaces/IAntseedRegistry.sol";
-import { IAntseedSellerClaimPolicy } from "../interfaces/IAntseedSellerClaimPolicy.sol";
+import { ITorveRegistry } from "../interfaces/ITorveRegistry.sol";
+import { ITorveSellerClaimPolicy } from "../interfaces/ITorveSellerClaimPolicy.sol";
 
 /**
- * @title AntseedSellerRewardsPool
+ * @title TorveSellerRewardsPool
  * @notice Custody pool for seller ANTS emissions that are earned but not yet
  *         immediately claimable. Emissions mints ANTS to this pool and records
  *         the per-seller locked balance here.
@@ -19,11 +19,11 @@ import { IAntseedSellerClaimPolicy } from "../interfaces/IAntseedSellerClaimPoli
  *         seller claim policy. If no policy is configured, claims are blocked
  *         until a policy is introduced.
  */
-contract AntseedSellerRewardsPool is Ownable, ReentrancyGuard {
+contract TorveSellerRewardsPool is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    IAntseedRegistry public registry;
-    IAntseedSellerClaimPolicy public sellerClaimPolicy;
+    ITorveRegistry public registry;
+    ITorveSellerClaimPolicy public sellerClaimPolicy;
 
     mapping(address => uint256) public lockedRewards;
     uint256 public totalLockedRewards;
@@ -46,7 +46,7 @@ contract AntseedSellerRewardsPool is Ownable, ReentrancyGuard {
 
     constructor(address _registry) Ownable(msg.sender) {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     function recordLockedReward(address seller, uint256 amount) external onlyEmissions {
@@ -62,7 +62,7 @@ contract AntseedSellerRewardsPool is Ownable, ReentrancyGuard {
     function claim(address recipient) external nonReentrant {
         if (recipient == address(0)) revert InvalidAddress();
 
-        IAntseedSellerClaimPolicy policy = sellerClaimPolicy;
+        ITorveSellerClaimPolicy policy = sellerClaimPolicy;
         if (address(policy) == address(0)) revert NoSellerClaimPolicy();
 
         uint256 locked = lockedRewards[msg.sender];
@@ -79,13 +79,13 @@ contract AntseedSellerRewardsPool is Ownable, ReentrancyGuard {
     }
 
     function setSellerClaimPolicy(address policy) external onlyOwner {
-        sellerClaimPolicy = IAntseedSellerClaimPolicy(policy);
+        sellerClaimPolicy = ITorveSellerClaimPolicy(policy);
         emit SellerClaimPolicySet(policy);
     }
 
     function setRegistry(address _registry) external onlyOwner {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
         emit RegistrySet(_registry);
     }
 }

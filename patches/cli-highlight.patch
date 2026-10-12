@@ -7,7 +7,7 @@ index 3df49b3a277d099d26588740318ee51214d5238c..a5baa655c8be54228cfe66b0b4e92d2b
  Object.defineProperty(exports, "__esModule", { value: true });
  exports.parse = exports.stringify = exports.toJson = exports.fromJson = exports.DEFAULT_THEME = exports.plain = void 0;
 -var chalk_1 = __importDefault(require("chalk"));
-+// Patched (AntSeed): inline chainable ANSI styler instead of require("chalk").
++// Patched (Torve): inline chainable ANSI styler instead of require("chalk").
 +// cli-highlight needs chalk@4 (CommonJS), but the app tree ships chalk@5
 +// (ESM-only); electron-builder flattens node_modules so the require() would
 +// resolve to chalk@5 and crash with ERR_REQUIRE_ESM at startup. This shim

@@ -1,20 +1,20 @@
-import { nativeVideoDelivered, nativeVideoRoute, requestService } from '@antseed/api-adapter';
+import { nativeVideoDelivered, nativeVideoRoute, requestService } from '@torveai/api-adapter';
 import {
-  ANTSEED_FAULT_ATTRIBUTION_HEADER,
-  ANTSEED_STREAMING_RESPONSE_HEADER,
-  ANTSEED_SPENDING_AUTH_HEADER,
+  TORVE_FAULT_ATTRIBUTION_HEADER,
+  TORVE_STREAMING_RESPONSE_HEADER,
+  TORVE_SPENDING_AUTH_HEADER,
   VIDEO_DOWNLOAD_STREAM_HEADER,
   VIDEO_DOWNLOAD_STREAM_VERSION,
   type SerializedHttpRequest,
   type SerializedHttpResponse,
   type SerializedHttpResponseChunk,
-} from '@antseed/protocol/http';
-import type { PeerId } from '@antseed/protocol/peer-id';
+} from '@torveai/protocol/http';
+import type { PeerId } from '@torveai/protocol/peer-id';
 import type { BuyerPeerView } from './interfaces.js';
 import type { BuyerConnection } from './interfaces.js';
 import type { ProxyMux } from './proxy-mux.js';
 import { PaymentMux } from './payment-mux.js';
-import { ConnectionState } from '@antseed/protocol/connection-state';
+import { ConnectionState } from '@torveai/protocol/connection-state';
 import type { BuyerPaymentNegotiator, SelectedBillingRoute } from './buyer-payment-negotiator.js';
 import { debugLog, debugWarn } from './debug.js';
 import type { VerificationMux } from './verification-mux.js';
@@ -22,15 +22,15 @@ import type { ResponseAuthSink } from './interfaces.js';
 import type { ResponseAuthSampler } from './interfaces.js';
 import type { BuyerFreeUsageManager } from './buyer-free-usage-manager.js';
 import { verifyResponseAuth, createStreamingResponseHash } from './response-auth.js';
-import { isFreeUnitBillingModel } from '@antseed/protocol/billing';
+import { isFreeUnitBillingModel } from '@torveai/protocol/billing';
 import { isUnitBilledProtocol } from './unit-billing.js';
-import type { ServiceApiProtocol } from '@antseed/protocol/service-api';
+import type { ServiceApiProtocol } from '@torveai/protocol/service-api';
 import {
   detectRequestServiceApiProtocol,
   extractRequestBodyFields,
   selectTargetProtocolForRequest,
-} from '@antseed/api-adapter';
-import { CONNECTION_CAPABILITY_RESPONSE_AUTH_V1 } from '@antseed/protocol/messages';
+} from '@torveai/api-adapter';
+import { CONNECTION_CAPABILITY_RESPONSE_AUTH_V1 } from '@torveai/protocol/messages';
 import { buyerFault, peerFault } from './errors.js';
 import { adaptPeerFaultErrorResponse } from './peer-error-response.js';
 
@@ -81,7 +81,7 @@ export interface BuyerRequestHandlerDeps {
  * Handles buyer-side outbound request execution: connection setup, streaming,
  * timeouts, abort signals, 402 payment negotiation, and cost tracking.
  *
- * Extracted from AntseedNode._sendRequestInternal to separate buyer request
+ * Extracted from TorveNode._sendRequestInternal to separate buyer request
  * orchestration from core node lifecycle.
  */
 export class BuyerRequestHandler {
@@ -115,10 +115,10 @@ export class BuyerRequestHandler {
       this._deps.registerPaymentMux(peer.peerId, negotiator.getOrCreatePaymentMux(peer.peerId, conn));
     }
 
-    // Extract and strip x-antseed-spending-auth header if present (external auth compatibility)
-    const externalSpendingAuth = req.headers[ANTSEED_SPENDING_AUTH_HEADER] ?? null;
+    // Extract and strip x-torve-spending-auth header if present (external auth compatibility)
+    const externalSpendingAuth = req.headers[TORVE_SPENDING_AUTH_HEADER] ?? null;
     if (externalSpendingAuth) {
-      const { [ANTSEED_SPENDING_AUTH_HEADER]: _, ...cleanHeaders } = req.headers;
+      const { [TORVE_SPENDING_AUTH_HEADER]: _, ...cleanHeaders } = req.headers;
       req = { ...req, headers: cleanHeaders };
     }
 
@@ -418,7 +418,7 @@ export class BuyerRequestHandler {
     }
 
     // Provider video APIs may use HTTP 402 for their own errors; only start
-    // AntSeed payment negotiation when the response is our payment contract.
+    // Torve payment negotiation when the response is our payment contract.
     if (
       response.statusCode === 402
       && negotiator
@@ -490,7 +490,7 @@ export class BuyerRequestHandler {
       return;
     }
     // Snapshot the headers: callers add headers to the returned response
-    // (e.g. x-antseed-seller-peer), which would otherwise change what the
+    // (e.g. x-torve-seller-peer), which would otherwise change what the
     // late-arriving ResponseAuth is verified against.
     response = { ...response, headers: { ...response.headers } };
     const storage = this._deps.verificationStorage;
@@ -655,7 +655,7 @@ function isZeroTokenPricing(pricing: SelectedBillingRoute["tokenPricing"]): bool
 
 function extractRequestedProvider(request: SerializedHttpRequest): string | null {
   const providers = Object.entries(request.headers)
-    .filter(([header]) => header.toLowerCase() === "x-antseed-provider")
+    .filter(([header]) => header.toLowerCase() === "x-torve-provider")
     .map(([, value]) => value.trim().toLowerCase())
     .filter((value) => value.length > 0);
 
@@ -663,11 +663,11 @@ function extractRequestedProvider(request: SerializedHttpRequest): string | null
 }
 
 function stripStreamingHeader(response: SerializedHttpResponse): SerializedHttpResponse {
-  if (response.headers[ANTSEED_STREAMING_RESPONSE_HEADER] !== "1") {
+  if (response.headers[TORVE_STREAMING_RESPONSE_HEADER] !== "1") {
     return response;
   }
   const headers = { ...response.headers };
-  delete headers[ANTSEED_STREAMING_RESPONSE_HEADER];
+  delete headers[TORVE_STREAMING_RESPONSE_HEADER];
   return { ...response, headers };
 }
 
@@ -676,7 +676,7 @@ export function stripPeerControlledResponseHeaders(
 ): SerializedHttpResponse {
   const headers = Object.fromEntries(
     Object.entries(response.headers).filter(
-      ([name]) => name.toLowerCase() !== ANTSEED_FAULT_ATTRIBUTION_HEADER,
+      ([name]) => name.toLowerCase() !== TORVE_FAULT_ATTRIBUTION_HEADER,
     ),
   );
   return Object.keys(headers).length === Object.keys(response.headers).length
@@ -712,7 +712,7 @@ function buyerPaymentsInactiveResponse(
     headers: {
       ...response.headers,
       'content-type': 'application/json',
-      [ANTSEED_FAULT_ATTRIBUTION_HEADER]: 'buyer',
+      [TORVE_FAULT_ATTRIBUTION_HEADER]: 'buyer',
     },
     body: new TextEncoder().encode(JSON.stringify({
       error: 'buyer_payments_inactive',

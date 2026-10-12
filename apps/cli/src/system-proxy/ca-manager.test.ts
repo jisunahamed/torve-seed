@@ -6,7 +6,7 @@ import test from 'node:test'
 import { CAManager, classifyCATrust, describeTrustInstallFailure } from './ca-manager.js'
 
 test('CAManager.exists() returns false before generation', async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-ca-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-ca-test-'))
   try {
     const mgr = new CAManager(tmpDir)
     assert.equal(await mgr.exists(), false)
@@ -16,7 +16,7 @@ test('CAManager.exists() returns false before generation', async () => {
 })
 
 test('CAManager.generate() creates cert and key files', async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-ca-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-ca-test-'))
   try {
     const mgr = new CAManager(tmpDir)
     const keys = await mgr.generate()
@@ -29,7 +29,7 @@ test('CAManager.generate() creates cert and key files', async () => {
 })
 
 test('CAManager.load() returns the same PEM that was generated', async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-ca-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-ca-test-'))
   try {
     const mgr = new CAManager(tmpDir)
     const generated = await mgr.generate()
@@ -52,7 +52,7 @@ test('classifyCATrust: trusted when the current fingerprint is installed', () =>
   assert.equal(classifyCATrust('aabbcc', ['AA BB CC', '112233']), 'trusted')
 })
 
-test('classifyCATrust: stale when an AntSeed CA is trusted with a different fingerprint', () => {
+test('classifyCATrust: stale when an Torve CA is trusted with a different fingerprint', () => {
   // The CERT_SIGNATURE_FAILURE case: an old CA is trusted, current one is not.
   assert.equal(classifyCATrust('AABBCC', ['DDEEFF']), 'stale')
 })
@@ -94,7 +94,7 @@ test('describeTrustInstallFailure keeps concise stderr as the detail', () => {
 })
 
 test('CAManager.fingerprint() returns null before generation and hex after', async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-ca-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-ca-test-'))
   try {
     const mgr = new CAManager(tmpDir)
     assert.equal(mgr.fingerprint(), null)
@@ -107,7 +107,7 @@ test('CAManager.fingerprint() returns null before generation and hex after', asy
 })
 
 test('CAManager.generate() is idempotent — second call overwrites cleanly', async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-ca-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-ca-test-'))
   try {
     const mgr = new CAManager(tmpDir)
     const first = await mgr.generate()

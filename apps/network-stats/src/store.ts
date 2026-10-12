@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import type { DecodedMetadataRecorded } from '@antseed/node';
+import type { DecodedMetadataRecorded } from '@torveai/node';
 
 export interface SellerTotals {
   totalRequests: bigint;

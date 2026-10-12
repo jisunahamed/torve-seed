@@ -3,21 +3,21 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import {AntseedDeposits} from "../payments/AntseedDeposits.sol";
-import {AntseedRegistry} from "../core/AntseedRegistry.sol";
+import {TorveDeposits} from "../payments/TorveDeposits.sol";
+import {TorveRegistry} from "../core/TorveRegistry.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 
 /**
- * @title AntseedDepositsFuzz
- * @notice Net-new Deposits coverage not in AntseedDeposits.t.sol: the charge fee-split
+ * @title TorveDepositsFuzz
+ * @notice Net-new Deposits coverage not in TorveDeposits.t.sol: the charge fee-split
  *         arithmetic fuzzed across the full (amount, fee) range, plus a characterization of the
  *         transferOperator zero-address gap (audit lead). The test contract registers itself as
  *         `channels` so it can drive the privileged custody entrypoints.
  */
-contract AntseedDepositsFuzz is Test {
+contract TorveDepositsFuzz is Test {
     MockUSDC usdc;
-    AntseedRegistry registry;
-    AntseedDeposits deposits;
+    TorveRegistry registry;
+    TorveDeposits deposits;
 
     uint256 constant BUYER_PK = 0xB0B;
     address buyer;
@@ -28,8 +28,8 @@ contract AntseedDepositsFuzz is Test {
     function setUp() public {
         buyer = vm.addr(BUYER_PK);
         usdc = new MockUSDC();
-        registry = new AntseedRegistry();
-        deposits = new AntseedDeposits(address(usdc));
+        registry = new TorveRegistry();
+        deposits = new TorveDeposits(address(usdc));
 
         registry.setChannels(address(this)); // test acts as Channels for custody calls
         registry.setProtocolReserve(protocolReserve);

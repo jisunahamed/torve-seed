@@ -12,10 +12,10 @@ test('visible desktop rename preserves upgrade identities', () => {
   const builderConfig = parse(readFileSync(path.join(desktopDir, 'electron-builder.yml'), 'utf8'));
   const appContext = readFileSync(path.join(desktopDir, 'src/main/app-context.ts'), 'utf8');
 
-  assert.equal(packageJson.productName, 'Antseed AI VPN');
-  assert.equal(builderConfig.productName, 'Antseed AI VPN');
-  assert.equal(builderConfig.appId, 'com.antseed.desktop');
-  assert.equal(builderConfig.executableName, 'AntSeed VPR');
-  assert.equal(builderConfig.publish?.owner, 'AntSeed');
+  assert.equal(packageJson.productName, 'Torve AI VPN');
+  assert.equal(builderConfig.productName, 'Torve AI VPN');
+  assert.equal(builderConfig.appId, 'com.torveai.desktop');
+  assert.equal(builderConfig.executableName, 'Torve VPR');
+  assert.equal(builderConfig.publish?.owner, 'Torve');
   assert.match(appContext, /INTERNAL_APP_NAME = 'AntStation Desktop'/);
 });

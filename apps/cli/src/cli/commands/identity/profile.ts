@@ -2,7 +2,7 @@ import type { Command } from 'commander';
 import chalk from 'chalk';
 
 /**
- * Register the `antseed profile` command and its subcommands.
+ * Register the `torve profile` command and its subcommands.
  */
 export function registerProfileCommand(program: Command): void {
   const profile = program
@@ -17,7 +17,7 @@ export function registerProfileCommand(program: Command): void {
       const { join } = await import('node:path');
       const { homedir } = await import('node:os');
 
-      const profilePath = join(homedir(), '.antseed', 'profile.json');
+      const profilePath = join(homedir(), '.torve', 'profile.json');
       try {
         const data = await readFile(profilePath, 'utf-8');
         const prof = JSON.parse(data);
@@ -33,7 +33,7 @@ export function registerProfileCommand(program: Command): void {
         console.log(`  Created:      ${new Date(prof.createdAt).toISOString()}`);
         console.log(`  Updated:      ${new Date(prof.updatedAt).toISOString()}`);
       } catch {
-        console.log(chalk.yellow('No profile found. Use "antseed profile set" to create one.'));
+        console.log(chalk.yellow('No profile found. Use "torve profile set" to create one.'));
       }
     });
 
@@ -52,7 +52,7 @@ export function registerProfileCommand(program: Command): void {
       const { join } = await import('node:path');
       const { homedir } = await import('node:os');
 
-      const dir = join(homedir(), '.antseed');
+      const dir = join(homedir(), '.torve');
       await mkdir(dir, { recursive: true });
       const profilePath = join(dir, 'profile.json');
 
@@ -81,7 +81,7 @@ export function registerProfileCommand(program: Command): void {
 }
 
 /**
- * Register the `antseed peer <peerId>` command.
+ * Register the `torve peer <peerId>` command.
  */
 export function registerPeerCommand(program: Command): void {
   program

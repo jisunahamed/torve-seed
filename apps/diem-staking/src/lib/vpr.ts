@@ -1,7 +1,7 @@
 // Smart VPR download URL — mirrors the hook at
 // `apps/website/src/lib/useLatestDesktopDownload.ts` so the "Download
-// VPR" links on diemantseed.com behave exactly like the ones on
-// antseed.com: when the visitor is on a Mac or Windows machine, resolve a
+// VPR" links on diemtorveai.com behave exactly like the ones on
+// torveai.com: when the visitor is on a Mac or Windows machine, resolve a
 // direct installer URL matching their CPU arch from the real release asset
 // list. On other platforms — or while the GitHub API lookup is in-flight —
 // fall back to the releases page.
@@ -18,8 +18,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
-export const VPR_RELEASES_URL = 'https://github.com/AntSeed/antseed/releases/latest';
-const GH_API_LATEST = 'https://api.github.com/repos/AntSeed/antseed/releases/latest';
+export const VPR_RELEASES_URL = 'https://github.com/Torve/torve/releases/latest';
+const GH_API_LATEST = 'https://api.github.com/repos/Torve/torve/releases/latest';
 
 export type Platform = 'mac' | 'win' | 'linux' | 'unknown';
 export type Arch = 'arm64' | 'x64';

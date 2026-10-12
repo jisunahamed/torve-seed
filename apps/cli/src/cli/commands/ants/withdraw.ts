@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { previewWithdraw, withdraw, formatAnts, type WithdrawPreview } from '@antseed/ants';
+import { previewWithdraw, withdraw, formatAnts, type WithdrawPreview } from '@torveai/ants';
 import { ants, confirm, parseIds, pct, runAction } from './shared.js';
 
 export interface WithdrawOptions {

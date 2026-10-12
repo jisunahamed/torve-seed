@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, ReactNo
 
 /*
  * Local primitives for the checkout look (black on white, Stripe-Checkout feel).
- * Deliberately not the shared @antseed/ui set — those are tuned to the green
+ * Deliberately not the shared @torveai/ui set — those are tuned to the green
  * portal theme. Styles live in ../styles.scss under .btn, .card, .alert,
  * .skeleton, .field and .icon-button.
  */

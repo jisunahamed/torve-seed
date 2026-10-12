@@ -1,11 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { AntseedNode } from '@antseed/node';
+import { TorveNode } from '@torveai/node';
 import type {
   Provider,
   SerializedHttpRequest,
   SerializedHttpResponse,
   PeerInfo,
-} from '@antseed/node';
+} from '@torveai/node';
 import { createLocalBootstrap } from './helpers/local-bootstrap.js';
 import { tmpdir } from 'node:os';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 async function waitForPeers(
-  node: AntseedNode,
+  node: TorveNode,
   expectedCount: number,
   timeoutMs = 15_000,
   intervalMs = 500,
@@ -84,8 +84,8 @@ class StreamingMockProvider implements Provider {
 
 describe('Streaming: SSE streaming request flow across P2P boundary', () => {
   let bootstrap: Awaited<ReturnType<typeof createLocalBootstrap>> | null = null;
-  let sellerNode: AntseedNode | null = null;
-  let buyerNode: AntseedNode | null = null;
+  let sellerNode: TorveNode | null = null;
+  let buyerNode: TorveNode | null = null;
   let sellerDataDir: string | null = null;
   let buyerDataDir: string | null = null;
 
@@ -105,10 +105,10 @@ describe('Streaming: SSE streaming request flow across P2P boundary', () => {
     bootstrap = await createLocalBootstrap();
 
     // 2. Seller with streaming mock provider
-    sellerDataDir = await mkdtemp(join(tmpdir(), 'antseed-seller-'));
+    sellerDataDir = await mkdtemp(join(tmpdir(), 'torve-seller-'));
     const streamingProvider = new StreamingMockProvider();
 
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: 'seller',
       dataDir: sellerDataDir,
       dhtPort: 0,
@@ -121,9 +121,9 @@ describe('Streaming: SSE streaming request flow across P2P boundary', () => {
     await sellerNode.start();
 
     // 3. Buyer
-    buyerDataDir = await mkdtemp(join(tmpdir(), 'antseed-buyer-'));
+    buyerDataDir = await mkdtemp(join(tmpdir(), 'torve-buyer-'));
 
-    buyerNode = new AntseedNode({
+    buyerNode = new TorveNode({
       role: 'buyer',
       dataDir: buyerDataDir,
       dhtPort: 0,

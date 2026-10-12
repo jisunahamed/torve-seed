@@ -7,7 +7,7 @@ hide_title: true
 
 # Getting Started
 
-Antseed is a peer-to-peer network for AI services. Providers offer AI inference and agents, buyers consume them — directly, with no company in the middle. Payments settle in USDC on Base.
+Torve is a peer-to-peer network for AI services. Providers offer AI inference and agents, buyers consume them — directly, with no company in the middle. Payments settle in USDC on Base.
 
 ## How It Works
 
@@ -42,4 +42,4 @@ Your Tool (Claude Code, Codex, curl)
 
 ## Operations
 
-- [Metrics](/docs/guides/metrics) — expose Prometheus-compatible buyer and seller metrics with `antseed metrics serve`
+- [Metrics](/docs/guides/metrics) — expose Prometheus-compatible buyer and seller metrics with `torve metrics serve`

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import { IAntseedSellerClaimPolicy } from "../interfaces/IAntseedSellerClaimPolicy.sol";
-import { IAntseedWashTradingStatus } from "../interfaces/IAntseedWashTradingStatus.sol";
+import { ITorveSellerClaimPolicy } from "../interfaces/ITorveSellerClaimPolicy.sol";
+import { ITorveWashTradingStatus } from "../interfaces/ITorveWashTradingStatus.sol";
 
 interface IEmissionsV2View {
     function legacyEmissions() external view returns (address);
@@ -31,8 +31,8 @@ interface IEmissionsV1View {
 }
 
 /**
- * @title AntseedLegacySellerClaimPolicy
- * @notice Stateless claim policy for the deployed AntseedSellerRewardsPool.
+ * @title TorveLegacySellerClaimPolicy
+ * @notice Stateless claim policy for the deployed TorveSellerRewardsPool.
  *
  *         The pool calls `claimableSellerRewards(seller, locked)` as a view and
  *         is the only contract that mutates balances, so this policy cannot
@@ -57,7 +57,7 @@ interface IEmissionsV1View {
  *           - Epochs are scanned from 0 through `lastEpoch`; pre-migration
  *             epochs claimed through V2 also landed in the pool and must count.
  */
-contract AntseedLegacySellerClaimPolicy is IAntseedSellerClaimPolicy {
+contract TorveLegacySellerClaimPolicy is ITorveSellerClaimPolicy {
     uint256 public constant BPS = 10_000;
 
     IEmissionsV2View public immutable v2;
@@ -65,7 +65,7 @@ contract AntseedLegacySellerClaimPolicy is IAntseedSellerClaimPolicy {
     uint256 public immutable migrationEpoch; // V1 points are merged for epochs <= migrationEpoch
     uint256 public immutable lastEpoch; // last epoch that could have been locked into the pool
     uint256 public immutable releaseBps; // 1000 = 10% of cumulative locked rewards
-    IAntseedWashTradingStatus public immutable washTradingRegistry;
+    ITorveWashTradingStatus public immutable washTradingRegistry;
 
     error InvalidAddress();
     error InvalidValue();
@@ -82,7 +82,7 @@ contract AntseedLegacySellerClaimPolicy is IAntseedSellerClaimPolicy {
         if (lastEpoch_ < migrationEpoch) revert InvalidValue();
         lastEpoch = lastEpoch_;
         releaseBps = releaseBps_;
-        washTradingRegistry = IAntseedWashTradingStatus(washTradingRegistry_);
+        washTradingRegistry = ITorveWashTradingStatus(washTradingRegistry_);
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -123,7 +123,7 @@ contract AntseedLegacySellerClaimPolicy is IAntseedSellerClaimPolicy {
         entitled = (cumulative * releaseBps) / BPS;
     }
 
-    /// @inheritdoc IAntseedSellerClaimPolicy
+    /// @inheritdoc ITorveSellerClaimPolicy
     function claimableSellerRewards(address seller, uint256 locked) external view returns (uint256) {
         if (locked == 0) return 0;
         if (isWashTrader(seller)) return 0;

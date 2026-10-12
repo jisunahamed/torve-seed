@@ -2,7 +2,7 @@
 sidebar_position: 3
 slug: /guides/gateway-server
 title: Run a Gateway on a Server
-description: Install the Antseed buyer and API-key gateway on a Linux server with one command, publish it over HTTPS, and hand out keys.
+description: Install the Torve buyer and API-key gateway on a Linux server with one command, publish it over HTTPS, and hand out keys.
 ---
 
 # Run a Gateway on a Server
@@ -10,16 +10,16 @@ description: Install the Antseed buyer and API-key gateway on a Linux server wit
 A [shared gateway](/docs/guides/gateway-api-keys) is most useful when it is always on. The gateway installer sets one up on a Linux server with a single command:
 
 ```bash
-curl -fsSL --proto '=https' --tlsv1.2 https://antseed.com/install-gateway.sh | sudo bash -s -- --domain llm.example.com
+curl -fsSL --proto '=https' --tlsv1.2 https://torveai.com/install-gateway.sh | sudo bash -s -- --domain llm.example.com
 ```
 
-[Read the script](https://antseed.com/install-gateway.sh) before running it. Its source is [`apps/website/static/install-gateway.sh`](https://github.com/Antseed/antseed/blob/main/apps/website/static/install-gateway.sh) in the Antseed repository.
+[Read the script](https://torveai.com/install-gateway.sh) before running it. Its source is [`apps/website/static/install-gateway.sh`](https://github.com/Torve/torve/blob/main/apps/website/static/install-gateway.sh) in the Torve repository.
 
 It:
 
-1. Installs Node.js 24 and the Antseed CLI under `/opt/antseed`, without touching any Node.js already on the server.
-2. Creates an `antseed` system user whose home, `/var/lib/antseed`, holds the wallet, the buyer identities and the key database.
-3. Runs `antseed buyer start` and the gateway as the systemd services `antseed-buyer` and `antseed-gateway`, which restart on failure and start on boot.
+1. Installs Node.js 24 and the Torve CLI under `/opt/torve`, without touching any Node.js already on the server.
+2. Creates an `torve` system user whose home, `/var/lib/torve`, holds the wallet, the buyer identities and the key database.
+3. Runs `torve buyer start` and the gateway as the systemd services `torve-buyer` and `torve-gateway`, which restart on failure and start on boot.
 4. Publishes the gateway over HTTPS, if you ask it to (see below).
 5. Creates a first API key, unless keys already exist, and prints the base URL, the key and the wallet address.
 
@@ -38,7 +38,7 @@ It needs a Linux server with systemd (Ubuntu, Debian, Fedora, RHEL and similar) 
 Instead of passing the Cloudflare token on the command line, you can provide it in the environment:
 
 ```bash
-curl -fsSL --proto '=https' --tlsv1.2 https://antseed.com/install-gateway.sh \
+curl -fsSL --proto '=https' --tlsv1.2 https://torveai.com/install-gateway.sh \
   | sudo CLOUDFLARED_TUNNEL_TOKEN="…" bash -s -- --public-url https://llm.example.com
 ```
 
@@ -53,7 +53,7 @@ Other options:
 | `--dry-run` | Validates the options and prints what would be installed, without changing anything |
 | `--verbose` | Prints every command and npm's output |
 
-Every option can also be set in the environment, which suits cloud-init and other automation: `ANTSEED_GATEWAY_DOMAIN`, `ANTSEED_GATEWAY_HOST`, `ANTSEED_GATEWAY_PORT`, `ANTSEED_GATEWAY_KEY_LABEL`, `ANTSEED_CLI_VERSION`, `ANTSEED_X402_FACILITATOR_URL`, `CLOUDFLARED_TUNNEL_TOKEN` and `ANTSEED_TUNNEL_PUBLIC_URL`. Run the script with `--help` for the full list.
+Every option can also be set in the environment, which suits cloud-init and other automation: `TORVE_GATEWAY_DOMAIN`, `TORVE_GATEWAY_HOST`, `TORVE_GATEWAY_PORT`, `TORVE_GATEWAY_KEY_LABEL`, `TORVE_CLI_VERSION`, `TORVE_X402_FACILITATOR_URL`, `CLOUDFLARED_TUNNEL_TOKEN` and `TORVE_TUNNEL_PUBLIC_URL`. Run the script with `--help` for the full list.
 
 The script validates every option before it changes anything. It finishes by checking that the gateway answers.
 
@@ -62,26 +62,26 @@ The script validates every option before it changes anything. It finishes by che
 The installer prints something like:
 
 ```
-==> Antseed gateway is running
+==> Torve gateway is running
     Base URL:  https://llm.example.com/v1
-    API key:   antseed_…
+    API key:   torve_…
     Wallet:    0x…  (send USDC on Base to fund paid models)
 ```
 
-The key is shown only once. If you run the installer from cloud-init or a CI job, it also ends up in that system's logs: revoke it there with `antseed gateway key revoke <id>` and create a new one by hand. Test it from anywhere:
+The key is shown only once. If you run the installer from cloud-init or a CI job, it also ends up in that system's logs: revoke it there with `torve gateway key revoke <id>` and create a new one by hand. Test it from anywhere:
 
 ```bash
-curl https://llm.example.com/v1/models -H "Authorization: Bearer antseed_…"
+curl https://llm.example.com/v1/models -H "Authorization: Bearer torve_…"
 ```
 
-Free models work right away. To use paid models, fund the wallet: send USDC on Base to the address shown, or run `antseed buyer deposit --no-watch` for the address and a QR code. The buyer deposits incoming USDC into its credits automatically.
+Free models work right away. To use paid models, fund the wallet: send USDC on Base to the address shown, or run `torve buyer deposit --no-watch` for the address and a QR code. The buyer deposits incoming USDC into its credits automatically.
 
-The installer adds an `antseed` command that runs the CLI as the `antseed` user against the gateway's data, so the commands in [Shared Gateway API Keys](/docs/guides/gateway-api-keys) work as written:
+The installer adds an `torve` command that runs the CLI as the `torve` user against the gateway's data, so the commands in [Shared Gateway API Keys](/docs/guides/gateway-api-keys) work as written:
 
 ```bash
-antseed gateway key create --label "Alice" --new-identity --monthly-limit 20
-antseed gateway key list
-antseed buyer identity list --balances
+torve gateway key create --label "Alice" --new-identity --monthly-limit 20
+torve gateway key list
+torve buyer identity list --balances
 ```
 
 Key changes apply immediately; there is no need to restart anything.
@@ -89,27 +89,27 @@ Key changes apply immediately; there is no need to restart anything.
 ## Operate it
 
 ```bash
-journalctl -u antseed-gateway -u antseed-buyer -f   # logs
-systemctl restart antseed-buyer antseed-gateway     # restart
-systemctl status antseed-gateway
+journalctl -u torve-gateway -u torve-buyer -f   # logs
+systemctl restart torve-buyer torve-gateway     # restart
+systemctl status torve-gateway
 ```
 
 | Path | Contents |
 |---|---|
-| `/var/lib/antseed/.antseed/` | The buyer's data dir: `identity.key` (the default wallet), `buyer-identities/`, `gateway/gateway.db`, `config.json` |
-| `/etc/antseed/gateway.env` | Environment for the gateway service (Cloudflare token, x402 facilitator, `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET`), mode 0600 |
-| `/opt/antseed/` | Node.js and the CLI |
+| `/var/lib/torve/.torve/` | The buyer's data dir: `identity.key` (the default wallet), `buyer-identities/`, `gateway/gateway.db`, `config.json` |
+| `/etc/torve/gateway.env` | Environment for the gateway service (Cloudflare token, x402 facilitator, `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET`), mode 0600 |
+| `/opt/torve/` | Node.js and the CLI |
 
-Back up `/var/lib/antseed/.antseed/identity.key` and `buyer-identities/`: each wallet can hold USDC credits. To keep identity keys in a secret manager instead, see [Keep keys out of the data dir](/docs/guides/gateway-api-keys#keep-keys-out-of-the-data-dir) and add the variables to `/etc/antseed/gateway.env` and a drop-in for `antseed-buyer` (`systemctl edit antseed-buyer`).
+Back up `/var/lib/torve/.torve/identity.key` and `buyer-identities/`: each wallet can hold USDC credits. To keep identity keys in a secret manager instead, see [Keep keys out of the data dir](/docs/guides/gateway-api-keys#keep-keys-out-of-the-data-dir) and add the variables to `/etc/torve/gateway.env` and a drop-in for `torve-buyer` (`systemctl edit torve-buyer`).
 
-To change buyer settings, such as price caps, edit the config as the `antseed` user (`antseed config …`) and restart `antseed-buyer`.
+To change buyer settings, such as price caps, edit the config as the `torve` user (`torve config …`) and restart `torve-buyer`.
 
 ## Upgrade or remove
 
 Run the installer again with the same options to upgrade the CLI and rewrite the services. Existing wallets and keys are kept, and no new key is created.
 
 ```bash
-curl -fsSL --proto '=https' --tlsv1.2 https://antseed.com/install-gateway.sh | sudo bash -s -- --uninstall
+curl -fsSL --proto '=https' --tlsv1.2 https://torveai.com/install-gateway.sh | sudo bash -s -- --uninstall
 ```
 
-`--uninstall` removes the services, the `antseed` command, the Caddy site and `/opt/antseed`. If the installer replaced the stock Caddyfile, uninstalling puts the original back, discarding any edits you made to it since. It keeps `/var/lib/antseed` and `/etc/antseed`, because the wallets may still hold credits.
+`--uninstall` removes the services, the `torve` command, the Caddy site and `/opt/torve`. If the installer replaced the stock Caddyfile, uninstalling puts the original back, discarding any edits you made to it since. It keeps `/var/lib/torve` and `/etc/torve`, because the wallets may still hold credits.

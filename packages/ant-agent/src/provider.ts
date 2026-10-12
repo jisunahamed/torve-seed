@@ -3,7 +3,7 @@ import type {
   SerializedHttpRequest,
   SerializedHttpResponse,
   ProviderStreamCallbacks,
-} from '@antseed/node';
+} from '@torveai/node';
 import type { AntAgentDefinition } from './loader.js';
 import { type AntAgentTool, knowledgeTool } from './tools.js';
 import { runAgentLoop, runAgentLoopStream, type AgentLoopOptions, type ResolvedAgent } from './agent-loop.js';

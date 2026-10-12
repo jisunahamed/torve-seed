@@ -5,14 +5,14 @@ import type { Provider } from '../src/interfaces/seller-provider.js';
 import { decodeHttpResponse, encodeHttpRequest } from '../src/proxy/request-codec.js';
 import { decodeFrame } from '../src/p2p/message-protocol.js';
 import { MessageType, PAYMENT_CODE_CHANNEL_EXHAUSTED } from '../src/types/protocol.js';
-import { ANTSEED_ATTEST_PATH, type Prover, type SellerRequest } from '../src/interfaces/plugin.js';
+import { TORVE_ATTEST_PATH, type Prover, type SellerRequest } from '../src/interfaces/plugin.js';
 import { ResourceOwnershipStore } from '../src/resources/resource-ownership-store.js';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const ATTEST_ID = 'antseed-verifier';
-const ATTEST_ROUTE = `${ANTSEED_ATTEST_PATH}/${ATTEST_ID}`;
+const ATTEST_ID = 'torve-verifier';
+const ATTEST_ROUTE = `${TORVE_ATTEST_PATH}/${ATTEST_ID}`;
 
 function makeProvider(inputUsdPerMillion: number, outputUsdPerMillion: number, opts: {
   name: string;
@@ -135,8 +135,8 @@ it('does not charge a native video on acceptance or JSON status, preserves buyer
   });
   const owners = new Map<string, string>();
   provider.handleRequest = vi.fn(async request => {
-    expect(request.headers['X-Antseed-Buyer-Peer-Id']).toBeUndefined();
-    const buyer = request.headers['x-antseed-buyer-peer-id']!;
+    expect(request.headers['X-Torve-Buyer-Peer-Id']).toBeUndefined();
+    const buyer = request.headers['x-torve-buyer-peer-id']!;
     const isCreate = request.path.endsWith('/queue');
     if (isCreate) owners.set('task', buyer);
     const statusCode = owners.get('task') === buyer ? 200 : 403;
@@ -148,14 +148,14 @@ it('does not charge a native video on acceptance or JSON status, preserves buyer
   const handler = makeSellerRequestHandler({
     providers: [provider], sellerPaymentManager: makeSpmMock({ recordSpend, hasSession: () => paid }),
     channelsClient: {} as any, sessionTracker: null, announcer: null, emit: () => false,
-    resourceOwnershipStore: new ResourceOwnershipStore(join(mkdtempSync(join(tmpdir(), 'antseed-resources-')), 'metering.db')),
+    resourceOwnershipStore: new ResourceOwnershipStore(join(mkdtempSync(join(tmpdir(), 'torve-resources-')), 'metering.db')),
   });
   const frames: Uint8Array[] = [];
   const payment = { sendNeedAuth, sendPaymentRequired: vi.fn() } as any;
   const buyer = 'b'.repeat(40);
   const { mux } = handler.handleConnection(makeConn(frames), buyer, payment);
   const request = (method: string, path: string): SerializedHttpRequest => ({ requestId: `${method}-${frames.length}`, method, path,
-    headers: { 'content-type': 'application/json', 'x-antseed-service': 'video', 'X-Antseed-Buyer-Peer-Id': 'spoofed', 'x-antseed-buyer-peer-id': 'spoofed' }, body: Buffer.from(JSON.stringify(path.endsWith('/queue') ? { model: 'video', duration: '8s' } : { model: 'video', queue_id: 'task' })) });
+    headers: { 'content-type': 'application/json', 'x-torve-service': 'video', 'X-Torve-Buyer-Peer-Id': 'spoofed', 'x-torve-buyer-peer-id': 'spoofed' }, body: Buffer.from(JSON.stringify(path.endsWith('/queue') ? { model: 'video', duration: '8s' } : { model: 'video', queue_id: 'task' })) });
   await mux.handleFrame({ type: MessageType.HttpRequest, messageId: 1, payload: encodeHttpRequest(request('POST', '/api/v1/video/queue')) });
   // Acceptance charges nothing; the price is charged when the video is delivered.
   expect(recordSpend.mock.calls.every(([, cost]) => cost === 0n)).toBe(true);
@@ -186,7 +186,7 @@ describe('native video job ownership', () => {
       serviceUnitBillingModels: { video: { 'venice-video': { version: 1, components: [{ unit: 'video_seconds', priceUsd: 0.1 }] } } },
     });
     provider.handleRequest = vi.fn(async request => ({ requestId: request.requestId, statusCode: 206, headers: { 'content-type': 'video/mp4' }, body: Buffer.from('video') }));
-    const dbPath = join(mkdtempSync(join(tmpdir(), 'antseed-video-download-')), 'metering.db');
+    const dbPath = join(mkdtempSync(join(tmpdir(), 'torve-video-download-')), 'metering.db');
     let store = new ResourceOwnershipStore(dbPath);
     store.recordAcceptedCreate('venice-video', 'job', 'b'.repeat(40));
     store.close();
@@ -198,7 +198,7 @@ describe('native video job ownership', () => {
         const frames: Uint8Array[] = [];
         const payment = { sendNeedAuth: vi.fn(), sendPaymentRequired: vi.fn() } as any;
         const { mux } = handler.handleConnection(makeConn(frames), buyer, payment);
-        const request = { requestId: buyer, method: 'POST', path: '/api/v1/video/retrieve', headers: { 'content-type': 'application/json', 'x-antseed-service': 'video' }, body: new TextEncoder().encode(JSON.stringify({ model: 'video', queue_id: 'job' })) };
+        const request = { requestId: buyer, method: 'POST', path: '/api/v1/video/retrieve', headers: { 'content-type': 'application/json', 'x-torve-service': 'video' }, body: new TextEncoder().encode(JSON.stringify({ model: 'video', queue_id: 'job' })) };
         await mux.handleFrame({ type: MessageType.HttpRequest, messageId: 1, payload: encodeHttpRequest(request) });
         expect(decodeHttpResponse(decodeFrame(frames.at(-1)!)!.message.payload).statusCode).toBe(buyer.startsWith('b') ? 206 : 404);
         expect(payment.sendNeedAuth).not.toHaveBeenCalled();
@@ -213,7 +213,7 @@ describe('native video job ownership', () => {
   const pricing = { version: 1 as const, components: [{ unit: 'video_seconds' as const, priceUsd: 0.1 }] };
 
   function setup(
-    dbPath = join(mkdtempSync(join(tmpdir(), 'antseed-resources-')), 'metering.db'),
+    dbPath = join(mkdtempSync(join(tmpdir(), 'torve-resources-')), 'metering.db'),
     taskIds = ['task-1', 'task-2'],
     spmOverrides: Record<string, unknown> = {},
   ) {
@@ -247,7 +247,7 @@ describe('native video job ownership', () => {
       const connection = connections.get(peer) ?? handler.handleConnection(makeConn(frames), peer, payment);
       connections.set(peer, connection);
       messageId += 1;
-      const request: SerializedHttpRequest = { requestId: `r-${messageId}`, method, path, headers: { 'content-type': 'application/json', 'x-antseed-service': 'video', ...headers }, body: Buffer.from(JSON.stringify(body)) };
+      const request: SerializedHttpRequest = { requestId: `r-${messageId}`, method, path, headers: { 'content-type': 'application/json', 'x-torve-service': 'video', ...headers }, body: Buffer.from(JSON.stringify(body)) };
       await connection.mux.handleFrame({ type: MessageType.HttpRequest, messageId, payload: encodeHttpRequest(request) });
       return decodeHttpResponse(decodeFrame(frames.at(-1)!)!.message.payload);
     };
@@ -304,7 +304,7 @@ describe('native video job ownership', () => {
   });
 
   describe('one-off video channels', () => {
-    const newDbPath = () => join(mkdtempSync(join(tmpdir(), 'antseed-resources-')), 'metering.db');
+    const newDbPath = () => join(mkdtempSync(join(tmpdir(), 'torve-resources-')), 'metering.db');
     const bigVideo = { model: 'video', duration: '20s' };
     const bodyOf = (response: { body: Uint8Array }) => JSON.parse(new TextDecoder().decode(response.body));
     const channelsClient = {
@@ -339,7 +339,7 @@ describe('native video job ownership', () => {
         messageId += 1;
         await mux.handleFrame({ type: MessageType.HttpRequest, messageId, payload: encodeHttpRequest({
           requestId, method: 'POST', path: '/api/v1/video/queue',
-          headers: { 'content-type': 'application/json', 'x-antseed-service': 'video' },
+          headers: { 'content-type': 'application/json', 'x-torve-service': 'video' },
           body: Buffer.from(JSON.stringify(body)),
         }) });
         return decodeHttpResponse(decodeFrame(frames.at(-1)!)!.message.payload);
@@ -488,7 +488,7 @@ describe('native video job ownership', () => {
     const handler = makeSellerRequestHandler({ providers: [provider], sellerPaymentManager: makeSpmMock(), channelsClient: {} as any, sessionTracker: null, announcer: null, emit: () => false });
     const frames: Uint8Array[] = [];
     const { mux } = handler.handleConnection(makeConn(frames), buyer, { sendNeedAuth: vi.fn(), sendPaymentRequired: vi.fn() } as any);
-    await mux.handleFrame({ type: MessageType.HttpRequest, messageId: 1, payload: encodeHttpRequest({ requestId: 'r', method: 'POST', path: '/api/v1/video/retrieve', headers: { 'x-antseed-service': 'video' }, body: Buffer.from('{"model":"video","queue_id":"task"}') }) });
+    await mux.handleFrame({ type: MessageType.HttpRequest, messageId: 1, payload: encodeHttpRequest({ requestId: 'r', method: 'POST', path: '/api/v1/video/retrieve', headers: { 'x-torve-service': 'video' }, body: Buffer.from('{"model":"video","queue_id":"task"}') }) });
     expect(decodeHttpResponse(decodeFrame(frames.at(-1)!)!.message.payload).statusCode).toBe(503);
     expect(provider.handleRequest).not.toHaveBeenCalled();
   });
@@ -699,7 +699,7 @@ describe('SellerRequestHandler payment pricing selection', () => {
       path: '/v1/chat/completions',
       headers: {
         'content-type': 'application/json',
-        'x-antseed-provider': 'openai',
+        'x-torve-provider': 'openai',
       },
       body: new TextEncoder().encode(JSON.stringify({ model: 'local-test' })),
     };
@@ -715,17 +715,17 @@ describe('SellerRequestHandler payment pricing selection', () => {
     const recorded = makeProvider(0, 0, { name: 'recorded', services: ['other'] });
     const replacement = makeProvider(0, 0, { name: 'replacement', services: ['video-model'], serviceApiProtocols: { 'video-model': [protocol] } });
     const handler = makeSellerRequestHandler({ providers: [recorded, replacement], sellerPaymentManager: null, sessionTracker: null, channelsClient: null, announcer: null, emit: () => false });
-    const request: SerializedHttpRequest = { requestId: 'video', method: 'POST', path: '/api/v1/video/retrieve', headers: { 'x-antseed-provider': 'recorded', 'x-antseed-service': 'video-model' }, body: Buffer.from('{"model":"video-model","queue_id":"job"}') };
+    const request: SerializedHttpRequest = { requestId: 'video', method: 'POST', path: '/api/v1/video/retrieve', headers: { 'x-torve-provider': 'recorded', 'x-torve-service': 'video-model' }, body: Buffer.from('{"model":"video-model","queue_id":"job"}') };
     expect(handler.matchProvider(request)).toBeUndefined();
     recorded.services = ['video-model'];
     expect(handler.matchProvider(request)).toBeUndefined();
-    request.headers['x-antseed-provider'] = 'missing';
+    request.headers['x-torve-provider'] = 'missing';
     expect(handler.matchProvider(request)).toBeUndefined();
-    delete request.headers['x-antseed-provider'];
+    delete request.headers['x-torve-provider'];
     expect(handler.matchProvider(request)).toBe(replacement);
     request.path = '/v1/chat/completions';
     request.method = 'POST';
-    request.headers['x-antseed-provider'] = 'missing';
+    request.headers['x-torve-provider'] = 'missing';
     request.body = Buffer.from('{"model":"video-model"}');
     expect(handler.matchProvider(request)).toBe(recorded);
   });

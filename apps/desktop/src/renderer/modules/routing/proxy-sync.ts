@@ -5,9 +5,9 @@ import { routesForSelectedModel } from '../catalog/view-models';
 import { CODING_ONLY_SUFFIX_RE } from '../catalog/model-identity';
 import { activeProfilesFromRuntimeState, buildVprPeerOptions } from './tools';
 
-declare const __ANTSEED_SYSTEM_PROXY_PORT__: number;
+declare const __TORVE_SYSTEM_PROXY_PORT__: number;
 
-const SYSTEM_PROXY_PORT = __ANTSEED_SYSTEM_PROXY_PORT__;
+const SYSTEM_PROXY_PORT = __TORVE_SYSTEM_PROXY_PORT__;
 
 export type VprRouteTarget = {
   peerId: string;
@@ -91,8 +91,8 @@ async function startProfilesOnRoute(
 
 /**
  * Push the current AI VPN selection to the buyer proxy's default route
- * (`POST /_antseed/route`), keeping the proxy the single routing authority:
- * the `antseed` model alias and headless frontends (the Telegram bridge)
+ * (`POST /_torve/route`), keeping the proxy the single routing authority:
+ * the `torve` model alias and headless frontends (the Telegram bridge)
  * resolve their peer from this route instead of re-deriving it. Best-effort —
  * main dedupes repeat values and the buyer proxy may not be running yet, so
  * this is safe to call from polling refreshes.

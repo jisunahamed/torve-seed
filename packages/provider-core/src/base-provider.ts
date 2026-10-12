@@ -5,8 +5,8 @@ import type {
   SerializedHttpResponse,
   SerializedHttpResponseChunk,
   ServiceApiProtocol,
-} from '@antseed/node';
-import { ANTSEED_STREAMING_RESPONSE_HEADER } from '@antseed/node';
+} from '@torveai/node';
+import { TORVE_STREAMING_RESPONSE_HEADER } from '@torveai/node';
 import { HttpRelay, type RelayConfig } from './http-relay.js';
 
 export interface BaseProviderConfig {
@@ -60,7 +60,7 @@ export class BaseProvider implements Provider {
     const entry = this._pending.get(requestId);
     if (!entry) return;
 
-    const isStreamingStart = response.headers[ANTSEED_STREAMING_RESPONSE_HEADER] === '1';
+    const isStreamingStart = response.headers[TORVE_STREAMING_RESPONSE_HEADER] === '1';
     if (isStreamingStart) {
       entry.responseStart = response;
       this._invokeStreamCallback(requestId, 'response-start', () => {
@@ -103,12 +103,12 @@ export class BaseProvider implements Provider {
   }
 
   private _stripStreamingHeader(response: SerializedHttpResponse): SerializedHttpResponse {
-    if (response.headers[ANTSEED_STREAMING_RESPONSE_HEADER] !== '1') {
+    if (response.headers[TORVE_STREAMING_RESPONSE_HEADER] !== '1') {
       return response;
     }
 
     const headers = { ...response.headers };
-    delete headers[ANTSEED_STREAMING_RESPONSE_HEADER];
+    delete headers[TORVE_STREAMING_RESPONSE_HEADER];
     return {
       ...response,
       headers,

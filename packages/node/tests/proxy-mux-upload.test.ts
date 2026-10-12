@@ -8,9 +8,9 @@ import {
 } from '../src/proxy/request-codec.js';
 import { MessageType } from '../src/types/protocol.js';
 import {
-  ANTSEED_UPLOAD_CHUNK_SIZE,
-  ANTSEED_UPLOAD_THRESHOLD_BYTES,
-  ANTSEED_UPLOAD_CHUNK_HEADER,
+  TORVE_UPLOAD_CHUNK_SIZE,
+  TORVE_UPLOAD_THRESHOLD_BYTES,
+  TORVE_UPLOAD_CHUNK_HEADER,
 } from '../src/types/http.js';
 import type { PeerConnection } from '../src/p2p/connection-manager.js';
 import type { SerializedHttpRequest } from '../src/types/http.js';
@@ -49,11 +49,11 @@ describe('ProxyMux chunked upload — buyer side', () => {
     expect(decodeFrameHeader(sent[0]!).type).toBe(MessageType.HttpRequest);
   });
 
-  it('switches to chunked mode for bodies larger than ANTSEED_UPLOAD_THRESHOLD_BYTES', () => {
+  it('switches to chunked mode for bodies larger than TORVE_UPLOAD_THRESHOLD_BYTES', () => {
     const sent: Uint8Array[] = [];
     const mux = createMux((f) => sent.push(f));
 
-    const body = new Uint8Array(ANTSEED_UPLOAD_THRESHOLD_BYTES + 1);
+    const body = new Uint8Array(TORVE_UPLOAD_THRESHOLD_BYTES + 1);
     body.fill(0xAB);
 
     mux.sendProxyRequest(
@@ -75,7 +75,7 @@ describe('ProxyMux chunked upload — buyer side', () => {
     const sent: Uint8Array[] = [];
     const mux = createMux((f) => sent.push(f));
 
-    const body = new Uint8Array(ANTSEED_UPLOAD_THRESHOLD_BYTES + 1);
+    const body = new Uint8Array(TORVE_UPLOAD_THRESHOLD_BYTES + 1);
     mux.sendProxyRequest(
       { requestId: 'r3', method: 'POST', path: '/img', headers: { 'content-type': 'image/png' }, body },
       () => {},
@@ -85,7 +85,7 @@ describe('ProxyMux chunked upload — buyer side', () => {
     const headerFrame = sent[0]!;
     const req = decodeHttpRequest(decodeFrameHeader(headerFrame).payload);
 
-    expect(req.headers[ANTSEED_UPLOAD_CHUNK_HEADER]).toBe('chunked');
+    expect(req.headers[TORVE_UPLOAD_CHUNK_HEADER]).toBe('chunked');
     expect(req.body.length).toBe(0);
     expect(req.headers['content-type']).toBe('image/png');
   });
@@ -94,7 +94,7 @@ describe('ProxyMux chunked upload — buyer side', () => {
     const sent: Uint8Array[] = [];
     const mux = createMux((f) => sent.push(f));
 
-    const body = new Uint8Array(ANTSEED_UPLOAD_THRESHOLD_BYTES + 512);
+    const body = new Uint8Array(TORVE_UPLOAD_THRESHOLD_BYTES + 512);
     for (let i = 0; i < body.length; i++) body[i] = i & 0xFF;
 
     mux.sendProxyRequest(
@@ -127,7 +127,7 @@ describe('ProxyMux chunked upload — seller side', () => {
     mux.onProxyRequest((req) => { received.push(req); });
 
     const requestId = 'upload-seller-1';
-    const body = new Uint8Array(ANTSEED_UPLOAD_THRESHOLD_BYTES + 256);
+    const body = new Uint8Array(TORVE_UPLOAD_THRESHOLD_BYTES + 256);
     body.fill(0x7F);
 
     // Simulate buyer: send header frame then chunks
@@ -151,7 +151,7 @@ describe('ProxyMux chunked upload — seller side', () => {
     expect(req.method).toBe('POST');
     expect(req.path).toBe('/media');
     // Upload marker must be stripped
-    expect(req.headers[ANTSEED_UPLOAD_CHUNK_HEADER]).toBeUndefined();
+    expect(req.headers[TORVE_UPLOAD_CHUNK_HEADER]).toBeUndefined();
     expect(req.headers['content-type']).toBe('image/jpeg');
     expect(req.body.length).toBe(body.length);
     expect(req.body.every((b) => b === 0x7F)).toBe(true);
@@ -164,14 +164,14 @@ describe('ProxyMux chunked upload — seller side', () => {
 
     const requestId = 'three-chunk';
     const chunkData = [
-      new Uint8Array(ANTSEED_UPLOAD_CHUNK_SIZE).fill(0x01),
-      new Uint8Array(ANTSEED_UPLOAD_CHUNK_SIZE).fill(0x02),
-      new Uint8Array(ANTSEED_UPLOAD_CHUNK_SIZE).fill(0x03),
+      new Uint8Array(TORVE_UPLOAD_CHUNK_SIZE).fill(0x01),
+      new Uint8Array(TORVE_UPLOAD_CHUNK_SIZE).fill(0x02),
+      new Uint8Array(TORVE_UPLOAD_CHUNK_SIZE).fill(0x03),
     ];
-    const fullBody = new Uint8Array(ANTSEED_UPLOAD_THRESHOLD_BYTES + ANTSEED_UPLOAD_CHUNK_SIZE);
-    const fillCount = 1 + Math.floor((ANTSEED_UPLOAD_THRESHOLD_BYTES - 1) / ANTSEED_UPLOAD_CHUNK_SIZE);
+    const fullBody = new Uint8Array(TORVE_UPLOAD_THRESHOLD_BYTES + TORVE_UPLOAD_CHUNK_SIZE);
+    const fillCount = 1 + Math.floor((TORVE_UPLOAD_THRESHOLD_BYTES - 1) / TORVE_UPLOAD_CHUNK_SIZE);
     for (let i = 0; i < fillCount; i++) {
-      fullBody.set(chunkData[i % 3]!, i * ANTSEED_UPLOAD_CHUNK_SIZE);
+      fullBody.set(chunkData[i % 3]!, i * TORVE_UPLOAD_CHUNK_SIZE);
     }
 
     const buyerSent: Uint8Array[] = [];
@@ -219,7 +219,7 @@ describe('ProxyMux chunked upload — seller side', () => {
     mux.onProxyRequest((req) => { received.push(req); });
 
     const requestId = 'aborted-upload';
-    const body = new Uint8Array(ANTSEED_UPLOAD_THRESHOLD_BYTES + 1);
+    const body = new Uint8Array(TORVE_UPLOAD_THRESHOLD_BYTES + 1);
 
     const buyerSent: Uint8Array[] = [];
     const buyerMux = createMux((f) => buyerSent.push(f));
@@ -256,24 +256,24 @@ describe('ProxyMux upload limits — storage protection', () => {
   it('rejects upload that exceeds per-request limit with 413', async () => {
     const statusCodes: number[] = [];
     const maxBytesHeaders: string[] = [];
-    // Limit: anything larger than one upload chunk (ANTSEED_UPLOAD_CHUNK_SIZE - 1 bytes)
+    // Limit: anything larger than one upload chunk (TORVE_UPLOAD_CHUNK_SIZE - 1 bytes)
     const sellerMux = createMux(
       (f) => {
         const { type, payload } = decodeFrameHeader(f);
         if (type === MessageType.HttpResponse) {
           const response = decodeHttpResponse(payload);
           statusCodes.push(response.statusCode);
-          const maxBytes = response.headers['x-antseed-max-upload-body-bytes'];
+          const maxBytes = response.headers['x-torve-max-upload-body-bytes'];
           if (maxBytes) maxBytesHeaders.push(maxBytes);
         }
       },
-      { maxUploadBodyBytes: ANTSEED_UPLOAD_CHUNK_SIZE - 1 },
+      { maxUploadBodyBytes: TORVE_UPLOAD_CHUNK_SIZE - 1 },
     );
     sellerMux.onProxyRequest(() => {});
 
     // Body is slightly above chunked threshold → buyer sends header + chunks.
-    // The first chunk is ANTSEED_UPLOAD_CHUNK_SIZE bytes which exceeds the limit.
-    const body = new Uint8Array(ANTSEED_UPLOAD_THRESHOLD_BYTES + 1).fill(0xAA);
+    // The first chunk is TORVE_UPLOAD_CHUNK_SIZE bytes which exceeds the limit.
+    const body = new Uint8Array(TORVE_UPLOAD_THRESHOLD_BYTES + 1).fill(0xAA);
     const buyerSent: Uint8Array[] = [];
     const buyerMux = createMux((f) => buyerSent.push(f));
     buyerMux.sendProxyRequest(
@@ -289,7 +289,7 @@ describe('ProxyMux upload limits — storage protection', () => {
 
     expect(statusCodes).toHaveLength(1);
     expect(statusCodes[0]).toBe(413);
-    expect(maxBytesHeaders[0]).toBe(String(ANTSEED_UPLOAD_CHUNK_SIZE - 1));
+    expect(maxBytesHeaders[0]).toBe(String(TORVE_UPLOAD_CHUNK_SIZE - 1));
     expect(sellerMux.pendingUploadCount()).toBe(0);
     expect(sellerMux.pendingUploadBytes()).toBe(0);
   });
@@ -306,7 +306,7 @@ describe('ProxyMux upload limits — storage protection', () => {
           statusCodes.push(view.getUint16(2 + idLen));
         }
       },
-      { maxTotalPendingUploadBytes: Math.floor(ANTSEED_UPLOAD_CHUNK_SIZE * 1.5) },
+      { maxTotalPendingUploadBytes: Math.floor(TORVE_UPLOAD_CHUNK_SIZE * 1.5) },
     );
     sellerMux.onProxyRequest(() => {});
 
@@ -314,7 +314,7 @@ describe('ProxyMux upload limits — storage protection', () => {
     // so both uploads are pending simultaneously when the second chunk arrives.
     const allFrames: Array<{ requestId: string; frames: Uint8Array[] }> = [];
     for (const id of ['up-1', 'up-2']) {
-      const body = new Uint8Array(ANTSEED_UPLOAD_THRESHOLD_BYTES + ANTSEED_UPLOAD_CHUNK_SIZE).fill(0xBB);
+      const body = new Uint8Array(TORVE_UPLOAD_THRESHOLD_BYTES + TORVE_UPLOAD_CHUNK_SIZE).fill(0xBB);
       const frames: Uint8Array[] = [];
       const buyerMux = createMux((f) => frames.push(f));
       buyerMux.sendProxyRequest(
@@ -340,7 +340,7 @@ describe('ProxyMux upload limits — storage protection', () => {
     }
 
     expect(statusCodes.some((s) => s === 413)).toBe(true);
-    expect(sellerMux.pendingUploadBytes()).toBeLessThanOrEqual(Math.floor(ANTSEED_UPLOAD_CHUNK_SIZE * 1.5));
+    expect(sellerMux.pendingUploadBytes()).toBeLessThanOrEqual(Math.floor(TORVE_UPLOAD_CHUNK_SIZE * 1.5));
   });
 
   it('aborts stalled upload after timeout and sends 408', async () => {
@@ -360,7 +360,7 @@ describe('ProxyMux upload limits — storage protection', () => {
     sellerMux.onProxyRequest(() => {});
 
     // Send only the header frame — never complete the upload
-    const body = new Uint8Array(ANTSEED_UPLOAD_THRESHOLD_BYTES + ANTSEED_UPLOAD_CHUNK_SIZE);
+    const body = new Uint8Array(TORVE_UPLOAD_THRESHOLD_BYTES + TORVE_UPLOAD_CHUNK_SIZE);
     const buyerSent: Uint8Array[] = [];
     const buyerMux = createMux((f) => buyerSent.push(f));
     buyerMux.sendProxyRequest(
@@ -389,7 +389,7 @@ describe('ProxyMux upload limits — storage protection', () => {
     const sellerMux = createMux();
     sellerMux.onProxyRequest(() => {});
 
-    const body = new Uint8Array(ANTSEED_UPLOAD_THRESHOLD_BYTES + ANTSEED_UPLOAD_CHUNK_SIZE).fill(0xFF);
+    const body = new Uint8Array(TORVE_UPLOAD_THRESHOLD_BYTES + TORVE_UPLOAD_CHUNK_SIZE).fill(0xFF);
     const buyerSent: Uint8Array[] = [];
     const buyerMux = createMux((f) => buyerSent.push(f));
     buyerMux.sendProxyRequest(

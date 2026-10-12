@@ -13,7 +13,7 @@
 import {
   DHTNode,
   DEFAULT_DHT_CONFIG,
-  ANTSEED_WILDCARD_TOPIC,
+  TORVE_WILDCARD_TOPIC,
   peerTopic,
   subnetOf,
   subnetTopic,
@@ -189,7 +189,7 @@ async function main() {
       dht,
       resolver,
       label: "wildcard",
-      topic: ANTSEED_WILDCARD_TOPIC,
+      topic: TORVE_WILDCARD_TOPIC,
       target: TARGET,
     });
 

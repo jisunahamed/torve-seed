@@ -4,12 +4,12 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { ANTSToken } from "../../core/ANTSToken.sol";
-import { AntseedRegistry } from "../../core/AntseedRegistry.sol";
-import { AntseedEmissions } from "../../legacy/AntseedEmissions.sol";
-import { AntseedEmissionsV2 } from "../../legacy/AntseedEmissionsV2.sol";
-import { AntseedSellerRewardsPool } from "../../rewards/AntseedSellerRewardsPool.sol";
-import { AntseedLegacyRewardsPoolRegistry } from "../../rewards/AntseedLegacyRewardsPoolRegistry.sol";
-import { AntseedLegacySellerClaimPolicy } from "../../policies/AntseedLegacySellerClaimPolicy.sol";
+import { TorveRegistry } from "../../core/TorveRegistry.sol";
+import { TorveEmissions } from "../../legacy/TorveEmissions.sol";
+import { TorveEmissionsV2 } from "../../legacy/TorveEmissionsV2.sol";
+import { TorveSellerRewardsPool } from "../../rewards/TorveSellerRewardsPool.sol";
+import { TorveLegacyRewardsPoolRegistry } from "../../rewards/TorveLegacyRewardsPoolRegistry.sol";
+import { TorveLegacySellerClaimPolicy } from "../../policies/TorveLegacySellerClaimPolicy.sol";
 import { M002InstallLegacySellerClaims } from "../../script/migrations/M002LegacySellerClaims/Install.s.sol";
 
 contract MockDepositsForM002 {
@@ -58,10 +58,10 @@ contract M002LegacySellerClaimsTest is Test {
     uint256 constant EFFECTIVE_EPOCH = 6;
 
     ANTSToken token;
-    AntseedRegistry registry;
-    AntseedEmissions legacy;
-    AntseedEmissionsV2 v2;
-    AntseedSellerRewardsPool pool;
+    TorveRegistry registry;
+    TorveEmissions legacy;
+    TorveEmissionsV2 v2;
+    TorveSellerRewardsPool pool;
     MockWashRegistryForM002 washRegistry;
     MockUsageAccountingForM002 usageAccounting;
     M002InstallLegacySellerClaims script;
@@ -75,21 +75,21 @@ contract M002LegacySellerClaimsTest is Test {
         vm.warp(1_700_000_000);
 
         token = new ANTSToken();
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         registry.setChannels(address(this));
         registry.setDeposits(address(new MockDepositsForM002()));
         registry.setAntsToken(address(token));
         registry.setProtocolReserve(address(0x50));
         registry.setTeamWallet(address(0x51));
 
-        legacy = new AntseedEmissions(address(registry), INITIAL_EMISSION, EPOCH_DURATION);
+        legacy = new TorveEmissions(address(registry), INITIAL_EMISSION, EPOCH_DURATION);
         registry.setEmissions(address(legacy));
         token.setRegistry(address(registry));
 
         // V2 migrates at epoch 4; sellers earn in epoch 4 and claim (locked) in epoch 6.
         _warpToEpoch(4);
-        pool = new AntseedSellerRewardsPool(address(registry));
-        v2 = new AntseedEmissionsV2(address(registry), address(legacy), address(pool));
+        pool = new TorveSellerRewardsPool(address(registry));
+        v2 = new TorveEmissionsV2(address(registry), address(legacy), address(pool));
         registry.setEmissions(address(v2));
 
         v2.accrueSellerPoints(seller, 100);
@@ -104,7 +104,7 @@ contract M002LegacySellerClaimsTest is Test {
         assertGt(pool.lockedRewards(seller), 0, "rewards locked into the pool");
 
         // M001 cutover: pin the pool at its facade, then flip registry.emissions().
-        pool.setRegistry(address(new AntseedLegacyRewardsPoolRegistry(address(v2), address(token))));
+        pool.setRegistry(address(new TorveLegacyRewardsPoolRegistry(address(v2), address(token))));
         usageAccounting = new MockUsageAccountingForM002(address(new MockEmissionsGateForM002(EFFECTIVE_EPOCH)));
         registry.setEmissions(address(usageAccounting));
 
@@ -135,8 +135,8 @@ contract M002LegacySellerClaimsTest is Test {
         });
     }
 
-    function _policy() internal view returns (AntseedLegacySellerClaimPolicy) {
-        return AntseedLegacySellerClaimPolicy(address(pool.sellerClaimPolicy()));
+    function _policy() internal view returns (TorveLegacySellerClaimPolicy) {
+        return TorveLegacySellerClaimPolicy(address(pool.sellerClaimPolicy()));
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -144,12 +144,12 @@ contract M002LegacySellerClaimsTest is Test {
     function test_poolIsFrozenBeforeM002() public {
         // No policy: claim reverts before touching the token.
         vm.prank(seller);
-        vm.expectRevert(AntseedSellerRewardsPool.NoSellerClaimPolicy.selector);
+        vm.expectRevert(TorveSellerRewardsPool.NoSellerClaimPolicy.selector);
         pool.claim(seller);
 
         // Policy alone is not enough: the pool cannot send ANTS while transfers are disabled.
-        AntseedLegacySellerClaimPolicy policy =
-            new AntseedLegacySellerClaimPolicy(address(v2), 5, 1000, address(washRegistry));
+        TorveLegacySellerClaimPolicy policy =
+            new TorveLegacySellerClaimPolicy(address(v2), 5, 1000, address(washRegistry));
         vm.prank(poolOwner);
         pool.setSellerClaimPolicy(address(policy));
         vm.prank(seller);
@@ -161,7 +161,7 @@ contract M002LegacySellerClaimsTest is Test {
         assertEq(script.DEFAULT_RELEASE_BPS(), 1000);
         address policyAddress = script.runWith(_cfg());
 
-        AntseedLegacySellerClaimPolicy policy = _policy();
+        TorveLegacySellerClaimPolicy policy = _policy();
         assertEq(address(policy), policyAddress);
         assertEq(address(policy.v2()), address(v2));
         assertEq(address(policy.v1()), address(legacy), "v1 derived from v2");
@@ -184,11 +184,11 @@ contract M002LegacySellerClaimsTest is Test {
 
         // Nothing more this epoch: cumulative - locked == released.
         vm.prank(seller);
-        vm.expectRevert(AntseedSellerRewardsPool.NothingToClaim.selector);
+        vm.expectRevert(TorveSellerRewardsPool.NothingToClaim.selector);
         pool.claim(seller);
 
         vm.prank(washSeller);
-        vm.expectRevert(AntseedSellerRewardsPool.NothingToClaim.selector);
+        vm.expectRevert(TorveSellerRewardsPool.NothingToClaim.selector);
         pool.claim(washSeller);
         assertEq(pool.lockedRewards(washSeller), locked, "wash trader's rewards stay locked");
     }
@@ -208,8 +208,8 @@ contract M002LegacySellerClaimsTest is Test {
     }
 
     function test_resumesWhenOnlyPolicyLanded() public {
-        AntseedLegacySellerClaimPolicy policy =
-            new AntseedLegacySellerClaimPolicy(address(v2), 5, 1000, address(washRegistry));
+        TorveLegacySellerClaimPolicy policy =
+            new TorveLegacySellerClaimPolicy(address(v2), 5, 1000, address(washRegistry));
         vm.prank(poolOwner);
         pool.setSellerClaimPolicy(address(policy));
 
@@ -302,7 +302,7 @@ contract M002LegacySellerClaimsTest is Test {
         cfg.releaseBps = 5000;
         cfg.lastEpochOverride = EFFECTIVE_EPOCH - 1;
         script.runWith(cfg);
-        AntseedLegacySellerClaimPolicy policy = _policy();
+        TorveLegacySellerClaimPolicy policy = _policy();
         assertEq(policy.releaseBps(), 5000);
         assertEq(policy.lastEpoch(), EFFECTIVE_EPOCH - 1);
     }

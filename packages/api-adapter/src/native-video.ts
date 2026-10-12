@@ -17,7 +17,7 @@ const VENICE_QUEUE_ID = /^[A-Za-z0-9_-]{1,256}$/;
 const VENICE_AUTO_DURATIONS = new Set(['auto', 'Auto', '-1', '1 gen']);
 
 /**
- * fal's own API puts the model in the URL. AntSeed routes on the body `model`,
+ * fal's own API puts the model in the URL. Torve routes on the body `model`,
  * so fal video uses fixed paths with the fal endpoint ID as `model`; the
  * seller rebuilds fal's queue URLs from it.
  */
@@ -83,7 +83,7 @@ export function nativeVideoDelivered(response: SerializedHttpResponse, requested
 export function requestService(request: SerializedHttpRequest): string | undefined {
   const route = nativeVideoRoute(request);
   if (route?.action === 'retrieve') {
-    const header = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'x-antseed-service')?.[1];
+    const header = Object.entries(request.headers).find(([key]) => key.toLowerCase() === 'x-torve-service')?.[1];
     return header?.trim() || undefined;
   }
   const body = extractRequestBodyFields(request.headers, request.body);

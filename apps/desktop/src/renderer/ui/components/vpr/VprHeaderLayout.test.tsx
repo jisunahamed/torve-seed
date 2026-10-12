@@ -37,7 +37,7 @@ it.each(['chat', 'home'] as const)('only floats the toolbar on home, not chat (%
 });
 
 it('keeps the complete long title available on hover alongside the balance', () => {
-  const title = '# Files mentioned by the user: Antseed GTM Plan - Draft.pptx.pdf';
+  const title = '# Files mentioned by the user: Torve GTM Plan - Draft.pptx.pdf';
   const markup = renderToStaticMarkup(<VprPage title={title}>Content</VprPage>);
   expect(markup).toContain(`<span title="${title}">${title}</span>`);
   expect(markup).toContain('aria-label="Add credits, balance $69.13"');

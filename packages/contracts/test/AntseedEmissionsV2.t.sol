@@ -4,15 +4,15 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { ANTSToken } from "../core/ANTSToken.sol";
-import { AntseedEmissions } from "../legacy/AntseedEmissions.sol";
-import { AntseedEmissionsV2 } from "../legacy/AntseedEmissionsV2.sol";
-import { AntseedRegistry } from "../core/AntseedRegistry.sol";
-import { AntseedSellerRewardsPool } from "../rewards/AntseedSellerRewardsPool.sol";
-import { AntseedSellerUnlockPolicy } from "../policies/AntseedSellerUnlockPolicy.sol";
-import { IAntseedPointsPolicy } from "../interfaces/IAntseedPointsPolicy.sol";
-import { IAntseedSellerClaimPolicy } from "../interfaces/IAntseedSellerClaimPolicy.sol";
+import { TorveEmissions } from "../legacy/TorveEmissions.sol";
+import { TorveEmissionsV2 } from "../legacy/TorveEmissionsV2.sol";
+import { TorveRegistry } from "../core/TorveRegistry.sol";
+import { TorveSellerRewardsPool } from "../rewards/TorveSellerRewardsPool.sol";
+import { TorveSellerUnlockPolicy } from "../policies/TorveSellerUnlockPolicy.sol";
+import { ITorvePointsPolicy } from "../interfaces/ITorvePointsPolicy.sol";
+import { ITorveSellerClaimPolicy } from "../interfaces/ITorveSellerClaimPolicy.sol";
 
-contract MockPairPointsPolicy is IAntseedPointsPolicy {
+contract MockPairPointsPolicy is ITorvePointsPolicy {
     bytes32 public immutable targetChannelId;
     address public immutable targetBuyer;
     address public immutable targetSeller;
@@ -35,7 +35,7 @@ contract MockPairPointsPolicy is IAntseedPointsPolicy {
     }
 }
 
-contract MockSellerClaimPolicy is IAntseedSellerClaimPolicy {
+contract MockSellerClaimPolicy is ITorveSellerClaimPolicy {
     mapping(address => uint256) public claimable;
 
     function setClaimable(address seller, uint256 amount) external {
@@ -60,13 +60,13 @@ contract MockDepositsForEmissionsV2 {
     }
 }
 
-contract AntseedEmissionsV2Test is Test {
+contract TorveEmissionsV2Test is Test {
     ANTSToken public token;
-    AntseedEmissions public legacy;
-    AntseedEmissionsV2 public v2;
-    AntseedRegistry public antseedRegistry;
-    AntseedSellerRewardsPool public rewardsPool;
-    AntseedSellerUnlockPolicy public unlockPolicy;
+    TorveEmissions public legacy;
+    TorveEmissionsV2 public v2;
+    TorveRegistry public torveRegistry;
+    TorveSellerRewardsPool public rewardsPool;
+    TorveSellerUnlockPolicy public unlockPolicy;
     MockDepositsForEmissionsV2 public mockDeposits;
 
     address public seller1 = address(0x10);
@@ -85,34 +85,34 @@ contract AntseedEmissionsV2Test is Test {
         vm.warp(1_700_000_000);
 
         token = new ANTSToken();
-        antseedRegistry = new AntseedRegistry();
+        torveRegistry = new TorveRegistry();
         mockDeposits = new MockDepositsForEmissionsV2();
 
-        antseedRegistry.setChannels(address(this));
-        antseedRegistry.setDeposits(address(mockDeposits));
-        antseedRegistry.setAntsToken(address(token));
-        antseedRegistry.setProtocolReserve(reserveDest);
-        antseedRegistry.setTeamWallet(teamWallet);
+        torveRegistry.setChannels(address(this));
+        torveRegistry.setDeposits(address(mockDeposits));
+        torveRegistry.setAntsToken(address(token));
+        torveRegistry.setProtocolReserve(reserveDest);
+        torveRegistry.setTeamWallet(teamWallet);
 
-        legacy = new AntseedEmissions(address(antseedRegistry), INITIAL_EMISSION, EPOCH_DURATION);
-        antseedRegistry.setEmissions(address(legacy));
-        token.setRegistry(address(antseedRegistry));
+        legacy = new TorveEmissions(address(torveRegistry), INITIAL_EMISSION, EPOCH_DURATION);
+        torveRegistry.setEmissions(address(legacy));
+        token.setRegistry(address(torveRegistry));
 
         mockDeposits.setOperator(buyer1, operator1);
         mockDeposits.setOperator(buyer2, operator2);
     }
 
     function _deployV2WithoutCutover() internal {
-        rewardsPool = new AntseedSellerRewardsPool(address(antseedRegistry));
-        unlockPolicy = new AntseedSellerUnlockPolicy();
-        v2 = new AntseedEmissionsV2(address(antseedRegistry), address(legacy), address(rewardsPool));
+        rewardsPool = new TorveSellerRewardsPool(address(torveRegistry));
+        unlockPolicy = new TorveSellerUnlockPolicy();
+        v2 = new TorveEmissionsV2(address(torveRegistry), address(legacy), address(rewardsPool));
         v2.setSellerUnlockPolicy(address(unlockPolicy));
         v2.setMaxBuyerSharePct(5);
     }
 
     function _deployV2() internal {
         _deployV2WithoutCutover();
-        antseedRegistry.setEmissions(address(v2));
+        torveRegistry.setEmissions(address(v2));
     }
 
     function _epochList(uint256 epoch) internal pure returns (uint256[] memory) {
@@ -325,7 +325,7 @@ contract AntseedEmissionsV2Test is Test {
         v2.claimSellerEmissions(_epochList(4));
 
         vm.prank(seller1);
-        vm.expectRevert(AntseedSellerRewardsPool.NoSellerClaimPolicy.selector);
+        vm.expectRevert(TorveSellerRewardsPool.NoSellerClaimPolicy.selector);
         rewardsPool.claim(seller1);
     }
 

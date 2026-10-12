@@ -32,7 +32,7 @@ export function OwnedByNoOne() {
                 Owned by no one. <span className={styles.titleAccent}>Available to everyone.</span>
               </>
             }
-            lead="No central server and no company in the middle. Anyone can be a provider, and the Antseed Foundation maintains the open-source protocol."
+            lead="No central server and no company in the middle. Anyone can be a provider, and the Torve Foundation maintains the open-source protocol."
           />
         </Reveal>
         <Reveal className={styles.buttonRow} delay={60}>

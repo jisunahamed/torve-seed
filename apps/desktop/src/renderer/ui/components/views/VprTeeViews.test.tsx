@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { afterEach, test, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { TeeEvidence } from '@antseed/node/tee-status';
+import type { TeeEvidence } from '@torveai/node/tee-status';
 import { createInitialUiState } from '../../../core/state';
 import { initStore } from '../../../core/store';
 import { normalizeDiscoverRow } from '../../../modules/catalog/discover-rows';
@@ -36,7 +36,7 @@ function initialize() {
   const state = createInitialUiState();
   const rows = [
     normalizeDiscoverRow({ peerId: 'standard', serviceId: 'gpt-test', provider: 'openai', protocol: 'openai-chat-completions', peerDisplayName: 'Standard Seller', inputUsdPerMillion: 0, outputUsdPerMillion: 0, effectiveReputationScore: 90 }),
-    normalizeDiscoverRow({ peerId: 'tee', serviceId: 'gpt-test', provider: 'openai', protocol: 'openai-chat-completions', peerDisplayName: 'TEE Seller', advertisedVerifierIds: ['antseed-verifier'], inputUsdPerMillion: 2, outputUsdPerMillion: 4, effectiveReputationScore: 90 }),
+    normalizeDiscoverRow({ peerId: 'tee', serviceId: 'gpt-test', provider: 'openai', protocol: 'openai-chat-completions', peerDisplayName: 'TEE Seller', advertisedVerifierIds: ['torve-verifier'], inputUsdPerMillion: 2, outputUsdPerMillion: 4, effectiveReputationScore: 90 }),
   ];
   assert.ok(rows[0] && rows[1]);
   state.vprRoutableRows = [rows[0], rows[1]];
@@ -82,7 +82,7 @@ test('Preferences does not expose a TEE routing setting', () => {
 test('verified TEE badge follows the seller name outside the pin button', () => {
   initialize();
   verification.evidence = [{
-    peerId: 'tee', verifierId: 'antseed-verifier', fingerprint: 'caps',
+    peerId: 'tee', verifierId: 'torve-verifier', fingerprint: 'caps',
     checkedAt: 500, expiresAt: 2000, sellerNodeVerified: true, claims: [],
   }];
   const markup = renderToStaticMarkup(<VprModelView />);
@@ -109,7 +109,7 @@ test('identity links and verified TEE badges coexist outside the seller pin butt
     { kind: 'github', label: 'example', href: 'https://github.com/example' },
   ];
   verification.evidence = [{
-    peerId: 'tee', verifierId: 'antseed-verifier', fingerprint: 'caps',
+    peerId: 'tee', verifierId: 'torve-verifier', fingerprint: 'caps',
     checkedAt: 500, expiresAt: 2000, sellerNodeVerified: true, claims: [],
   }];
   const markup = renderToStaticMarkup(<VprModelView />);

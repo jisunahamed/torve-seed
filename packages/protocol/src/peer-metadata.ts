@@ -217,13 +217,13 @@ export interface GithubVerificationClaim {
 export interface PeerVerifications {
   /**
    * Domain ownership claims. Clients verify by checking a matching DNS TXT
-   * record at `_antseed.<domain>` or a well-known proof at
-   * `https://<domain>/.well-known/antseed.json`.
+   * record at `_torve.<domain>` or a well-known proof at
+   * `https://<domain>/.well-known/torve.json`.
    */
   domains?: DomainVerificationClaim[];
   /**
    * GitHub account ownership claims. Clients verify by fetching
-   * `https://raw.githubusercontent.com/<username>/<repository>/HEAD/antseed.json`
+   * `https://raw.githubusercontent.com/<username>/<repository>/HEAD/torve.json`
    * — the username in the URL path binds the proof to the account.
    */
   github?: GithubVerificationClaim[];

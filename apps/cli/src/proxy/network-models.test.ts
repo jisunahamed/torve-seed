@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { normalizedModelReputationScore, type PeerInfo } from '@antseed/node'
+import { normalizedModelReputationScore, type PeerInfo } from '@torveai/node'
 import { buildNetworkModels, parseModelTypeFilter } from './network-models.js'
 import { findAdvertisedServiceOffer } from './routing.js'
 
@@ -8,7 +8,7 @@ const NOW_MS = 1_700_000_000_000
 
 test('network model offers preserve advertised verifiers without inferring support', () => {
   const providerPricing = { openai: { defaults: { inputUsdPerMillion: 1, outputUsdPerMillion: 2 }, services: { 'gpt-test': { inputUsdPerMillion: 1, outputUsdPerMillion: 2 } } } }
-  const teePeer = makePeer({ peerId: 'a'.repeat(40), providers: ['openai'], providerPricing, capabilities: ['verifier.antseed-verifier'] })
+  const teePeer = makePeer({ peerId: 'a'.repeat(40), providers: ['openai'], providerPricing, capabilities: ['verifier.torve-verifier'] })
   const legacyPeer = makePeer({ peerId: 'b'.repeat(40), providers: ['openai'], providerPricing })
   const peers = [
     teePeer,
@@ -16,7 +16,7 @@ test('network model offers preserve advertised verifiers without inferring suppo
   ]
   const [model] = buildNetworkModels(peers, NOW_MS)
   assert.ok(model)
-  assert.deepEqual(model.peers.find((peer) => peer.peerId === teePeer.peerId)?.advertisedVerifierIds, ['antseed-verifier'])
+  assert.deepEqual(model.peers.find((peer) => peer.peerId === teePeer.peerId)?.advertisedVerifierIds, ['torve-verifier'])
   assert.deepEqual(model.peers.find((peer) => peer.peerId === legacyPeer.peerId)?.advertisedVerifierIds, [])
   teePeer.capabilities = []
   assert.deepEqual(buildNetworkModels(peers, NOW_MS)[0]?.peers[0]?.advertisedVerifierIds, [])
@@ -109,7 +109,7 @@ test('aggregates one entry per model id across peers, case-insensitively', () =>
   assert.ok(qwen)
   assert.equal(qwen.type, 'text')
   assert.equal(qwen.object, 'model')
-  assert.equal(qwen.owned_by, 'antseed')
+  assert.equal(qwen.owned_by, 'torve')
   assert.equal(qwen.created, Math.floor(NOW_MS / 1000))
   assert.deepEqual(qwen.aliases, ['qwen3-coder', 'qwen3coder'])
   // The missing cached-price penalty reduces reputation without forcing the

@@ -1,4 +1,4 @@
-import type { RewardTransactionRecorder } from '@antseed/node/payments';
+import type { RewardTransactionRecorder } from '@torveai/node/payments';
 
 export class RewardClaimProgress {
   claimed = 0n;

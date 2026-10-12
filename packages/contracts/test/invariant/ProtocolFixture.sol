@@ -3,11 +3,11 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import {AntseedChannels} from "../../payments/AntseedChannels.sol";
-import {AntseedDeposits} from "../../payments/AntseedDeposits.sol";
-import {AntseedStaking} from "../../staking/AntseedStaking.sol";
-import {AntseedStats} from "../../stats/AntseedStats.sol";
-import {AntseedRegistry} from "../../core/AntseedRegistry.sol";
+import {TorveChannels} from "../../payments/TorveChannels.sol";
+import {TorveDeposits} from "../../payments/TorveDeposits.sol";
+import {TorveStaking} from "../../staking/TorveStaking.sol";
+import {TorveStats} from "../../stats/TorveStats.sol";
+import {TorveRegistry} from "../../core/TorveRegistry.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {MockERC8004Registry} from "../mocks/MockERC8004Registry.sol";
 
@@ -25,11 +25,11 @@ import {ProtocolHandler} from "./ProtocolHandler.sol";
 abstract contract ProtocolFixture is Test {
     MockUSDC internal usdc;
     MockERC8004Registry internal identity;
-    AntseedRegistry internal registry;
-    AntseedStaking internal staking;
-    AntseedDeposits internal deposits;
-    AntseedChannels internal channels;
-    AntseedStats internal stats;
+    TorveRegistry internal registry;
+    TorveStaking internal staking;
+    TorveDeposits internal deposits;
+    TorveChannels internal channels;
+    TorveStats internal stats;
 
     ProtocolHandler internal handler;
 
@@ -42,11 +42,11 @@ abstract contract ProtocolFixture is Test {
         // ── Deploy (mirrors script/Deploy.s.sol, emissions omitted) ──────
         usdc = new MockUSDC();
         identity = new MockERC8004Registry();
-        registry = new AntseedRegistry();
-        staking = new AntseedStaking(address(usdc), address(registry));
-        deposits = new AntseedDeposits(address(usdc));
-        channels = new AntseedChannels(address(registry));
-        stats = new AntseedStats();
+        registry = new TorveRegistry();
+        staking = new TorveStaking(address(usdc), address(registry));
+        deposits = new TorveDeposits(address(usdc));
+        channels = new TorveChannels(address(registry));
+        stats = new TorveStats();
 
         // ── Wire registry (emissions deliberately unset) ──────────────────
         registry.setChannels(address(channels));

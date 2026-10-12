@@ -3,7 +3,7 @@ import {
   ZERO_METADATA,
   type ServiceMetadataDelta,
   type SpendingAuthMetadata,
-} from '@antseed/protocol/signatures';
+} from '@torveai/protocol/signatures';
 
 const DEFAULT_REQUEST_TRACKER_LIMIT = 512;
 

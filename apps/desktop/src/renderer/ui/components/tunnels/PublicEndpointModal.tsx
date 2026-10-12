@@ -24,7 +24,7 @@ export function PublicEndpointModalProvider({ children }: { children: ReactNode 
   const [status, setStatus] = useState<PublicTunnelStatus | null>(null);
 
   const refresh = useCallback(async () => {
-    const next = await window.antseedDesktop?.publicTunnelGetStatus?.();
+    const next = await window.torveDesktop?.publicTunnelGetStatus?.();
     if (next) setStatus(next);
   }, []);
 

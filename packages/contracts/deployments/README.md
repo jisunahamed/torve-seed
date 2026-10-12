@@ -1,6 +1,6 @@
 # Contract deployment records
 
-This directory is the canonical ledger of official AntSeed contract deployments.
+This directory is the canonical ledger of official Torve contract deployments.
 
 Each network contains:
 

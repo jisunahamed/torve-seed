@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BuyerRequestHandler, type BuyerRequestHandlerConfig } from '../src/buyer-request-handler.js';
 import {
-  ANTSEED_STREAMING_RESPONSE_HEADER,
+  TORVE_STREAMING_RESPONSE_HEADER,
   type SerializedHttpRequest,
   type SerializedHttpResponse,
   type SerializedHttpResponseChunk,
@@ -65,7 +65,7 @@ function createHandler(config: BuyerRequestHandlerConfig): { handler: BuyerReque
           requestId: '',
           statusCode: 200,
           headers: {
-            [ANTSEED_STREAMING_RESPONSE_HEADER]: '1',
+            [TORVE_STREAMING_RESPONSE_HEADER]: '1',
             'content-type': 'text/event-stream',
           },
           body: new Uint8Array(0),

@@ -1,7 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-import { StakingClient, StatsClient, resolveChainConfig } from '@antseed/node';
+import { StakingClient, StatsClient, resolveChainConfig } from '@torveai/node';
 
 import { NetworkPoller } from './poller.js';
 import { createServer } from './server.js';

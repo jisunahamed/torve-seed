@@ -49,8 +49,8 @@ import { normalizeTelemetryAppName } from '../../../../shared/telemetry.js';
 
 type Props = { onSelectView?: (view: ViewName) => void };
 
-const ADD_BALANCE_DISMISSED_KEY = 'antseed.desktop.vpr.addBalanceDismissed';
-const RESTART_NOTICE_DISMISSED_KEY = 'antseed.desktop.vpr.restartNoticeDismissed';
+const ADD_BALANCE_DISMISSED_KEY = 'torve.desktop.vpr.addBalanceDismissed';
+const RESTART_NOTICE_DISMISSED_KEY = 'torve.desktop.vpr.restartNoticeDismissed';
 const MODEL_CHANGE_NOTICE_MS = 4_000;
 /* Rows in the model dropdown (Figma) — the full catalog lives on Models. */
 const DROPDOWN_MODEL_COUNT = 5;
@@ -296,7 +296,7 @@ export function VprHomeView({ onSelectView }: Props) {
     recordUserAction('app_connect', 'home', normalizeTelemetryAppName(profileName));
     setConnectingProfile(profileName);
     try {
-      const result = await connectVprProfile(window.antseedDesktop, getUiStateRef(), profileName);
+      const result = await connectVprProfile(window.torveDesktop, getUiStateRef(), profileName);
       if (result.ok) {
         if (result.state !== undefined) {
           systemProxyResource.setData({ profiles, state: result.state });
@@ -501,7 +501,7 @@ export function VprHomeView({ onSelectView }: Props) {
      exist the user knows the flow (the full list lives on the Apps page). */
   const appsPitch = (conversations === null ? !expectChats : conversations.length === 0) ? (
     <div className={styles.appsGroup}>
-      <p className={styles.appsLabel}>Use Antseed on your favorite app</p>
+      <p className={styles.appsLabel}>Use Torve on your favorite app</p>
 
       <div className={styles.toolList}>
         {/* Same lead items as the Apps tab (Telegram, Claude, Cursor), then

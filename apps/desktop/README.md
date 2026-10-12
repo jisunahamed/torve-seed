@@ -1,17 +1,17 @@
-# Antseed Desktop (Electron)
+# Torve Desktop (Electron)
 
-Alternative GUI interface for Antseed on macOS/Linux/Windows.
+Alternative GUI interface for Torve on macOS/Linux/Windows.
 
-This app runs Antseed runtime commands in the background (seller start / buyer start / dashboard)
+This app runs Torve runtime commands in the background (seller start / buyer start / dashboard)
 so end users do not need to use terminal commands directly.
 
 ## What it controls
 
-- Seller mode (`antseed seller start`)
-- Buyer mode (`antseed buyer start`)
-- Dashboard server (`antseed dashboard --port <port> --no-open`)
+- Seller mode (`torve seller start`)
+- Buyer mode (`torve buyer start`)
+- Dashboard server (`torve dashboard --port <port> --no-open`)
 - Embedded dashboard panel inside Electron (no browser tab required)
-- Live process logs and daemon state snapshot (`~/.antseed/daemon.state.json`)
+- Live process logs and daemon state snapshot (`~/.torve/daemon.state.json`)
 
 ## Prerequisites
 
@@ -24,7 +24,7 @@ determined by `flake.lock`.
 Packaged apps still use Electron's embedded Node. This development pin does
 not upgrade Electron or change the published SDK's engine range.
 
-1. Install the `antseed` CLI binary so it is available on your `PATH`.
+1. Install the `torve` CLI binary so it is available on your `PATH`.
 
 ```bash
 # example: from this monorepo's cli package
@@ -40,10 +40,10 @@ npm link
 npm install
 ```
 
-Optional: if your CLI binary is not on `PATH`, set `ANTSEED_CLI_BIN` to an absolute executable path.
+Optional: if your CLI binary is not on `PATH`, set `TORVE_CLI_BIN` to an absolute executable path.
 
 ```bash
-export ANTSEED_CLI_BIN=/absolute/path/to/antseed
+export TORVE_CLI_BIN=/absolute/path/to/torve
 ```
 
 ## Run
@@ -54,7 +54,7 @@ Development mode:
 npm run dev
 ```
 
-Run multiple development worktrees at once while sharing the normal Antseed
+Run multiple development worktrees at once while sharing the normal Torve
 buyer, configuration, plugins, and identity:
 
 ```bash
@@ -67,8 +67,8 @@ pnpm dev:desktop:instance feature-x
 
 Any instance name receives stable, separate renderer, payments, and system-proxy ports
 plus its own temporary Electron Chromium profile and volatile system-proxy
-runtime files. The buyer proxy and durable `~/.antseed` data remain shared.
-The first instance starts the buyer; later instances validate its Antseed
+runtime files. The buyer proxy and durable `~/.torve` data remain shared.
+The first instance starts the buyer; later instances validate its Torve
 status endpoint and attach without starting duplicate buyer nodes.
 In multi-instance mode, stopping, quitting, or disconnecting any
 window does not remove shared Codex/tool config patches or kill the shared
@@ -94,11 +94,11 @@ npm run start
 configuration on Linux. For direct electron-builder invocations, pass
 `--config electron-builder.linux.cjs --linux`.
 
-Linux packages keep the visible name **Antseed AI VPN** and branded download
-filenames, but use `antseed-ai-vpn` for the executable, desktop/icon identity,
-and `/opt/antseed-ai-vpn` installation directory. macOS and Windows retain
+Linux packages keep the visible name **Torve AI VPN** and branded download
+filenames, but use `torve-ai-vpn` for the executable, desktop/icon identity,
+and `/opt/torve-ai-vpn` installation directory. macOS and Windows retain
 their existing installation identities. The Debian package name remains
-`antseed-ai-vpn`, so existing installations upgrade rather than installing a
+`torve-ai-vpn`, so existing installations upgrade rather than installing a
 second package.
 
 The Linux packing hook marks `chrome-sandbox` setuid before archiving. Debian
@@ -111,7 +111,7 @@ startup even with a correctly configured helper.
 ### Recovering affected Debian installations
 
 The fixed package's `preinst` narrowly repairs the invalid
-`update-alternatives --remove 'AntSeed VPR' ...` command in the previous
+`update-alternatives --remove 'Torve VPR' ...` command in the previous
 package's `postrm` before dpkg invokes it during an upgrade. This also permits
 reinstallation from the half-installed / reinstallation-required states
 caused by the 0.2.44 package. Other maintainer-script commands are preserved.
@@ -138,7 +138,7 @@ For example, from this directory with amd64 artifacts:
 
 ```bash
 fixed_deb=/absolute/path/to/fixed.deb
-legacy_deb=/absolute/path/to/Antseed-AI-VPN-0.2.44-amd64.deb
+legacy_deb=/absolute/path/to/Torve-AI-VPN-0.2.44-amd64.deb
 docker run --rm --platform linux/amd64 \
   --mount "type=bind,source=$fixed_deb,target=/fixed.deb,readonly" \
   --mount "type=bind,source=$legacy_deb,target=/legacy.deb,readonly" \
@@ -146,7 +146,7 @@ docker run --rm --platform linux/amd64 \
   ubuntu:24.04 bash -ec '
     apt-get update
     apt-get install -y /fixed.deb desktop-file-utils
-    dpkg --purge antseed-ai-vpn
+    dpkg --purge torve-ai-vpn
     bash /test-deb.sh /fixed.deb /legacy.deb
   '
 ```
@@ -156,7 +156,7 @@ claim to verify a native graphical session or Ubuntu AppArmor policy.
 
 ## Notes
 
-- This is phase 1 desktop integration: it shells out to the existing `antseed` runtime for parity and reliability.
+- This is phase 1 desktop integration: it shells out to the existing `torve` runtime for parity and reliability.
 - Keychain usage and network port handling follow the same behavior as the existing runtime stack.
 - macOS may prompt for firewall/network permissions when listener ports are opened.
 - On system sleep, runtime processes can pause; app should be expected to recover on wake.

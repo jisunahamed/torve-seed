@@ -17,7 +17,7 @@ export function UpdateBanner() {
   const errorFromEventRef = useRef(false);
 
   useEffect(() => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.onUpdateStatus) return;
 
     const apply = (data: UpdateStatus) => {
@@ -44,7 +44,7 @@ export function UpdateBanner() {
   }, []);
 
   const handleInstall = useCallback(async () => {
-    const bridge = window.antseedDesktop;
+    const bridge = window.torveDesktop;
     if (!bridge?.installUpdate) return;
     setUpdate((prev) => (prev?.status === 'ready' ? { status: 'installing', version: prev.version } : prev));
     try {
@@ -115,7 +115,7 @@ export function UpdateBanner() {
   return (
     <BottomNotice
       actions={installing ? [] : available
-        ? [{ label: 'Download', onClick: () => { void window.antseedDesktop?.downloadUpdate?.(); } }]
+        ? [{ label: 'Download', onClick: () => { void window.torveDesktop?.downloadUpdate?.(); } }]
         : update.status === 'ready'
           ? [{ label: 'Restart & update', onClick: handleInstall }]
           : []}

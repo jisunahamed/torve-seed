@@ -10,9 +10,9 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { promisify } from 'node:util';
 import { Interface } from 'ethers';
-import { AntseedNode } from '@antseed/node';
-import { ANTSEED_UPLOAD_THRESHOLD_BYTES } from '../../packages/protocol/src/http.js';
-import type { NodePaymentsConfig, PeerInfo, Provider } from '@antseed/node';
+import { TorveNode } from '@torveai/node';
+import { TORVE_UPLOAD_THRESHOLD_BYTES } from '../../packages/protocol/src/http.js';
+import type { NodePaymentsConfig, PeerInfo, Provider } from '@torveai/node';
 import { createLocalBootstrap } from './helpers/local-bootstrap.js';
 import { MockOpenAIImageProvider } from './helpers/mock-openai-provider.js';
 import veniceVideoPlugin from '../../plugins/provider-venice-video/src/index.js';
@@ -268,7 +268,7 @@ function makePaymentsConfig(rpcUrl: string, overrides?: Partial<NodePaymentsConf
 }
 
 async function waitForPeers(
-  node: AntseedNode,
+  node: TorveNode,
   expectedCount: number,
   timeoutMs = 15_000,
   intervalMs = 500,
@@ -303,8 +303,8 @@ async function getFreePort(): Promise<number> {
 describe('OpenAI SDK integration: Images API payment flow over buyer proxy', () => {
   let tempHomeDir: string | null = null;
   let bootstrap: Awaited<ReturnType<typeof createLocalBootstrap>> | null = null;
-  let sellerNode: AntseedNode | null = null;
-  let buyerNode: AntseedNode | null = null;
+  let sellerNode: TorveNode | null = null;
+  let buyerNode: TorveNode | null = null;
   let sellerDataDir: string | null = null;
   let buyerDataDir: string | null = null;
   let proxy: { start(): Promise<void>; stop(): Promise<void> } | null = null;
@@ -312,10 +312,10 @@ describe('OpenAI SDK integration: Images API payment flow over buyer proxy', () 
   let rpcUrl = '';
 
   beforeAll(async () => {
-    await execFileAsync('pnpm', ['--filter', '@antseed/node', 'build'], {
+    await execFileAsync('pnpm', ['--filter', '@torveai/node', 'build'], {
       cwd: join(import.meta.dirname, '..', '..'),
     });
-    tempHomeDir = await mkdtemp(join(tmpdir(), 'antseed-home-'));
+    tempHomeDir = await mkdtemp(join(tmpdir(), 'torve-home-'));
     process.env['HOME'] = tempHomeDir;
     process.env['USERPROFILE'] = tempHomeDir;
   });
@@ -351,9 +351,9 @@ describe('OpenAI SDK integration: Images API payment flow over buyer proxy', () 
   }> {
     bootstrap = await createLocalBootstrap();
 
-    sellerDataDir = await mkdtemp(join(tmpdir(), 'antseed-seller-images-pay-'));
+    sellerDataDir = await mkdtemp(join(tmpdir(), 'torve-seller-images-pay-'));
     const imageProvider = provider ?? new MockOpenAIImageProvider() as unknown as ProviderType;
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: 'seller',
       dataDir: sellerDataDir,
       dhtPort: 0,
@@ -366,8 +366,8 @@ describe('OpenAI SDK integration: Images API payment flow over buyer proxy', () 
     sellerNode.registerProvider(imageProvider);
     await sellerNode.start();
 
-    buyerDataDir = await mkdtemp(join(tmpdir(), 'antseed-buyer-images-pay-'));
-    buyerNode = new AntseedNode({
+    buyerDataDir = await mkdtemp(join(tmpdir(), 'torve-buyer-images-pay-'));
+    buyerNode = new TorveNode({
       role: 'buyer',
       dataDir: buyerDataDir,
       dhtPort: 0,
@@ -406,7 +406,7 @@ describe('OpenAI SDK integration: Images API payment flow over buyer proxy', () 
     const video = mp4Video(5_000, 3 * 1024 * 1024 + 17);
     const calls: Array<{ path: string; body: any }> = [];
     const createBody = JSON.stringify({ model: 'wan-2.5', prompt: 'boat', duration: '5s', ...(inputKind === 'image' ? { image_url: `data:image/png;base64,${largeVideoInputImage()}` } : {}) });
-    if (inputKind === 'image') expect(Buffer.byteLength(createBody)).toBeGreaterThan(ANTSEED_UPLOAD_THRESHOLD_BYTES);
+    if (inputKind === 'image') expect(Buffer.byteLength(createBody)).toBeGreaterThan(TORVE_UPLOAD_THRESHOLD_BYTES);
     let ready = false;
     vi.stubGlobal('fetch', async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
       const url = String(input);
@@ -427,7 +427,7 @@ describe('OpenAI SDK integration: Images API payment flow over buyer proxy', () 
       return new Response(video, { headers: { 'content-type': 'video/mp4', ...(hasContentLength ? { 'content-length': String(video.length) } : {}) } });
     });
     try {
-      const provider = await veniceVideoPlugin.createProvider({ VENICE_VIDEO_API_KEY: 'seller-secret', ANTSEED_ALLOWED_SERVICES: 'wan-2.5', ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON: '{"wan-2.5":{"venice-video":{"version":1,"components":[{"unit":"video_seconds","priceUsd":0.01}]}}}' });
+      const provider = await veniceVideoPlugin.createProvider({ VENICE_VIDEO_API_KEY: 'seller-secret', TORVE_ALLOWED_SERVICES: 'wan-2.5', TORVE_SERVICE_UNIT_BILLING_MODELS_JSON: '{"wan-2.5":{"venice-video":{"version":1,"components":[{"unit":"video_seconds","priceUsd":0.01}]}}}' });
       const { port, discoveredSeller } = await setupProxyNetwork(provider);
       const manager = (buyerNode as any)._connectionManager;
       if (transport === 'webrtc') {
@@ -455,7 +455,7 @@ describe('OpenAI SDK integration: Images API payment flow over buyer proxy', () 
       expect((await post('/api/v1/video/retrieve', { model: 'wan-2.5' })).status).toBe(404);
       const callsBefore = calls.length;
       (sellerNode as any)._resourceOwnership.recordAcceptedCreate('venice-video', 'someone-elses', '11'.repeat(20));
-      const denied = await buyerNode!.sendRequest(discoveredSeller, { requestId: 'non-owner', method: 'POST', path: '/api/v1/video/retrieve', headers: { 'content-type': 'application/json', 'x-antseed-service': 'wan-2.5', 'x-antseed-provider': 'venice-video', 'x-antseed-video-download': 'video-stream-v1' }, body: Buffer.from('{"queue_id":"someone-elses"}') }, { pinned: true });
+      const denied = await buyerNode!.sendRequest(discoveredSeller, { requestId: 'non-owner', method: 'POST', path: '/api/v1/video/retrieve', headers: { 'content-type': 'application/json', 'x-torve-service': 'wan-2.5', 'x-torve-provider': 'venice-video', 'x-torve-video-download': 'video-stream-v1' }, body: Buffer.from('{"queue_id":"someone-elses"}') }, { pinned: true });
       expect(denied.statusCode).toBe(404);
       expect(calls.length).toBe(callsBefore);
       expect(calls.filter(call => call.path === '/api/v1/video/queue')).toHaveLength(1);
@@ -506,8 +506,8 @@ describe('OpenAI SDK integration: Images API payment flow over buyer proxy', () 
     try {
       const provider = await falVideoPlugin.createProvider({
         FAL_VIDEO_API_KEY: 'seller-secret',
-        ANTSEED_ALLOWED_SERVICES: model,
-        ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON: JSON.stringify({ [model]: { 'fal-video': { version: 1, components: [{ unit: 'video_seconds', priceUsd: 0.01 }] } } }),
+        TORVE_ALLOWED_SERVICES: model,
+        TORVE_SERVICE_UNIT_BILLING_MODELS_JSON: JSON.stringify({ [model]: { 'fal-video': { version: 1, components: [{ unit: 'video_seconds', priceUsd: 0.01 }] } } }),
       });
       const { port, discoveredSeller } = await setupProxyNetwork(provider);
       const base = `http://127.0.0.1:${port}`;
@@ -541,8 +541,8 @@ describe('OpenAI SDK integration: Images API payment flow over buyer proxy', () 
     const model = 'wan-2.5-preview-text-to-video';
     const provider = await veniceVideoPlugin.createProvider({
       VENICE_VIDEO_API_KEY: liveVeniceKey!,
-      ANTSEED_ALLOWED_SERVICES: model,
-      ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON: JSON.stringify({
+      TORVE_ALLOWED_SERVICES: model,
+      TORVE_SERVICE_UNIT_BILLING_MODELS_JSON: JSON.stringify({
         [model]: { 'venice-video': { version: 1, components: [{ unit: 'video_seconds', priceUsd: 0.01 }] } },
       }),
     });
@@ -550,7 +550,7 @@ describe('OpenAI SDK integration: Images API payment flow over buyer proxy', () 
     const base = `http://127.0.0.1:${port}`;
     const headers = {
       'content-type': 'application/json',
-      'x-antseed-pin-peer': discoveredSeller.peerId,
+      'x-torve-pin-peer': discoveredSeller.peerId,
     };
     const createBody = {
       model,
@@ -602,7 +602,7 @@ describe('OpenAI SDK integration: Images API payment flow over buyer proxy', () 
     const client = new OpenAI({
       apiKey: 'sk-test',
       baseURL: `http://127.0.0.1:${port}/v1`,
-      defaultHeaders: { 'x-antseed-pin-peer': discoveredSeller.peerId },
+      defaultHeaders: { 'x-torve-pin-peer': discoveredSeller.peerId },
     });
 
     const response = await client.images.generate({
@@ -671,7 +671,7 @@ describe('OpenAI SDK integration: Images API payment flow over buyer proxy', () 
     const client = new OpenAI({
       apiKey: 'sk-test',
       baseURL: `http://127.0.0.1:${port}/v1`,
-      defaultHeaders: { 'x-antseed-pin-peer': discoveredSeller.peerId },
+      defaultHeaders: { 'x-torve-pin-peer': discoveredSeller.peerId },
     });
 
     const response = await client.images.generate({

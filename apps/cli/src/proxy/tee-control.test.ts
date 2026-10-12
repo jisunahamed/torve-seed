@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { teeControlFileName } from '@antseed/node/tee-status';
+import { teeControlFileName } from '@torveai/node/tee-status';
 import { TeeControl } from './tee-control.js';
 
 test('verification control authenticates, rejects origins/targets, bounds requests and cleans credentials', async (context) => {
@@ -30,7 +30,7 @@ test('verification control authenticates, rejects origins/targets, bounds reques
   const file = join(directory, teeControlFileName(port));
   assert.equal((await stat(file)).mode & 0o777, 0o600);
   const credential = JSON.parse(await readFile(file, 'utf8')) as { token: string };
-  const url = `http://127.0.0.1:${port}/_antseed/verification`;
+  const url = `http://127.0.0.1:${port}/_torve/verification`;
   const headers = { authorization: `Bearer ${credential.token}` };
   assert.equal((await fetch(url)).status, 403);
   assert.equal((await fetch(url, { headers: { authorization: 'Bearer invalid' } })).status, 403);

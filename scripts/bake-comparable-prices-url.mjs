@@ -2,7 +2,7 @@
 /**
  * Bake the comparable retail-prices API URL into release builds.
  *
- * ANTSEED_COMPARABLE_PRICES_URL is a runtime environment variable, so npm
+ * TORVE_COMPARABLE_PRICES_URL is a runtime environment variable, so npm
  * installs and packaged desktop apps (which don't inherit shell env) would
  * otherwise ship with the savings baseline off. This script rewrites the
  * committed `baked-defaults.ts` modules — which default to null — with the
@@ -21,7 +21,7 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ENV_KEY = 'ANTSEED_COMPARABLE_PRICES_URL';
+const ENV_KEY = 'TORVE_COMPARABLE_PRICES_URL';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 const TARGETS = [

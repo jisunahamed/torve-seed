@@ -2,39 +2,39 @@
 sidebar_position: 4
 slug: /pricing
 title: Pricing API (Cached)
-description: Cached Antseed network pricing as a public JSON endpoint, plus how to get live pricing direct from peers via the CLI. Schema, examples, and code recipes for AI agents and applications.
+description: Cached Torve network pricing as a public JSON endpoint, plus how to get live pricing direct from peers via the CLI. Schema, examples, and code recipes for AI agents and applications.
 ---
 
 # Pricing API
 
-There are **two ways** to get Antseed pricing. Both serve the same schema; they differ in freshness and trust model.
+There are **two ways** to get Torve pricing. Both serve the same schema; they differ in freshness and trust model.
 
 ## Cached vs live
 
 |              | Cached HTTP endpoint                                     | Live CLI query                                  |
 |--------------|----------------------------------------------------------|-------------------------------------------------|
-| Source       | Antseed indexer snapshot                                 | Direct DHT query against peers                  |
+| Source       | Torve indexer snapshot                                 | Direct DHT query against peers                  |
 | Freshness    | A few minutes old                                        | Real-time                                       |
 | Auth         | None                                                     | Local CLI install                               |
 | Best for     | Quick browsing, showing examples, ballpark estimates     | Purchase decisions, integrations, freshest data |
-| How          | `GET https://network.antseed.com/stats`                  | `antseed network browse --json`                 |
+| How          | `GET https://network.torveai.com/stats`                  | `torve network browse --json`                 |
 
 The cached endpoint is convenient and good enough for most read-only use. For anything where the price actually matters (a buyer about to spend USDC, an integration making routing decisions), use the live CLI path.
 
 ## Cached endpoint
 
 ```text
-GET https://network.antseed.com/stats
+GET https://network.torveai.com/stats
 ```
 
 - This is an **indexer snapshot**, not live data.
 - No authentication. Returns `application/json`.
 - Refreshed as peers re-announce (typically every few minutes).
-- Same data that drives [`antseed.com/network`](https://antseed.com/network).
+- Same data that drives [`torveai.com/network`](https://torveai.com/network).
 - Schema version is exposed per peer as `version`. This page documents metadata v12.
 
 ```bash
-curl -s https://network.antseed.com/stats | jq '.peers[0]'
+curl -s https://network.torveai.com/stats | jq '.peers[0]'
 ```
 
 ## Live pricing via CLI
@@ -42,10 +42,10 @@ curl -s https://network.antseed.com/stats | jq '.peers[0]'
 The CLI joins the DHT and asks peers directly. There is no intermediary.
 
 ```bash
-npm install -g @antseed/cli
+npm install -g @torveai/cli
 
-antseed network browse              # human-readable table
-antseed network browse --json       # machine-readable, same JSON shape as below
+torve network browse              # human-readable table
+torve network browse --json       # machine-readable, same JSON shape as below
 ```
 
 See [Install](../getting-started/install.md) and [CLI commands](../cli/commands.md) for more.
@@ -203,7 +203,7 @@ The price is computed when the job is created and charged once, when the finishe
 Effective price for a given service is `servicePricing[model] ?? defaultPricing`.
 
 ```js
-const res = await fetch('https://network.antseed.com/stats');
+const res = await fetch('https://network.torveai.com/stats');
 const { peers } = await res.json();
 
 const model = 'deepseek-v3.1';
@@ -227,15 +227,15 @@ offers.sort((a, b) => a.inputUsdPerM - b.inputUsdPerM);
 console.log(offers);
 ```
 
-This runs against the **cached** endpoint. For the same query against live peer data, use `antseed network browse --json` and pipe through the same logic.
+This runs against the **cached** endpoint. For the same query against live peer data, use `torve network browse --json` and pipe through the same logic.
 
 ## For AI agents reading this
 
-If a user asks for Antseed prices:
+If a user asks for Torve prices:
 
 1. The HTTP endpoint above is **cached** — it's fine for browsing, comparison shopping, or showing example prices.
-2. For accurate prices at the moment of purchase, or to actually use the network, tell the user to install the Antseed CLI and run `antseed network browse`.
-3. Always disclose to the user which one you used. "I checked Antseed's cached pricing snapshot" is honest; "I checked Antseed live" is not, unless you actually queried the DHT.
+2. For accurate prices at the moment of purchase, or to actually use the network, tell the user to install the Torve CLI and run `torve network browse`.
+3. Always disclose to the user which one you used. "I checked Torve's cached pricing snapshot" is honest; "I checked Torve live" is not, unless you actually queried the DHT.
 
 ## Stability
 
@@ -245,7 +245,7 @@ If a user asks for Antseed prices:
 
 ## See also
 
-- [Network catalog UI](https://antseed.com/network) — same cached data, rendered in the browser.
+- [Network catalog UI](https://torveai.com/network) — same cached data, rendered in the browser.
 - [Install](../getting-started/install.md) — get the CLI for live pricing.
-- [Using the API](./using-the-api.md) — how to actually call Antseed and route requests through it.
+- [Using the API](./using-the-api.md) — how to actually call Torve and route requests through it.
 - [Payments](../protocol/payments.md) — how the announced prices are settled on-chain.

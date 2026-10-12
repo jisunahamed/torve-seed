@@ -10,7 +10,7 @@ import {faqJsonLd} from '../lib/faqJsonLd';
 import {LocalhostSection, type TBlock} from '../components/LocalhostSection';
 import {PrivacyPanel} from '../components/PrivacyPanel';
 
-const TITLE = 'Private AI: no account, no email, no one in the middle | Antseed';
+const TITLE = 'Private AI: no account, no email, no one in the middle | Torve';
 const DESCRIPTION =
   'Use AI without giving up who you are. No account, no email, requests route peer-to-peer, and a TEE-verified provider keeps even your prompt sealed.';
 
@@ -42,10 +42,10 @@ function PrivacyHero() {
 
 /* What a provider sees — the page's real differentiator, pulled from the
    privacy answers in docs/faq.mdx. */
-const SEES_ROWS: {label: string; standard: string; tee: string; antseed: string}[] = [
-  {label: 'Who you are', standard: 'A peer id', tee: 'A peer id', antseed: 'Nothing'},
-  {label: 'Your prompt', standard: 'Just like any API', tee: 'Nothing', antseed: 'Nothing'},
-  {label: 'Your payment', standard: 'A wallet', tee: 'A wallet', antseed: 'Nothing'},
+const SEES_ROWS: {label: string; standard: string; tee: string; torve: string}[] = [
+  {label: 'Who you are', standard: 'A peer id', tee: 'A peer id', torve: 'Nothing'},
+  {label: 'Your prompt', standard: 'Just like any API', tee: 'Nothing', torve: 'Nothing'},
+  {label: 'Your payment', standard: 'A wallet', tee: 'A wallet', torve: 'Nothing'},
 ];
 
 function WhatAProviderSees() {
@@ -64,7 +64,7 @@ function WhatAProviderSees() {
               <th scope="col" aria-label="What"></th>
               <th scope="col">Standard provider</th>
               <th scope="col">TEE-verified provider</th>
-              <th scope="col">Antseed</th>
+              <th scope="col">Torve</th>
             </tr>
           </thead>
           <tbody>
@@ -73,7 +73,7 @@ function WhatAProviderSees() {
                 <th scope="row">{r.label}</th>
                 <td data-col="Standard provider">{r.standard}</td>
                 <td data-col="TEE-verified provider" className={styles.seesGood}>{r.tee}</td>
-                <td data-col="Antseed" className={styles.seesGood}>{r.antseed}</td>
+                <td data-col="Torve" className={styles.seesGood}>{r.torve}</td>
               </tr>
             ))}
           </tbody>
@@ -106,7 +106,7 @@ const PRIVACY_TERMINAL_BLOCKS: TBlock[] = [
     comment: '# Verification on, best-effort (the default)',
     tokens: [
       {text: '$ ', cls: 'tGreen'},
-      {text: 'antseed', cls: 'tPurple'},
+      {text: 'torve', cls: 'tPurple'},
       {text: ' '},
       {text: 'buyer', cls: 'tBlue'},
       {text: ' '},
@@ -117,7 +117,7 @@ const PRIVACY_TERMINAL_BLOCKS: TBlock[] = [
     comment: '# Strict: refuse to route unless the provider passes',
     tokens: [
       {text: '$ ', cls: 'tGreen'},
-      {text: 'antseed', cls: 'tPurple'},
+      {text: 'torve', cls: 'tPurple'},
       {text: ' '},
       {text: 'buyer', cls: 'tBlue'},
       {text: ' '},
@@ -125,7 +125,7 @@ const PRIVACY_TERMINAL_BLOCKS: TBlock[] = [
       {text: ' '},
       {text: '--verifiers', cls: 'tYellow'},
       {text: ' '},
-      {text: 'antseed-verifier', cls: 'tOrange'},
+      {text: 'torve-verifier', cls: 'tOrange'},
       {text: ' '},
       {text: '--require-verifier', cls: 'tYellow'},
     ],
@@ -134,7 +134,7 @@ const PRIVACY_TERMINAL_BLOCKS: TBlock[] = [
     comment: '# Find providers that advertise a TEE verifier',
     tokens: [
       {text: '$ ', cls: 'tGreen'},
-      {text: 'antseed', cls: 'tPurple'},
+      {text: 'torve', cls: 'tPurple'},
       {text: ' '},
       {text: 'network', cls: 'tBlue'},
       {text: ' '},
@@ -145,7 +145,7 @@ const PRIVACY_TERMINAL_BLOCKS: TBlock[] = [
     comment: "# Inspect a provider's verifier before you trust it",
     tokens: [
       {text: '$ ', cls: 'tGreen'},
-      {text: 'antseed', cls: 'tPurple'},
+      {text: 'torve', cls: 'tPurple'},
       {text: ' '},
       {text: 'network', cls: 'tBlue'},
       {text: ' '},
@@ -184,10 +184,10 @@ const PRIVACY_FAQ = [
   },
   {
     q: 'What does a provider learn about me?',
-    a: 'A pseudonymous peer or wallet identity, and the request it serves. Not your name, your email, or your account on the tool you connected. Antseed does not tell the provider who you are; who you are and what you asked are handled separately.',
+    a: 'A pseudonymous peer or wallet identity, and the request it serves. Not your name, your email, or your account on the tool you connected. Torve does not tell the provider who you are; who you are and what you asked are handled separately.',
   },
   {
-    q: 'Does Antseed log my requests?',
+    q: 'Does Torve log my requests?',
     a: 'The protocol creates no central request log. Independent providers, nodes, RPC providers, analytics tools, or other infrastructure may still log or observe data, and each provider has its own data handling practices. Prefer TEE-verified providers where stronger confidentiality matters.',
   },
   {
@@ -219,7 +219,7 @@ export default function PrivacyPage(): JSX.Element {
         <meta name="description" content={DESCRIPTION} />
         <meta property="og:title" content={TITLE} />
         <meta property="og:description" content={DESCRIPTION} />
-        <link rel="canonical" href="https://antseed.com/privacy/" />
+        <link rel="canonical" href="https://torveai.com/privacy/" />
         <script type="application/ld+json">{JSON.stringify(PRIVACY_FAQ_LD)}</script>
       </Head>
       <PrivacyHero />

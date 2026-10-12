@@ -1,7 +1,7 @@
 {
-  "name": "@antseed/provider-fal-video",
+  "name": "@torveai/provider-fal-video",
   "version": "0.1.0",
-  "description": "fal.ai video queue relay for AntSeed",
+  "description": "fal.ai video queue relay for Torve",
   "type": "module",
   "files": [
     "dist"
@@ -15,14 +15,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@antseed/api-adapter": "workspace:*",
-    "@antseed/provider-core": "workspace:*"
+    "@torveai/api-adapter": "workspace:*",
+    "@torveai/provider-core": "workspace:*"
   },
   "peerDependencies": {
-    "@antseed/node": ">=0.1.0"
+    "@torveai/node": ">=0.1.0"
   },
   "devDependencies": {
-    "@antseed/node": "workspace:*",
+    "@torveai/node": "workspace:*",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
   }

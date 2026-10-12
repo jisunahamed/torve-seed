@@ -109,13 +109,13 @@ export class SellerPaymentManager {
   private readonly _channelsClient: ChannelsClient;
   private readonly _config: SellerPaymentConfig;
   private readonly _channelStore: ChannelStore;
-  /** Lazily resolved: real AntseedChannels address (for EIP-712 domain +
+  /** Lazily resolved: real TorveChannels address (for EIP-712 domain +
    *  on-chain seller address detection). If the configured
    *  `channelsContractAddress` is a seller facade (e.g. DiemStakingProxy),
    *  this resolves to the underlying channels contract via the facade's
    *  `channelsAddress()` view. Otherwise equals the configured address. */
   private _resolvedAddresses: Promise<{
-    /** Underlying AntseedChannels address — used for the EIP-712 domain. */
+    /** Underlying TorveChannels address — used for the EIP-712 domain. */
     channels: string;
     /** On-chain seller address: proxy when behind a facade, wallet otherwise. */
     seller: string;

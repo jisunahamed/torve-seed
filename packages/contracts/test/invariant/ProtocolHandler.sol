@@ -3,17 +3,17 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import {AntseedChannels} from "../../payments/AntseedChannels.sol";
-import {AntseedDeposits} from "../../payments/AntseedDeposits.sol";
+import {TorveChannels} from "../../payments/TorveChannels.sol";
+import {TorveDeposits} from "../../payments/TorveDeposits.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 
 /**
  * @title ProtocolHandler
- * @notice Stateful fuzzing handler that drives the AntseedChannels ↔ AntseedDeposits ↔
+ * @notice Stateful fuzzing handler that drives the TorveChannels ↔ TorveDeposits ↔
  *         payment lifecycle (reserve/settle/topUp/close/withdraw) with a small fixed set of
  *         buyers/sellers. Emissions is left unwired by the fixture, so accrual is skipped.
  *
- *         The invariant test (AntseedProtocol.invariant.t.sol) deploys + wires the protocol,
+ *         The invariant test (TorveProtocol.invariant.t.sol) deploys + wires the protocol,
  *         registers/stakes the actors, sets buyer operators to this handler, then targets the
  *         action functions below. Every protocol call is wrapped in try/catch so reverts on
  *         invalid (but reachable) inputs are treated as no-ops rather than fuzzer failures.
@@ -23,8 +23,8 @@ import {MockUSDC} from "../mocks/MockUSDC.sol";
  *         reaching into the contract's private channel storage.
  */
 contract ProtocolHandler is Test {
-    AntseedChannels public channels;
-    AntseedDeposits public deposits;
+    TorveChannels public channels;
+    TorveDeposits public deposits;
     MockUSDC public usdc;
     bool public protocolReserveSet;
 
@@ -56,7 +56,7 @@ contract ProtocolHandler is Test {
     uint256 public ghostToSellers; // USDC paid to sellers on settle/close
     uint256 public ghostToReserve; // USDC paid to protocol reserve as fee
 
-    constructor(AntseedChannels _channels, AntseedDeposits _deposits, MockUSDC _usdc, bool _protocolReserveSet) {
+    constructor(TorveChannels _channels, TorveDeposits _deposits, MockUSDC _usdc, bool _protocolReserveSet) {
         channels = _channels;
         deposits = _deposits;
         usdc = _usdc;

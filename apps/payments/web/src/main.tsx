@@ -7,7 +7,7 @@ import { wagmiConfig, paymentWalletConfig } from './wagmi-config';
 import { App } from './App';
 import { getConfig } from './api';
 import '@rainbow-me/rainbowkit/styles.css';
-import '@antseed/ui/styles';
+import '@torveai/ui/styles';
 import './styles/global.scss';
 
 const queryClient = new QueryClient();

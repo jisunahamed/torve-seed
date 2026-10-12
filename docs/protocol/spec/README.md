@@ -1,14 +1,14 @@
-# Antseed Network Protocol Specification
+# Torve Network Protocol Specification
 
 **Version:** 1.9 (current discovery metadata format uses `METADATA_VERSION = 12`)
 
 ## Overview
 
-Antseed is a fully decentralized protocol for peer-to-peer AI services directly between peers, without any central server, marketplace, or intermediary. Nodes discover each other, negotiate terms, stream inference results, meter token usage, settle payments, and build reputation — all through direct peer-to-peer communication. The network exists entirely as the set of participating nodes; there is no infrastructure beyond the nodes themselves.
+Torve is a fully decentralized protocol for peer-to-peer AI services directly between peers, without any central server, marketplace, or intermediary. Nodes discover each other, negotiate terms, stream inference results, meter token usage, settle payments, and build reputation — all through direct peer-to-peer communication. The network exists entirely as the set of participating nodes; there is no infrastructure beyond the nodes themselves.
 
 ## Architecture
 
-Antseed is **fully decentralized**. There is no central server, coordinator, or registry. Every participating node IS the network. Nodes communicate directly with one another over peer-to-peer connections. When a node joins, it becomes part of the network fabric. When it leaves, the remaining nodes continue operating without disruption.
+Torve is **fully decentralized**. There is no central server, coordinator, or registry. Every participating node IS the network. Nodes communicate directly with one another over peer-to-peer connections. When a node joins, it becomes part of the network fabric. When it leaves, the remaining nodes continue operating without disruption.
 
 Key architectural principles:
 
@@ -18,7 +18,7 @@ Key architectural principles:
 
 ## Node Roles
 
-Every node in the Antseed Network operates in one or both of the following roles:
+Every node in the Torve Network operates in one or both of the following roles:
 
 ### Seller
 
@@ -42,7 +42,7 @@ A single node may act as both a Seller and a Buyer simultaneously.
 
 ## Protocol Layers
 
-The Antseed protocol is organized into seven functional layers plus one cross-cutting security layer:
+The Torve protocol is organized into seven functional layers plus one cross-cutting security layer:
 
 ### 1. Discovery
 

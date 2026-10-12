@@ -8,7 +8,7 @@ test('parsePublicTunnelSettings defaults existing settings to disabled', () => {
     providers: {
       ngrok: { tunnelToken: 'token', publicUrl: '' },
     },
-    apiKey: 'antseed_key',
+    apiKey: 'torve_key',
   });
 
   assert.equal(settings?.activeProvider, 'ngrok');
@@ -21,7 +21,7 @@ test('parsePublicTunnelSettings preserves enabled state', () => {
     providers: {
       cloudflare: { tunnelToken: 'token', publicUrl: 'https://llm.example.com' },
     },
-    apiKey: 'antseed_key',
+    apiKey: 'torve_key',
     enabled: true,
   });
 
@@ -32,7 +32,7 @@ test('parsePublicTunnelSettings migrates legacy Cloudflare settings as disabled'
   const settings = parsePublicTunnelSettings({
     tunnelToken: 'token',
     publicUrl: 'https://llm.example.com',
-    apiKey: 'antseed_key',
+    apiKey: 'torve_key',
   });
 
   assert.deepEqual(settings, {
@@ -40,7 +40,7 @@ test('parsePublicTunnelSettings migrates legacy Cloudflare settings as disabled'
     providers: {
       cloudflare: { tunnelToken: 'token', publicUrl: 'https://llm.example.com' },
     },
-    apiKey: 'antseed_key',
+    apiKey: 'torve_key',
     enabled: false,
   });
 });

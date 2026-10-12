@@ -15,11 +15,11 @@ describe('provider-openai plugin', () => {
     expect(keys).toContain('OPENAI_BASE_URL');
     expect(keys).toContain('OPENAI_PROVIDER_FLAVOR');
     expect(keys).toContain('OPENAI_UPSTREAM_PROVIDER');
-    expect(keys).toContain('ANTSEED_SERVICE_ALIAS_MAP_JSON');
-    expect(keys).toContain('ANTSEED_INPUT_USD_PER_MILLION');
-    expect(keys).toContain('ANTSEED_OUTPUT_USD_PER_MILLION');
-    expect(keys).toContain('ANTSEED_MAX_CONCURRENCY');
-    expect(keys).toContain('ANTSEED_ALLOWED_SERVICES');
+    expect(keys).toContain('TORVE_SERVICE_ALIAS_MAP_JSON');
+    expect(keys).toContain('TORVE_INPUT_USD_PER_MILLION');
+    expect(keys).toContain('TORVE_OUTPUT_USD_PER_MILLION');
+    expect(keys).toContain('TORVE_MAX_CONCURRENCY');
+    expect(keys).toContain('TORVE_ALLOWED_SERVICES');
   });
 
   it('creates provider with valid config', async () => {
@@ -49,9 +49,9 @@ describe('provider-openai plugin', () => {
   it('applies custom pricing and concurrency', async () => {
     const provider = await plugin.createProvider({
       OPENAI_API_KEY: 'sk-test-key',
-      ANTSEED_INPUT_USD_PER_MILLION: '3',
-      ANTSEED_OUTPUT_USD_PER_MILLION: '7',
-      ANTSEED_MAX_CONCURRENCY: '5',
+      TORVE_INPUT_USD_PER_MILLION: '3',
+      TORVE_OUTPUT_USD_PER_MILLION: '7',
+      TORVE_MAX_CONCURRENCY: '5',
     });
     expect(provider.pricing.defaults.inputUsdPerMillion).toBe(3);
     expect(provider.pricing.defaults.outputUsdPerMillion).toBe(7);
@@ -70,9 +70,9 @@ describe('provider-openai plugin', () => {
     try {
       const provider = await plugin.createProvider({
         OPENAI_API_KEY: 'sk-test-key',
-        ANTSEED_ALLOWED_SERVICES: 'cover-art',
-        ANTSEED_SERVICE_ALIAS_MAP_JSON: '{"cover-art":"gpt-image-1"}',
-        ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON: JSON.stringify({
+        TORVE_ALLOWED_SERVICES: 'cover-art',
+        TORVE_SERVICE_ALIAS_MAP_JSON: '{"cover-art":"gpt-image-1"}',
+        TORVE_SERVICE_UNIT_BILLING_MODELS_JSON: JSON.stringify({
           'cover-art': {
             'openai-images': {
               version: 1,
@@ -112,8 +112,8 @@ describe('provider-openai plugin', () => {
   it('allows image services without explicit billing as free/default', async () => {
     const provider = await plugin.createProvider({
       OPENAI_API_KEY: 'sk-test-key',
-      ANTSEED_ALLOWED_SERVICES: 'cover-art',
-      ANTSEED_SERVICE_ALIAS_MAP_JSON: '{"cover-art":"gpt-image-1"}',
+      TORVE_ALLOWED_SERVICES: 'cover-art',
+      TORVE_SERVICE_ALIAS_MAP_JSON: '{"cover-art":"gpt-image-1"}',
     });
 
     expect(provider.serviceApiProtocols?.['cover-art']).toEqual(['openai-images']);
@@ -123,9 +123,9 @@ describe('provider-openai plugin', () => {
   it('advertises image billing only when explicitly configured', async () => {
     const provider = await plugin.createProvider({
       OPENAI_API_KEY: 'sk-test-key',
-      ANTSEED_ALLOWED_SERVICES: 'cover-art',
-      ANTSEED_SERVICE_ALIAS_MAP_JSON: '{"cover-art":"gpt-image-1"}',
-      ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON: JSON.stringify({
+      TORVE_ALLOWED_SERVICES: 'cover-art',
+      TORVE_SERVICE_ALIAS_MAP_JSON: '{"cover-art":"gpt-image-1"}',
+      TORVE_SERVICE_UNIT_BILLING_MODELS_JSON: JSON.stringify({
         'cover-art': {
           'openai-images': {
             version: 1,
@@ -156,8 +156,8 @@ describe('provider-openai plugin', () => {
   it('defaults image services to outputs: ["image"] capabilities', async () => {
     const provider = await plugin.createProvider({
       OPENAI_API_KEY: 'sk-test-key',
-      ANTSEED_ALLOWED_SERVICES: 'cover-art,gpt-5.5',
-      ANTSEED_SERVICE_ALIAS_MAP_JSON: '{"cover-art":"gpt-image-1"}',
+      TORVE_ALLOWED_SERVICES: 'cover-art,gpt-5.5',
+      TORVE_SERVICE_ALIAS_MAP_JSON: '{"cover-art":"gpt-image-1"}',
     });
 
     expect(provider.serviceCapabilities?.['cover-art']).toEqual({ outputs: ['image'] });
@@ -167,9 +167,9 @@ describe('provider-openai plugin', () => {
   it('lets explicit capability config override the image-service default', async () => {
     const provider = await plugin.createProvider({
       OPENAI_API_KEY: 'sk-test-key',
-      ANTSEED_ALLOWED_SERVICES: 'cover-art',
-      ANTSEED_SERVICE_ALIAS_MAP_JSON: '{"cover-art":"gpt-image-1"}',
-      ANTSEED_SERVICE_CAPABILITIES_JSON: JSON.stringify({
+      TORVE_ALLOWED_SERVICES: 'cover-art',
+      TORVE_SERVICE_ALIAS_MAP_JSON: '{"cover-art":"gpt-image-1"}',
+      TORVE_SERVICE_CAPABILITIES_JSON: JSON.stringify({
         'cover-art': {
           inputs: ['text', 'image'],
           supportedParameters: ['background', 'output_format', 'quality', 'size'],
@@ -198,7 +198,7 @@ describe('provider-openai plugin', () => {
     const provider = await plugin.createProvider({
       OPENAI_API_KEY: 'sk-test-key',
       OPENAI_BASE_URL: 'https://api.venice.ai/api',
-      ANTSEED_ALLOWED_SERVICES: imageServices.join(','),
+      TORVE_ALLOWED_SERVICES: imageServices.join(','),
     });
 
     for (const service of imageServices) {
@@ -211,14 +211,14 @@ describe('provider-openai plugin', () => {
     const provider = await plugin.createProvider({
       OPENAI_API_KEY: 'sk-test-key',
       OPENAI_PROVIDER_FLAVOR: 'openrouter',
-      ANTSEED_ALLOWED_SERVICES: 'cover-art',
-      ANTSEED_SERVICE_ALIAS_MAP_JSON: '{"cover-art":"openai/gpt-image-1"}',
+      TORVE_ALLOWED_SERVICES: 'cover-art',
+      TORVE_SERVICE_ALIAS_MAP_JSON: '{"cover-art":"openai/gpt-image-1"}',
     });
 
     expect(provider.serviceApiProtocols?.['cover-art']).toBeUndefined();
   });
 
-  it('rewrites announced service names via ANTSEED_SERVICE_ALIAS_MAP_JSON', async () => {
+  it('rewrites announced service names via TORVE_SERVICE_ALIAS_MAP_JSON', async () => {
     const originalFetch = globalThis.fetch;
     const fetchMock = vi.fn().mockResolvedValue(
       new Response('{}', {
@@ -230,8 +230,8 @@ describe('provider-openai plugin', () => {
     try {
       const provider = await plugin.createProvider({
         OPENAI_API_KEY: 'sk-test-key',
-        ANTSEED_ALLOWED_SERVICES: 'kimi2.5',
-        ANTSEED_SERVICE_ALIAS_MAP_JSON: '{"kimi2.5":"together/kimi2.5"}',
+        TORVE_ALLOWED_SERVICES: 'kimi2.5',
+        TORVE_SERVICE_ALIAS_MAP_JSON: '{"kimi2.5":"together/kimi2.5"}',
       });
 
       const response = await provider.handleRequest({

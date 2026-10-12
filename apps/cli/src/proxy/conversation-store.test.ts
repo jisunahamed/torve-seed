@@ -6,7 +6,7 @@ import test from 'node:test'
 import { ConversationStore, CONVERSATIONS_FILE, conversationId } from './conversation-store.js'
 
 async function makeDir(): Promise<string> {
-  return mkdtemp(join(tmpdir(), 'antseed-conv-'))
+  return mkdtemp(join(tmpdir(), 'torve-conv-'))
 }
 
 test('touch creates a conversation and keeps the original snippet', async () => {

@@ -13,7 +13,7 @@ const OTHER_IP = '198.51.100.9';
 const tempDirs: string[] = [];
 
 function persistentStorage(): MeteringStorage {
-  const dir = mkdtempSync(join(tmpdir(), 'antseed-free-tier-'));
+  const dir = mkdtempSync(join(tmpdir(), 'torve-free-tier-'));
   tempDirs.push(dir);
   return new MeteringStorage(join(dir, 'metering.db'));
 }
@@ -98,7 +98,7 @@ describe('SellerFreeTierLimiter', () => {
   });
 
   it('uses a sliding window and persists usage across seller restarts', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'antseed-free-tier-'));
+    const dir = mkdtempSync(join(tmpdir(), 'torve-free-tier-'));
     tempDirs.push(dir);
     const dbPath = join(dir, 'metering.db');
     const firstStorage = new MeteringStorage(dbPath);

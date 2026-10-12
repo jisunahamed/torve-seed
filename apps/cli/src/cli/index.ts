@@ -26,11 +26,11 @@ const version = pkg.version;
 const program = new Command();
 
 program
-  .name('antseed')
+  .name('torve')
   .description('P2P network for AI services')
   .version(version)
-  .option('-c, --config <path>', 'path to config file (env: ANTSEED_CONFIG, default: ~/.antseed/config.json)')
-  .option('--data-dir <path>', 'path to node identity/state directory (env: ANTSEED_DATA_DIR, default: ~/.antseed)')
+  .option('-c, --config <path>', 'path to config file (env: TORVE_CONFIG, default: ~/.torve/config.json)')
+  .option('--data-dir <path>', 'path to node identity/state directory (env: TORVE_DATA_DIR, default: ~/.torve)')
   .option('-v, --verbose', 'enable verbose logging', false);
 
 registerSellerCommands(program);

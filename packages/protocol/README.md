@@ -1,7 +1,7 @@
-# @antseed/protocol
+# @torveai/protocol
 
-The AntSeed wire protocol as a standalone, dependency-light package (ethers
-only, no Node-specific APIs). Extracted from `@antseed/node`, which re-exports
+The Torve wire protocol as a standalone, dependency-light package (ethers
+only, no Node-specific APIs). Extracted from `@torveai/node`, which re-exports
 everything from its original paths, so existing consumers are unaffected.
 
 Contents, one module per concern (each also available as a subpath export):
@@ -24,5 +24,5 @@ Contents, one module per concern (each also available as a subpath export):
 
 Note: both `signatures` (SpendingAuth metadata, `2n`) and `peer-metadata`
 (discovery records, `10`) define `METADATA_VERSION`. The root export resolves
-to the payments constant, matching `@antseed/node`'s public API; use the
+to the payments constant, matching `@torveai/node`'s public API; use the
 `./peer-metadata` subpath for the discovery one.

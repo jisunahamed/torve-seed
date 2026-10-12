@@ -45,7 +45,7 @@ export interface ContractStackRpcOptions {
 
 export class ContractStackMismatchError extends Error {
   constructor(message: string) {
-    super(`Contract stack mismatch: ${message}. Upgrade @antseed/cli or check payments.crypto overrides.`);
+    super(`Contract stack mismatch: ${message}. Upgrade @torveai/cli or check payments.crypto overrides.`);
     this.name = 'ContractStackMismatchError';
   }
 }

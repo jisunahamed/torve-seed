@@ -7,7 +7,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import type { AbstractSigner } from 'ethers';
-import { loadOrCreateIdentity, resolveChainConfig } from '@antseed/node';
+import { loadOrCreateIdentity, resolveChainConfig } from '@torveai/node';
 import { AntsContext, type AntsChainConfig } from './service/context.js';
 import { JobRunner } from './jobs.js';
 import { assertSelectedWallet, registerRoutes } from './routes.js';
@@ -23,7 +23,7 @@ export interface AntsServerOptions {
   browserWallet?: boolean;
   onAuthorize?: () => Promise<void>;
   host?: string;
-  /** Node data directory holding the identity wallet (default ~/.antseed). */
+  /** Node data directory holding the identity wallet (default ~/.torve). */
   dataDir?: string;
   /** Config file with `payments.crypto` overrides (default <dataDir>/config.json). */
   configPath?: string;
@@ -59,10 +59,10 @@ async function readCryptoOverrides(configPath: string): Promise<Record<string, u
   }
 }
 
-/** Resolve the chain config the same way the CLI does: protocol defaults + `payments.crypto` overrides + ANTSEED_BASE_RPC_URL. */
+/** Resolve the chain config the same way the CLI does: protocol defaults + `payments.crypto` overrides + TORVE_BASE_RPC_URL. */
 export async function resolveAntsChain(configPath: string, env: NodeJS.ProcessEnv = process.env): Promise<AntsChainConfig> {
   const overrides = await readCryptoOverrides(configPath);
-  const rpcOverride = env['ANTSEED_BASE_RPC_URL']?.trim();
+  const rpcOverride = env['TORVE_BASE_RPC_URL']?.trim();
   const resolved = resolveChainConfig({ ...(overrides as object), ...(rpcOverride ? { rpcUrl: rpcOverride } : {}) });
   return { ...resolved, ...(overrides as object), rpcUrl: rpcOverride || (overrides['rpcUrl'] as string | undefined) || resolved.rpcUrl } as AntsChainConfig;
 }
@@ -73,7 +73,7 @@ export async function createAntsServer(options: AntsServerOptions): Promise<Ants
   const selectedAddress = options.selectedAddress ? getAddress(options.selectedAddress) : undefined;
   if (selectedAddress === ZeroAddress) throw new Error('Select a non-zero account address.');
   if (selectedAddress && !browserWallet) throw new Error('Account selection requires browser wallet signing.');
-  const dataDir = options.dataDir ?? path.join(homedir(), '.antseed');
+  const dataDir = options.dataDir ?? path.join(homedir(), '.torve');
   const configPath = options.configPath ?? path.join(dataDir, 'config.json');
   const chain = options.chain ?? await resolveAntsChain(configPath);
 

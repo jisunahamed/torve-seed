@@ -7,10 +7,10 @@ import { getGlobalOptions } from '../types.js';
 import { parseVerifierCapabilities } from '../../../plugins/verifier.js';
 import { loadConfig } from '../../../config/loader.js';
 import {
-  AntseedNode,
+  TorveNode,
   type PeerInfo,
-} from '@antseed/node';
-import { parseBootstrapList, toBootstrapConfig } from '@antseed/node/discovery';
+} from '@torveai/node';
+import { parseBootstrapList, toBootstrapConfig } from '@torveai/node/discovery';
 import { parsePersistedPeers } from '../../../proxy/buyer-proxy.js';
 import { buildPaymentsConfig } from './chain-config-helper.js';
 import { resolveEffectiveBuyerConfig } from '../../../config/effective.js';
@@ -213,7 +213,7 @@ function printPeerDetail(peer: PeerInfo, requestedTags: Set<string>): void {
   }
 
   console.log('');
-  console.log(chalk.bold('On-chain (AntseedChannels.getAgentStats)'));
+  console.log(chalk.bold('On-chain (TorveChannels.getAgentStats)'));
   const channels = peer.onChainChannelCount;
   const ghosts = peer.onChainGhostCount;
   const vouchedBadge = (typeof channels === 'number' && channels > 0 && (ghosts ?? 0) === 0)
@@ -301,13 +301,13 @@ function printPeerDetail(peer: PeerInfo, requestedTags: Set<string>): void {
 
   console.log('');
   console.log(chalk.bold('Pin this peer'));
-  console.log(`  antseed buyer connection set --peer ${peer.peerId}`);
-  console.log(chalk.dim(`  or per-request:   curl -H "x-antseed-pin-peer: ${peer.peerId}" ...`));
+  console.log(`  torve buyer connection set --peer ${peer.peerId}`);
+  console.log(chalk.dim(`  or per-request:   curl -H "x-torve-pin-peer: ${peer.peerId}" ...`));
   console.log('');
 }
 
 /**
- * Register the `antseed network peer <peerId>` command.
+ * Register the `torve network peer <peerId>` command.
  */
 export function registerNetworkPeerCommand(networkCmd: Command): void {
   networkCmd
@@ -346,7 +346,7 @@ export function registerNetworkPeerCommand(networkCmd: Command): void {
           : undefined;
         const paymentsConfig = buildPaymentsConfig(config.payments?.crypto);
         const spinner = ora(`Looking up peer ${normalized.slice(0, 12)}...`).start();
-        const node = new AntseedNode({
+        const node = new TorveNode({
           role: 'buyer',
           ...(bootstrapNodes ? { bootstrapNodes } : {}),
           dhtOperationTimeoutMs: 30_000,
@@ -376,7 +376,7 @@ export function registerNetworkPeerCommand(networkCmd: Command): void {
             `Peer ${normalized} not found${sourceLabel ? ` (source: ${sourceLabel})` : ''}.`,
           ),
         );
-        console.error(chalk.dim('Run `antseed network browse` to see all peers currently visible on the network.'));
+        console.error(chalk.dim('Run `torve network browse` to see all peers currently visible on the network.'));
         process.exit(1);
       }
 

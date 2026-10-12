@@ -13,7 +13,7 @@ import {
  * "All platforms & versions" — an escape hatch under the download CTAs for
  * visitors whose platform detection guessed wrong (privacy browsers spoof a
  * Windows UA on Linux, so the CTA offers the .exe) or who want a different
- * installer. Opens a modal listing every installer as download.antseed.com
+ * installer. Opens a modal listing every installer as download.torveai.com
  * links, so these downloads carry the same started/completed telemetry as
  * the main CTA.
  *
@@ -79,7 +79,7 @@ function AllVersionsModal({onClose}: {onClose: () => void}) {
         onClick={e => e.stopPropagation()}
       >
         <div className="vprVersionsHead">
-          <span className="vprVersionsTitle">Download Antseed AI VPN</span>
+          <span className="vprVersionsTitle">Download Torve AI VPN</span>
           <button className="vprVersionsClose" onClick={onClose} aria-label="Close">
             ×
           </button>

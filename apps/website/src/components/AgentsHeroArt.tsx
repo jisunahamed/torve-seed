@@ -3,9 +3,9 @@ import styles from './AgentsHeroArt.module.css';
 
 /**
  * /agents hero animation. Three agent apps fire requests (green dots) down
- * dotted lines into the Antseed node; the node pulses on arrival and the
+ * dotted lines into the Torve node; the node pulses on arrival and the
  * request continues to the right, where a counter ticks and the running
- * cost line grows — Antseed price bold, list price struck through.
+ * cost line grows — Torve price bold, list price struck through.
  *
  * Geometry lives in a 520×340 SVG (the design-system card, scaled up).
  * Motion is SVG animateMotion + CSS keyframes; counters are React state.
@@ -27,9 +27,9 @@ const inPath = (cy: number) =>
   `M${CHIP.x + CHIP.size + 8} ${cy} C ${CHIP.x + CHIP.size + 70} ${cy}, ${NODE.cx - NODE.r - 70} ${NODE.cy}, ${NODE.cx - NODE.r - 8} ${NODE.cy}`;
 const OUT_PATH = `M${NODE.cx + NODE.r + 8} ${NODE.cy} L 326 ${NODE.cy}`;
 
-/* Spec numbers: same task at list $4.86, on Antseed $0.97 (placeholder run). */
-const START = {requests: 1204, antseed: 0.97, list: 4.86};
-const PER_REQUEST = {antseed: 0.0008, list: 0.004};
+/* Spec numbers: same task at list $4.86, on Torve $0.97 (placeholder run). */
+const START = {requests: 1204, torve: 0.97, list: 4.86};
+const PER_REQUEST = {torve: 0.0008, list: 0.004};
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 
@@ -47,13 +47,13 @@ export function AgentsHeroArt() {
   }, []);
 
   const requests = START.requests + tick;
-  const antseed = START.antseed + tick * PER_REQUEST.antseed;
+  const torve = START.torve + tick * PER_REQUEST.torve;
   const list = START.list + tick * PER_REQUEST.list;
 
   return (
     <div className={`${styles.well} ${reduced ? styles.reduced : ''}`}>
       <div className={styles.panel}>
-        <svg viewBox="0 0 520 340" className={styles.svg} role="img" aria-label="Agents sending requests through Antseed">
+        <svg viewBox="0 0 520 340" className={styles.svg} role="img" aria-label="Agents sending requests through Torve">
           <defs>
             <clipPath id="agentsHeroNode">
               <circle cx={NODE.cx} cy={NODE.cy} r={NODE.r - 2} />
@@ -96,7 +96,7 @@ export function AgentsHeroArt() {
         {/* readouts — HTML so the fonts and tabular numbers behave */}
         <div className={styles.readouts}>
           <div className={`${styles.pill} ${styles.pillCost}`}>
-            <strong>{money(antseed)}</strong>
+            <strong>{money(torve)}</strong>
             <s>{money(list)}</s>
           </div>
           <div className={styles.pill}>

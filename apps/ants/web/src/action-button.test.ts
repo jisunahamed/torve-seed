@@ -13,8 +13,8 @@ vi.mock('./components/ui', async original => ({
     return createElement('button', { disabled: props.disabled }, props.children);
   },
 }));
-vi.mock('@antseed/ui', async original => ({
-  ...await original<typeof import('@antseed/ui')>(),
+vi.mock('@torveai/ui', async original => ({
+  ...await original<typeof import('@torveai/ui')>(),
   Modal: ({ children, onClose }: { children: ReactNode; onClose: () => void }) => {
     mocks.close = onClose;
     return createElement('section', { role: 'dialog' }, children);

@@ -7,17 +7,17 @@ import { createConnection } from 'node:net';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { Model } from '@mariozechner/pi-ai';
-import { ANTSEED_MODEL_CONTEXT_WINDOW, ANTSEED_MODEL_MAX_OUTPUT_TOKENS } from '@antseed/node/types';
+import { TORVE_MODEL_CONTEXT_WINDOW, TORVE_MODEL_MAX_OUTPUT_TOKENS } from '@torveai/node/types';
 import { LOCALHOST, LOCALHOST_URL } from '../constants.js';
 import { PROXY_PROVIDER_ID } from './provider-hint.js';
 import type { ChatServiceProtocol } from './service-catalog.js';
 
 export const DEFAULT_PROXY_PORT = 8377;
 export const DEFAULT_CHAT_SERVICE = 'claude-sonnet-4-20250514';
-export const PROXY_RUNTIME_API_KEY = 'antseed-local';
+export const PROXY_RUNTIME_API_KEY = 'torve-local';
 
-export const CHAT_SYSTEM_PROMPT_ENV = 'ANTSEED_CHAT_SYSTEM_PROMPT';
-export const CHAT_SYSTEM_PROMPT_FILE_ENV = 'ANTSEED_CHAT_SYSTEM_PROMPT_FILE';
+export const CHAT_SYSTEM_PROMPT_ENV = 'TORVE_CHAT_SYSTEM_PROMPT';
+export const CHAT_SYSTEM_PROMPT_FILE_ENV = 'TORVE_CHAT_SYSTEM_PROMPT_FILE';
 
 export function makeProxyService(
   serviceId: string,
@@ -31,18 +31,18 @@ export function makeProxyService(
 ): Model<any> {
   // The buyer proxy resolves the route plan from the pinned peer + the
   // service ID in the request body, so we don't need to send
-  // `x-antseed-provider`. Stripping it keeps internal labels (e.g. the
-  // local `antseed-proxy` SDK key) out of the wire entirely.
+  // `x-torve-provider`. Stripping it keeps internal labels (e.g. the
+  // local `torve-proxy` SDK key) out of the wire entirely.
   const headers: Record<string, string> = {};
   if (preferredPeerId) {
-    headers[routeMode === 'pinned' ? 'x-antseed-pin-peer' : 'x-antseed-prefer-peer'] = preferredPeerId;
+    headers[routeMode === 'pinned' ? 'x-torve-pin-peer' : 'x-torve-prefer-peer'] = preferredPeerId;
   }
   // The buyer proxy derives the conversation identity generically from the
   // `x-<tool>-session-id` header name, so this yields tool slug "vpr" and
   // conversation key `vpr:<id>`. Existing chats stored under the legacy
   // `antstation:` key re-establish peer affinity on their next message.
   if (conversationId) headers['x-vpr-session-id'] = conversationId;
-  if (spendingAuth) headers['x-antseed-spending-auth'] = spendingAuth;
+  if (spendingAuth) headers['x-torve-spending-auth'] = spendingAuth;
 
   // The OpenAI SDK appends API paths (e.g. /responses, /chat/completions)
   // to baseUrl, so include /v1 to match the buyer proxy's expected paths.
@@ -61,8 +61,8 @@ export function makeProxyService(
     reasoning: true,
     input: inputModalities,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: ANTSEED_MODEL_CONTEXT_WINDOW,
-    maxTokens: ANTSEED_MODEL_MAX_OUTPUT_TOKENS,
+    contextWindow: TORVE_MODEL_CONTEXT_WINDOW,
+    maxTokens: TORVE_MODEL_MAX_OUTPUT_TOKENS,
     headers,
   };
 
@@ -97,7 +97,7 @@ export async function fetchProxyConversationRoute(
 ): Promise<{ peerId: string; service: string } | null> {
   try {
     const id = encodeURIComponent(`vpr:${conversationId}`);
-    const response = await fetch(`${LOCALHOST_URL}:${port}/_antseed/conversations/${id}`, {
+    const response = await fetch(`${LOCALHOST_URL}:${port}/_torve/conversations/${id}`, {
       signal: AbortSignal.timeout(2_000),
     });
     if (!response.ok) return null;

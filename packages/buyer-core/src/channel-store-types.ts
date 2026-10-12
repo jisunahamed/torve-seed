@@ -1,10 +1,10 @@
 /**
  * Channel bookkeeping types shared between the sqlite ChannelStore in
- * @antseed/node and browser implementations. Moved from
+ * @torveai/node and browser implementations. Moved from
  * packages/node/src/payments/channel-store.ts.
  */
 
-import type { SpendingAuthMetadata, SpendingAuthServiceMetadata } from '@antseed/protocol/signatures';
+import type { SpendingAuthMetadata, SpendingAuthServiceMetadata } from '@torveai/protocol/signatures';
 
 export const CHANNEL_STATUS = {
   ACTIVE: 'active',
@@ -93,7 +93,7 @@ export interface StoredChannelServiceTotal {
 }
 
 /**
- * The store surface the buyer machinery uses. @antseed/node's sqlite
+ * The store surface the buyer machinery uses. @torveai/node's sqlite
  * ChannelStore implements it; other environments can supply their own
  * backing store.
  */

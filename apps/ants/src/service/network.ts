@@ -1,5 +1,5 @@
 import { Interface, ZeroAddress } from 'ethers';
-import { GATE_MINTERS, gateMinterId, multicallRead, type MulticallRequest } from '@antseed/node/payments';
+import { GATE_MINTERS, gateMinterId, multicallRead, type MulticallRequest } from '@torveai/node/payments';
 import type { AntsContext } from './context.js';
 import type { EmissionsView, NetworkSnapshot, NetworkStakerConfig, NetworkUsageConfig } from '../api-types.js';
 

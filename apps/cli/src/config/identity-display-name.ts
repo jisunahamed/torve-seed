@@ -1,10 +1,10 @@
-import { loadOrCreateIdentity } from '@antseed/node';
-import type { AntseedConfig } from './types.js';
+import { loadOrCreateIdentity } from '@torveai/node';
+import type { TorveConfig } from './types.js';
 import { saveConfig } from './loader.js';
 
 // Lowercased because shouldDeriveDisplayName normalizes before lookup.
 const LEGACY_DEFAULT_DISPLAY_NAMES = new Set([
-  'antseed node',
+  'torve node',
 ]);
 
 const ADJECTIVES = [
@@ -30,7 +30,7 @@ export function deriveDisplayNameFromPeerId(peerId: string): string {
   const adjective = ADJECTIVES[hexNumber(seed.slice(0, 4), 0) % ADJECTIVES.length];
   const noun = NOUNS[hexNumber(seed.slice(4, 8), 0) % NOUNS.length];
   const suffix = seed.slice(-4);
-  return `antseed-${adjective}-${noun}-${suffix}`;
+  return `torve-${adjective}-${noun}-${suffix}`;
 }
 
 export function shouldDeriveDisplayName(displayName: string | undefined): boolean {
@@ -39,7 +39,7 @@ export function shouldDeriveDisplayName(displayName: string | undefined): boolea
 }
 
 export async function ensureDerivedIdentityDisplayName(input: {
-  config: AntseedConfig;
+  config: TorveConfig;
   configPath: string;
   dataDir: string;
 }): Promise<string> {

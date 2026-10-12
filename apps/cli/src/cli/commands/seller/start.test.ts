@@ -11,7 +11,7 @@ test('native video runtime configuration maps each video seller endpoint to its 
       const env = buildSellerPluginRuntimeEnv(config.seller, 'video');
       assert.equal(env[`${prefix}_BASE_URL`], 'https://seller.example.test');
       assert.equal(env[`${prefix}_API_KEY`], 'seller-key');
-      assert.equal(JSON.parse(env['ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON']!).model[protocol].components[0].unit, 'video_seconds');
+      assert.equal(JSON.parse(env['TORVE_SERVICE_UNIT_BILLING_MODELS_JSON']!).model[protocol].components[0].unit, 'video_seconds');
     } finally {
       if (previous === undefined) delete process.env['TEST_VIDEO_KEY'];
       else process.env['TEST_VIDEO_KEY'] = previous;
@@ -45,7 +45,7 @@ test('seller start runtime overrides are runtime-only and win over env/config', 
   const beforeResolution = JSON.parse(JSON.stringify(config));
 
   const env = {
-    ANTSEED_SELLER_INPUT_USD_PER_MILLION: '20',
+    TORVE_SELLER_INPUT_USD_PER_MILLION: '20',
   } as NodeJS.ProcessEnv;
 
   const overrides = buildSellerRuntimeOverridesFromFlags({
@@ -66,7 +66,7 @@ test('seller start runtime overrides are runtime-only and win over env/config', 
   assert.deepEqual(config, beforeResolution);
 });
 
-test('buildSellerPluginRuntimeEnv translates unified config into flat ANTSEED_* keys', () => {
+test('buildSellerPluginRuntimeEnv translates unified config into flat TORVE_* keys', () => {
   const config = createDefaultConfig();
   config.seller.maxConcurrentBuyers = 17;
   config.seller.providers = {
@@ -107,16 +107,16 @@ test('buildSellerPluginRuntimeEnv translates unified config into flat ANTSEED_* 
 
   const runtimeEnv = buildSellerPluginRuntimeEnv(config.seller, 'anthropic');
 
-  assert.equal(runtimeEnv['ANTSEED_INPUT_USD_PER_MILLION'], '15');
-  assert.equal(runtimeEnv['ANTSEED_OUTPUT_USD_PER_MILLION'], '35');
-  assert.equal(runtimeEnv['ANTSEED_CACHED_INPUT_USD_PER_MILLION'], '1.5');
-  assert.equal(runtimeEnv['ANTSEED_MAX_CONCURRENCY'], '17');
+  assert.equal(runtimeEnv['TORVE_INPUT_USD_PER_MILLION'], '15');
+  assert.equal(runtimeEnv['TORVE_OUTPUT_USD_PER_MILLION'], '35');
+  assert.equal(runtimeEnv['TORVE_CACHED_INPUT_USD_PER_MILLION'], '1.5');
+  assert.equal(runtimeEnv['TORVE_MAX_CONCURRENCY'], '17');
 
-  // ANTSEED_ALLOWED_SERVICES is derived from the services map keys.
-  const allowed = (runtimeEnv['ANTSEED_ALLOWED_SERVICES'] ?? '').split(',').sort();
+  // TORVE_ALLOWED_SERVICES is derived from the services map keys.
+  const allowed = (runtimeEnv['TORVE_ALLOWED_SERVICES'] ?? '').split(',').sort();
   assert.deepEqual(allowed, ['claude-opus-4-5', 'claude-sonnet-4-5-20250929']);
 
-  const services = JSON.parse(runtimeEnv['ANTSEED_SERVICE_PRICING_JSON'] ?? '{}') as Record<string, {
+  const services = JSON.parse(runtimeEnv['TORVE_SERVICE_PRICING_JSON'] ?? '{}') as Record<string, {
     inputUsdPerMillion: number;
     outputUsdPerMillion: number;
   }>;
@@ -127,21 +127,21 @@ test('buildSellerPluginRuntimeEnv translates unified config into flat ANTSEED_* 
   // Categories are intentionally NOT emitted as an env var — plugins don't
   // read them from env. The CLI writes them directly onto
   // `provider.serviceCategories` inside the seed action.
-  assert.equal(runtimeEnv['ANTSEED_SERVICE_CATEGORIES_JSON'], undefined);
+  assert.equal(runtimeEnv['TORVE_SERVICE_CATEGORIES_JSON'], undefined);
 
-  const aliases = JSON.parse(runtimeEnv['ANTSEED_SERVICE_ALIAS_MAP_JSON'] ?? '{}') as Record<string, string>;
+  const aliases = JSON.parse(runtimeEnv['TORVE_SERVICE_ALIAS_MAP_JSON'] ?? '{}') as Record<string, string>;
   assert.equal(aliases['claude-opus-4-5'], 'anthropic/claude-opus-4-5-20251117');
   // When upstream == serviceId, no alias entry is emitted.
   assert.equal(aliases['claude-sonnet-4-5-20250929'], undefined);
 
-  const capabilities = JSON.parse(runtimeEnv['ANTSEED_SERVICE_CAPABILITIES_JSON'] ?? '{}') as Record<string, unknown>;
+  const capabilities = JSON.parse(runtimeEnv['TORVE_SERVICE_CAPABILITIES_JSON'] ?? '{}') as Record<string, unknown>;
   assert.deepEqual(capabilities['claude-sonnet-4-5-20250929'], {
     contextWindow: 200000,
     inputs: ['text', 'image'],
     toolUse: true,
   });
 
-  const unitBillingModels = JSON.parse(runtimeEnv['ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON'] ?? '{}') as Record<string, unknown>;
+  const unitBillingModels = JSON.parse(runtimeEnv['TORVE_SERVICE_UNIT_BILLING_MODELS_JSON'] ?? '{}') as Record<string, unknown>;
   assert.deepEqual(unitBillingModels['claude-sonnet-4-5-20250929'], {
     'openai-images': {
       version: 1,
@@ -154,10 +154,10 @@ test('buildSellerPluginRuntimeEnv returns bare env when no provider is configure
   const config = createDefaultConfig();
   config.seller.maxConcurrentBuyers = 7;
   const runtimeEnv = buildSellerPluginRuntimeEnv(config.seller, 'openai');
-  assert.equal(runtimeEnv['ANTSEED_INPUT_USD_PER_MILLION'], undefined);
-  assert.equal(runtimeEnv['ANTSEED_OUTPUT_USD_PER_MILLION'], undefined);
-  assert.equal(runtimeEnv['ANTSEED_ALLOWED_SERVICES'], undefined);
-  assert.equal(runtimeEnv['ANTSEED_MAX_CONCURRENCY'], '7');
+  assert.equal(runtimeEnv['TORVE_INPUT_USD_PER_MILLION'], undefined);
+  assert.equal(runtimeEnv['TORVE_OUTPUT_USD_PER_MILLION'], undefined);
+  assert.equal(runtimeEnv['TORVE_ALLOWED_SERVICES'], undefined);
+  assert.equal(runtimeEnv['TORVE_MAX_CONCURRENCY'], '7');
 });
 
 test('getUnsupportedUnitBillingWarning identifies plugins that ignore configured models', () => {
@@ -181,7 +181,7 @@ test('getUnsupportedUnitBillingWarning identifies plugins that ignore configured
   );
   assert.equal(
     getUnsupportedUnitBillingWarning('openai', provider, [{
-      key: 'ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON',
+      key: 'TORVE_SERVICE_UNIT_BILLING_MODELS_JSON',
       label: 'Unit billing',
       type: 'string',
     }]),
@@ -337,19 +337,19 @@ test('assertSellerPrerequisites fails when any selected provider has no services
 test('seller start merge keeps explicit pricing when runtime env also contains pricing and force override is off', () => {
   const merged = mergeSellerRuntimeEnv(
     {
-      ANTSEED_INPUT_USD_PER_MILLION: '0.05',
-      ANTSEED_OUTPUT_USD_PER_MILLION: '0.1',
+      TORVE_INPUT_USD_PER_MILLION: '0.05',
+      TORVE_OUTPUT_USD_PER_MILLION: '0.1',
     },
     {
-      ANTSEED_INPUT_USD_PER_MILLION: '3',
-      ANTSEED_OUTPUT_USD_PER_MILLION: '15',
-      ANTSEED_MAX_CONCURRENCY: '10',
+      TORVE_INPUT_USD_PER_MILLION: '3',
+      TORVE_OUTPUT_USD_PER_MILLION: '15',
+      TORVE_MAX_CONCURRENCY: '10',
     },
   );
 
-  assert.equal(merged['ANTSEED_INPUT_USD_PER_MILLION'], '0.05');
-  assert.equal(merged['ANTSEED_OUTPUT_USD_PER_MILLION'], '0.1');
-  assert.equal(merged['ANTSEED_MAX_CONCURRENCY'], '10');
+  assert.equal(merged['TORVE_INPUT_USD_PER_MILLION'], '0.05');
+  assert.equal(merged['TORVE_OUTPUT_USD_PER_MILLION'], '0.1');
+  assert.equal(merged['TORVE_MAX_CONCURRENCY'], '10');
 });
 
 test('parseOptionalPositiveIntegerEnv accepts positive integer env values', () => {
@@ -376,9 +376,9 @@ test('isPublicRpcUrl matches host only and ignores invalid or dedicated RPC URLs
   assert.equal(isPublicRpcUrl('not a url'), false);
 });
 
-test('resolveBaseRpcUrlOverride uses flag before ANTSEED_BASE_RPC_URL', () => {
+test('resolveBaseRpcUrlOverride uses flag before TORVE_BASE_RPC_URL', () => {
   const env = {
-    ANTSEED_BASE_RPC_URL: 'https://env-rpc.example',
+    TORVE_BASE_RPC_URL: 'https://env-rpc.example',
   } as NodeJS.ProcessEnv;
 
   assert.equal(
@@ -391,7 +391,7 @@ test('resolveBaseRpcUrlOverride uses flag before ANTSEED_BASE_RPC_URL', () => {
   );
 });
 
-test('requireCryptoConfig applies ANTSEED_BASE_RPC_URL over config rpcUrl', () => {
+test('requireCryptoConfig applies TORVE_BASE_RPC_URL over config rpcUrl', () => {
   const config = createDefaultConfig();
   config.payments.crypto = {
     chainId: 'base-mainnet',
@@ -402,7 +402,7 @@ test('requireCryptoConfig applies ANTSEED_BASE_RPC_URL over config rpcUrl', () =
   };
 
   const crypto = requireCryptoConfig(config, {
-    env: { ANTSEED_BASE_RPC_URL: 'https://env-rpc.example' } as NodeJS.ProcessEnv,
+    env: { TORVE_BASE_RPC_URL: 'https://env-rpc.example' } as NodeJS.ProcessEnv,
   });
 
   assert.equal(crypto.rpcUrl, 'https://env-rpc.example');

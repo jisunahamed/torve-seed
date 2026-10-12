@@ -12,8 +12,8 @@ import type { Identity } from '../src/p2p/identity.js';
 import { bytesToHex } from '../src/utils/hex.js';
 import { toPeerId } from '../src/types/peer.js';
 import { AbiCoder, Wallet } from 'ethers';
-import { encodeSpendingAuth, decodeSpendingAuth } from '@antseed/protocol';
-import { computeOneOffChannelPlan } from '@antseed/protocol/messages';
+import { encodeSpendingAuth, decodeSpendingAuth } from '@torveai/protocol';
+import { computeOneOffChannelPlan } from '@torveai/protocol/messages';
 
 const enc = new TextEncoder();
 

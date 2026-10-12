@@ -1,14 +1,14 @@
-# @antseed/router-core
+# @torveai/router-core
 
-Shared infrastructure for building Antseed router plugins. Provides multi-factor peer scoring and per-peer metrics tracking.
+Shared infrastructure for building Torve router plugins. Provides multi-factor peer scoring and per-peer metrics tracking.
 
 ## Installation
 
 ```bash
-pnpm add @antseed/router-core
+pnpm add @torveai/router-core
 ```
 
-Peer dependency: `@antseed/node >= 0.1.0`
+Peer dependency: `@torveai/node >= 0.1.0`
 
 ## Key Exports
 
@@ -26,7 +26,7 @@ Scores and ranks peers using a weighted multi-factor algorithm:
 | **reliability** | Lower failure rate scores higher |
 
 ```ts
-import { scoreCandidates, DEFAULT_WEIGHTS } from '@antseed/router-core';
+import { scoreCandidates, DEFAULT_WEIGHTS } from '@torveai/router-core';
 
 const scored = scoreCandidates(peers, {
   weights: DEFAULT_WEIGHTS,
@@ -42,7 +42,7 @@ const scored = scoreCandidates(peers, {
 Tracks per-peer performance metrics for routing decisions.
 
 ```ts
-import { PeerMetricsTracker } from '@antseed/router-core';
+import { PeerMetricsTracker } from '@torveai/router-core';
 
 const tracker = new PeerMetricsTracker({ maxFailures: 3, failureCooldownMs: 30_000 });
 
@@ -57,7 +57,7 @@ tracker.isOnCooldown(peerId, Date.now());
 ### Tool Hints
 
 ```ts
-import { WELL_KNOWN_TOOL_HINTS, formatToolHints } from '@antseed/router-core';
+import { WELL_KNOWN_TOOL_HINTS, formatToolHints } from '@torveai/router-core';
 ```
 
 ## Default Scoring Weights

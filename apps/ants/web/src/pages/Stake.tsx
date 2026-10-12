@@ -1,5 +1,5 @@
 import { Alert, Button } from '../components/ui';
-import { Modal } from '@antseed/ui';
+import { Modal } from '@torveai/ui';
 import { useMemo, useRef, useState } from 'react';
 import type { OverviewView, PoolView, PoolsView } from '../../../src/api-types';
 import { api } from '../api';

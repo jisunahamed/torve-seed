@@ -6,10 +6,10 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import { IAntseedRegistry } from "../interfaces/IAntseedRegistry.sol";
+import { ITorveRegistry } from "../interfaces/ITorveRegistry.sol";
 
 /**
- * @title AntseedLegacyEmissionsEscrow
+ * @title TorveLegacyEmissionsEscrow
  * @notice Fixed pot of pre-minted ANTS covering every emission epoch before
  *         the gate's effective epoch. The deployed legacy emissions contract
  *         is re-pointed at this contract as its registry: every registry
@@ -18,7 +18,7 @@ import { IAntseedRegistry } from "../interfaces/IAntseedRegistry.sol";
  *         `token.mint(recipient, amount)` claims draw from the pot instead of
  *         minting new supply.
  *
- *         AntseedEmissionsGate funds the pot once with
+ *         TorveEmissionsGate funds the pot once with
  *         `cumulative schedule through effectiveEpoch − token.totalSupply()`
  *         — exactly what the schedule still owes for past epochs — so total
  *         supply conservation holds at every moment and the gate can refuse
@@ -28,10 +28,10 @@ import { IAntseedRegistry } from "../interfaces/IAntseedRegistry.sol";
  *         zero-point epochs) is swept by the owner to a terminal destination
  *         once legacy claim activity has wound down.
  */
-contract AntseedLegacyEmissionsEscrow is Ownable2Step, ReentrancyGuard {
+contract TorveLegacyEmissionsEscrow is Ownable2Step, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    IAntseedRegistry public immutable legacyRegistry;
+    ITorveRegistry public immutable legacyRegistry;
     address public immutable legacyEmissions;
     IERC20 private immutable _token;
 
@@ -43,10 +43,10 @@ contract AntseedLegacyEmissionsEscrow is Ownable2Step, ReentrancyGuard {
 
     constructor(address legacyRegistry_, address legacyEmissions_) Ownable(msg.sender) {
         if (legacyRegistry_ == address(0) || legacyEmissions_ == address(0)) revert InvalidAddress();
-        legacyRegistry = IAntseedRegistry(legacyRegistry_);
+        legacyRegistry = ITorveRegistry(legacyRegistry_);
         legacyEmissions = legacyEmissions_;
 
-        address token = IAntseedRegistry(legacyRegistry_).antsToken();
+        address token = ITorveRegistry(legacyRegistry_).antsToken();
         if (token == address(0)) revert InvalidAddress();
         _token = IERC20(token);
     }

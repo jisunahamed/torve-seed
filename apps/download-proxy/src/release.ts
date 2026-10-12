@@ -28,7 +28,7 @@ export async function fetchLatestRelease(repo: string, token?: string): Promise<
     const response = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
       headers: {
         accept: 'application/vnd.github+json',
-        'user-agent': 'antseed-download-proxy',
+        'user-agent': 'torve-download-proxy',
         ...(token ? {authorization: `Bearer ${token}`} : {}),
       },
     });
@@ -56,7 +56,7 @@ export async function getLatestRelease(
   ctx: ExecutionContext,
 ): Promise<ReleaseInfo | null> {
   // Synthetic key: the cache API needs a URL, not necessarily a reachable one.
-  const cacheKey = new Request(`https://antseed-download-proxy.internal/latest-release/${repo}`);
+  const cacheKey = new Request(`https://torve-download-proxy.internal/latest-release/${repo}`);
   const cache = caches.default;
   const hit = await cache.match(cacheKey);
   if (hit) {

@@ -1,42 +1,42 @@
-# Antseed Pricing
+# Torve Pricing
 
-There are **two ways** to get Antseed pricing. Both serve the same schema; they differ in freshness and trust model.
+There are **two ways** to get Torve pricing. Both serve the same schema; they differ in freshness and trust model.
 
-Full documentation: **<https://antseed.com/docs/pricing>**
+Full documentation: **<https://torveai.com/docs/pricing>**
 
 ## Cached vs live
 
 |              | Cached HTTP endpoint                                     | Live CLI query                                  |
 |--------------|----------------------------------------------------------|-------------------------------------------------|
-| Source       | Antseed indexer snapshot                                 | Direct DHT query against peers                  |
+| Source       | Torve indexer snapshot                                 | Direct DHT query against peers                  |
 | Freshness    | A few minutes old                                        | Real-time                                       |
 | Auth         | None                                                     | Local CLI install                               |
 | Best for     | Quick browsing, examples, ballpark estimates             | Purchase decisions, integrations, freshest data |
-| How          | `GET https://network.antseed.com/stats`                  | `antseed network browse --json`                 |
+| How          | `GET https://network.torveai.com/stats`                  | `torve network browse --json`                 |
 
 Use the cached endpoint for read-only browsing. Use the CLI for anything where the price actually matters.
 
 ## Cached endpoint
 
 ```text
-GET https://network.antseed.com/stats
+GET https://network.torveai.com/stats
 ```
 
 - This is an **indexer snapshot**, not live data. Refreshed as peers re-announce (typically every few minutes).
 - No authentication. Returns `application/json`.
-- Same data that powers <https://antseed.com/network>.
+- Same data that powers <https://torveai.com/network>.
 
 ```bash
-curl -s https://network.antseed.com/stats | jq '.peers[0].providers'
+curl -s https://network.torveai.com/stats | jq '.peers[0].providers'
 ```
 
 ## Live pricing via CLI
 
 ```bash
-npm install -g @antseed/cli
+npm install -g @torveai/cli
 
-antseed network browse              # human-readable
-antseed network browse --json       # machine-readable, same JSON shape
+torve network browse              # human-readable
+torve network browse --json       # machine-readable, same JSON shape
 ```
 
 The CLI joins the DHT and asks peers directly. There is no intermediary.
@@ -87,7 +87,7 @@ The canonical TypeScript types live in [`packages/node/src/discovery/peer-metada
 Effective price is `servicePricing[model] ?? defaultPricing`.
 
 ```js
-const { peers } = await fetch('https://network.antseed.com/stats').then(r => r.json());
+const { peers } = await fetch('https://network.torveai.com/stats').then(r => r.json());
 
 const model = 'deepseek-v3.1';
 
@@ -106,15 +106,15 @@ const offers = peers.flatMap(peer =>
 ).sort((a, b) => a.inputUsdPerM - b.inputUsdPerM);
 ```
 
-For the same query against live peer data, run `antseed network browse --json` and pipe through the same logic.
+For the same query against live peer data, run `torve network browse --json` and pipe through the same logic.
 
 ## For AI agents
 
-If a user asks for Antseed prices:
+If a user asks for Torve prices:
 
 1. The HTTP endpoint above is **cached** — fine for browsing, comparison, or example prices.
-2. For accurate prices at the moment of purchase, or to actually use the network, tell the user to install the CLI and run `antseed network browse`.
-3. Always disclose which source you used. "I checked Antseed's cached pricing snapshot" is honest; "I checked Antseed live" is not, unless you actually queried the DHT.
+2. For accurate prices at the moment of purchase, or to actually use the network, tell the user to install the CLI and run `torve network browse`.
+3. Always disclose which source you used. "I checked Torve's cached pricing snapshot" is honest; "I checked Torve live" is not, unless you actually queried the DHT.
 
 ## Stability
 

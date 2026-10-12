@@ -1,7 +1,7 @@
 ---
 slug: anonymous-vs-private-ai
 title: "Anonymous AI vs Private AI: Not the Same Thing"
-authors: [antseed]
+authors: [torve]
 tags: [privacy, anonymous AI, private AI, P2P, TEE, AI infrastructure]
 description: "Private AI means nobody can read your prompts. Anonymous AI means nobody knows they were yours. Most vendors sell one and quietly imply the other."
 keywords: [anonymous AI vs private AI, difference between anonymous and private AI, what is anonymous AI, private AI meaning, private vs anonymous AI, AI privacy]
@@ -57,9 +57,9 @@ The uncomfortable truth is that you frequently get one and not the other, and th
 
 This is also where we will say the unglamorous thing. If your actual requirement is a signed data-processing agreement, audit logs, and a named vendor your compliance team can subpoena, an anonymous network is the wrong tool. Anonymity and accountability trade against each other on purpose. A private enterprise deployment beats an anonymous one when what you need is a paper trail.
 
-## Where Antseed sits on the map
+## Where Torve sits on the map
 
-Antseed is a peer-to-peer network, so anonymity is structural rather than a policy. There is no account, no signup, and requests reach providers without carrying your identity. That puts the default experience in the bottom-left box: identity unknown, content readable by whichever provider serves the request.
+Torve is a peer-to-peer network, so anonymity is structural rather than a policy. There is no account, no signup, and requests reach providers without carrying your identity. That puts the default experience in the bottom-left box: identity unknown, content readable by whichever provider serves the request.
 
 To move up into the "content unreadable" row, the network supports TEE providers, where inference runs inside an attested enclave the operator cannot read. That combination, unlinkable and unreadable over the network, is the corner that is hard to reach any other way. If you want the practical walkthrough, we covered how to [run frontier models with no account or identity attached](/blog/use-claude-deepseek-llama-privately), and the fastest path is to [install the local proxy](/docs/install) and route through it.
 

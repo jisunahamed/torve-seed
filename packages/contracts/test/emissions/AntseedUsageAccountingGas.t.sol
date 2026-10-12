@@ -4,12 +4,12 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { ANTSToken } from "../../core/ANTSToken.sol";
-import { AntseedEmissionsGate } from "../../emissions/AntseedEmissionsGate.sol";
-import { AntseedRegistry } from "../../core/AntseedRegistry.sol";
-import { AntseedSellerPools } from "../../sellers/AntseedSellerPools.sol";
-import { AntseedUsageAccounting } from "../../emissions/AntseedUsageAccounting.sol";
-import { IAntseedPointsPolicy } from "../../interfaces/IAntseedPointsPolicy.sol";
-import { IAntseedUsageAccounting } from "../../interfaces/IAntseedUsageAccounting.sol";
+import { TorveEmissionsGate } from "../../emissions/TorveEmissionsGate.sol";
+import { TorveRegistry } from "../../core/TorveRegistry.sol";
+import { TorveSellerPools } from "../../sellers/TorveSellerPools.sol";
+import { TorveUsageAccounting } from "../../emissions/TorveUsageAccounting.sol";
+import { ITorvePointsPolicy } from "../../interfaces/ITorvePointsPolicy.sol";
+import { ITorveUsageAccounting } from "../../interfaces/ITorveUsageAccounting.sol";
 import { MockERC8004Registry } from "../mocks/MockERC8004Registry.sol";
 
 contract MockSellerAgentLookupForUsageAccountingGas {
@@ -24,7 +24,7 @@ contract MockSellerAgentLookupForUsageAccountingGas {
     }
 }
 
-contract MockUsagePointsPolicyForUsageAccountingGas is IAntseedPointsPolicy {
+contract MockUsagePointsPolicyForUsageAccountingGas is ITorvePointsPolicy {
     uint256 public sellerWeightBps = 10_000;
     uint256 public buyerWeightBps = 10_000;
 
@@ -43,12 +43,12 @@ contract MockUsagePointsPolicyForUsageAccountingGas is IAntseedPointsPolicy {
     }
 }
 
-contract AntseedUsageAccountingGasTest is Test {
+contract TorveUsageAccountingGasTest is Test {
     ANTSToken token;
-    AntseedRegistry registry;
-    AntseedEmissionsGate gate;
-    AntseedSellerPools sellerPools;
-    AntseedUsageAccounting usageAccounting;
+    TorveRegistry registry;
+    TorveEmissionsGate gate;
+    TorveSellerPools sellerPools;
+    TorveUsageAccounting usageAccounting;
     MockERC8004Registry identityRegistry;
     MockSellerAgentLookupForUsageAccountingGas sellerAgentLookup;
 
@@ -67,7 +67,7 @@ contract AntseedUsageAccountingGasTest is Test {
         deployCodeTo("ANTSToken.sol:ANTSToken", KNOWN_ANTS_TOKEN);
         token = ANTSToken(KNOWN_ANTS_TOKEN);
 
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         registry.setAntsToken(address(token));
         identityRegistry = new MockERC8004Registry();
         registry.setIdentityRegistry(address(identityRegistry));
@@ -80,12 +80,12 @@ contract AntseedUsageAccountingGasTest is Test {
         token.setRegistry(address(registry));
         token.enableTransfers();
 
-        gate = new AntseedEmissionsGate(address(0x80), address(0x70), 15_000, 15_000);
-        usageAccounting = new AntseedUsageAccounting(address(0), address(this), address(gate));
+        gate = new TorveEmissionsGate(address(0x80), address(0x70), 15_000, 15_000);
+        usageAccounting = new TorveUsageAccounting(address(0), address(this), address(gate));
         registry.setEmissions(address(usageAccounting));
 
         sellerPools =
-            new AntseedSellerPools(address(token), address(gate), address(identityRegistry), address(sellerAgentLookup));
+            new TorveSellerPools(address(token), address(gate), address(identityRegistry), address(sellerAgentLookup));
         usageAccounting.setSellerPools(address(sellerPools));
 
         _stakeAgentPool(seller, 1 ether, 4);
@@ -156,7 +156,7 @@ contract AntseedUsageAccountingGasTest is Test {
         assertEq(usageAccounting.weightedPoolPointsByEpoch(5, agentId), 10 * poolPower);
         assertEq(usageAccounting.totalWeightedPoolPointsByEpoch(5), 10 * poolPower);
 
-        vm.expectRevert(IAntseedUsageAccounting.InvalidValue.selector);
+        vm.expectRevert(ITorveUsageAccounting.InvalidValue.selector);
         usageAccounting.setMinimumAccountedPoolPower(0);
     }
 
@@ -172,18 +172,18 @@ contract AntseedUsageAccountingGasTest is Test {
         usageAccounting.accrueSellerPoints(seller, 1);
         assertEq(usageAccounting.pendingSellerAccrual(), address(0));
 
-        vm.expectRevert(IAntseedUsageAccounting.InvalidAddress.selector);
+        vm.expectRevert(ITorveUsageAccounting.InvalidAddress.selector);
         usageAccounting.setUsageRecorder(address(0), true);
 
         usageAccounting.setUsageRecorder(recorder, true);
         assertTrue(usageAccounting.usageRecorders(recorder));
 
         vm.prank(recorder);
-        vm.expectRevert(IAntseedUsageAccounting.InvalidAddress.selector);
+        vm.expectRevert(ITorveUsageAccounting.InvalidAddress.selector);
         usageAccounting.accrueSellerPoints(address(0), 1);
 
         vm.prank(recorder);
-        vm.expectRevert(IAntseedUsageAccounting.InvalidValue.selector);
+        vm.expectRevert(ITorveUsageAccounting.InvalidValue.selector);
         usageAccounting.accrueSellerPoints(seller, 0);
 
         vm.prank(recorder);
@@ -197,11 +197,11 @@ contract AntseedUsageAccountingGasTest is Test {
         assertEq(usageAccounting.pendingSellerAccrual(), seller);
 
         vm.prank(recorder);
-        vm.expectRevert(IAntseedUsageAccounting.InvalidAddress.selector);
+        vm.expectRevert(ITorveUsageAccounting.InvalidAddress.selector);
         usageAccounting.accrueBuyerPoints(address(0), 10);
 
         vm.prank(recorder);
-        vm.expectRevert(IAntseedUsageAccounting.InvalidValue.selector);
+        vm.expectRevert(ITorveUsageAccounting.InvalidValue.selector);
         usageAccounting.accrueBuyerPoints(buyer, 0);
 
         // Completing the pair clears the slot (sellerPools unset, so nothing
@@ -214,14 +214,14 @@ contract AntseedUsageAccountingGasTest is Test {
         assertEq(usageAccounting.pendingSellerAccrual(), address(0));
 
         vm.prank(recorder);
-        vm.expectRevert(IAntseedUsageAccounting.NoPendingSellerAccrual.selector);
+        vm.expectRevert(ITorveUsageAccounting.NoPendingSellerAccrual.selector);
         usageAccounting.accrueBuyerPoints(buyer, 10);
 
-        vm.expectRevert(IAntseedUsageAccounting.InvalidAddress.selector);
+        vm.expectRevert(ITorveUsageAccounting.InvalidAddress.selector);
         usageAccounting.accruePoints(bytes32(0), address(0), seller, 1);
-        vm.expectRevert(IAntseedUsageAccounting.InvalidAddress.selector);
+        vm.expectRevert(ITorveUsageAccounting.InvalidAddress.selector);
         usageAccounting.accruePoints(bytes32(0), buyer, address(0), 1);
-        vm.expectRevert(IAntseedUsageAccounting.InvalidValue.selector);
+        vm.expectRevert(ITorveUsageAccounting.InvalidValue.selector);
         usageAccounting.accruePoints(bytes32(0), buyer, seller, 0);
 
         usageAccounting.setSellerPools(address(0));
@@ -256,14 +256,14 @@ contract AntseedUsageAccountingGasTest is Test {
         assertEq(usageAccounting.poolPointsByEpoch(5, seller), 20);
         assertEq(usageAccounting.sellerAgentIdByEpoch(5, seller), agentId);
 
-        IAntseedUsageAccounting.UsageTotals memory totalUsage = usageAccounting.totalUsage();
-        IAntseedUsageAccounting.UsageTotals memory epochUsage = usageAccounting.epochUsage(5);
-        IAntseedUsageAccounting.BuyerUsage memory buyerTotal = usageAccounting.buyerUsageTotal(buyer);
-        IAntseedUsageAccounting.BuyerUsage memory buyerEpoch = usageAccounting.buyerEpochUsage(5, buyer);
-        IAntseedUsageAccounting.BuyerUsage memory buyerAgentTotal = usageAccounting.buyerAgentUsageTotal(buyer, agentId);
-        IAntseedUsageAccounting.BuyerUsage memory buyerAgentEpoch =
+        ITorveUsageAccounting.UsageTotals memory totalUsage = usageAccounting.totalUsage();
+        ITorveUsageAccounting.UsageTotals memory epochUsage = usageAccounting.epochUsage(5);
+        ITorveUsageAccounting.BuyerUsage memory buyerTotal = usageAccounting.buyerUsageTotal(buyer);
+        ITorveUsageAccounting.BuyerUsage memory buyerEpoch = usageAccounting.buyerEpochUsage(5, buyer);
+        ITorveUsageAccounting.BuyerUsage memory buyerAgentTotal = usageAccounting.buyerAgentUsageTotal(buyer, agentId);
+        ITorveUsageAccounting.BuyerUsage memory buyerAgentEpoch =
             usageAccounting.buyerAgentEpochUsage(5, buyer, agentId);
-        IAntseedUsageAccounting.SellerUsage memory agentEpoch = usageAccounting.agentEpochUsage(5, agentId);
+        ITorveUsageAccounting.SellerUsage memory agentEpoch = usageAccounting.agentEpochUsage(5, agentId);
         assertEq(totalUsage.buyers.points, 10);
         assertEq(epochUsage.sellers.points, 20);
         assertEq(buyerTotal.weightedPoints, 10 * poolPower);
@@ -277,7 +277,7 @@ contract AntseedUsageAccountingGasTest is Test {
     }
 
     function test_usageAccountingPausedAccrualsAreSkippedNotReverted() public {
-        // Pausing must not revert (the deployed AntseedChannels settle path
+        // Pausing must not revert (the deployed TorveChannels settle path
         // calls accruals with no try/catch); paused accruals are skipped.
         uint256 buyerPointsBefore = usageAccounting.totalBuyerPointsByEpoch(5);
 
@@ -314,7 +314,7 @@ contract AntseedUsageAccountingGasTest is Test {
     }
 }
 
-contract RevertingPointsPolicy is IAntseedPointsPolicy {
+contract RevertingPointsPolicy is ITorvePointsPolicy {
     function points(bytes32, address, address, uint256) external pure returns (uint256, uint256) {
         revert("policy broken");
     }

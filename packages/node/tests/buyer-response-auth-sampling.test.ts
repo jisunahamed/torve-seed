@@ -66,7 +66,7 @@ describe('BuyerRequestHandler response auth sampling', () => {
     );
 
     const received = await handler.sendRequest(peer, request);
-    received.headers['x-antseed-seller-peer'] = seller.peerId;
+    received.headers['x-torve-seller-peer'] = seller.peerId;
     deliverAuth();
 
     await vi.waitFor(() => {

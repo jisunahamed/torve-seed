@@ -7,14 +7,14 @@
  */
 
 import { readFile } from 'node:fs/promises';
-import { normalizeAdvertisedVerifierIds } from '@antseed/node/verifier-capabilities';
+import { normalizeAdvertisedVerifierIds } from '@torveai/node/verifier-capabilities';
 import { readPeerHealth, type RawPeerHealth } from '../runtime/peer-health.js';
 import {
   DESKTOP_DEFAULT_MAX_INPUT_USD_PER_MILLION,
   DESKTOP_DEFAULT_MAX_OUTPUT_USD_PER_MILLION,
 } from '../runtime/config-io.js';
 import { normalizeProviderId } from './provider-hint.js';
-import { isNativeVideoProtocol } from '@antseed/node';
+import { isNativeVideoProtocol } from '@torveai/node';
 import {
   normalizeVideoOptions,
   sortChatServiceCatalogEntries,
@@ -31,7 +31,7 @@ import {
   normalizeServiceValue,
 } from './normalize.js';
 import type { DesktopVerificationLink } from '../connected-apps/domain-site-metadata.js';
-import type { TrustBreakdown } from '@antseed/node';
+import type { TrustBreakdown } from '@torveai/node';
 
 export type BuyerMaxPricingDefaults = {
   inputUsdPerMillion: number;

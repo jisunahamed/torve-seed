@@ -3,8 +3,8 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
 
-import {ISetRegistry, ISetWriter} from "../interfaces/IAntseedWiring.sol";
-import {AntseedRegistry} from "../core/AntseedRegistry.sol";
+import {ISetRegistry, ISetWriter} from "../interfaces/ITorveWiring.sol";
+import {TorveRegistry} from "../core/TorveRegistry.sol";
 
 /**
  * @title UpgradeBaseSepolia
@@ -51,37 +51,37 @@ contract UpgradeBaseSepolia is Script {
         console.log("ERC-8004 Registry:    ", IDENTITY);
         console.log("");
 
-        // 1. AntseedRegistry (new central address book)
-        AntseedRegistry registry = new AntseedRegistry();
+        // 1. TorveRegistry (new central address book)
+        TorveRegistry registry = new TorveRegistry();
         console.log("--- New deployments ---");
-        console.log("AntseedRegistry:      ", address(registry));
+        console.log("TorveRegistry:      ", address(registry));
 
-        // 2. AntseedStats (new)
-        bytes memory statsBytecode = vm.getCode("AntseedStats.sol:AntseedStats");
+        // 2. TorveStats (new)
+        bytes memory statsBytecode = vm.getCode("TorveStats.sol:TorveStats");
         address stats;
         assembly { stats := create(0, add(statsBytecode, 0x20), mload(statsBytecode)) }
         require(stats != address(0), "Stats deploy failed");
-        console.log("AntseedStats:         ", stats);
+        console.log("TorveStats:         ", stats);
 
-        // 3. AntseedDeposits(usdc) — new logic (direct payouts)
+        // 3. TorveDeposits(usdc) — new logic (direct payouts)
         bytes memory depositsBytecode = abi.encodePacked(
-            vm.getCode("AntseedDeposits.sol:AntseedDeposits"),
+            vm.getCode("TorveDeposits.sol:TorveDeposits"),
             abi.encode(USDC)
         );
         address deposits;
         assembly { deposits := create(0, add(depositsBytecode, 0x20), mload(depositsBytecode)) }
         require(deposits != address(0), "Deposits deploy failed");
-        console.log("AntseedDeposits:      ", deposits);
+        console.log("TorveDeposits:      ", deposits);
 
-        // 4. AntseedChannels(registry) — new logic
+        // 4. TorveChannels(registry) — new logic
         bytes memory channelsBytecode = abi.encodePacked(
-            vm.getCode("AntseedChannels.sol:AntseedChannels"),
+            vm.getCode("TorveChannels.sol:TorveChannels"),
             abi.encode(address(registry))
         );
         address channels;
         assembly { channels := create(0, add(channelsBytecode, 0x20), mload(channelsBytecode)) }
         require(channels != address(0), "Channels deploy failed");
-        console.log("AntseedChannels:      ", channels);
+        console.log("TorveChannels:      ", channels);
 
         // ---- Wire new Registry (all addresses) ----
         registry.setChannels(channels);

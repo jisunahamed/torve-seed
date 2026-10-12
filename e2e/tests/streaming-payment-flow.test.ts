@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { AntseedNode } from '@antseed/node';
+import { TorveNode } from '@torveai/node';
 import type {
   Provider,
   ProviderStreamCallbacks,
@@ -7,7 +7,7 @@ import type {
   SerializedHttpResponse,
   PeerInfo,
   NodePaymentsConfig,
-} from '@antseed/node';
+} from '@torveai/node';
 import { createLocalBootstrap } from './helpers/local-bootstrap.js';
 import { tmpdir } from 'node:os';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -166,7 +166,7 @@ function createMockRpcServer(): Promise<{ server: Server; url: string }> {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 async function waitForPeers(
-  node: AntseedNode,
+  node: TorveNode,
   expectedCount: number,
   timeoutMs = 15_000,
   intervalMs = 500,
@@ -311,8 +311,8 @@ function makePaymentsConfig(rpcUrl: string, overrides?: Partial<NodePaymentsConf
 
 describe('Streaming payment flow E2E', () => {
   let bootstrap: Awaited<ReturnType<typeof createLocalBootstrap>> | null = null;
-  let sellerNode: AntseedNode | null = null;
-  let buyerNode: AntseedNode | null = null;
+  let sellerNode: TorveNode | null = null;
+  let buyerNode: TorveNode | null = null;
   let sellerDataDir: string | null = null;
   let buyerDataDir: string | null = null;
   let rpcServer: Server | null = null;
@@ -332,10 +332,10 @@ describe('Streaming payment flow E2E', () => {
   ): Promise<{ seller: PeerInfo }> {
     bootstrap = await createLocalBootstrap();
 
-    sellerDataDir = await mkdtemp(join(tmpdir(), 'antseed-seller-flow-'));
+    sellerDataDir = await mkdtemp(join(tmpdir(), 'torve-seller-flow-'));
     const provider = sellerProvider ?? new MockAnthropicProvider();
 
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: 'seller',
       dataDir: sellerDataDir,
       dhtPort: 0,
@@ -348,8 +348,8 @@ describe('Streaming payment flow E2E', () => {
     sellerNode.registerProvider(provider);
     await sellerNode.start();
 
-    buyerDataDir = await mkdtemp(join(tmpdir(), 'antseed-buyer-flow-'));
-    buyerNode = new AntseedNode({
+    buyerDataDir = await mkdtemp(join(tmpdir(), 'torve-buyer-flow-'));
+    buyerNode = new TorveNode({
       role: 'buyer',
       dataDir: buyerDataDir,
       dhtPort: 0,

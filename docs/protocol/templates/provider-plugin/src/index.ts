@@ -1,16 +1,16 @@
-import type { AntseedProviderPlugin } from '@antseed/node';
+import type { TorveProviderPlugin } from '@torveai/node';
 import { EchoProvider } from './provider.js';
 
 /**
  * Provider plugin entry point.
  *
- * The default export must satisfy AntseedProviderPlugin.
+ * The default export must satisfy TorveProviderPlugin.
  * The CLI loads this via dynamic import() and calls createProvider(config).
  *
  * Rename the package, change the name/displayName, and replace
  * EchoProvider with your real inference implementation.
  */
-const plugin: AntseedProviderPlugin = {
+const plugin: TorveProviderPlugin = {
   name: 'echo',
   displayName: 'Echo',
   version: '0.1.0',

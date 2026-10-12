@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  AntseedRequestError,
+  TorveRequestError,
   buyerFault,
   peerFault,
   faultAttributionOf,
@@ -47,10 +47,10 @@ describe('fault attribution', () => {
   });
 
   it('keeps the message and name of a tagged error intact', () => {
-    const err = new AntseedRequestError('Node stopped', 'node-stopped', 'buyer');
+    const err = new TorveRequestError('Node stopped', 'node-stopped', 'buyer');
     expect(err).toBeInstanceOf(Error);
     expect(err.message).toBe('Node stopped');
-    expect(err.name).toBe('AntseedRequestError');
+    expect(err.name).toBe('TorveRequestError');
   });
 
   it('keeps a closed peer connection ambiguous so failover remains possible', () => {

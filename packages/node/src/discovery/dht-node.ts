@@ -61,7 +61,7 @@ function normalizeTopicSegment(value: string): string {
 }
 
 /** Wildcard topic that all peers announce on — used for general discovery. */
-export const ANTSEED_WILDCARD_TOPIC = "antseed:*";
+export const TORVE_WILDCARD_TOPIC = "torve:*";
 
 /**
  * Number of subnet shards used to spread peer announcements across multiple
@@ -114,7 +114,7 @@ export function subnetOf(peerId: string, subnetCount: number = SUBNET_COUNT): nu
  * subnets in parallel inside `PeerLookup.findAll()`.
  */
 export function subnetTopic(index: number): string {
-  return `antseed:subnet:${index}`;
+  return `torve:subnet:${index}`;
 }
 
 /**
@@ -125,11 +125,11 @@ export function subnetTopic(index: number): string {
  * hex (no `0x`); validation is the caller's responsibility.
  */
 export function peerTopic(peerId: string): string {
-  return "antseed:peer:" + peerId.trim().toLowerCase().replace(/^0x/, "");
+  return "torve:peer:" + peerId.trim().toLowerCase().replace(/^0x/, "");
 }
 
 export function capabilityTopic(capability: string, name?: string): string {
-  const base = "antseed:" + normalizeTopicSegment(capability);
+  const base = "torve:" + normalizeTopicSegment(capability);
   return name ? base + ":" + normalizeTopicSegment(name) : base;
 }
 

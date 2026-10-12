@@ -5,7 +5,7 @@
  *   2. Generates /llms-connect.txt at build time so LLM crawlers can ingest
  *      the integration catalog without scraping HTML.
  *   3. Copies skills/join-buyer/SKILL.md to /skill.md, the one file an agent
- *      reads to install, start, fund and use Antseed.
+ *      reads to install, start, fund and use Torve.
  *
  * Adding a new entry to integrations.ts is enough — the route appears on
  * the next build.
@@ -87,14 +87,14 @@ function renderStep(s: Step): string {
 
 function renderWireFormatBlock(i: Integration): string {
   const lines: string[] = [];
-  lines.push(`**How ${i.name} talks to Antseed**`);
+  lines.push(`**How ${i.name} talks to Torve**`);
   lines.push('');
   if (i.format === 'multi') {
     lines.push(
-      `${i.name} can send any of Antseed's supported wire formats. Match the request ` +
+      `${i.name} can send any of Torve's supported wire formats. Match the request ` +
         "format against each service's `protocols` array (advertised per service in " +
         '`providerServiceApiProtocols`) — when it matches, ' +
-        'the request passes through untouched; when it does not, `@antseed/api-adapter` ' +
+        'the request passes through untouched; when it does not, `@torveai/api-adapter` ' +
         'translates on the fly.',
     );
     lines.push('');
@@ -121,12 +121,12 @@ function renderWireFormatBlock(i: Integration): string {
       'zero translation overhead.',
   );
   lines.push(
-    '- **How to check a peer:** run `antseed network peer <peerId> --json` and look at ' +
+    '- **How to check a peer:** run `torve network peer <peerId> --json` and look at ' +
       '`peer.providerServiceApiProtocols[provider].services[service]` for each model. ' +
       'The browse command exposes the same field per peer.',
   );
   lines.push(
-    `- **When protocols differ:** Antseed's \`@antseed/api-adapter\` translates between ${FORMAT_LABELS[fmt]} ` +
+    `- **When protocols differ:** Torve's \`@torveai/api-adapter\` translates between ${FORMAT_LABELS[fmt]} ` +
       "and the service's native protocol on the fly. So a request from " +
       `${i.name} can still reach a service that only advertises a different protocol — just ` +
       'with a small transform step.',
@@ -152,7 +152,7 @@ function renderIntegrationMarkdown(i: Integration): string {
   lines.push(`- **Category:** ${CATEGORY_LABELS[i.category]}`);
   lines.push(`- **Wire format:** ${FORMAT_LABELS[i.format]}`);
   lines.push(`- **Setup time:** ~${i.setupMinutes} min`);
-  lines.push(`- **Page:** https://antseed.com/integrations/${i.slug}`);
+  lines.push(`- **Page:** https://torveai.com/integrations/${i.slug}`);
   if (i.agentSummary) {
     lines.push('');
     lines.push(`**TL;DR for agents:** ${i.agentSummary}`);
@@ -222,43 +222,43 @@ function renderIntegrationMarkdown(i: Integration): string {
 function renderSkillMarkdown(): string {
   const out: string[] = [];
   out.push('---');
-  out.push('name: antseed-connect');
-  out.push('description: Connect coding agents, AI SDKs, and LLM tools to the Antseed buyer proxy locally or through an authenticated public endpoint. Use when configuring Claude Code, Codex, OpenCode, Pi, OpenClaw, Hermes, GenLayer Studio, Vercel AI SDK, LangChain, or raw HTTP.');
+  out.push('name: torve-connect');
+  out.push('description: Connect coding agents, AI SDKs, and LLM tools to the Torve buyer proxy locally or through an authenticated public endpoint. Use when configuring Claude Code, Codex, OpenCode, Pi, OpenClaw, Hermes, GenLayer Studio, Vercel AI SDK, LangChain, or raw HTTP.');
   out.push('---');
   out.push('');
-  out.push('# Antseed — Integration Skill');
+  out.push('# Torve — Integration Skill');
   out.push('');
-  out.push('> This file is the agent-readable companion to https://antseed.com/integrations.');
+  out.push('> This file is the agent-readable companion to https://torveai.com/integrations.');
   out.push('> It tells any AI agent (Claude, Codex, OpenClaw, Hermes, custom) exactly');
-  out.push('> how to wire its tool of choice up to the Antseed peer-to-peer inference network.');
+  out.push('> how to wire its tool of choice up to the Torve peer-to-peer inference network.');
   out.push('');
 
-  out.push('## What is Antseed?');
+  out.push('## What is Torve?');
   out.push('');
-  out.push('Antseed is a peer-to-peer marketplace for AI inference. Buyers run a small');
+  out.push('Torve is a peer-to-peer marketplace for AI inference. Buyers run a small');
   out.push('local daemon (the **buyer proxy**) that exposes an HTTP API at');
   out.push('`http://localhost:8377` speaking the three caller-facing LLM API protocols:');
   out.push('Anthropic Messages, OpenAI Chat Completions, and OpenAI Responses. Legacy');
   out.push('OpenAI Completions is supported internally for adapter translation. The proxy');
   out.push('discovers providers on a DHT, routes the');
   out.push('request to a peer, translates between protocols when needed (via');
-  out.push('`@antseed/api-adapter`), and settles in USDC on Base.');
+  out.push('`@torveai/api-adapter`), and settles in USDC on Base.');
   out.push('');
-  out.push('Important: Antseed is for value-added AI services (specialized models, agents,');
+  out.push('Important: Torve is for value-added AI services (specialized models, agents,');
   out.push('TEEs, fine-tunes, managed workflows), not raw resale of API keys or subscription');
   out.push('access. Providers must comply with upstream terms of service.');
   out.push('');
-  out.push('From the perspective of any tool, SDK, or agent, **Antseed is just a local');
+  out.push('From the perspective of any tool, SDK, or agent, **Torve is just a local');
   out.push('OpenAI/Anthropic-compatible endpoint** — point a `base_url` at it and you are done.');
   out.push('');
 
   out.push('## Glossary (mental model)');
   out.push('');
   out.push('- **Buyer proxy** — the local server on `localhost:8377` that accepts API calls');
-  out.push('  from your tools and forwards them to Antseed peers. It is the only thing your');
+  out.push('  from your tools and forwards them to Torve peers. It is the only thing your');
   out.push('  editor / agent / SDK ever talks to.');
   out.push('- **Peer** — someone selling inference. Each peer has a `peerId` (40-char hex),');
-  out.push('  a display name, and a list of services. List with `antseed network browse`.');
+  out.push('  a display name, and a list of services. List with `torve network browse`.');
   out.push('- **Service** — a single model id like `kimi-k2.6` or `deepseek-v4-flash`.');
   out.push("  *This is what you pass as `model` in your tool's config.* Each service has its");
   out.push('  own native protocol list and its own `in` / `cachedIn` / `out` pricing.');
@@ -280,9 +280,9 @@ function renderSkillMarkdown(): string {
   out.push('  fails over to the next ranked peer on peer-attributed retryable failures');
   out.push('  (rate-limited peers get up to 3 same-peer retries before fallback). Pin when');
   out.push('  you want to force one specific seller:');
-  out.push('  - **Session pin**: `antseed buyer connection set --peer <peerId>`. Persists in');
-  out.push('    `~/.antseed/buyer.state.json` and applies to every request until you change it.');
-  out.push('  - **Per-request header**: `x-antseed-pin-peer: <peerId>` on each call. Overrides');
+  out.push('  - **Session pin**: `torve buyer connection set --peer <peerId>`. Persists in');
+  out.push('    `~/.torve/buyer.state.json` and applies to every request until you change it.');
+  out.push('  - **Per-request header**: `x-torve-pin-peer: <peerId>` on each call. Overrides');
   out.push('    the session pin for that request.');
   out.push('  - **Model prefix**: set `model` to `<peerId>@<service>`. The proxy uses the');
   out.push('    prefix as the peer pin and forwards only `<service>` to the seller.');
@@ -299,10 +299,10 @@ function renderSkillMarkdown(): string {
   out.push('');
   out.push('### Option A — AI VPN desktop app (recommended)');
   out.push('');
-  out.push('Download from https://antseed.com — it ships the buyer proxy, a wallet, and a');
+  out.push('Download from https://torveai.com — it ships the buyer proxy, a wallet, and a');
   out.push('peer browser in a GUI. While the app is open the proxy is reachable at');
   out.push('`http://localhost:8377`. Its **Apps** view detects installed tools (Claude');
-  out.push('Code, Codex, …) and launches them already wired to Antseed. The app saves');
+  out.push('Code, Codex, …) and launches them already wired to Torve. The app saves');
   out.push('its Price + Trust preferences into the buyer config, so internal chat,');
   out.push('connected apps, and direct API calls all use the same routing policy.');
   out.push('');
@@ -310,16 +310,16 @@ function renderSkillMarkdown(): string {
   out.push('');
   out.push('```bash');
   out.push('# 1. Install');
-  out.push('npm install -g @antseed/cli');
+  out.push('npm install -g @torveai/cli');
   out.push('');
   out.push('# 2. Identity (an EVM private key — 64 hex chars). Save this somewhere safe;');
   out.push('#    you will reuse it across machines and it controls your USDC deposits.');
-  out.push('export ANTSEED_IDENTITY_HEX=$(openssl rand -hex 32)');
+  out.push('export TORVE_IDENTITY_HEX=$(openssl rand -hex 32)');
   out.push('# SECURITY: never paste this key into chat, logs, GitHub issues, or a file');
   out.push('# committed to git. It controls the buyer identity and access to deposits.');
   out.push('');
   out.push('# 3. Start the buyer proxy on :8377');
-  out.push('antseed buyer start &');
+  out.push('torve buyer start &');
   out.push('');
   out.push('# 4. List every model on the network (answered locally, aggregated across');
   out.push('#    all sellers — no pin needed). Close aliases such as claude-opus-5 /');
@@ -339,7 +339,7 @@ function renderSkillMarkdown(): string {
   out.push('#    `service` is the model id you pass to your tool. `protocols` is the');
   out.push('#    wire format(s) the service accepts natively — match it against your');
   out.push('#    tool. `in` / `cachedIn` / `out` are fresh-input / cached-input / output.');
-  out.push('antseed network browse --json --top 5 \\');
+  out.push('torve network browse --json --top 5 \\');
   out.push("  | jq '.peers | map({");
   out.push("      peerId, name: .displayName,");
   out.push("      services: [");
@@ -360,7 +360,7 @@ function renderSkillMarkdown(): string {
   out.push('#    `cachedIn` is typically 4–10× cheaper than `in` and often dominates the');
   out.push('#    cost line for long-running agents and chatbots — always include it when');
   out.push('#    comparing peers.');
-  out.push('antseed network peer <peerId> --json \\');
+  out.push('torve network peer <peerId> --json \\');
   out.push("  | jq '{");
   out.push("      peer: (.peer | { peerId, name: .displayName,");
   out.push("                       sessions: .onChainChannelCount,");
@@ -383,26 +383,26 @@ function renderSkillMarkdown(): string {
   out.push('');
   out.push('# 8. (Optional) Pin a peer (session-wide) to force a specific seller.');
   out.push('#    Not required — model-only requests auto-select a peer. Clear a stale');
-  out.push('#    pin with `antseed buyer connection clear`.');
-  out.push('antseed buyer connection set --peer <peerId>');
+  out.push('#    pin with `torve buyer connection clear`.');
+  out.push('torve buyer connection set --peer <peerId>');
   out.push('');
   out.push('# 9. (Optional) Deposit USDC on Base for paid services');
-  out.push('antseed buyer deposit  # prints the funding address + QR; incoming USDC deposits automatically (gasless)');
+  out.push('torve buyer deposit  # prints the funding address + QR; incoming USDC deposits automatically (gasless)');
   out.push('```');
   out.push('');
   out.push('### Security notes for agents and deploys');
   out.push('');
-  out.push('- Treat `ANTSEED_IDENTITY_HEX` / `~/.antseed/identity.key` as a hot wallet key.');
+  out.push('- Treat `TORVE_IDENTITY_HEX` / `~/.torve/identity.key` as a hot wallet key.');
   out.push('  Never print it, paste it into chat, commit it, or copy it off the buyer host.');
   out.push('- Keep the buyer proxy bound to `127.0.0.1` / `localhost`. Do not expose');
   out.push('  `:8377` directly to the public internet. For a remote agent, open **Agents**');
   out.push('  in the AI VPN and configure ngrok or Cloudflare under **Define your');
-  out.push('  internet-accessible Antseed endpoint**. Use the displayed `/v1` URL and');
-  out.push('  generated `antseed_...` API key.');
+  out.push('  internet-accessible Torve endpoint**. Use the displayed `/v1` URL and');
+  out.push('  generated `torve_...` API key.');
   out.push('- Start with small USDC deposits and conservative reserve caps for autonomous');
   out.push('  agents. The funding wallet does not need to stay connected after depositing.');
   out.push('- For the local buyer proxy, a required API-key field can use a non-secret');
-  out.push('  placeholder such as `antseed`. The public endpoint requires its generated key');
+  out.push('  placeholder such as `torve`. The public endpoint requires its generated key');
   out.push('  as `Authorization: Bearer <API_KEY>`.');
   out.push('');
 
@@ -419,7 +419,7 @@ function renderSkillMarkdown(): string {
   out.push('| `POST /v1/images/edits` | OpenAI image editing | Image-capable SDKs and applications |');
   out.push('');
   out.push('All four LLM protocols (including legacy `openai-completions`) are supported by');
-  out.push('`@antseed/api-adapter` for translation. Translation is automatic: a request that arrives in one');
+  out.push('`@torveai/api-adapter` for translation. Translation is automatic: a request that arrives in one');
   out.push('format and is routed to a peer whose service advertises a different `protocols`');
   out.push('value is transformed both directions (request and streaming response).');
   out.push('');
@@ -433,12 +433,12 @@ function renderSkillMarkdown(): string {
   out.push('Pinning is optional — a request that names a model routes automatically. Use');
   out.push('one of these overrides only when you need a specific seller:');
   out.push('');
-  out.push('1. **Session pin** — `antseed buyer connection set --peer <peerId>`. Persists in');
-  out.push('   `~/.antseed/buyer.state.json` (`pinnedPeerId`) and applies to every request');
+  out.push('1. **Session pin** — `torve buyer connection set --peer <peerId>`. Persists in');
+  out.push('   `~/.torve/buyer.state.json` (`pinnedPeerId`) and applies to every request');
   out.push('   until you change it. Best for single-tenant setups (laptops, dedicated agents).');
-  out.push('2. **Per-request header** — send `x-antseed-pin-peer: <peerId>` on each call.');
+  out.push('2. **Per-request header** — send `x-torve-pin-peer: <peerId>` on each call.');
   out.push('   Overrides the session pin for that one request. **You do not need to call');
-  out.push('   `antseed buyer connection set` at all** if every request includes this header');
+  out.push('   `torve buyer connection set` at all** if every request includes this header');
   out.push('   — the proxy will accept and route them. Best for scripts, schedulers, and');
   out.push('   multi-tenant deployments that need to fan out to different peers per call.');
   out.push('3. **Model prefix** — set `model` to `<peerId>@<service-id>` when the client');
@@ -454,37 +454,37 @@ function renderSkillMarkdown(): string {
   out.push('```bash');
   out.push('curl http://localhost:8377/v1/chat/completions \\');
   out.push("  -H 'content-type: application/json' \\");
-  out.push("  -H 'x-antseed-pin-peer: cccccccccccccccccccccccccccccccccccccccc' \\");
+  out.push("  -H 'x-torve-pin-peer: cccccccccccccccccccccccccccccccccccccccc' \\");
   out.push('  -d \'{ "model": "minimax-m2.7", "messages": [{"role":"user","content":"hi"}] }\'');
   out.push('```');
   out.push('');
   out.push('Other optional headers:');
   out.push('');
-  out.push('- `x-antseed-provider: <providerName>` — when a peer exposes the same service');
+  out.push('- `x-torve-provider: <providerName>` — when a peer exposes the same service');
   out.push('  through more than one seller-plugin (rare), force a specific one. Most tools');
   out.push('  never need this.');
   out.push('');
 
-  out.push('## Files the CLI creates in `~/.antseed/`');
+  out.push('## Files the CLI creates in `~/.torve/`');
   out.push('');
-  out.push('Knowing what lives in `~/.antseed/` matters for backups, container deploys,');
-  out.push('and debugging. The directory is created on first `antseed buyer start` (or');
-  out.push('first run of any `antseed` command that needs it).');
+  out.push('Knowing what lives in `~/.torve/` matters for backups, container deploys,');
+  out.push('and debugging. The directory is created on first `torve buyer start` (or');
+  out.push('first run of any `torve` command that needs it).');
   out.push('');
   out.push('| Path | Purpose | Survives restart? | Safe to delete? |');
   out.push('|------|---------|--------------------|------------------|');
-  out.push('| `identity.key` | Raw 32-byte EVM private key for the buyer wallet. Fallback when `ANTSEED_IDENTITY_HEX` is not set. | yes | NO — deleting loses access to your USDC deposits. Back this up. |');
+  out.push('| `identity.key` | Raw 32-byte EVM private key for the buyer wallet. Fallback when `TORVE_IDENTITY_HEX` is not set. | yes | NO — deleting loses access to your USDC deposits. Back this up. |');
   out.push('| `identity.enc` | Encrypted copy of `identity.key` (when the desktop app sets a passphrase). | yes | only if `identity.key` is also intact |');
   out.push('| `config.json` | Static settings: chain id, proxy port, max-pricing caps, bootstrap nodes, payments preferences. Hand-editable. | yes | yes (defaults are sane) |');
   out.push('| `buyer.state.json` | Live runtime state: `pinnedPeerId`, the discovered-peers cache (`discoveredPeers`), on-chain stats, the proxy `pid` and `port`. Re-built from the network on next start. | yes (the pin survives restart) | yes (you lose the pin and the cached peer list — next browse will repopulate) |');
-  out.push('| `metering.db` | SQLite log of every request the proxy served (model, peer, tokens, USDC). Used by `antseed buyer status` and the desktop app. | yes | yes (you lose request history; settlement is unaffected) |');
-  out.push('| `payments/` | Per-channel state used by the seller-side settlement flow (only relevant if you also run `antseed seller`). | yes | only if you do not run a seller |');
+  out.push('| `metering.db` | SQLite log of every request the proxy served (model, peer, tokens, USDC). Used by `torve buyer status` and the desktop app. | yes | yes (you lose request history; settlement is unaffected) |');
+  out.push('| `payments/` | Per-channel state used by the seller-side settlement flow (only relevant if you also run `torve seller`). | yes | only if you do not run a seller |');
   out.push('| `plugins/` | Cache of downloaded provider plugins. | yes | yes (re-downloaded on next use) |');
   out.push('| `chat/`, `projects/` | Used by the desktop app for local chat history. Empty on a CLI-only setup. | yes | yes |');
   out.push('');
   out.push('### `config.json` (commonly edited)');
   out.push('');
-  out.push('```json title="~/.antseed/config.json"');
+  out.push('```json title="~/.torve/config.json"');
   out.push('{');
   out.push('  "buyer": {');
   out.push('    "proxyPort": 8377,                  // change if 8377 conflicts on the host');
@@ -510,16 +510,16 @@ function renderSkillMarkdown(): string {
   out.push('Top-level fields that an agent might want to inspect:');
   out.push('');
   out.push('- `pinnedPeerId` — the currently pinned peer (or `null`).');
-  out.push('- `pid` / `port` — the running proxy. If `pid` is non-null but the process is gone, `antseed buyer start` will detect the stale lockfile and clean up.');
-  out.push('- `discoveredPeers` — cached peer list from the last DHT browse. Refreshed on `antseed network browse`.');
+  out.push('- `pid` / `port` — the running proxy. If `pid` is non-null but the process is gone, `torve buyer start` will detect the stale lockfile and clean up.');
+  out.push('- `discoveredPeers` — cached peer list from the last DHT browse. Refreshed on `torve network browse`.');
   out.push('- `peersUpdatedAt`, `onChainStatsRefreshedAt` — cache timestamps (epoch millis).');
   out.push('');
   out.push('To force a clean reset of pin + caches without losing your wallet:');
   out.push('');
   out.push('```bash');
-  out.push('antseed buyer stop || true');
-  out.push('rm ~/.antseed/buyer.state.json');
-  out.push('antseed buyer start &');
+  out.push('torve buyer stop || true');
+  out.push('rm ~/.torve/buyer.state.json');
+  out.push('torve buyer start &');
   out.push('```');
   out.push('');
 
@@ -538,19 +538,19 @@ function renderSkillMarkdown(): string {
 
   out.push('## For agents writing integrations');
   out.push('');
-  out.push('If you are a coding agent helping a user wire up Antseed, the canonical flow is:');
+  out.push('If you are a coding agent helping a user wire up Torve, the canonical flow is:');
   out.push('');
   out.push('1. Detect what tool the user is using.');
   out.push('2. Look it up in this file by name.');
   out.push('3. Run the **Install** steps if the tool is not present.');
   out.push('4. Before editing config files, read the existing file, preserve unrelated');
-  out.push('   user settings, and merge only the Antseed provider/profile block.');
+  out.push('   user settings, and merge only the Torve provider/profile block.');
   out.push('5. Apply the **Configure** block (env vars, config file edit, or GUI instruction).');
   out.push('6. Verify with the **Test it** command.');
-  out.push('7. (Optional) Force a specific seller: `antseed network browse` → `antseed network');
+  out.push('7. (Optional) Force a specific seller: `torve network browse` → `torve network');
   out.push("   peer <peerId> --json`. Match the tool's wire format against the service's");
   out.push('   `protocols` array — NOT the `provider` field. Then');
-  out.push('   `antseed buyer connection set --peer <peerId>`. Not required — a request that');
+  out.push('   `torve buyer connection set --peer <peerId>`. Not required — a request that');
   out.push('   names a model uses the shared Price + Trust ranking and policy gates.');
   out.push('8. If the tool is not listed: pick the **curl / Raw HTTP** entry and adapt — the');
   out.push('   contract is stable.');
@@ -561,7 +561,7 @@ function renderSkillMarkdown(): string {
   out.push('## Adding a new integration');
   out.push('');
   out.push('Edit `apps/website/src/integrations/integrations.ts` in');
-  out.push('https://github.com/AntSeed/antseed and open a PR. The hub at /integrations, the');
+  out.push('https://github.com/Torve/torve and open a PR. The hub at /integrations, the');
   out.push('per-tool page, and this file are all generated from that single file. The');
   out.push('onboarding skill an agent reads first (install, start, fund, use) is served');
   out.push('at /skill.md.');
@@ -583,7 +583,7 @@ export default function connectPagesPlugin(context: LoadContext): Plugin {
       await fs.writeFile(path.join(staticDir, 'llms-connect.txt'), renderSkillMarkdown(), 'utf8');
 
       // /skill.md is the onboarding skill, copied verbatim from the repo so
-      // the website and `gh skill install Antseed/antseed join-buyer` never
+      // the website and `gh skill install Torve/torve join-buyer` never
       // drift apart.
       const joinBuyer = await fs.readFile(
         path.join(context.siteDir, '..', '..', 'skills', 'join-buyer', 'SKILL.md'),

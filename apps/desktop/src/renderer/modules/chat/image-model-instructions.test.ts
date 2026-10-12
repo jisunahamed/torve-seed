@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import type { VprModelCatalogEntry } from '../../core/state';
 import {
-  ANTSEED_IMAGES_SKILL_URL,
+  TORVE_IMAGES_SKILL_URL,
   buildImageModelSkillPrompt,
 } from './image-model-instructions';
 
@@ -14,7 +14,7 @@ const model = {
 test('buildImageModelSkillPrompt discovers image models and uses model-only routing', () => {
   const prompt = buildImageModelSkillPrompt(model, 8377);
 
-  assert.equal(prompt.includes(ANTSEED_IMAGES_SKILL_URL), true);
+  assert.equal(prompt.includes(TORVE_IMAGES_SKILL_URL), true);
   assert.match(prompt, /\/v1\/models\?type=images/);
   assert.match(prompt, /model: gpt-image-2/);
   assert.match(prompt, /display_name: GPT Image 2/);

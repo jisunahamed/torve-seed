@@ -1,4 +1,4 @@
-# @antseed/api-adapter
+# @torveai/api-adapter
 
 HTTP-level format translation between LLM API protocols. Converts requests and responses between Anthropic Messages, OpenAI Chat Completions, and OpenAI Responses — without any network calls.
 
@@ -30,7 +30,7 @@ anthropic-messages  ⟷  openai-responses
 ### Detect what protocol an incoming request speaks
 
 ```ts
-import { detectRequestServiceApiProtocol } from '@antseed/api-adapter';
+import { detectRequestServiceApiProtocol } from '@torveai/api-adapter';
 
 const protocol = detectRequestServiceApiProtocol(request);
 // → 'anthropic-messages' | 'openai-chat-completions' | 'openai-responses' | null
@@ -39,7 +39,7 @@ const protocol = detectRequestServiceApiProtocol(request);
 ### Select a target protocol given what a provider supports
 
 ```ts
-import { selectTargetProtocolForRequest } from '@antseed/api-adapter';
+import { selectTargetProtocolForRequest } from '@torveai/api-adapter';
 
 const selection = selectTargetProtocolForRequest('anthropic-messages', ['openai-chat-completions']);
 // → { targetProtocol: 'openai-chat-completions', requiresTransform: true }
@@ -56,7 +56,7 @@ const reverse = selectTargetProtocolForRequest('openai-responses', ['anthropic-m
 ```ts
 import {
   transformRequest,
-} from '@antseed/api-adapter';
+} from '@torveai/api-adapter';
 
 // Buyer sent an Anthropic request; provider only speaks OpenAI Chat
 const result = transformRequest(incomingRequest, {
@@ -80,7 +80,7 @@ const responsesResult = transformRequest(incomingRequest, {
 ```ts
 import {
   transformResponse,
-} from '@antseed/api-adapter';
+} from '@torveai/api-adapter';
 
 // Provider returned an OpenAI Chat response; buyer expects Anthropic
 const adapted = transformResponse(providerResponse, {
@@ -104,7 +104,7 @@ const adaptedFromResponses = transformResponse(providerResponse, {
 For streaming responses, create an adapter once per request and feed it chunks as they arrive.
 
 ```ts
-import { createStreamingAdapter } from '@antseed/api-adapter';
+import { createStreamingAdapter } from '@torveai/api-adapter';
 
 const adapter = createStreamingAdapter({
   from: 'openai-chat-completions',

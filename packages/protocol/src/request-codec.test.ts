@@ -17,7 +17,7 @@ describe('http payload codec', () => {
       requestId: 'req-1',
       method: 'POST',
       path: '/v1/messages?q=café',
-      headers: { 'Content-Type': 'application/json', 'x-antseed-provider': 'anthropic' },
+      headers: { 'Content-Type': 'application/json', 'x-torve-provider': 'anthropic' },
       body: new TextEncoder().encode('{"model":"m","messages":[]}'),
     };
     const decoded = decodeHttpRequest(encodeHttpRequest(request));

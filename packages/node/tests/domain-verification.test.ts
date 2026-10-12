@@ -13,7 +13,7 @@ const PEER_ID = "aa".repeat(20);
 
 describe("domain verification", () => {
   it("builds DNS TXT and well-known proof payloads", () => {
-    expect(buildDomainVerificationTxtValue(`0x${PEER_ID}`)).toBe(`antseed-peer=${PEER_ID}`);
+    expect(buildDomainVerificationTxtValue(`0x${PEER_ID}`)).toBe(`torve-peer=${PEER_ID}`);
     expect(buildDomainVerificationWellKnownProof(PEER_ID, "Example.COM")).toEqual({
       type: DOMAIN_VERIFICATION_WELL_KNOWN_TYPE,
       peerId: PEER_ID,
@@ -27,8 +27,8 @@ describe("domain verification", () => {
       PEER_ID,
       {
         resolveTxt: async (hostname) => {
-          expect(hostname).toBe("_antseed.example.com");
-          return [[`antseed-peer=${PEER_ID}`]];
+          expect(hostname).toBe("_torve.example.com");
+          return [[`torve-peer=${PEER_ID}`]];
         },
       },
     );
@@ -43,7 +43,7 @@ describe("domain verification", () => {
       PEER_ID,
       {
         fetch: async (input, init) => {
-          expect(String(input)).toBe("https://example.com/.well-known/antseed.json");
+          expect(String(input)).toBe("https://example.com/.well-known/torve.json");
           expect(init?.redirect).toBe("error");
           return new Response(JSON.stringify({
             type: DOMAIN_VERIFICATION_WELL_KNOWN_TYPE,
@@ -127,7 +127,7 @@ describe("domain verification", () => {
       { domain: "example.com" },
       PEER_ID,
       {
-        resolveTxt: async () => [["antseed-peer=bb"]],
+        resolveTxt: async () => [["torve-peer=bb"]],
         fetch: async () => new Response(JSON.stringify({
           type: DOMAIN_VERIFICATION_WELL_KNOWN_TYPE,
           peerId: "bb",
@@ -158,7 +158,7 @@ describe("domain verification", () => {
     };
 
     const results = await verifyPeerMetadataDomains(metadata, {
-      resolveTxt: async (hostname) => [[hostname === "_antseed.a.example.com" ? `antseed-peer=${PEER_ID}` : "nope"]],
+      resolveTxt: async (hostname) => [[hostname === "_torve.a.example.com" ? `torve-peer=${PEER_ID}` : "nope"]],
     });
 
     expect(results.map((result) => result.verified)).toEqual([true, false]);

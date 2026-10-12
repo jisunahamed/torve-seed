@@ -1,8 +1,8 @@
 import {
-  ANTSEED_FAULT_ATTRIBUTION_HEADER,
+  TORVE_FAULT_ATTRIBUTION_HEADER,
   type SerializedHttpResponse,
-} from '@antseed/protocol/http';
-import type { ServiceApiProtocol } from '@antseed/protocol/service-api';
+} from '@torveai/protocol/http';
+import type { ServiceApiProtocol } from '@torveai/protocol/service-api';
 
 const USER_ACTIONABLE_PEER_ERROR_IDS = new Set([
   'content_policy_violation',
@@ -113,7 +113,7 @@ export function adaptPeerFaultErrorResponse(
   if (
     response.statusCode < 400
     || requestProtocol === null
-    || responseHeader(response, ANTSEED_FAULT_ATTRIBUTION_HEADER)?.toLowerCase() === 'buyer'
+    || responseHeader(response, TORVE_FAULT_ATTRIBUTION_HEADER)?.toLowerCase() === 'buyer'
   ) {
     return response;
   }
@@ -125,30 +125,30 @@ export function adaptPeerFaultErrorResponse(
 
   const headers = {
     ...response.headers,
-    [ANTSEED_FAULT_ATTRIBUTION_HEADER]: 'peer',
+    [TORVE_FAULT_ATTRIBUTION_HEADER]: 'peer',
   };
   if (isUserActionablePeerError(response, details.id)) {
     return { ...response, headers };
   }
 
   const pinned = options?.pinned === true;
-  const alreadyWrapped = details.error?.antseed_fault === 'peer';
-  const alreadyPinned = details.error?.antseed_pinned === true;
+  const alreadyWrapped = details.error?.torve_fault === 'peer';
+  const alreadyPinned = details.error?.torve_pinned === true;
   if (alreadyWrapped && (!pinned || alreadyPinned)) return { ...response, headers };
 
   const peerLabel = pinned ? 'pinned peer' : 'peer';
   const originalMessage = details.message ?? 'No additional details were provided.';
   const message = [
     `Oops, ${peerLabel} could not complete the request.`,
-    'Antseed is a peer-to-peer network. Try another peer or use Auto routing.',
+    'Torve is a peer-to-peer network. Try another peer or use Auto routing.',
     `Original Response: ${JSON.stringify({ message: originalMessage, status: response.statusCode })}`,
   ].join('\n');
   const error = {
     ...(details.error ?? {}),
     type: typeof details.error?.type === 'string' ? details.error.type : details.id ?? 'upstream_error',
     message,
-    antseed_fault: 'peer',
-    antseed_pinned: pinned,
+    torve_fault: 'peer',
+    torve_pinned: pinned,
     peer_message: originalMessage,
     peer_status: response.statusCode,
   };

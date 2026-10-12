@@ -9,7 +9,7 @@ function antsCommand(): Command {
   return program.commands.find((command) => command.name() === 'ants')!;
 }
 
-test('antseed ants registers the dashboard plus every staking, reward, pool, seller, and verification subcommand', () => {
+test('torve ants registers the dashboard plus every staking, reward, pool, seller, and verification subcommand', () => {
   const ants = antsCommand();
   assert.ok(ants);
   const names = ants.commands.map((command) => command.name()).sort();

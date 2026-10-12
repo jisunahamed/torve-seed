@@ -1,5 +1,5 @@
 /**
- * `antseed ants` against an Anvil fork of Base mainnet at the latest block:
+ * `torve ants` against an Anvil fork of Base mainnet at the latest block:
  * the real M001 contracts, a simulated cutover (registry pointers), and
  * every write path the dashboard exposes. Enabled by BASE_MAINNET_RPC_URL.
  */
@@ -10,7 +10,7 @@ import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { Interface, JsonRpcProvider, parseUnits } from 'ethers';
-import { loadOrCreateIdentity, getChainConfig, IdentityClient, SellerRegistryClient } from '@antseed/node';
+import { loadOrCreateIdentity, getChainConfig, IdentityClient, SellerRegistryClient } from '@torveai/node';
 import { withAnvilFork } from '../../scripts/deployments/runtime/anvil.mjs';
 
 const execFile = promisify(execFileCallback);
@@ -25,7 +25,7 @@ const accountingAbi = new Interface(['function accruePoints(bytes32,address,addr
 
 interface Actor { dir: string; address: string; agentId: number; wallet: Awaited<ReturnType<typeof loadOrCreateIdentity>>['wallet']; }
 
-describe.skipIf(!forkUrl)('antseed ants on a Base mainnet fork', () => {
+describe.skipIf(!forkUrl)('torve ants on a Base mainnet fork', () => {
   let rpcUrl: string;
   let provider: JsonRpcProvider;
   let release: () => void;
@@ -48,7 +48,7 @@ describe.skipIf(!forkUrl)('antseed ants on a Base mainnet fork', () => {
   async function ants(actor: Actor, args: string[], expectFailure = false): Promise<string> {
     try {
       const result = await execFile(process.execPath, [cli, '--data-dir', actor.dir, '--config', join(actor.dir, 'config.json'), 'ants', ...args], {
-        cwd: root, env: { ...process.env, ANTSEED_BASE_RPC_URL: rpcUrl, FORCE_COLOR: '0' }, maxBuffer: 16 * 1024 * 1024,
+        cwd: root, env: { ...process.env, TORVE_BASE_RPC_URL: rpcUrl, FORCE_COLOR: '0' }, maxBuffer: 16 * 1024 * 1024,
       });
       if (expectFailure) throw new Error(`expected failure: ants ${args.join(' ')}`);
       return `${result.stdout}${result.stderr}`;
@@ -60,12 +60,12 @@ describe.skipIf(!forkUrl)('antseed ants on a Base mainnet fork', () => {
   }
   async function antsJson<T>(actor: Actor, args: string[]): Promise<T> {
     const result = await execFile(process.execPath, [cli, '--data-dir', actor.dir, '--config', join(actor.dir, 'config.json'), 'ants', ...args, '--json'], {
-      cwd: root, env: { ...process.env, ANTSEED_BASE_RPC_URL: rpcUrl, FORCE_COLOR: '0' }, maxBuffer: 16 * 1024 * 1024,
+      cwd: root, env: { ...process.env, TORVE_BASE_RPC_URL: rpcUrl, FORCE_COLOR: '0' }, maxBuffer: 16 * 1024 * 1024,
     });
     return JSON.parse(result.stdout) as T;
   }
   async function actor(): Promise<Actor> {
-    const dir = await mkdtemp(join(tmpdir(), 'antseed-ants-e2e-'));
+    const dir = await mkdtemp(join(tmpdir(), 'torve-ants-e2e-'));
     await writeFile(join(dir, 'config.json'), JSON.stringify({ payments: { crypto: { chainId: 'base-mainnet', explorerApiUrl: '' } } }));
     const identity = await loadOrCreateIdentity(dir);
     await rpc('anvil_setBalance', [identity.wallet.address, '0x56BC75E2D63100000']);
@@ -73,7 +73,7 @@ describe.skipIf(!forkUrl)('antseed ants on a Base mainnet fork', () => {
   }
 
   beforeAll(async () => {
-    await execFile('pnpm', ['--filter', '@antseed/cli', 'build'], { cwd: root, env: process.env });
+    await execFile('pnpm', ['--filter', '@torveai/cli', 'build'], { cwd: root, env: process.env });
     const ready = new Promise<string>((resolveReady) => {
       forkDone = withAnvilFork({ forkUrl: forkUrl!, chainId: 8453 }, async ({ rpcUrl: url }) => {
         resolveReady(url);

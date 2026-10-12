@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { identityFromPrivateKeyHex, type Identity } from '@antseed/node'
+import { identityFromPrivateKeyHex, type Identity } from '@torveai/node'
 import { BuyerIdentityLoader } from './loader.js'
 import { randomBytes } from 'node:crypto'
 import { archiveBuyerIdentity, buyerIdentityExists, createBuyerIdentity, listBuyerIdentities, loadBuyerIdentity, parseKeySource } from './store.js'
@@ -14,7 +14,7 @@ function randomWallet(): { privateKey: string; address: string } {
 }
 
 function tempDataDir(): { dataDir: string; cleanup: () => void } {
-  const dataDir = mkdtempSync(join(tmpdir(), 'antseed-identities-'))
+  const dataDir = mkdtempSync(join(tmpdir(), 'torve-identities-'))
   return { dataDir, cleanup: () => rmSync(dataDir, { recursive: true, force: true }) }
 }
 

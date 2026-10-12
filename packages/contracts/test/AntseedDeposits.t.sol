@@ -2,13 +2,13 @@
 pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
-import "../payments/AntseedDeposits.sol";
-import "../core/AntseedRegistry.sol";
+import "../payments/TorveDeposits.sol";
+import "../core/TorveRegistry.sol";
 import "./mocks/MockUSDC.sol";
 
-contract AntseedDepositsTest is Test {
-    AntseedDeposits public deposits;
-    AntseedRegistry public antseedRegistry;
+contract TorveDepositsTest is Test {
+    TorveDeposits public deposits;
+    TorveRegistry public torveRegistry;
     MockUSDC public usdc;
 
     address public owner;
@@ -29,11 +29,11 @@ contract AntseedDepositsTest is Test {
     function setUp() public {
         owner = address(this);
         usdc = new MockUSDC();
-        antseedRegistry = new AntseedRegistry();
-        antseedRegistry.setChannels(sessions);
-        antseedRegistry.setProtocolReserve(protocolReserve);
-        deposits = new AntseedDeposits(address(usdc));
-        deposits.setRegistry(address(antseedRegistry));
+        torveRegistry = new TorveRegistry();
+        torveRegistry.setChannels(sessions);
+        torveRegistry.setProtocolReserve(protocolReserve);
+        deposits = new TorveDeposits(address(usdc));
+        deposits.setRegistry(address(torveRegistry));
 
         // Fund test addresses
         usdc.mint(buyer, 1_000_000_000);   // 1000 USDC
@@ -76,8 +76,8 @@ contract AntseedDepositsTest is Test {
     // ═══════════════════════════════════════════════════════════════════
 
     function test_constructor_revert_zeroAddress() public {
-        vm.expectRevert(AntseedDeposits.InvalidAddress.selector);
-        new AntseedDeposits(address(0));
+        vm.expectRevert(TorveDeposits.InvalidAddress.selector);
+        new TorveDeposits(address(0));
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -100,14 +100,14 @@ contract AntseedDepositsTest is Test {
 
     function test_deposit_emitsEvent() public {
         vm.expectEmit(true, false, false, true);
-        emit AntseedDeposits.Deposited(buyer, MIN_DEPOSIT);
+        emit TorveDeposits.Deposited(buyer, MIN_DEPOSIT);
 
         _deposit(buyer, MIN_DEPOSIT);
     }
 
     function test_deposit_revert_zeroAmount() public {
         vm.prank(operator);
-        vm.expectRevert(AntseedDeposits.InvalidAmount.selector);
+        vm.expectRevert(TorveDeposits.InvalidAmount.selector);
         deposits.deposit(buyer, 0);
     }
 
@@ -132,7 +132,7 @@ contract AntseedDepositsTest is Test {
     function test_deposit_revert_exceedsCreditLimit() public {
         deposits.setCreditLimitOverride(buyer, 0); // use formula-based limit
         vm.prank(operator);
-        vm.expectRevert(AntseedDeposits.CreditLimitExceeded.selector);
+        vm.expectRevert(TorveDeposits.CreditLimitExceeded.selector);
         deposits.deposit(buyer, BASE_CREDIT + 1);
     }
 
@@ -182,7 +182,7 @@ contract AntseedDepositsTest is Test {
 
     function test_withdraw_revert_notOperator() public {
         vm.prank(randomCaller);
-        vm.expectRevert(AntseedDeposits.NotAuthorized.selector);
+        vm.expectRevert(TorveDeposits.NotAuthorized.selector);
         deposits.withdraw(buyer, MIN_DEPOSIT);
     }
 
@@ -190,13 +190,13 @@ contract AntseedDepositsTest is Test {
         (uint256 totalAvailable,,) = deposits.getBuyerBalance(buyer);
 
         vm.prank(operator);
-        vm.expectRevert(AntseedDeposits.InsufficientBalance.selector);
+        vm.expectRevert(TorveDeposits.InsufficientBalance.selector);
         deposits.withdraw(buyer, totalAvailable + 1);
     }
 
     function test_withdraw_revert_zeroAmount() public {
         vm.prank(operator);
-        vm.expectRevert(AntseedDeposits.InvalidAmount.selector);
+        vm.expectRevert(TorveDeposits.InvalidAmount.selector);
         deposits.withdraw(buyer, 0);
     }
 
@@ -208,7 +208,7 @@ contract AntseedDepositsTest is Test {
         deposits.lockForChannel(buyer, totalAvailable);
 
         vm.prank(operator);
-        vm.expectRevert(AntseedDeposits.InsufficientBalance.selector);
+        vm.expectRevert(TorveDeposits.InsufficientBalance.selector);
         deposits.withdraw(buyer, 1);
     }
 
@@ -379,7 +379,7 @@ contract AntseedDepositsTest is Test {
         (uint256 totalAvailable,,) = deposits.getBuyerBalance(buyer);
 
         vm.prank(sessions);
-        vm.expectRevert(AntseedDeposits.InsufficientBalance.selector);
+        vm.expectRevert(TorveDeposits.InsufficientBalance.selector);
         deposits.lockForChannel(buyer, totalAvailable + 1);
     }
 
@@ -387,7 +387,7 @@ contract AntseedDepositsTest is Test {
         _deposit(buyer, MIN_DEPOSIT);
 
         vm.prank(randomCaller);
-        vm.expectRevert(AntseedDeposits.NotAuthorized.selector);
+        vm.expectRevert(TorveDeposits.NotAuthorized.selector);
         deposits.lockForChannel(buyer, MIN_DEPOSIT);
     }
 
@@ -458,7 +458,7 @@ contract AntseedDepositsTest is Test {
 
     function test_chargeAndCreditPayouts_zeroProtocolReserveAddress() public {
         // Override registry to have no protocolReserve
-        AntseedRegistry noReserveRegistry = new AntseedRegistry();
+        TorveRegistry noReserveRegistry = new TorveRegistry();
         noReserveRegistry.setChannels(sessions);
         deposits.setRegistry(address(noReserveRegistry));
 
@@ -473,7 +473,7 @@ contract AntseedDepositsTest is Test {
         assertEq(usdc.balanceOf(seller), 10_000_000);
 
         // Restore original registry
-        deposits.setRegistry(address(antseedRegistry));
+        deposits.setRegistry(address(torveRegistry));
     }
 
     function test_chargeAndCreditPayouts_revert_amountExceedsReserved() public {
@@ -492,13 +492,13 @@ contract AntseedDepositsTest is Test {
         deposits.lockForChannel(buyer, 20_000_000);
 
         vm.prank(sessions);
-        vm.expectRevert(AntseedDeposits.InvalidAmount.selector);
+        vm.expectRevert(TorveDeposits.InvalidAmount.selector);
         deposits.chargeAndCreditPayouts(buyer, seller, 10_000_000, 11_000_000);
     }
 
     function test_chargeAndCreditPayouts_revert_notChannels() public {
         vm.prank(randomCaller);
-        vm.expectRevert(AntseedDeposits.NotAuthorized.selector);
+        vm.expectRevert(TorveDeposits.NotAuthorized.selector);
         deposits.chargeAndCreditPayouts(buyer, seller, 1, 0);
     }
 
@@ -516,7 +516,7 @@ contract AntseedDepositsTest is Test {
 
     function test_releaseLock_revert_notChannels() public {
         vm.prank(randomCaller);
-        vm.expectRevert(AntseedDeposits.NotAuthorized.selector);
+        vm.expectRevert(TorveDeposits.NotAuthorized.selector);
         deposits.releaseLock(buyer, 1);
     }
 
@@ -525,14 +525,14 @@ contract AntseedDepositsTest is Test {
     // ═══════════════════════════════════════════════════════════════════
 
     function test_setRegistry_success() public {
-        AntseedRegistry newRegistry = new AntseedRegistry();
+        TorveRegistry newRegistry = new TorveRegistry();
         newRegistry.setChannels(address(0xAA));
         deposits.setRegistry(address(newRegistry));
         assertEq(address(deposits.registry()), address(newRegistry));
     }
 
     function test_setRegistry_revert_zeroAddress() public {
-        vm.expectRevert(AntseedDeposits.InvalidAddress.selector);
+        vm.expectRevert(TorveDeposits.InvalidAddress.selector);
         deposits.setRegistry(address(0));
     }
 
@@ -609,7 +609,7 @@ contract AntseedDepositsTest is Test {
         deposits.transferOperator(buyer, address(0));
 
         vm.prank(randomCaller);
-        vm.expectRevert(AntseedDeposits.NotAuthorized.selector);
+        vm.expectRevert(TorveDeposits.NotAuthorized.selector);
         deposits.withdraw(buyer, MIN_DEPOSIT);
     }
 }

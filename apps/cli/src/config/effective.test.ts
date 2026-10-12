@@ -22,8 +22,8 @@ test('effective seller config precedence is flags > env > config > defaults', ()
   };
 
   const env = {
-    ANTSEED_SELLER_INPUT_USD_PER_MILLION: '30',
-    ANTSEED_SELLER_OUTPUT_USD_PER_MILLION: '40',
+    TORVE_SELLER_INPUT_USD_PER_MILLION: '30',
+    TORVE_SELLER_OUTPUT_USD_PER_MILLION: '40',
   } as NodeJS.ProcessEnv;
 
   const effective = resolveEffectiveSellerConfig({
@@ -51,11 +51,11 @@ test('effective buyer config precedence is flags > env > config > defaults', () 
   config.buyer.maxPricing.defaults.outputUsdPerMillion = 80;
 
   const env = {
-    ANTSEED_BUYER_MIN_REPUTATION: '45',
-    ANTSEED_BUYER_MAX_INPUT_USD_PER_MILLION: '90',
-    ANTSEED_BUYER_MAX_OUTPUT_USD_PER_MILLION: '95',
-    ANTSEED_BUYER_METADATA_FETCH_TIMEOUT_MS: '2200',
-    ANTSEED_BUYER_DISABLE_METADATA_V2_SERVICES: 'true',
+    TORVE_BUYER_MIN_REPUTATION: '45',
+    TORVE_BUYER_MAX_INPUT_USD_PER_MILLION: '90',
+    TORVE_BUYER_MAX_OUTPUT_USD_PER_MILLION: '95',
+    TORVE_BUYER_METADATA_FETCH_TIMEOUT_MS: '2200',
+    TORVE_BUYER_DISABLE_METADATA_V2_SERVICES: 'true',
   } as NodeJS.ProcessEnv;
 
   const effective = resolveEffectiveBuyerConfig({
@@ -81,9 +81,9 @@ test('effective buyer config rejects invalid metadata v2 opt-out env overrides',
   assert.throws(
     () => resolveEffectiveBuyerConfig({
       config,
-      env: { ANTSEED_BUYER_DISABLE_METADATA_V2_SERVICES: 'maybe' } as NodeJS.ProcessEnv,
+      env: { TORVE_BUYER_DISABLE_METADATA_V2_SERVICES: 'maybe' } as NodeJS.ProcessEnv,
     }),
-    /ANTSEED_BUYER_DISABLE_METADATA_V2_SERVICES must be a boolean/,
+    /TORVE_BUYER_DISABLE_METADATA_V2_SERVICES must be a boolean/,
   );
 });
 
@@ -93,7 +93,7 @@ test('effective buyer config rejects invalid metadata fetch timeout env override
   assert.throws(
     () => resolveEffectiveBuyerConfig({
       config,
-      env: { ANTSEED_BUYER_METADATA_FETCH_TIMEOUT_MS: '99' } as NodeJS.ProcessEnv,
+      env: { TORVE_BUYER_METADATA_FETCH_TIMEOUT_MS: '99' } as NodeJS.ProcessEnv,
     }),
     /buyer\.metadataFetchTimeoutMs must be an integer >= 100/,
   );
@@ -101,9 +101,9 @@ test('effective buyer config rejects invalid metadata fetch timeout env override
   assert.throws(
     () => resolveEffectiveBuyerConfig({
       config,
-      env: { ANTSEED_BUYER_METADATA_FETCH_TIMEOUT_MS: 'not-a-number' } as NodeJS.ProcessEnv,
+      env: { TORVE_BUYER_METADATA_FETCH_TIMEOUT_MS: 'not-a-number' } as NodeJS.ProcessEnv,
     }),
-    /ANTSEED_BUYER_METADATA_FETCH_TIMEOUT_MS must be a finite number/,
+    /TORVE_BUYER_METADATA_FETCH_TIMEOUT_MS must be a finite number/,
   );
 });
 
@@ -119,7 +119,7 @@ test('effective config resolution does not mutate loaded config', () => {
   const original = JSON.parse(JSON.stringify(config));
 
   const env = {
-    ANTSEED_BUYER_MAX_INPUT_USD_PER_MILLION: '123',
+    TORVE_BUYER_MAX_INPUT_USD_PER_MILLION: '123',
   } as NodeJS.ProcessEnv;
 
   const effective = resolveEffectiveRoleConfig({

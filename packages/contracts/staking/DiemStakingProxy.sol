@@ -8,8 +8,8 @@ import { SafeCast } from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import { IERC1271 } from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
 
-import { AntseedSellerDelegation } from "./AntseedSellerDelegation.sol";
-import { IAntseedRegistry } from "../interfaces/IAntseedRegistry.sol";
+import { TorveSellerDelegation } from "./TorveSellerDelegation.sol";
+import { ITorveRegistry } from "../interfaces/ITorveRegistry.sol";
 
 interface IDiemStake {
     function stake(uint256 amount) external;
@@ -18,7 +18,7 @@ interface IDiemStake {
     function cooldownDuration() external view returns (uint256);
 }
 
-contract DiemStakingProxy is AntseedSellerDelegation, IERC1271, Pausable {
+contract DiemStakingProxy is TorveSellerDelegation, IERC1271, Pausable {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
 
@@ -36,8 +36,8 @@ contract DiemStakingProxy is AntseedSellerDelegation, IERC1271, Pausable {
     struct RewardEpoch {
         uint256 revenuePerTokenAtEnd; // USDC reward-per-token checkpoint at epoch close
         uint256 totalPoints; // epoch-local revenue denominator for userPoints shares
-        uint256 antsPot; // ANTS received from AntseedEmissions when first claimed
-        bool funded; // true once the epoch's ANTS pot has been claimed from AntseedEmissions
+        uint256 antsPot; // ANTS received from TorveEmissions when first claimed
+        bool funded; // true once the epoch's ANTS pot has been claimed from TorveEmissions
     }
 
     // ─── Immutables ─────────────────────────────────────────────────
@@ -135,14 +135,14 @@ contract DiemStakingProxy is AntseedSellerDelegation, IERC1271, Pausable {
 
     // ─── Constructor ────────────────────────────────────────────────
     constructor(address _diem, address _usdc, address _registry, address _operator)
-        AntseedSellerDelegation(_registry, _operator)
+        TorveSellerDelegation(_registry, _operator)
     {
         if (_diem == address(0) || _usdc == address(0)) revert InvalidAddress();
 
-        address _ants = IAntseedRegistry(_registry).antsToken();
-        address _emissions = IAntseedRegistry(_registry).emissions();
-        address _antseedStaking = IAntseedRegistry(_registry).staking();
-        if (_ants == address(0) || _emissions == address(0) || _antseedStaking == address(0)) {
+        address _ants = ITorveRegistry(_registry).antsToken();
+        address _emissions = ITorveRegistry(_registry).emissions();
+        address _torveStaking = ITorveRegistry(_registry).staking();
+        if (_ants == address(0) || _emissions == address(0) || _torveStaking == address(0)) {
             revert InvalidAddress();
         }
 

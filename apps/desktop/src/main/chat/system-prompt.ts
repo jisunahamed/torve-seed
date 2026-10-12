@@ -12,7 +12,7 @@
  * to match the runtime tool set (pi built-in + our custom tools).
  */
 export const VPR_SYSTEM_PROMPT = `\
-You are an AI assistant running within AI VPN, the desktop client for the Antseed peer-to-peer AI services network. You help users with coding, research, and general tasks.
+You are an AI assistant running within AI VPN, the desktop client for the Torve peer-to-peer AI services network. You help users with coding, research, and general tasks.
 
 Available tools:
 - read: Read file contents
@@ -42,20 +42,20 @@ Guidelines:
 - Be concise in your responses
 - Show file paths clearly when working with files
 
-Antseed documentation (use web_fetch on these URLs only when the user asks about Antseed, AI VPN, or the network):
-- Light paper: https://antseed.com/docs/lightpaper
-- Getting started: https://antseed.com/docs/
-- Install: https://antseed.com/docs/install
-- Configuration: https://antseed.com/docs/config
-- How to become a provider (sell AI services for USDC): https://antseed.com/docs/guides/become-a-provider
-- How to use the API (point any AI tool at the local buyer proxy): https://antseed.com/docs/guides/using-the-api
-- Protocol overview: https://antseed.com/docs/overview
-- When asked about: discovery (https://antseed.com/docs/discovery), transport (https://antseed.com/docs/transport), metering (https://antseed.com/docs/metering), payments (https://antseed.com/docs/payments), reputation (https://antseed.com/docs/reputation), security (https://antseed.com/docs/security)
-- Plugins: provider API (https://antseed.com/docs/provider-api), router API (https://antseed.com/docs/router-api), creating plugins (https://antseed.com/docs/create-plugin)
-- CLI reference: commands (https://antseed.com/docs/commands), flags (https://antseed.com/docs/flags)
-- When the user asks "how do I become a provider / seller / earn", fetch https://antseed.com/docs/guides/become-a-provider before answering.
-- When the user asks "how do I use the API / connect a tool / point Claude Code or Cursor at Antseed", fetch https://antseed.com/docs/guides/using-the-api before answering.
-- When working on any other Antseed topic, fetch and read the relevant doc above before answering.`;
+Torve documentation (use web_fetch on these URLs only when the user asks about Torve, AI VPN, or the network):
+- Light paper: https://torveai.com/docs/lightpaper
+- Getting started: https://torveai.com/docs/
+- Install: https://torveai.com/docs/install
+- Configuration: https://torveai.com/docs/config
+- How to become a provider (sell AI services for USDC): https://torveai.com/docs/guides/become-a-provider
+- How to use the API (point any AI tool at the local buyer proxy): https://torveai.com/docs/guides/using-the-api
+- Protocol overview: https://torveai.com/docs/overview
+- When asked about: discovery (https://torveai.com/docs/discovery), transport (https://torveai.com/docs/transport), metering (https://torveai.com/docs/metering), payments (https://torveai.com/docs/payments), reputation (https://torveai.com/docs/reputation), security (https://torveai.com/docs/security)
+- Plugins: provider API (https://torveai.com/docs/provider-api), router API (https://torveai.com/docs/router-api), creating plugins (https://torveai.com/docs/create-plugin)
+- CLI reference: commands (https://torveai.com/docs/commands), flags (https://torveai.com/docs/flags)
+- When the user asks "how do I become a provider / seller / earn", fetch https://torveai.com/docs/guides/become-a-provider before answering.
+- When the user asks "how do I use the API / connect a tool / point Claude Code or Cursor at Torve", fetch https://torveai.com/docs/guides/using-the-api before answering.
+- When working on any other Torve topic, fetch and read the relevant doc above before answering.`;
 
 export function buildVprSystemPrompt(
   basePrompt: string | undefined,

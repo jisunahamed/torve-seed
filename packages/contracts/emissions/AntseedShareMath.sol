@@ -3,12 +3,12 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
-/// @title AntseedShareMath
+/// @title TorveShareMath
 /// @notice Shared saturating share curve for the recognized-usage reward
 ///         controllers. Defining the protocol's dynamic-emission share
 ///         formula once keeps the buyer/seller usage shares and the staker
 ///         pool share on the same curve against the same gate emission.
-library AntseedShareMath {
+library TorveShareMath {
     /// @dev Share (in bps) that rises from `minShareBps` at metric 0 toward
     ///      `maxShareBps` as `metric` grows past `target`:
     ///      min + (max − min) · metric / (metric + target). Zero metric earns

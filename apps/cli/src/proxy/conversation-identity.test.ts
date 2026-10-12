@@ -28,7 +28,7 @@ test('isCompletionRequestPath matches API turn endpoints', () => {
   assert.equal(isCompletionRequestPath('/v1/completions'), true)
   assert.equal(isCompletionRequestPath('/v1/responses'), true)
   assert.equal(isCompletionRequestPath('/v1/models'), false)
-  assert.equal(isCompletionRequestPath('/_antseed/route'), false)
+  assert.equal(isCompletionRequestPath('/_torve/route'), false)
 })
 
 test('claude code identity comes from x-claude-code-session-id', () => {
@@ -47,7 +47,7 @@ test('claude code identity comes from x-claude-code-session-id', () => {
 test('system proxy source profile wins over SDK client identity for intercepted traffic', () => {
   const identity = extractConversationIdentity({
     'user-agent': 'claude-cli/2.1.216 (external, sdk-cli)',
-    'x-antseed-system-proxy-source': 'custom-api-anthropic-com',
+    'x-torve-system-proxy-source': 'custom-api-anthropic-com',
     'x-claude-code-session-id': '43ddc5e7-0b8e-491f-a5d1-f2a6854f689d',
   }, null)
   assert.deepEqual(identity, {
@@ -141,7 +141,7 @@ test('requests without any identity return null', () => {
 
 test('identified clients without a session id get a stable synthetic conversation key', () => {
   const firstRequest = {
-    model: 'antseed',
+    model: 'torve',
     messages: [
       { role: 'system', content: 'You are Hermes.' },
       { role: 'user', content: 'Refactor the payment service.' },
@@ -167,7 +167,7 @@ test('cursor synthetic conversation keys use the prompt after the environment pr
     'user-agent': 'Cursor/1.0',
     // Covers older tunnel gateways which forwarded Cursor's User-Agent but
     // stamped every request with the generic public-tunnel source.
-    'x-antseed-system-proxy-source': 'public-tunnel',
+    'x-torve-system-proxy-source': 'public-tunnel',
   }
   const first = extractConversationIdentity(headers, {
     messages: [
@@ -333,7 +333,7 @@ test('snippet: injected project-doc blobs never label a chat', () => {
   // real prompt; the doc must be skipped in favor of the genuine turn.
   assert.equal(extractFirstUserSnippet({
     input: [
-      { type: 'message', role: 'user', content: [{ type: 'input_text', text: '# AGENTS.md instructions for /Users/shahafan/Development/antseed\n\n# CLAUDE.md --...' }] },
+      { type: 'message', role: 'user', content: [{ type: 'input_text', text: '# AGENTS.md instructions for /Users/shahafan/Development/torve\n\n# CLAUDE.md --...' }] },
       { type: 'message', role: 'user', content: [{ type: 'input_text', text: '<environment_context>cwd=/tmp</environment_context>' }] },
       { type: 'message', role: 'user', content: [{ type: 'input_text', text: 'fix the failing tests' }] },
     ],
@@ -369,7 +369,7 @@ Here is a list of plugins that are available but not installed.
 
 test('sanitizeStoredSnippet heals stored project-doc labels to empty', async () => {
   const { sanitizeStoredSnippet } = await import('./conversation-identity.js')
-  assert.equal(sanitizeStoredSnippet('# AGENTS.md instructions for /Users/shahafan/Development/antseed # CLAUDE.md --…'), '')
+  assert.equal(sanitizeStoredSnippet('# AGENTS.md instructions for /Users/shahafan/Development/torve # CLAUDE.md --…'), '')
   assert.equal(sanitizeStoredSnippet('OS Version: darwin 25.2.0 Shell: zsh Workspace Path: unknown Is directory a git…'), '')
   assert.equal(sanitizeStoredSnippet('Here is a list of plugins that are available but not installed. - Airtable…'), '')
   assert.equal(sanitizeStoredSnippet('fix the login bug'), 'fix the login bug')

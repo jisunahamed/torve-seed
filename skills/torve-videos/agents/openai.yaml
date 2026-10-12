@@ -1,0 +1,4 @@
+interface:
+  display_name: "Torve Videos"
+  short_description: "Generate guided videos through Torve"
+  default_prompt: "Use $torve-videos to create a video with Torve."

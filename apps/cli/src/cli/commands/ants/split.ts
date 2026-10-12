@@ -1,5 +1,5 @@
 import type { Command } from 'commander';
-import { split } from '@antseed/ants';
+import { split } from '@torveai/ants';
 import { runAction } from './shared.js';
 
 export function registerAntsSplitCommand(antsCmd: Command): void {

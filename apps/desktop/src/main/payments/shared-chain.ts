@@ -11,7 +11,7 @@
  *
  * `resetSharedChain()` drops it when chain config changes.
  */
-import { AntsContext, type AntsChainConfig } from '@antseed/ants/service';
+import { AntsContext, type AntsChainConfig } from '@torveai/ants/service';
 import { ZeroAddress, type AbstractProvider } from 'ethers';
 import { readConfig } from '../runtime/config-io.js';
 import { ACTIVE_CONFIG_PATH } from '../runtime/active-config.js';

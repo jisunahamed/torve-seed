@@ -1,7 +1,7 @@
-/* Antseed Docusaurus Theme */
+/* Torve Docusaurus Theme */
 
 /* =============================================
-   ANTSEED DESIGN SYSTEM — from the Figma work area
+   TORVE DESIGN SYSTEM — from the Figma work area
    Geist type · emerald primary ramp · warm gray ramp
    Surfaces: brand white #FFFEFB · card #F3F2EF · ink #001E12
    Every color on the site MUST come from here.
@@ -1225,7 +1225,7 @@ html:has(.homepage-wrapper) {
 }
 
 /* =============================================
-   Blog — Antseed brand page redesign
+   Blog — Torve brand page redesign
    Content/SEO untouched. Dark-first soil surface,
    readable cards, compact metadata, mobile-safe.
    ============================================= */

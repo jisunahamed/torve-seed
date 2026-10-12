@@ -2,7 +2,7 @@
  * /get-started — the mobile onboarding flow (Figma "mobile-1" / "mobile-2").
  *
  * On phones the site's "Get Started" CTAs land here instead of the desktop
- * installer: Antseed runs on a computer, so the mobile path walks through
+ * installer: Torve runs on a computer, so the mobile path walks through
  * creating a Telegram bot with @BotFather now and pasting the token into
  * the AI VPN later. Two screens, hash-routed (`#instructions`) so the browser
  * back button works between them. Rendered without the site Layout — the
@@ -65,7 +65,7 @@ function BackArrow() {
 
 /* ---------- screen 1 — "Almost there." ---------- */
 const INTRO_CARDS = [
-  {icon: <ComputerIcon />, text: 'For now, Antseed can only run on a server or local computer.'},
+  {icon: <ComputerIcon />, text: 'For now, Torve can only run on a server or local computer.'},
   {icon: <TelegramIcon />, text: "To use it from your mobile, you'll go through Telegram instead."},
   {icon: <ClockIcon />, text: "1 minute now. 30 seconds later on a laptop. Then you're on the network."},
 ];
@@ -117,7 +117,7 @@ function InstructionsScreen({onBack}: {onBack: () => void}) {
     const url = `${window.location.origin}/get-started`;
     try {
       if (navigator.share) {
-        await navigator.share({title: 'Get started with Antseed', url});
+        await navigator.share({title: 'Get started with Torve', url});
       } else {
         await navigator.clipboard.writeText(url);
         setCopied(true);
@@ -177,7 +177,7 @@ function InstructionsScreen({onBack}: {onBack: () => void}) {
           <img
             className={`${styles.stepImage} ${styles.stepImageFlush}`}
             src="/img/get-started/step-vpr.png"
-            alt="Antseed AI VPN's Telegram Bot settings with the token field"
+            alt="Torve AI VPN's Telegram Bot settings with the token field"
           />
           <div className={styles.stepRow}>
             <span className={styles.stepNumber}>3</span>
@@ -223,10 +223,10 @@ export default function GetStartedPage() {
   return (
     <main className={styles.page} data-step={step}>
       <Head>
-        <title>Get Started — Antseed</title>
+        <title>Get Started — Torve</title>
         <meta
           name="description"
-          content="Get on the Antseed network from your phone: create a Telegram bot now, paste the token into the AI VPN on your computer later."
+          content="Get on the Torve network from your phone: create a Telegram bot now, paste the token into the AI VPN on your computer later."
         />
       </Head>
       {step === 1 ? <IntroScreen onContinue={goInstructions} /> : <InstructionsScreen onBack={goIntro} />}

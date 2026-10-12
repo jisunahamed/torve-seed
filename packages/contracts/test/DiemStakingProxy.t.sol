@@ -6,13 +6,13 @@ import "forge-std/Test.sol";
 import { MockUSDC } from "./mocks/MockUSDC.sol";
 import { MockERC8004Registry } from "./mocks/MockERC8004Registry.sol";
 import { ANTSToken } from "../core/ANTSToken.sol";
-import { AntseedRegistry } from "../core/AntseedRegistry.sol";
-import { AntseedDeposits } from "../payments/AntseedDeposits.sol";
-import { AntseedStaking } from "../staking/AntseedStaking.sol";
-import { AntseedChannels } from "../payments/AntseedChannels.sol";
-import { AntseedEmissions } from "../legacy/AntseedEmissions.sol";
+import { TorveRegistry } from "../core/TorveRegistry.sol";
+import { TorveDeposits } from "../payments/TorveDeposits.sol";
+import { TorveStaking } from "../staking/TorveStaking.sol";
+import { TorveChannels } from "../payments/TorveChannels.sol";
+import { TorveEmissions } from "../legacy/TorveEmissions.sol";
 import { DiemStakingProxy } from "../staking/DiemStakingProxy.sol";
-import { AntseedSellerDelegation } from "../staking/AntseedSellerDelegation.sol";
+import { TorveSellerDelegation } from "../staking/TorveSellerDelegation.sol";
 
 import { MockDiem } from "./mocks/MockDiem.sol";
 
@@ -42,11 +42,11 @@ contract DiemStakingProxyTest is Test {
     ANTSToken ants;
 
     MockERC8004Registry identityRegistry;
-    AntseedRegistry antseedRegistry;
-    AntseedDeposits deposits;
-    AntseedStaking staking;
-    AntseedChannels channels;
-    AntseedEmissions emissions;
+    TorveRegistry torveRegistry;
+    TorveDeposits deposits;
+    TorveStaking staking;
+    TorveChannels channels;
+    TorveEmissions emissions;
 
     DiemStakingProxy proxy;
     uint256 proxyAgentId;
@@ -71,28 +71,28 @@ contract DiemStakingProxyTest is Test {
         ants = new ANTSToken();
 
         identityRegistry = new MockERC8004Registry();
-        antseedRegistry = new AntseedRegistry();
-        deposits = new AntseedDeposits(address(usdc));
-        staking = new AntseedStaking(address(usdc), address(antseedRegistry));
-        channels = new AntseedChannels(address(antseedRegistry));
-        emissions = new AntseedEmissions(address(antseedRegistry), INITIAL_EMISSION, EPOCH_DURATION);
+        torveRegistry = new TorveRegistry();
+        deposits = new TorveDeposits(address(usdc));
+        staking = new TorveStaking(address(usdc), address(torveRegistry));
+        channels = new TorveChannels(address(torveRegistry));
+        emissions = new TorveEmissions(address(torveRegistry), INITIAL_EMISSION, EPOCH_DURATION);
 
-        antseedRegistry.setChannels(address(channels));
-        antseedRegistry.setDeposits(address(deposits));
-        antseedRegistry.setStaking(address(staking));
-        antseedRegistry.setEmissions(address(emissions));
-        antseedRegistry.setAntsToken(address(ants));
-        antseedRegistry.setIdentityRegistry(address(identityRegistry));
-        antseedRegistry.setProtocolReserve(protocolReserve);
-        antseedRegistry.setTeamWallet(teamWallet);
+        torveRegistry.setChannels(address(channels));
+        torveRegistry.setDeposits(address(deposits));
+        torveRegistry.setStaking(address(staking));
+        torveRegistry.setEmissions(address(emissions));
+        torveRegistry.setAntsToken(address(ants));
+        torveRegistry.setIdentityRegistry(address(identityRegistry));
+        torveRegistry.setProtocolReserve(protocolReserve);
+        torveRegistry.setTeamWallet(teamWallet);
 
-        deposits.setRegistry(address(antseedRegistry));
-        ants.setRegistry(address(antseedRegistry));
+        deposits.setRegistry(address(torveRegistry));
+        ants.setRegistry(address(torveRegistry));
 
         channels.setFirstSignCap(10_000_000_000);
 
         vm.prank(owner);
-        proxy = new DiemStakingProxy(address(diem), address(usdc), address(antseedRegistry), operator);
+        proxy = new DiemStakingProxy(address(diem), address(usdc), address(torveRegistry), operator);
 
         vm.prank(address(proxy));
         proxyAgentId = identityRegistry.register();
@@ -583,7 +583,7 @@ contract DiemStakingProxyTest is Test {
 
     function test_constructor_defaultMinUnstakeBatchOpenSecs() public {
         vm.prank(owner);
-        DiemStakingProxy fresh = new DiemStakingProxy(address(diem), address(usdc), address(antseedRegistry), operator);
+        DiemStakingProxy fresh = new DiemStakingProxy(address(diem), address(usdc), address(torveRegistry), operator);
         assertEq(fresh.minUnstakeBatchOpenSecs(), fresh.ALPHA_MIN_UNSTAKE_BATCH_OPEN_SECS());
         assertEq(fresh.ALPHA_MIN_UNSTAKE_BATCH_OPEN_SECS(), 1 days);
     }
@@ -674,7 +674,7 @@ contract DiemStakingProxyTest is Test {
         bytes memory reserveSig = _signReserveAuth(expectedChannelId, 100e6, deadline);
 
         vm.prank(alice);
-        vm.expectRevert(AntseedSellerDelegation.NotOperator.selector);
+        vm.expectRevert(TorveSellerDelegation.NotOperator.selector);
         proxy.reserve(buyer, salt, 100e6, deadline, reserveSig);
 
         vm.prank(operator);
@@ -739,15 +739,15 @@ contract DiemStakingProxyTest is Test {
     function test_setOperatorFee_enforcesMaxAndRecipient() public {
         vm.prank(owner);
         vm.expectEmit(true, true, true, true);
-        emit AntseedSellerDelegation.OperatorFeeSet(0, address(0));
+        emit TorveSellerDelegation.OperatorFeeSet(0, address(0));
         proxy.setOperatorFee(0, address(0));
 
         vm.prank(owner);
-        vm.expectRevert(AntseedSellerDelegation.InvalidAddress.selector);
+        vm.expectRevert(TorveSellerDelegation.InvalidAddress.selector);
         proxy.setOperatorFee(1, address(0));
 
         vm.prank(owner);
-        vm.expectRevert(AntseedSellerDelegation.OperatorFeeTooLarge.selector);
+        vm.expectRevert(TorveSellerDelegation.OperatorFeeTooLarge.selector);
         proxy.setOperatorFee(2001, bob);
 
         vm.prank(owner);
@@ -1070,41 +1070,41 @@ contract DiemStakingProxyTest is Test {
         assertFalse(proxy.isOperator(operator));
 
         vm.prank(operator);
-        vm.expectRevert(AntseedSellerDelegation.NotOperator.selector);
+        vm.expectRevert(TorveSellerDelegation.NotOperator.selector);
         proxy.reserve(buyer, bytes32(0), 100e6, block.timestamp + 1 days, "");
     }
 
     function test_setOperator_revertZero() public {
         vm.prank(owner);
-        vm.expectRevert(AntseedSellerDelegation.InvalidAddress.selector);
+        vm.expectRevert(TorveSellerDelegation.InvalidAddress.selector);
         proxy.setOperator(address(0), true);
     }
 
-    function test_withdrawAntseedStake_onlyOwner() public {
+    function test_withdrawTorveStake_onlyOwner() public {
         vm.prank(alice);
         vm.expectRevert();
-        proxy.withdrawAntseedStake(alice);
+        proxy.withdrawTorveStake(alice);
 
         uint256 before = usdc.balanceOf(alice);
         vm.prank(owner);
         vm.expectEmit(true, false, false, true);
-        emit AntseedSellerDelegation.AntseedStakeWithdrawn(alice, PROXY_STAKE);
-        proxy.withdrawAntseedStake(alice);
+        emit TorveSellerDelegation.TorveStakeWithdrawn(alice, PROXY_STAKE);
+        proxy.withdrawTorveStake(alice);
         assertEq(usdc.balanceOf(alice) - before, PROXY_STAKE);
     }
 
-    function test_withdrawAntseedStake_revertZero() public {
+    function test_withdrawTorveStake_revertZero() public {
         vm.prank(owner);
-        vm.expectRevert(AntseedSellerDelegation.InvalidAddress.selector);
-        proxy.withdrawAntseedStake(address(0));
+        vm.expectRevert(TorveSellerDelegation.InvalidAddress.selector);
+        proxy.withdrawTorveStake(address(0));
     }
 
-    function test_withdrawAntseedStake_doesNotCreditStakers() public {
+    function test_withdrawTorveStake_doesNotCreditStakers() public {
         _stakeAs(alice, 100e18);
 
         uint256 storedBefore = proxy.usdcRewardPerTokenStored();
         vm.prank(owner);
-        proxy.withdrawAntseedStake(bob);
+        proxy.withdrawTorveStake(bob);
 
         uint256 storedAfter = proxy.usdcRewardPerTokenStored();
         assertEq(storedAfter, storedBefore, "stake recovery must not be routed to stakers as a reward");
@@ -1226,20 +1226,20 @@ contract DiemStakingProxyTest is Test {
 
     function test_sweepOrphanUsdc_revertZeroRecipient() public {
         vm.prank(owner);
-        vm.expectRevert(AntseedSellerDelegation.InvalidAddress.selector);
+        vm.expectRevert(TorveSellerDelegation.InvalidAddress.selector);
         proxy.sweepOrphanUsdc(address(0));
     }
 
     function test_maxTotalStake_defaultsToAlphaCap_onFreshDeploy() public {
         vm.prank(owner);
-        DiemStakingProxy fresh = new DiemStakingProxy(address(diem), address(usdc), address(antseedRegistry), operator);
+        DiemStakingProxy fresh = new DiemStakingProxy(address(diem), address(usdc), address(torveRegistry), operator);
         assertEq(fresh.maxTotalStake(), fresh.ALPHA_MAX_TOTAL_STAKE());
         assertEq(fresh.maxTotalStake(), 10e18);
     }
 
     function test_alphaCap_enforcedOnFreshDeploy() public {
         vm.prank(owner);
-        DiemStakingProxy fresh = new DiemStakingProxy(address(diem), address(usdc), address(antseedRegistry), operator);
+        DiemStakingProxy fresh = new DiemStakingProxy(address(diem), address(usdc), address(torveRegistry), operator);
 
         diem.mint(alice, 11e18);
         vm.startPrank(alice);

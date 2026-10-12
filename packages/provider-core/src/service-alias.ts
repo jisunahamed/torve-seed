@@ -1,6 +1,6 @@
 /**
  * Parse a JSON string into a service alias map (announced service → upstream model).
- * Used by all provider plugins via the ANTSEED_SERVICE_ALIAS_MAP_JSON env var.
+ * Used by all provider plugins via the TORVE_SERVICE_ALIAS_MAP_JSON env var.
  */
 export function parseServiceAliasMap(raw: string | undefined): Record<string, string> | undefined {
   if (!raw || !raw.trim()) return undefined;
@@ -9,11 +9,11 @@ export function parseServiceAliasMap(raw: string | undefined): Record<string, st
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error('ANTSEED_SERVICE_ALIAS_MAP_JSON must be valid JSON');
+    throw new Error('TORVE_SERVICE_ALIAS_MAP_JSON must be valid JSON');
   }
 
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('ANTSEED_SERVICE_ALIAS_MAP_JSON must be a JSON object');
+    throw new Error('TORVE_SERVICE_ALIAS_MAP_JSON must be a JSON object');
   }
 
   const out: Record<string, string> = {};
@@ -21,7 +21,7 @@ export function parseServiceAliasMap(raw: string | undefined): Record<string, st
     const announced = announcedRaw.trim().toLowerCase();
     if (!announced) continue;
     if (typeof upstreamRaw !== 'string' || !upstreamRaw.trim()) {
-      throw new Error(`ANTSEED_SERVICE_ALIAS_MAP_JSON entry "${announcedRaw}" must map to a non-empty string`);
+      throw new Error(`TORVE_SERVICE_ALIAS_MAP_JSON entry "${announcedRaw}" must map to a non-empty string`);
     }
     out[announced] = upstreamRaw.trim();
   }

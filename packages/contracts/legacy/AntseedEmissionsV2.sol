@@ -5,14 +5,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import { IAntseedRegistry } from "../interfaces/IAntseedRegistry.sol";
-import { IAntseedDeposits } from "../interfaces/IAntseedDeposits.sol";
+import { ITorveRegistry } from "../interfaces/ITorveRegistry.sol";
+import { ITorveDeposits } from "../interfaces/ITorveDeposits.sol";
 import { IANTSToken } from "../interfaces/IANTSToken.sol";
-import { IAntseedSellerRewardsPool } from "../interfaces/IAntseedSellerRewardsPool.sol";
-import { IAntseedSellerUnlockPolicy } from "../interfaces/IAntseedSellerUnlockPolicy.sol";
-import { IAntseedPointsPolicy } from "../interfaces/IAntseedPointsPolicy.sol";
+import { ITorveSellerRewardsPool } from "../interfaces/ITorveSellerRewardsPool.sol";
+import { ITorveSellerUnlockPolicy } from "../interfaces/ITorveSellerUnlockPolicy.sol";
+import { ITorvePointsPolicy } from "../interfaces/ITorvePointsPolicy.sol";
 
-interface IAntseedLegacyEmissions {
+interface ITorveLegacyEmissions {
     function EPOCH_DURATION() external view returns (uint256);
     function HALVING_INTERVAL() external view returns (uint256);
     function INITIAL_EMISSION() external view returns (uint256);
@@ -46,7 +46,7 @@ interface IAntseedLegacyEmissions {
 }
 
 /**
- * @title AntseedEmissionsV2
+ * @title TorveEmissionsV2
  * @notice Backward-compatible emissions replacement for the deployed V1 system.
  *
  *         V2 keeps the V1 epoch clock by reading V1's genesis and emission
@@ -61,13 +61,13 @@ interface IAntseedLegacyEmissions {
  *           - optional pair-aware points policy hook for future buyer/seller
  *             reputation multipliers without changing this emissions contract.
  */
-contract AntseedEmissionsV2 is Ownable, Pausable, ReentrancyGuard {
+contract TorveEmissionsV2 is Ownable, Pausable, ReentrancyGuard {
     // ─── Configuration ───
-    IAntseedRegistry public registry;
-    IAntseedLegacyEmissions public immutable legacyEmissions;
-    IAntseedSellerRewardsPool public sellerRewardsPool;
-    IAntseedSellerUnlockPolicy public sellerUnlockPolicy;
-    IAntseedPointsPolicy public pointsPolicy;
+    ITorveRegistry public registry;
+    ITorveLegacyEmissions public immutable legacyEmissions;
+    ITorveSellerRewardsPool public sellerRewardsPool;
+    ITorveSellerUnlockPolicy public sellerUnlockPolicy;
+    ITorvePointsPolicy public pointsPolicy;
 
     uint256 public immutable EPOCH_DURATION;
     uint256 public immutable HALVING_INTERVAL;
@@ -157,9 +157,9 @@ contract AntseedEmissionsV2 is Ownable, Pausable, ReentrancyGuard {
             revert InvalidAddress();
         }
 
-        registry = IAntseedRegistry(_registry);
-        legacyEmissions = IAntseedLegacyEmissions(_legacyEmissions);
-        sellerRewardsPool = IAntseedSellerRewardsPool(_sellerRewardsPool);
+        registry = ITorveRegistry(_registry);
+        legacyEmissions = ITorveLegacyEmissions(_legacyEmissions);
+        sellerRewardsPool = ITorveSellerRewardsPool(_sellerRewardsPool);
 
         INITIAL_EMISSION = legacyEmissions.INITIAL_EMISSION();
         EPOCH_DURATION = legacyEmissions.EPOCH_DURATION();
@@ -259,7 +259,7 @@ contract AntseedEmissionsV2 is Ownable, Pausable, ReentrancyGuard {
         view
         returns (uint256 sellerPoints, uint256 buyerPoints)
     {
-        IAntseedPointsPolicy policy = pointsPolicy;
+        ITorvePointsPolicy policy = pointsPolicy;
         if (address(policy) == address(0)) return (rawPoints, rawPoints);
         try policy.points(channelId, buyer, seller, rawPoints) returns (
             uint256 weightedSellerPoints,
@@ -321,7 +321,7 @@ contract AntseedEmissionsV2 is Ownable, Pausable, ReentrancyGuard {
     }
 
     function claimBuyerEmissions(address buyer, uint256[] calldata epochs) external nonReentrant whenNotPaused {
-        if (IAntseedDeposits(registry.deposits()).getOperator(buyer) != msg.sender) revert NotAuthorized();
+        if (ITorveDeposits(registry.deposits()).getOperator(buyer) != msg.sender) revert NotAuthorized();
 
         uint256 _currentEpoch = currentEpoch();
         uint256 totalReward = 0;
@@ -412,7 +412,7 @@ contract AntseedEmissionsV2 is Ownable, Pausable, ReentrancyGuard {
     }
 
     function _canClaimSellerUnlocked(address seller) internal view returns (bool) {
-        IAntseedSellerUnlockPolicy policy = sellerUnlockPolicy;
+        ITorveSellerUnlockPolicy policy = sellerUnlockPolicy;
         if (address(policy) == address(0)) return false;
         try policy.canClaimSellerUnlocked(seller) returns (bool allowed) {
             return allowed;
@@ -499,22 +499,22 @@ contract AntseedEmissionsV2 is Ownable, Pausable, ReentrancyGuard {
 
     function setRegistry(address _registry) external onlyOwner {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     function setSellerRewardsPool(address pool) external onlyOwner {
         if (pool == address(0)) revert InvalidAddress();
-        sellerRewardsPool = IAntseedSellerRewardsPool(pool);
+        sellerRewardsPool = ITorveSellerRewardsPool(pool);
         emit SellerRewardsPoolSet(pool);
     }
 
     function setSellerUnlockPolicy(address policy) external onlyOwner {
-        sellerUnlockPolicy = IAntseedSellerUnlockPolicy(policy);
+        sellerUnlockPolicy = ITorveSellerUnlockPolicy(policy);
         emit SellerUnlockPolicySet(policy);
     }
 
     function setPointsPolicy(address policy) external onlyOwner {
-        pointsPolicy = IAntseedPointsPolicy(policy);
+        pointsPolicy = ITorvePointsPolicy(policy);
         emit PointsPolicySet(policy);
     }
 

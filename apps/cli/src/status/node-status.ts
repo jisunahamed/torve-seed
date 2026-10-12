@@ -1,9 +1,9 @@
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import type { AntseedConfig } from '../config/types.js';
+import type { TorveConfig } from '../config/types.js';
 
-const DEFAULT_DATA_DIR = join(homedir(), '.antseed');
+const DEFAULT_DATA_DIR = join(homedir(), '.torve');
 
 export interface NodeStatus {
   state: 'seeding' | 'connected' | 'idle';
@@ -69,7 +69,7 @@ async function loadStateFile(dataDir: string): Promise<LoadedStateFile | null> {
  * liveness check first, falls back to 30s stale threshold. Returns idle state
  * with zeroed metrics if no daemon is running or the state file is stale.
  */
-export async function getNodeStatus(config: AntseedConfig, dataDir: string = DEFAULT_DATA_DIR): Promise<NodeStatus> {
+export async function getNodeStatus(config: TorveConfig, dataDir: string = DEFAULT_DATA_DIR): Promise<NodeStatus> {
   const loaded = await loadStateFile(dataDir);
   if (!loaded) {
     return idleStatus(config, null);
@@ -102,7 +102,7 @@ export async function getNodeStatus(config: AntseedConfig, dataDir: string = DEF
 
 function sellerStatus(
   state: Record<string, unknown>,
-  config: AntseedConfig,
+  config: TorveConfig,
   pid: number | null,
   alive: boolean,
 ): NodeStatus {
@@ -131,7 +131,7 @@ function sellerStatus(
 
 function buyerStatus(
   state: Record<string, unknown>,
-  config: AntseedConfig,
+  config: TorveConfig,
   pid: number | null,
   alive: boolean,
 ): NodeStatus {
@@ -158,7 +158,7 @@ function buyerStatus(
   };
 }
 
-function idleStatus(config: AntseedConfig, pid: number | null): NodeStatus {
+function idleStatus(config: TorveConfig, pid: number | null): NodeStatus {
   return {
     state: 'idle',
     peerCount: 0,

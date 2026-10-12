@@ -20,7 +20,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 describe('FreeUsage EIP-712 helpers', () => {
-  it('typehashes match AntseedFreeUsage contract strings', () => {
+  it('typehashes match TorveFreeUsage contract strings', () => {
     const openType = `FreeUsageOpen(${FREE_USAGE_OPEN_TYPES.FreeUsageOpen.map((f) => `${f.type} ${f.name}`).join(',')})`;
     expect(keccak256(toUtf8Bytes(openType))).toBe(
       keccak256(toUtf8Bytes('FreeUsageOpen(bytes32 channelId,uint256 deadline)')),

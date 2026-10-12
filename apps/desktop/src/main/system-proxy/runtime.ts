@@ -554,7 +554,7 @@ export async function startSystemProxyRuntimeInner(opts: SystemProxyStartRequest
     const profile = SYSTEM_PROXY_PROFILES.find((p) => p.name === name);
     if (profile?.configPatch) {
       removeConfigPatch(profile.configPatch, systemProxyWslTargetsPath());
-      deps().appendLog('system-proxy', 'system', `${profile.label}: removed Antseed provider from config`);
+      deps().appendLog('system-proxy', 'system', `${profile.label}: removed Torve provider from config`);
     }
   }
 
@@ -848,7 +848,7 @@ export async function postBuyerDefaultRoute(buyerPort: number, peerId: string, m
   const peer = peerId.trim();
   if (!service || !/^(0x)?[0-9a-fA-F]{40}$/.test(peer)) return;
   try {
-    await fetch(`http://127.0.0.1:${buyerPort}/_antseed/route`, {
+    await fetch(`http://127.0.0.1:${buyerPort}/_torve/route`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ model: `${peer}@${service}` }),

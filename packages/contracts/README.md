@@ -1,4 +1,4 @@
-# AntSeed Smart Contracts
+# Torve Smart Contracts
 
 Solidity contracts implementing the streaming payment, staking, stats, and emission system.
 
@@ -14,23 +14,23 @@ Deployment/cutover procedures are in the M001 operator runbook.
 ## Contract Architecture
 
 ```
-ANTSToken (ERC-20)          ── phase-locked transfers, mint controlled by AntseedEmissionsGate
-AntseedDeposits             ── buyer USDC deposits, holds ALL buyer USDC
-AntseedChannels             ── Reserve→Settle/Close lifecycle, EIP-712 (swappable, holds NO USDC)
-AntseedStaking              ── legacy USDC stake bound to ERC-8004 agentId
-AntseedStats                ── optional external metadata sink (buyer/agent token + request stats)
-AntseedEmissionsV2          ── legacy usage ledger and claims, now paid from escrow
-AntseedEmissionsGate        ── emission schedule and mint authority
-AntseedSellerPools          ── locked ANTS positions and epoch pool power
-AntseedSellerRegistry       ── new eligibility endpoint, activated at cutover
-AntseedUsageAccounting      ── recognized usage ledger, activated at cutover
-AntseedPointsPolicyRegistry ── ordered seller/buyer point transformations
-AntseedWashTradingRegistry  ── authenticated historical seller proof status
-AntseedWashTradingPointsPolicy ── zeros future points for flagged sellers
-AntseedPositionInit         ── separately funded starter-position faucet
-AntseedSellerPoolsRewards   ── staker rewards and restaking
-AntseedUsageRewards         ── buyer and seller/operator usage rewards
-AntseedLegacyEmissionsEscrow ── pre-minted pot for legacy claims and flushes
+ANTSToken (ERC-20)          ── phase-locked transfers, mint controlled by TorveEmissionsGate
+TorveDeposits             ── buyer USDC deposits, holds ALL buyer USDC
+TorveChannels             ── Reserve→Settle/Close lifecycle, EIP-712 (swappable, holds NO USDC)
+TorveStaking              ── legacy USDC stake bound to ERC-8004 agentId
+TorveStats                ── optional external metadata sink (buyer/agent token + request stats)
+TorveEmissionsV2          ── legacy usage ledger and claims, now paid from escrow
+TorveEmissionsGate        ── emission schedule and mint authority
+TorveSellerPools          ── locked ANTS positions and epoch pool power
+TorveSellerRegistry       ── new eligibility endpoint, activated at cutover
+TorveUsageAccounting      ── recognized usage ledger, activated at cutover
+TorvePointsPolicyRegistry ── ordered seller/buyer point transformations
+TorveWashTradingRegistry  ── authenticated historical seller proof status
+TorveWashTradingPointsPolicy ── zeros future points for flagged sellers
+TorvePositionInit         ── separately funded starter-position faucet
+TorveSellerPoolsRewards   ── staker rewards and restaking
+TorveUsageRewards         ── buyer and seller/operator usage rewards
+TorveLegacyEmissionsEscrow ── pre-minted pot for legacy claims and flushes
 MockERC8004Registry         ── mock ERC-8004 IdentityRegistry (local testing only)
 ```
 
@@ -40,12 +40,12 @@ Feedback uses the deployed ERC-8004 ReputationRegistry (Base: `0x8004BAa1...`).
 Contracts reference each other by address set at deployment. No inheritance — only interface calls.
 
 ```
-AntseedChannels ──calls──► AntseedDeposits.lockForChannel() (on reserve)
-AntseedChannels ──calls──► AntseedDeposits.chargeAndCreditPayouts() (on settle/close)
-AntseedChannels ──calls──► AntseedStats.recordMetadata() (optional, on settle path)
-AntseedChannels ──calls──► AntseedEmissions.accrueSellerPoints() / accrueBuyerPoints()
-AntseedChannels ──reads──► AntseedStaking (seller stake verification)
-AntseedEmissions ──calls──► ANTSToken.mint()
+TorveChannels ──calls──► TorveDeposits.lockForChannel() (on reserve)
+TorveChannels ──calls──► TorveDeposits.chargeAndCreditPayouts() (on settle/close)
+TorveChannels ──calls──► TorveStats.recordMetadata() (optional, on settle path)
+TorveChannels ──calls──► TorveEmissions.accrueSellerPoints() / accrueBuyerPoints()
+TorveChannels ──reads──► TorveStaking (seller stake verification)
+TorveEmissions ──calls──► ANTSToken.mint()
 ```
 
 ## Build
@@ -82,7 +82,7 @@ Groth16 proof and verifier, and authenticate every committed block reference
 against Chainlink's public `BlockhashStore` on Base
 (`0x78b69899C8cD252126cBB1A50171ec37286C3877`). Chainlink's store reverts for
 unknown blocks; the registry maps that revert to `bytes32(0)` so its own
-`NonCanonicalBlock` error fires instead. No AntSeed-owned contract sits in the
+`NonCanonicalBlock` error fires instead. No Torve-owned contract sits in the
 block-hash path. A staged proof changes no seller result until every committed block-reference
 chunk has been authenticated. The registry stores the greatest proven
 wash-volume lower bound for each seller as `{provenWashVolume, totalSellerVolume, evidenceDigest}`.
@@ -298,7 +298,7 @@ finalize the existing paid seller proof artifacts.
 
 ### ANTSToken.sol
 
-ERC-20 token (`AntSeed` / `ANTS`). No pre-mine, no initial supply.
+ERC-20 token (`Torve` / `ANTS`). No pre-mine, no initial supply.
 
 - `mint(address to, uint256 amount)` — restricted to emissions contract
 - `setEmissionsContract(address)` — owner-only, one-time setter
@@ -306,7 +306,7 @@ ERC-20 token (`AntSeed` / `ANTS`). No pre-mine, no initial supply.
 - `transferOwnership(address)` — transfer owner role
 - `_update()` override — reverts on transfer/transferFrom unless `transfersEnabled == true` (mint/burn always allowed)
 
-### AntseedDeposits.sol
+### TorveDeposits.sol
 
 Buyer USDC deposit management with dynamic credit limits and seller payouts.
 
@@ -318,9 +318,9 @@ Buyer USDC deposit management with dynamic credit limits and seller payouts.
 - Seller payouts are transferred directly on `settle()` / `close()` — no separate claim step
 - `setCreditLimitOverride(address, uint256)` — owner overrides buyer limit
 
-### AntseedChannels.sol
+### TorveChannels.sol
 
-Session lifecycle with EIP-712 ReserveAuth + SpendingAuth. Holds NO USDC — all funds stay in AntseedDeposits. Swappable: can be redeployed by re-pointing stable contracts.
+Session lifecycle with EIP-712 ReserveAuth + SpendingAuth. Holds NO USDC — all funds stay in TorveDeposits. Swappable: can be redeployed by re-pointing stable contracts.
 
 **Seller operations:**
 - `reserve(address buyer, bytes32 salt, uint128 maxAmount, uint256 deadline, bytes calldata buyerSig)` — validates ReserveAuth EIP-712 sig, calls Deposits.lockForChannel()
@@ -331,7 +331,7 @@ Session lifecycle with EIP-712 ReserveAuth + SpendingAuth. Holds NO USDC — all
 - `requestClose(bytes32 channelId)` — buyer/operator, anytime while active; starts grace period
 - `withdraw(bytes32 channelId)` — after 15min grace, releases remaining locked funds to buyer deposit
 
-**EIP-712 types (domain: name="AntseedChannels", version="7"):**
+**EIP-712 types (domain: name="TorveChannels", version="7"):**
 ```
 ReserveAuth(bytes32 channelId, uint128 maxAmount, uint256 deadline)
 SpendingAuth(bytes32 channelId, uint256 cumulativeAmount, bytes32 metadataHash)
@@ -347,7 +347,7 @@ channelId = keccak256(abi.encode(buyer, seller, salt))
 **Owner functions:**
 - `pause()` / `unpause()` — emergency circuit breaker
 
-### AntseedFreeUsage.sol
+### TorveFreeUsage.sol
 
 Zero-price usage channel lifecycle with buyer-signed EIP-712 proofs. Holds NO USDC and never locks or charges buyer funds. Sellers still need to be staked, and each usage update must be signed by the buyer.
 
@@ -356,13 +356,13 @@ Zero-price usage channel lifecycle with buyer-signed EIP-712 proofs. Holds NO US
 - `record(bytes32 channelId, uint256 sequence, bytes calldata metadata, uint256 deadline, bytes calldata buyerSig)` — validates `FreeUsageAuth`, enforces a monotonic sequence, and stores/emits raw metadata
 - `close(bytes32 channelId, uint256 sequence, bytes calldata metadata, uint256 deadline, bytes calldata buyerSig)` — records the final signed usage and closes the free channel
 
-**EIP-712 types (domain: name="AntseedFreeUsage", version="1"):**
+**EIP-712 types (domain: name="TorveFreeUsage", version="1"):**
 ```
 FreeUsageOpen(bytes32 channelId,uint256 deadline)
 FreeUsageAuth(bytes32 channelId,uint256 sequence,bytes32 metadataHash,uint256 deadline)
 ```
 
-Metadata is buyer-signed opaque bytes, bound only by `metadataHash`. Indexers parse the metadata version and service attribution off-chain. If `AntseedStats` is configured and this contract is granted writer access, free usage metadata is forwarded there with the same optional `try/catch` behavior used by paid channels.
+Metadata is buyer-signed opaque bytes, bound only by `metadataHash`. Indexers parse the metadata version and service attribution off-chain. If `TorveStats` is configured and this contract is granted writer access, free usage metadata is forwarded there with the same optional `try/catch` behavior used by paid channels.
 
 Free usage channel IDs are domain-separated from paid channels:
 `keccak256(abi.encode(FREE_USAGE_CHANNEL_DOMAIN, buyer, seller, salt))`.
@@ -370,7 +370,7 @@ Buyers send `FreeUsageOpen` before a free request and answer seller
 `NeedFreeUsageAuth` messages after the response, allowing sellers to report
 buyer signatures on-chain even when the buyer has no USDC deposit.
 
-### AntseedStats.sol
+### TorveStats.sol
 
 Optional external metadata sink keyed by ERC-8004 agentId plus buyer address. Writers are managed with `AccessControl`.
 
@@ -378,14 +378,14 @@ Optional external metadata sink keyed by ERC-8004 agentId plus buyer address. Wr
 - `recordMetadata(uint256 agentId, address buyer, bytes32 channelId, bytes calldata metadata)` — decodes cumulative per-channel metadata, computes deltas, and aggregates buyer-level totals
 - `getBuyerMetadataStats(uint256 agentId, address buyer)` — returns cumulative input tokens, output tokens, request count, and last update time
 
-### AntseedStaking.sol
+### TorveStaking.sol
 
 Seller USDC staking bound to ERC-8004 agentId.
 
 - `stake(uint256 agentId, uint256 amount)` — locks USDC, binds to agentId
 - `unstake(uint256 agentId)` — returns stake
 
-### AntseedEmissions.sol
+### TorveEmissions.sol
 
 ANTS emission controller using the Synthetix reward-per-point pattern. O(1) gas per interaction.
 
@@ -393,7 +393,7 @@ ANTS emission controller using the Synthetix reward-per-point pattern. O(1) gas 
 - `advanceEpoch()` — callable by anyone when `EPOCH_DURATION` has passed
 - `getEpochInfo()` → current epoch, emission amount, time remaining
 
-**Point accrual (restricted to AntseedChannels):**
+**Point accrual (restricted to TorveChannels):**
 - `accrueSellerPoints(address seller, uint256 pointsDelta)`
 - `accrueBuyerPoints(address buyer, uint256 pointsDelta)`
 
@@ -409,20 +409,20 @@ ANTS emission controller using the Synthetix reward-per-point pattern. O(1) gas 
 
 1. **ANTSToken** — deploy (no dependencies)
 2. **MockERC8004Registry** — deploy for local testing (on mainnet use deployed ERC-8004)
-3. **AntseedDeposits** — deploy with `(usdcAddress)`
-4. **AntseedStaking** — deploy with `(usdcAddress, registryAddress)`
-5. **AntseedStats** — optional: deploy, set in `AntseedRegistry`, and grant writer access to Channels and FreeUsage
-6. **AntseedFreeUsage** — optional zero-price signed usage recorder; deploy with the AntseedRegistry address
-6. **AntseedChannels** — deploy with `(registryAddress)`
-7. **AntseedEmissions** — deploy with `(antsTokenAddress, channelsAddress)`, then call `antsToken.setEmissionsContract(emissions)`
+3. **TorveDeposits** — deploy with `(usdcAddress)`
+4. **TorveStaking** — deploy with `(usdcAddress, registryAddress)`
+5. **TorveStats** — optional: deploy, set in `TorveRegistry`, and grant writer access to Channels and FreeUsage
+6. **TorveFreeUsage** — optional zero-price signed usage recorder; deploy with the TorveRegistry address
+6. **TorveChannels** — deploy with `(registryAddress)`
+7. **TorveEmissions** — deploy with `(antsTokenAddress, channelsAddress)`, then call `antsToken.setEmissionsContract(emissions)`
 
 ### Recognized-Usage Cutover Foundation
 
 `script/migrations/M001RecognizedUsage/Deploy.s.sol` deploys the shared
 recognized-usage contracts before
-the epoch-boundary registry flip. The deployment wires `AntseedUsageAccounting`
-to `AntseedPointsPolicyRegistry` with one registered modifier:
-`AntseedWashTradingPointsPolicy`. Usage with a proven wash-trading seller earns
+the epoch-boundary registry flip. The deployment wires `TorveUsageAccounting`
+to `TorvePointsPolicyRegistry` with one registered modifier:
+`TorveWashTradingPointsPolicy`. Usage with a proven wash-trading seller earns
 zero seller and buyer points; other usage retains its raw points. This does not
 block USDC settlement or starter-position initialization. Model-verification
 modifiers can be registered separately later.
@@ -481,7 +481,7 @@ artifacts, and run `pnpm contracts:check -- <base-commit>` before broadcasting.
 
 ```bash
 pnpm contracts:deploy -- M001 --network base-mainnet --broadcast \
-  --signer deployer=account:antseed-owner
+  --signer deployer=account:torve-owner
 ```
 
 This deploys the new stack, moves ANTS mint authority to the emissions gate,
@@ -511,11 +511,11 @@ plan and validation document, and rerun the checks before broadcasting.
 
 ```bash
 pnpm contracts:deploy -- M001 --network base-mainnet --broadcast \
-  --signer deployer=account:antseed-owner \
-  --signer registryOwner=account:antseed-owner \
-  --signer channelsOwner=account:antseed-ops \
-  --signer sellerRewardsPoolOwner=account:antseed-ops \
-  --signer diemStaker=account:antseed-ops
+  --signer deployer=account:torve-owner \
+  --signer registryOwner=account:torve-owner \
+  --signer channelsOwner=account:torve-ops \
+  --signer sellerRewardsPoolOwner=account:torve-ops \
+  --signer diemStaker=account:torve-ops
 ```
 
 Start comfortably before **boundary minus 60 seconds**, complete the initial
@@ -557,7 +557,7 @@ matching `VALIDATION.md` describing every transaction it would send. Review
 those artifacts rather than terminal output; a successful broadcast removes
 them once the history record exists.
 
-The cutover phase pauses `AntseedChannels` 60 seconds before the epoch
+The cutover phase pauses `TorveChannels` 60 seconds before the epoch
 boundary, flips the registry pointers, and unpauses **only** after both
 pointers are verified on chain. Any other outcome leaves Channels paused for a
 human to resume, because settlements against a half-migrated ledger could not
@@ -582,7 +582,7 @@ contracts. Operator runbook and post-flip checklist:
 The CLI derives `ready`, `awaiting-epoch`, `cutover-ready`,
 `cutover-incomplete`, `active`, or `invalid` from live RPC reads. A broadcast
 requires typing the network name, while non-interactive automation must set
-`ANTSEED_DEPLOY_CONFIRM` to that same name. Deployment records and validation
+`TORVE_DEPLOY_CONFIRM` to that same name. Deployment records and validation
 are automatic after each successful broadcast.
 
 #### Shared fork-test framework
@@ -615,7 +615,7 @@ That ledger never regenerates repository chain configuration. The framework
 stops Anvil on success or failure and prints the retained temporary records'
 location for inspection; remove that directory manually when no longer needed.
 
-The same broadcast deploys `AntseedPositionInit`, an immutable starter-position
+The same broadcast deploys `TorvePositionInit`, an immutable starter-position
 faucet for eligible legacy sellers. Fund it conservatively and have sellers call
 `initPosition()` before the first rewarded epoch if their usage must count from
 that epoch. For a seller contract such as the DIEM proxy, an authorized operator
@@ -627,8 +627,8 @@ operator later does not revoke position ownership. The proxy does not need to
 receive an NFT or call the faucet itself.
 Every starter position uses the shared `POSITION_INIT_END_EPOCH`, so
 claiming later never gives a seller more power than an earlier claimant. The
-same M001 broadcast first deploys `AntseedWashTradingRegistry`, then pins it
-into `AntseedWashTradingPointsPolicy`. The faucet has no wash-status dependency.
+same M001 broadcast first deploys `TorveWashTradingRegistry`, then pins it
+into `TorveWashTradingPointsPolicy`. The faucet has no wash-status dependency.
 Configure `SP1_VERIFIER`, `SP1_VERIFIER_HASH`,
 `WASH_TRADING_SELLER_PROGRAM_VKEY`, `HISTORICAL_PERIOD_START_BLOCK`, and
 `HISTORICAL_PERIOD_END_BLOCK` before deployment. `WASH_TRADING_BLOCKHASH_STORE`
@@ -651,7 +651,7 @@ The verification emission bucket initially remains controlled by
 `VERIFICATION_WALLET`. A separate verification deployment may transfer that
 controller to its rewards contract.
 M001 leaves the bucket at 10% and editable, registers the wash-trading policy, and
-leaves `AntseedEmissionsGate` and `AntseedPointsPolicyRegistry` owned by the
+leaves `TorveEmissionsGate` and `TorvePointsPolicyRegistry` owned by the
 deployer.
 Do not renounce gate ownership or replace/lock the verification minter before
 that rollout has transferred the controller and passed its post-deployment checks.
@@ -662,7 +662,7 @@ archive-capable RPC to pin the check to a specific block.
 ### Legacy Seller Claims (M002)
 
 Sellers whose legacy EmissionsV2 rewards were routed to
-`AntseedSellerRewardsPool` cannot claim them yet: the pool has no
+`TorveSellerRewardsPool` cannot claim them yet: the pool has no
 `sellerClaimPolicy`, and ANTS transfers are disabled with the pool (the
 transfer *sender*) never whitelisted. M001 deliberately leaves both alone.
 
@@ -671,11 +671,11 @@ idempotent broadcast, after M001 has activated:
 
 1. `deployer` (ANTSToken owner) — `setTransferWhitelist(pool, true)`, skipped
    when transfers are already enabled or the pool is already whitelisted.
-2. `sellerRewardsPoolOwner` — deploys `AntseedLegacySellerClaimPolicy` and
+2. `sellerRewardsPoolOwner` — deploys `TorveLegacySellerClaimPolicy` and
    installs it with `pool.setSellerClaimPolicy`, skipped when the pool already
    has the policy this ledger recorded.
 
-`AntseedLegacySellerClaimPolicy` is stateless: the pool calls
+`TorveLegacySellerClaimPolicy` is stateless: the pool calls
 `claimableSellerRewards(seller, locked)` as a view, so the policy re-derives
 each seller's *cumulative* locked amount from EmissionsV2/V1 state (epochs
 `0 … effectiveEpoch − 1`, mirroring `claimSellerEmissions`), treats
@@ -684,14 +684,14 @@ each seller's *cumulative* locked amount from EmissionsV2/V1 state (epochs
 wash-trading registry has proven (`isProvenWashTrader`) can claim nothing;
 their ANTS stays in the pool. The policy has no owner or administrative setters. The CLI defaults
 `WASH_TRADING_REGISTRY` to `washTradingRegistry` in the activated M001 deployment
-ledger, without calling `AntseedPositionInit`.
+ledger, without calling `TorvePositionInit`.
 
 ```bash
 pnpm contracts:deploy -- M002 --network base-mainnet --fork-test   # M001 + M002 rehearsal
 pnpm contracts:deploy -- M002 --network base-mainnet --dry-run
 pnpm contracts:deploy -- M002 --network base-mainnet --broadcast \
-  --signer deployer=account:antseed-owner \
-  --signer sellerRewardsPoolOwner=account:antseed-ops
+  --signer deployer=account:torve-owner \
+  --signer sellerRewardsPoolOwner=account:torve-ops
 ```
 
 States: `ready` (M001 active, at least one install missing), `active`,
@@ -705,7 +705,7 @@ Administrative parameters use their contract's dedicated setters where available
 The emissions gate's schedule constants are immutable; do not treat legacy
 owner-configurable emissions parameters as configuration for the standard gate.
 
-### AntseedDeposits / AntseedChannels / AntseedStaking
+### TorveDeposits / TorveChannels / TorveStaking
 
 | Constant | Default | Description |
 |---|---|---|
@@ -743,15 +743,15 @@ for pre-migration staking and claims.
 |---|---|
 | **USDC (Circle)** | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 | **ANTSToken** | `0xa87EE81b2C0Bc659307ca2D9ffdC38514DD85263` |
-| **AntseedRegistry** | `0xf33fC901BFa97326379A369401F4490E231B69B0` |
-| **AntseedSellerRegistry** | `0x99c533BCc6Ca646E543dbA835Fdbb9C2ee02Cb60` |
-| **AntseedDeposits** | `0x0F7a3a8f4Da01637d1202bb5443fcF7F88F99fD2` |
-| **AntseedChannels** | `0xBA66d3b4fbCf472F6F11D6F9F96aaCE96516F09d` |
-| **AntseedStats** | `0x15649ff076BFa5e37e24EE3154a00503149954Fd` |
-| **AntseedUsageAccounting** | `0xAdd2D85316153D7bfaF7921EE9Bf1Bb6c7A1cBc9` |
+| **TorveRegistry** | `0xf33fC901BFa97326379A369401F4490E231B69B0` |
+| **TorveSellerRegistry** | `0x99c533BCc6Ca646E543dbA835Fdbb9C2ee02Cb60` |
+| **TorveDeposits** | `0x0F7a3a8f4Da01637d1202bb5443fcF7F88F99fD2` |
+| **TorveChannels** | `0xBA66d3b4fbCf472F6F11D6F9F96aaCE96516F09d` |
+| **TorveStats** | `0x15649ff076BFa5e37e24EE3154a00503149954Fd` |
+| **TorveUsageAccounting** | `0xAdd2D85316153D7bfaF7921EE9Bf1Bb6c7A1cBc9` |
 | **ERC-8004 IdentityRegistry** | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` (external) |
 
-All verified on [BaseScan](https://basescan.org). Contract addresses are built into `@antseed/node` chain-config — no manual configuration needed when `chainId: "base-mainnet"` is set.
+All verified on [BaseScan](https://basescan.org). Contract addresses are built into `@torveai/node` chain-config — no manual configuration needed when `chainId: "base-mainnet"` is set.
 
 ##### M001 active stack
 
@@ -763,18 +763,18 @@ completed on September 10, 2026, in epoch 22. Provenance is preserved in
 
 | Contract | Address |
 |---|---|
-| AntseedWashTradingRegistry | `0xc02a111CB94332Cc31C08E079cbe781880b2121C` |
-| AntseedEmissionsGate | `0xE60a31E6CD2F8455503cA0B3f6545Dd3DDF543BD` |
-| AntseedSellerPools | `0x8Bf4d39AA13F3CB03F87D9500767fBc4D0940652` |
-| AntseedSellerRegistry | `0x99c533BCc6Ca646E543dbA835Fdbb9C2ee02Cb60` |
-| AntseedPositionInit | `0xB68AD13b681319fcEB6b0A640c2fd96C0138CBc8` |
-| AntseedUsageAccounting | `0xAdd2D85316153D7bfaF7921EE9Bf1Bb6c7A1cBc9` |
-| AntseedPointsPolicyRegistry | `0x212D2C1058b84507de248a147aaFeB08fb19E3b6` |
-| AntseedWashTradingPointsPolicy | `0x7a605aaa3c725aa25012dfDeD6B5dddcC561D6e5` |
-| AntseedSellerPoolsRewards | `0x83cc5B9AA0c8cB8683F35462c385a5BAAa755EE5` |
-| AntseedUsageRewards | `0x78330bF154172F1137219Bb559d4F3A270B3201F` |
-| AntseedLegacyEmissionsEscrow | `0x4d0fC3C0BBb5233Af6c4Ce33223e5330c34db9ab` |
-| AntseedLegacyRewardsPoolRegistry | `0xF76590430d9fCe0E871107Aa1f1AE796B0d03a11` |
+| TorveWashTradingRegistry | `0xc02a111CB94332Cc31C08E079cbe781880b2121C` |
+| TorveEmissionsGate | `0xE60a31E6CD2F8455503cA0B3f6545Dd3DDF543BD` |
+| TorveSellerPools | `0x8Bf4d39AA13F3CB03F87D9500767fBc4D0940652` |
+| TorveSellerRegistry | `0x99c533BCc6Ca646E543dbA835Fdbb9C2ee02Cb60` |
+| TorvePositionInit | `0xB68AD13b681319fcEB6b0A640c2fd96C0138CBc8` |
+| TorveUsageAccounting | `0xAdd2D85316153D7bfaF7921EE9Bf1Bb6c7A1cBc9` |
+| TorvePointsPolicyRegistry | `0x212D2C1058b84507de248a147aaFeB08fb19E3b6` |
+| TorveWashTradingPointsPolicy | `0x7a605aaa3c725aa25012dfDeD6B5dddcC561D6e5` |
+| TorveSellerPoolsRewards | `0x83cc5B9AA0c8cB8683F35462c385a5BAAa755EE5` |
+| TorveUsageRewards | `0x78330bF154172F1137219Bb559d4F3A270B3201F` |
+| TorveLegacyEmissionsEscrow | `0x4d0fC3C0BBb5233Af6c4Ce33223e5330c34db9ab` |
+| TorveLegacyRewardsPoolRegistry | `0xF76590430d9fCe0E871107Aa1f1AE796B0d03a11` |
 
 `getChainConfig('base-mainnet').recognizedUsage` exposes the 11 phase-1 addresses
 and the recorded `active` status. The adapter's address and provenance are

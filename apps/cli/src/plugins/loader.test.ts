@@ -5,10 +5,10 @@ import { join } from 'node:path'
 import test from 'node:test'
 import { assertPinnedPluginVersion, selectPluginExport } from './loader.js'
 
-const TEE_PACKAGE = '@antseed/antseed-verifier'
+const TEE_PACKAGE = '@torveai/torve-verifier'
 
 function withPluginVersion(pkgName: string, version: string, fn: (dir: string) => void): void {
-  const dir = mkdtempSync(join(tmpdir(), 'antseed-loader-test-'))
+  const dir = mkdtempSync(join(tmpdir(), 'torve-loader-test-'))
   try {
     const pkgDir = join(dir, 'node_modules', ...pkgName.split('/'))
     mkdirSync(pkgDir, { recursive: true })
@@ -26,13 +26,13 @@ test('assertPinnedPluginVersion handles pinned and unpinned installs', () => {
   withPluginVersion(TEE_PACKAGE, '0.1.1', (dir) => {
     assert.throws(() => assertPinnedPluginVersion(TEE_PACKAGE, dir), /version-locked to 0\.1\.0/)
   })
-  withPluginVersion('@antseed/provider-openai', '999.0.0', (dir) => {
-    assert.doesNotThrow(() => assertPinnedPluginVersion('@antseed/provider-openai', dir))
+  withPluginVersion('@torveai/provider-openai', '999.0.0', (dir) => {
+    assert.doesNotThrow(() => assertPinnedPluginVersion('@torveai/provider-openai', dir))
   })
 })
 
 test('assertPinnedPluginVersion reports a missing install distinctly from a wrong version', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'antseed-loader-test-'))
+  const dir = mkdtempSync(join(tmpdir(), 'torve-loader-test-'))
   try {
     assert.throws(
       () => assertPinnedPluginVersion(TEE_PACKAGE, dir),

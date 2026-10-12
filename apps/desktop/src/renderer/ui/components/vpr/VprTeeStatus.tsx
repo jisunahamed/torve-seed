@@ -1,4 +1,4 @@
-import { isFreshSellerNodeEvidence, type TeeEvidence } from '@antseed/node/tee-status';
+import { isFreshSellerNodeEvidence, type TeeEvidence } from '@torveai/node/tee-status';
 import { InfoTooltip } from '../InfoTooltip';
 import modelRowStyles from './VprModelRows.module.scss';
 import styles from './VprTeeAvailability.module.scss';

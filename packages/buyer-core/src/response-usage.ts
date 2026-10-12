@@ -1,4 +1,4 @@
-import { parseJsonObject, extractUsage, type TokenUsage } from '@antseed/api-adapter';
+import { parseJsonObject, extractUsage, type TokenUsage } from '@torveai/api-adapter';
 
 export type { TokenUsage };
 export type ResponseUsage = TokenUsage;

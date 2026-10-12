@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ANTSEED_MODEL_CONTEXT_WINDOW, ANTSEED_MODEL_MAX_OUTPUT_TOKENS } from '@antseed/node/types';
+import { TORVE_MODEL_CONTEXT_WINDOW, TORVE_MODEL_MAX_OUTPUT_TOKENS } from '@torveai/node/types';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -29,9 +29,9 @@ const PEER_ID = '0123456789abcdef0123456789abcdef01234567';
 function makePatch(configPath: string): ConfigPatchDef {
   return {
     configPath,
-    providerKey: 'antseed',
-    npm: '@antseed/tool-provider',
-    providerName: 'Antseed',
+    providerKey: 'torve',
+    npm: '@torveai/tool-provider',
+    providerName: 'Torve',
     baseURL: 'http://127.0.0.1:{buyerPort}/v1',
   };
 }
@@ -40,7 +40,7 @@ function makeClaudeCodePatch(configPath: string): ConfigPatchDef {
   return {
     format: 'claude-code',
     configPath,
-    providerKey: 'antseed',
+    providerKey: 'torve',
     baseURL: 'http://localhost:{buyerPort}',
   };
 }
@@ -49,14 +49,14 @@ function makeT3CodePatch(configPath: string): ConfigPatchDef {
   return {
     format: 't3code',
     configPath,
-    providerKey: 'antseed',
-    providerName: 'Antseed',
+    providerKey: 'torve',
+    providerName: 'Torve',
     baseURL: 'http://localhost:{buyerPort}',
   };
 }
 
 async function withTempConfig(fn: (dir: string, configPath: string) => Promise<void>): Promise<void> {
-  const dir = await mkdtemp(path.join(tmpdir(), 'antseed-desktop-system-proxy-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'torve-desktop-system-proxy-'));
   try {
     await fn(dir, path.join(dir, 'tool-config.jsonc'));
   } finally {
@@ -88,7 +88,7 @@ test('applyConfigPatch patches JSONC configs and writes a backup before normaliz
       "provider": {
         "existing": { "name": "Existing" },
       },
-      "disabled_providers": ["antseed", "other",],
+      "disabled_providers": ["torve", "other",],
       "notes": "keep // literal text",
     }\n`;
     await writeFile(configPath, original, 'utf8');
@@ -113,23 +113,23 @@ test('applyConfigPatch patches JSONC configs and writes a backup before normaliz
     };
 
     assert.equal(config.provider.existing?.name, 'Existing');
-    assert.equal(config.provider.antseed?.name, 'Antseed');
-    assert.equal(config.provider.antseed?.npm, '@antseed/tool-provider');
-    assert.equal(config.provider.antseed?.options?.baseURL, 'http://127.0.0.1:9456/v1');
-    assert.equal(config.provider.antseed?.options?.apiKey, 'antseed');
-    assert.deepEqual(config.provider.antseed?.models, {
-      antseed: {
-        name: 'Antseed Auto',
+    assert.equal(config.provider.torve?.name, 'Torve');
+    assert.equal(config.provider.torve?.npm, '@torveai/tool-provider');
+    assert.equal(config.provider.torve?.options?.baseURL, 'http://127.0.0.1:9456/v1');
+    assert.equal(config.provider.torve?.options?.apiKey, 'torve');
+    assert.deepEqual(config.provider.torve?.models, {
+      torve: {
+        name: 'Torve Auto',
         attachment: true,
         modalities: { input: ['text', 'image'], output: ['text'] },
-        limit: { context: ANTSEED_MODEL_CONTEXT_WINDOW, output: ANTSEED_MODEL_MAX_OUTPUT_TOKENS },
+        limit: { context: TORVE_MODEL_CONTEXT_WINDOW, output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
       },
     });
-    assert.equal(config.model, 'antseed/antseed');
+    assert.equal(config.model, 'torve/torve');
     assert.deepEqual(config.disabled_providers, ['other']);
     assert.equal(config.notes, 'keep // literal text');
 
-    assert.equal(await readFile(`${configPath}.antseed.bak`, 'utf8'), original);
+    assert.equal(await readFile(`${configPath}.torve.bak`, 'utf8'), original);
   });
 });
 
@@ -141,9 +141,9 @@ test('applyConfigPatch creates a new config file when one does not exist', async
       provider?: Record<string, unknown>;
       model?: string;
     };
-    assert.ok(config.provider?.antseed);
-    assert.equal(config.model, 'antseed/antseed');
-    assert.equal(existsSync(`${configPath}.antseed.bak`), false);
+    assert.ok(config.provider?.torve);
+    assert.equal(config.model, 'torve/torve');
+    assert.equal(existsSync(`${configPath}.torve.bak`), false);
   });
 });
 
@@ -168,7 +168,7 @@ test('applyConfigPatch leaves malformed existing configs unchanged', async () =>
     );
 
     assert.equal(await readFile(configPath, 'utf8'), original);
-    assert.equal(await readFile(`${configPath}.antseed.bak`, 'utf8'), original);
+    assert.equal(await readFile(`${configPath}.torve.bak`, 'utf8'), original);
   });
 });
 
@@ -189,7 +189,7 @@ test('removeConfigPatch removes only the configured provider and matching model 
       model?: string;
     };
     assert.ok(config.provider.existing);
-    assert.equal(config.provider.antseed, undefined);
+    assert.equal(config.provider.torve, undefined);
     assert.equal(config.model, undefined);
   });
 });
@@ -204,8 +204,8 @@ function makeDroidPatch(configPath: string): DroidConfigPatchDef {
   return {
     format: 'droid',
     configPath,
-    providerKey: 'antseed',
-    providerName: 'Antseed Auto',
+    providerKey: 'torve',
+    providerName: 'Torve Auto',
     baseURL: 'http://127.0.0.1:{buyerPort}/v1',
     originator: 'droid',
   };
@@ -237,39 +237,39 @@ test('applyConfigPatch (droid) adds and selects the routed model while preservin
     const config = JSON.parse(await readFile(configPath, 'utf8')) as Record<string, any>;
     assert.equal(config['model'], 'gpt-5-codex');
     assert.deepEqual(config['sessionDefaultSettings'], {
-      model: 'custom:Antseed-Auto-0',
+      model: 'custom:Torve-Auto-0',
       reasoningEffort: 'high',
     });
     assert.equal(config['reasoningEffort'], 'high');
     assert.deepEqual(config['customModels'][0], original.customModels[0]);
     assert.deepEqual(config['customModels'][1], {
-      model: 'antseed',
-      id: 'custom:Antseed-Auto-0',
-      displayName: 'Antseed Auto',
+      model: 'torve',
+      id: 'custom:Torve-Auto-0',
+      displayName: 'Torve Auto',
       baseUrl: 'http://127.0.0.1:9456/v1',
       provider: 'generic-chat-completion-api',
-      maxOutputTokens: ANTSEED_MODEL_MAX_OUTPUT_TOKENS,
+      maxOutputTokens: TORVE_MODEL_MAX_OUTPUT_TOKENS,
       extraHeaders: {
         originator: 'droid',
       },
     });
-    assert.ok(existsSync(`${configPath}.antseed.state.json`));
-    assert.ok(existsSync(`${configPath}.antseed.bak`));
+    assert.ok(existsSync(`${configPath}.torve.state.json`));
+    assert.ok(existsSync(`${configPath}.torve.bak`));
 
     assert.equal(removeConfigPatch(patch), true);
     assert.deepEqual(JSON.parse(await readFile(configPath, 'utf8')), original);
-    assert.equal(existsSync(`${configPath}.antseed.state.json`), false);
+    assert.equal(existsSync(`${configPath}.torve.state.json`), false);
   });
 });
 
-test('applyConfigPatch (droid) refuses to replace an existing antseed custom model', async () => {
+test('applyConfigPatch (droid) refuses to replace an existing torve custom model', async () => {
   await withTempConfig(async (dir) => {
     const configPath = path.join(dir, 'settings.json');
     const original = `${JSON.stringify({
-      model: 'antseed',
+      model: 'torve',
       customModels: [{
-        model: 'antseed',
-        displayName: 'User Antseed',
+        model: 'torve',
+        displayName: 'User Torve',
         baseUrl: 'https://example.test/v1',
         provider: 'generic-chat-completion-api',
       }],
@@ -278,14 +278,14 @@ test('applyConfigPatch (droid) refuses to replace an existing antseed custom mod
 
     assert.throws(
       () => applyConfigPatch(makeDroidPatch(configPath), PEER_ID, 8377),
-      /already defines a custom model named antseed/,
+      /already defines a custom model named torve/,
     );
     assert.equal(await readFile(configPath, 'utf8'), original);
-    assert.equal(existsSync(`${configPath}.antseed.state.json`), false);
+    assert.equal(existsSync(`${configPath}.torve.state.json`), false);
   });
 });
 
-test('removeConfigPatch (droid) removes a config created entirely by Antseed', async () => {
+test('removeConfigPatch (droid) removes a config created entirely by Torve', async () => {
   await withTempConfig(async (dir) => {
     const configPath = path.join(dir, 'settings.json');
     const patch = makeDroidPatch(configPath);
@@ -294,7 +294,7 @@ test('removeConfigPatch (droid) removes a config created entirely by Antseed', a
     assert.ok(existsSync(configPath));
     assert.equal(removeConfigPatch(patch), true);
     assert.equal(existsSync(configPath), false);
-    assert.equal(existsSync(`${configPath}.antseed.state.json`), false);
+    assert.equal(existsSync(`${configPath}.torve.state.json`), false);
   });
 });
 
@@ -330,7 +330,7 @@ test('removeConfigPatch (droid) restores the prior default after Droid normalize
     delete connected['model'];
     connected['customModels'][0]['index'] = 0;
     connected['sessionDefaultSettings'] = {
-      model: 'custom:Antseed-Auto-0',
+      model: 'custom:Torve-Auto-0',
       reasoningEffort: 'none',
     };
     await writeFile(configPath, `${JSON.stringify(connected, null, 2)}\n`, 'utf8');
@@ -351,17 +351,17 @@ test('removeConfigPatch (droid) restores version 1 state after Droid normalizati
     const patch = makeDroidPatch(configPath);
     await writeFile(configPath, `${JSON.stringify({
       customModels: [{
-        model: 'antseed',
-        id: 'custom:Antseed-Auto-0',
-        displayName: 'Antseed Auto',
+        model: 'torve',
+        id: 'custom:Torve-Auto-0',
+        displayName: 'Torve Auto',
         baseUrl: 'http://127.0.0.1:8377/v1',
         provider: 'generic-chat-completion-api',
       }],
       sessionDefaultSettings: {
-        model: 'custom:Antseed-Auto-0',
+        model: 'custom:Torve-Auto-0',
       },
     }, null, 2)}\n`, 'utf8');
-    await writeFile(`${configPath}.antseed.state.json`, `${JSON.stringify({
+    await writeFile(`${configPath}.torve.state.json`, `${JSON.stringify({
       version: 1,
       configExisted: true,
       customModelsPresent: false,
@@ -380,8 +380,8 @@ function makeCodexPatch(configPath: string): ConfigPatchDef {
   return {
     format: 'codex',
     configPath,
-    providerKey: 'antseed',
-    providerName: 'Antseed',
+    providerKey: 'torve',
+    providerName: 'Torve',
     baseURL: 'http://127.0.0.1:{buyerPort}/v1',
   };
 }
@@ -404,17 +404,17 @@ test('applyConfigPatch (codex) sets top-level keys before tables and appends a m
     const raw = await readFile(configPath, 'utf8');
     const lines = raw.split('\n');
     const firstTable = lines.findIndex((line) => line.startsWith('['));
-    assert.ok(lines.indexOf('model_provider = "antseed"') < firstTable);
-    assert.ok(lines.indexOf('model = "antseed"') < firstTable);
-    assert.ok(lines.indexOf(`model_context_window = ${ANTSEED_MODEL_CONTEXT_WINDOW}`) < firstTable);
+    assert.ok(lines.indexOf('model_provider = "torve"') < firstTable);
+    assert.ok(lines.indexOf('model = "torve"') < firstTable);
+    assert.ok(lines.indexOf(`model_context_window = ${TORVE_MODEL_CONTEXT_WINDOW}`) < firstTable);
     assert.equal(lines[0], '# user comment');
     assert.equal(lines.filter((line) => /^\s*model\s*=/.test(line)).length, 1);
     assert.ok(raw.includes('[mcp_servers.docs]'));
-    assert.ok(raw.includes('[model_providers.antseed]'));
-    assert.ok(raw.includes('name = "Antseed"'));
+    assert.ok(raw.includes('[model_providers.torve]'));
+    assert.ok(raw.includes('name = "Torve"'));
     assert.ok(raw.includes('base_url = "http://127.0.0.1:9456/v1"'));
     assert.ok(raw.includes('wire_api = "responses"'));
-    assert.equal(await readFile(`${configPath}.antseed.bak`, 'utf8'), original);
+    assert.equal(await readFile(`${configPath}.torve.bak`, 'utf8'), original);
   });
 });
 
@@ -425,8 +425,8 @@ test('applyConfigPatch (codex) creates the config file and replaces a previous m
     applyConfigPatch(makeCodexPatch(configPath), PEER_ID, 8378);
 
     const raw = await readFile(configPath, 'utf8');
-    assert.equal(raw.split('[model_providers.antseed]').length, 2);
-    assert.ok(raw.includes('model = "antseed"'));
+    assert.equal(raw.split('[model_providers.torve]').length, 2);
+    assert.ok(raw.includes('model = "torve"'));
     assert.ok(raw.includes('base_url = "http://127.0.0.1:8378/v1"'));
     assert.ok(!raw.includes('8377'));
   });
@@ -444,9 +444,9 @@ test('removeConfigPatch (codex) removes the managed table and model selection bu
     const raw = await readFile(configPath, 'utf8');
     assert.ok(raw.includes('[mcp_servers.docs]'));
     assert.ok(!raw.includes('model_provider'));
-    assert.ok(!raw.includes('model = "antseed"'));
+    assert.ok(!raw.includes('model = "torve"'));
     assert.ok(!raw.includes('model_context_window'));
-    assert.ok(!raw.includes('[model_providers.antseed]'));
+    assert.ok(!raw.includes('[model_providers.torve]'));
 
     assert.equal(removeConfigPatch(patch), false);
   });
@@ -467,7 +467,7 @@ function makePiPatch(modelsPath: string, settingsPath: string): ConfigPatchDef {
     format: 'pi',
     configPath: modelsPath,
     settingsPath,
-    providerKey: 'antseed',
+    providerKey: 'torve',
     baseURL: 'http://127.0.0.1:{buyerPort}/v1',
     api: 'openai-responses',
     originator: 'pi',
@@ -487,18 +487,18 @@ test('applyConfigPatch (pi) writes the provider into models.json and the default
       providers: Record<string, { baseUrl?: string; api?: string; apiKey?: string; headers?: Record<string, string>; models?: Array<{ id: string; name: string; contextWindow: number; maxTokens: number }> }>;
     };
     assert.ok(models.providers.ollama);
-    assert.equal(models.providers.antseed?.baseUrl, 'http://127.0.0.1:9456/v1');
-    assert.equal(models.providers.antseed?.api, 'openai-responses');
-    assert.equal(models.providers.antseed?.apiKey, 'antseed');
-    assert.deepEqual(models.providers.antseed?.headers, { originator: 'pi' });
-    assert.deepEqual(models.providers.antseed?.models, [
-      { id: 'antseed', name: 'Antseed Auto', contextWindow: ANTSEED_MODEL_CONTEXT_WINDOW, maxTokens: ANTSEED_MODEL_MAX_OUTPUT_TOKENS },
+    assert.equal(models.providers.torve?.baseUrl, 'http://127.0.0.1:9456/v1');
+    assert.equal(models.providers.torve?.api, 'openai-responses');
+    assert.equal(models.providers.torve?.apiKey, 'torve');
+    assert.deepEqual(models.providers.torve?.headers, { originator: 'pi' });
+    assert.deepEqual(models.providers.torve?.models, [
+      { id: 'torve', name: 'Torve Auto', contextWindow: TORVE_MODEL_CONTEXT_WINDOW, maxTokens: TORVE_MODEL_MAX_OUTPUT_TOKENS },
     ]);
 
     const settings = JSON.parse(await readFile(settingsPath, 'utf8')) as Record<string, unknown>;
     assert.equal(settings['theme'], 'dark');
-    assert.equal(settings['defaultProvider'], 'antseed');
-    assert.equal(settings['defaultModel'], 'antseed');
+    assert.equal(settings['defaultProvider'], 'torve');
+    assert.equal(settings['defaultModel'], 'torve');
   });
 });
 
@@ -512,7 +512,7 @@ test('removeConfigPatch (pi) removes only the managed provider and matching defa
     assert.equal(removeConfigPatch(patch), true);
 
     const models = JSON.parse(await readFile(modelsPath, 'utf8')) as { providers?: Record<string, unknown> };
-    assert.equal(models.providers?.['antseed'], undefined);
+    assert.equal(models.providers?.['torve'], undefined);
     const settings = JSON.parse(await readFile(settingsPath, 'utf8')) as Record<string, unknown>;
     assert.equal(settings['defaultProvider'], undefined);
     assert.equal(settings['defaultModel'], undefined);
@@ -525,25 +525,25 @@ test('applyConfigPatch writes only the routed-model alias across formats', async
   await withTempConfig(async (dir, configPath) => {
     applyConfigPatch(makePatch(configPath), PEER_ID, 8377);
     const opencode = JSON.parse(await readFile(configPath, 'utf8')) as { model?: string };
-    assert.equal(opencode.model, 'antseed/antseed');
+    assert.equal(opencode.model, 'torve/torve');
 
     const codexPath = path.join(dir, 'config.toml');
     applyConfigPatch(makeCodexPatch(codexPath), PEER_ID, 8377);
     const codexRaw = await readFile(codexPath, 'utf8');
-    assert.ok(codexRaw.includes('model = "antseed"'));
+    assert.ok(codexRaw.includes('model = "torve"'));
     assert.ok(!codexRaw.includes(`${PEER_ID}@`));
 
     const modelsPath = path.join(dir, 'models.json');
     const settingsPath = path.join(dir, 'settings.json');
     applyConfigPatch(makePiPatch(modelsPath, settingsPath), PEER_ID, 8377);
     const settings = JSON.parse(await readFile(settingsPath, 'utf8')) as Record<string, unknown>;
-    assert.equal(settings['defaultModel'], 'antseed');
+    assert.equal(settings['defaultModel'], 'torve');
     const models = JSON.parse(await readFile(modelsPath, 'utf8')) as {
       providers: Record<string, { models?: Array<{ id: string }> }>;
     };
     // Model selection lives in the desktop route selector (floating pill /
     // AI VPN); tool configs expose only the alias the buyer resolves per request.
-    assert.deepEqual(models.providers.antseed?.models?.map((entry) => entry.id), ['antseed']);
+    assert.deepEqual(models.providers.torve?.models?.map((entry) => entry.id), ['torve']);
   });
 });
 
@@ -566,8 +566,8 @@ function makeCrushPatch(configPath: string): ConfigPatchDef {
   return {
     format: 'crush',
     configPath,
-    providerKey: 'antseed',
-    providerName: 'Antseed',
+    providerKey: 'torve',
+    providerName: 'Torve',
     baseURL: 'http://127.0.0.1:{buyerPort}/v1',
   };
 }
@@ -581,18 +581,18 @@ test('applyConfigPatch (crush) writes an openai-compat provider and the large/sm
 
     const config = JSON.parse(await readFile(configPath, 'utf8')) as Record<string, any>;
     assert.deepEqual(config['options'], { debug: true });
-    const provider = config['providers']['antseed'];
+    const provider = config['providers']['torve'];
     assert.equal(provider['type'], 'openai-compat');
     assert.equal(provider['base_url'], 'http://127.0.0.1:8377/v1');
     assert.deepEqual(
       provider['models'].map((model: Record<string, unknown>) => model['id']),
-      ['antseed'],
+      ['torve'],
     );
-    assert.ok(provider['models'].every((model: Record<string, unknown>) => model['context_window'] === ANTSEED_MODEL_CONTEXT_WINDOW));
-    assert.ok(provider['models'].every((model: Record<string, unknown>) => model['default_max_tokens'] === ANTSEED_MODEL_MAX_OUTPUT_TOKENS));
-    assert.deepEqual(config['models']['large'], { provider: 'antseed', model: 'antseed' });
-    assert.deepEqual(config['models']['small'], { provider: 'antseed', model: 'antseed' });
-    assert.ok(existsSync(`${configPath}.antseed.bak`));
+    assert.ok(provider['models'].every((model: Record<string, unknown>) => model['context_window'] === TORVE_MODEL_CONTEXT_WINDOW));
+    assert.ok(provider['models'].every((model: Record<string, unknown>) => model['default_max_tokens'] === TORVE_MODEL_MAX_OUTPUT_TOKENS));
+    assert.deepEqual(config['models']['large'], { provider: 'torve', model: 'torve' });
+    assert.deepEqual(config['models']['small'], { provider: 'torve', model: 'torve' });
+    assert.ok(existsSync(`${configPath}.torve.bak`));
   });
 });
 
@@ -601,11 +601,11 @@ test('removeConfigPatch (crush) removes only the managed provider and its select
     const configPath = path.join(dir, 'crush.json');
     await writeFile(configPath, JSON.stringify({
       providers: {
-        antseed: { type: 'openai-compat' },
+        torve: { type: 'openai-compat' },
         deepseek: { type: 'openai-compat' },
       },
       models: {
-        large: { provider: 'antseed', model: 'antseed' },
+        large: { provider: 'torve', model: 'torve' },
         small: { provider: 'deepseek', model: 'deepseek-chat' },
       },
     }), 'utf8');
@@ -642,11 +642,11 @@ test('applyConfigPatch (goose) sets env-style keys while keeping user lines', as
     assert.equal(lines[0], '# my goose setup');
     assert.equal(lines[1], 'GOOSE_MODE: smart_approve');
     assert.ok(lines.includes('GOOSE_PROVIDER: "openai"'));
-    assert.ok(lines.includes('GOOSE_MODEL: "antseed"'));
+    assert.ok(lines.includes('GOOSE_MODEL: "torve"'));
     assert.ok(lines.includes('OPENAI_HOST: "http://localhost:8377"'));
-    assert.ok(lines.includes('OPENAI_API_KEY: "antseed"'));
+    assert.ok(lines.includes('OPENAI_API_KEY: "torve"'));
     assert.equal(lines.filter((line) => line.startsWith('GOOSE_MODEL')).length, 1);
-    assert.ok(existsSync(`${configPath}.antseed.bak`));
+    assert.ok(existsSync(`${configPath}.torve.bak`));
   });
 });
 
@@ -656,9 +656,9 @@ test('removeConfigPatch (goose) removes only keys the patch owns', async () => {
     await writeFile(configPath, [
       'GOOSE_MODE: smart_approve',
       'GOOSE_PROVIDER: "openai"',
-      'GOOSE_MODEL: "antseed"',
+      'GOOSE_MODEL: "torve"',
       'OPENAI_HOST: "http://localhost:8377"',
-      'OPENAI_API_KEY: "antseed"',
+      'OPENAI_API_KEY: "torve"',
     ].join('\n') + '\n', 'utf8');
 
     assert.equal(removeConfigPatch(makeGoosePatch(configPath)), true);
@@ -697,17 +697,17 @@ test('Claude Code patch routes through the AI VPN alias and restores managed set
     applyConfigPatch(patch, PEER_ID, 9456);
 
     const config = JSON.parse(await readFile(configPath, 'utf8')) as Record<string, any>;
-    assert.equal(config['model'], 'antseed');
+    assert.equal(config['model'], 'torve');
     assert.deepEqual(config['hooks'], { Stop: [] });
     assert.deepEqual(config['env'], {
       DISABLE_AUTO_COMPACT: '1',
       ANTHROPIC_API_KEY: '',
       ANTHROPIC_BASE_URL: 'http://localhost:9456',
-      ANTHROPIC_AUTH_TOKEN: 'antseed',
-      ANTHROPIC_CUSTOM_HEADERS: 'x-antseed-system-proxy-source: claude-code',
+      ANTHROPIC_AUTH_TOKEN: 'torve',
+      ANTHROPIC_CUSTOM_HEADERS: 'x-torve-system-proxy-source: claude-code',
     });
-    assert.ok(existsSync(`${configPath}.antseed.bak`));
-    assert.ok(existsSync(`${configPath}.antseed.state.json`));
+    assert.ok(existsSync(`${configPath}.torve.bak`));
+    assert.ok(existsSync(`${configPath}.torve.state.json`));
 
     applyConfigPatch(patch, PEER_ID, 8377);
     assert.equal(removeConfigPatch(patch), true);
@@ -720,7 +720,7 @@ test('Claude Code patch routes through the AI VPN alias and restores managed set
       },
       hooks: { Stop: [] },
     });
-    assert.equal(existsSync(`${configPath}.antseed.state.json`), false);
+    assert.equal(existsSync(`${configPath}.torve.state.json`), false);
     assert.equal(removeConfigPatch(patch), false);
   });
 });
@@ -749,13 +749,13 @@ test('Claude Code patch removes a settings file it created', async () => {
     applyConfigPatch(patch, PEER_ID, 8377);
     assert.equal(removeConfigPatch(patch), true);
     assert.equal(existsSync(configPath), false);
-    assert.equal(existsSync(`${configPath}.antseed.state.json`), false);
+    assert.equal(existsSync(`${configPath}.torve.state.json`), false);
   });
 });
 
 // --- T3 Code ---
 
-test('T3 Code patch adds Antseed Claude provider and preserves existing settings', async () => {
+test('T3 Code patch adds Torve Claude provider and preserves existing settings', async () => {
   await withTempConfig(async (_dir, configPath) => {
     await writeFile(configPath, JSON.stringify({
       theme: 'dark',
@@ -770,13 +770,13 @@ test('T3 Code patch adds Antseed Claude provider and preserves existing settings
     assert.equal(config['theme'], 'dark');
     const providers = config['providerInstances'] as Record<string, Record<string, unknown>>;
     assert.deepEqual(providers['codex'], { driver: 'codex', displayName: 'Codex' });
-    assert.deepEqual(providers['antseed'], {
+    assert.deepEqual(providers['torve'], {
       driver: 'claudeAgent',
-      displayName: 'Antseed',
+      displayName: 'Torve',
       environment: [
         { name: 'ANTHROPIC_BASE_URL', value: 'http://localhost:9456', sensitive: false },
-        { name: 'ANTHROPIC_API_KEY', value: 'antseed', sensitive: false },
-        { name: 'ANTHROPIC_CUSTOM_HEADERS', value: 'x-antseed-system-proxy-source: t3code', sensitive: false },
+        { name: 'ANTHROPIC_API_KEY', value: 'torve', sensitive: false },
+        { name: 'ANTHROPIC_CUSTOM_HEADERS', value: 'x-torve-system-proxy-source: t3code', sensitive: false },
         { name: 'HTTP_PROXY', value: '', sensitive: false },
         { name: 'HTTPS_PROXY', value: '', sensitive: false },
         { name: 'http_proxy', value: '', sensitive: false },
@@ -787,13 +787,13 @@ test('T3 Code patch adds Antseed Claude provider and preserves existing settings
       ],
       enabled: true,
       config: {
-        customModels: ['antseed'],
+        customModels: ['torve'],
       },
     });
   });
 });
 
-test('T3 Code patch removal only removes the managed Antseed provider', async () => {
+test('T3 Code patch removal only removes the managed Torve provider', async () => {
   await withTempConfig(async (_dir, configPath) => {
     const patch = makeT3CodePatch(configPath);
     applyConfigPatch(patch, PEER_ID, 8377);
@@ -814,8 +814,8 @@ function makeZedPatch(configPath: string): ConfigPatchDef {
   return {
     format: 'zed',
     configPath,
-    providerKey: 'antseed',
-    providerName: 'Antseed',
+    providerKey: 'torve',
+    providerName: 'Torve',
     baseURL: 'http://127.0.0.1:{buyerPort}/v1',
   };
 }
@@ -829,12 +829,12 @@ test('applyConfigPatch (zed) writes the openai_compatible provider and agent def
 
     const config = JSON.parse(await readFile(configPath, 'utf8')) as Record<string, any>;
     assert.equal(config['theme'], 'One Dark');
-    const provider = config['language_models']['openai_compatible']['Antseed'];
+    const provider = config['language_models']['openai_compatible']['Torve'];
     assert.equal(provider['api_url'], 'http://127.0.0.1:8377/v1');
-    assert.equal(provider['available_models'][0]['name'], 'antseed');
-    assert.ok(provider['available_models'].every((model: Record<string, unknown>) => model['max_tokens'] === ANTSEED_MODEL_CONTEXT_WINDOW));
-    assert.deepEqual(config['agent']['default_model'], { provider: 'Antseed', model: 'antseed' });
-    assert.ok(existsSync(`${configPath}.antseed.bak`));
+    assert.equal(provider['available_models'][0]['name'], 'torve');
+    assert.ok(provider['available_models'].every((model: Record<string, unknown>) => model['max_tokens'] === TORVE_MODEL_CONTEXT_WINDOW));
+    assert.deepEqual(config['agent']['default_model'], { provider: 'Torve', model: 'torve' });
+    assert.ok(existsSync(`${configPath}.torve.bak`));
   });
 });
 
@@ -845,11 +845,11 @@ test('removeConfigPatch (zed) removes the managed provider and matching default 
       theme: 'One Dark',
       language_models: {
         openai_compatible: {
-          Antseed: { api_url: 'http://127.0.0.1:8377/v1', available_models: [] },
+          Torve: { api_url: 'http://127.0.0.1:8377/v1', available_models: [] },
           Groq: { api_url: 'https://api.groq.com/openai/v1', available_models: [] },
         },
       },
-      agent: { default_model: { provider: 'Antseed', model: 'antseed' }, always_allow_tool_actions: true },
+      agent: { default_model: { provider: 'Torve', model: 'torve' }, always_allow_tool_actions: true },
     }), 'utf8');
 
     assert.equal(removeConfigPatch(makeZedPatch(configPath)), true);
@@ -862,14 +862,14 @@ test('removeConfigPatch (zed) removes the managed provider and matching default 
   });
 });
 
-test('applyConfigPatch (hermes) adds Antseed provider and selects it', async () => {
+test('applyConfigPatch (hermes) adds Torve provider and selects it', async () => {
   await withTempConfig(async (dir) => {
     const configPath = path.join(dir, 'config.yaml');
     await writeFile(configPath, 'display:\n  skin: cyberpunk\n', 'utf8');
     const patch: ConfigPatchDef = {
       format: 'hermes',
       configPath,
-      providerKey: 'antseed',
+      providerKey: 'torve',
       baseURL: 'http://localhost:{buyerPort}/v1',
     };
 
@@ -877,18 +877,18 @@ test('applyConfigPatch (hermes) adds Antseed provider and selects it', async () 
 
     const config = parse(await readFile(configPath, 'utf8')) as Record<string, any>;
     assert.equal(config['display']['skin'], 'cyberpunk');
-    assert.equal(config['providers']['antseed']['api'], 'http://localhost:8377/v1');
-    assert.equal(config['providers']['antseed']['transport'], 'chat_completions');
-    assert.deepEqual(config['providers']['antseed']['extra_headers'], { originator: 'hermes' });
-    assert.equal(config['providers']['antseed']['default_model'], 'antseed');
-    assert.equal(config['providers']['antseed']['models']['antseed']['context_length'], ANTSEED_MODEL_CONTEXT_WINDOW);
+    assert.equal(config['providers']['torve']['api'], 'http://localhost:8377/v1');
+    assert.equal(config['providers']['torve']['transport'], 'chat_completions');
+    assert.deepEqual(config['providers']['torve']['extra_headers'], { originator: 'hermes' });
+    assert.equal(config['providers']['torve']['default_model'], 'torve');
+    assert.equal(config['providers']['torve']['models']['torve']['context_length'], TORVE_MODEL_CONTEXT_WINDOW);
     assert.deepEqual(config['model'], {
-      provider: 'antseed',
-      default: 'antseed',
+      provider: 'torve',
+      default: 'torve',
       base_url: '',
       api_mode: 'chat_completions',
     });
-    assert.ok(existsSync(`${configPath}.antseed.bak`));
+    assert.ok(existsSync(`${configPath}.torve.bak`));
   });
 });
 
@@ -898,7 +898,7 @@ test('removeConfigPatch (hermes) removes only the managed provider and selection
     const patch: ConfigPatchDef = {
       format: 'hermes',
       configPath,
-      providerKey: 'antseed',
+      providerKey: 'torve',
       baseURL: 'http://localhost:{buyerPort}/v1',
     };
     applyConfigPatch(patch, PEER_ID, 8377);
@@ -906,7 +906,7 @@ test('removeConfigPatch (hermes) removes only the managed provider and selection
     assert.equal(removeConfigPatch(patch), true);
 
     const config = parse(await readFile(configPath, 'utf8')) as Record<string, any>;
-    assert.equal(config['providers']?.['antseed'], undefined);
+    assert.equal(config['providers']?.['torve'], undefined);
     assert.equal(config['model']?.['provider'], undefined);
     assert.equal(config['model']?.['default'], undefined);
   });
@@ -946,7 +946,7 @@ test('applyConfigPatch with installProbe patches an existing native config dir',
     const config = JSON.parse(await readFile(configPath, 'utf8')) as {
       provider: Record<string, { options: { baseURL: string } }>;
     };
-    assert.equal(config.provider['antseed']!.options.baseURL, 'http://127.0.0.1:9456/v1');
+    assert.equal(config.provider['torve']!.options.baseURL, 'http://127.0.0.1:9456/v1');
   });
 });
 
@@ -967,7 +967,7 @@ test('removeConfigPatch with a WSL targets file unpatches the recorded targets a
     assert.equal(removeConfigPatch(patch, wslTargetsFile), true);
 
     const wslConfig = JSON.parse(await readFile(wslConfigPath, 'utf8')) as { provider?: Record<string, unknown> };
-    assert.equal(wslConfig.provider?.['antseed'], undefined);
+    assert.equal(wslConfig.provider?.['torve'], undefined);
     assert.equal(existsSync(wslTargetsFile), false);
   });
 });
@@ -980,7 +980,7 @@ test('applyConfigPatch (codex) with installProbe patches an existing native conf
     applyConfigPatch(patch, PEER_ID, 9456);
     const raw = await readFile(configPath, 'utf8');
     assert.ok(raw.includes('base_url = "http://127.0.0.1:9456/v1"'));
-    assert.ok(raw.includes('model_provider = "antseed"'));
+    assert.ok(raw.includes('model_provider = "torve"'));
   });
 });
 
@@ -1041,7 +1041,7 @@ test('applyConfigPatch writes the Claude third-party profile and flips both depl
     assert.equal(normal['deploymentMode'], '3p');
     // Untouched beyond the mode flip — Claude's own settings must survive.
     assert.deepEqual(normal['mcpServers'], { fs: { command: 'fs-server' } });
-    assert.ok(existsSync(`${patch.configPath}.antseed.bak`));
+    assert.ok(existsSync(`${patch.configPath}.torve.bak`));
 
     const thirdParty = parseJsoncObject(
       await readFile(path.join(patch.thirdPartyDir, 'claude_desktop_config.json'), 'utf8'), 'claude_desktop_config.json');
@@ -1052,7 +1052,7 @@ test('applyConfigPatch writes the Claude third-party profile and flips both depl
     assert.equal(profile['inferenceProvider'], 'gateway');
     assert.equal(profile['inferenceGatewayBaseUrl'], `http://127.0.0.1:${CLAUDE_GATEWAY_DEFAULT_PORT}`);
     assert.equal(profile['inferenceGatewayAuthScheme'], 'bearer');
-    assert.equal(profile['deploymentDisplayName'], 'Antseed');
+    assert.equal(profile['deploymentDisplayName'], 'Torve');
     assert.equal(profile['disableDeploymentModeChooser'], true);
     assert.deepEqual(profile['coworkEgressAllowedHosts'], ['*']);
     // The published model catalog would relabel gateway slots by Claude id.
@@ -1061,12 +1061,12 @@ test('applyConfigPatch writes the Claude third-party profile and flips both depl
     const metaPath = path.join(patch.thirdPartyDir, 'configLibrary', '_meta.json');
     const meta = parseJsoncObject(await readFile(metaPath, 'utf8'), metaPath);
     assert.equal(meta['appliedId'], CLAUDE_DESKTOP_PROFILE_ID);
-    assert.deepEqual(meta['entries'], [{ id: CLAUDE_DESKTOP_PROFILE_ID, name: 'Antseed' }]);
+    assert.deepEqual(meta['entries'], [{ id: CLAUDE_DESKTOP_PROFILE_ID, name: 'Torve' }]);
 
     // Re-apply is idempotent: no duplicate configLibrary entries.
     applyConfigPatch(patch, PEER_ID, 9456);
     const metaAgain = parseJsoncObject(await readFile(metaPath, 'utf8'), metaPath);
-    assert.deepEqual(metaAgain['entries'], [{ id: CLAUDE_DESKTOP_PROFILE_ID, name: 'Antseed' }]);
+    assert.deepEqual(metaAgain['entries'], [{ id: CLAUDE_DESKTOP_PROFILE_ID, name: 'Torve' }]);
   });
 });
 

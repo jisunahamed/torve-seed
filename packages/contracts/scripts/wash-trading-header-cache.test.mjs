@@ -55,7 +55,7 @@ test("deduplicates exact header paths from plan ranges", () => {
 });
 
 test("writes and streams digest-pinned header chunks", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "antseed-header-cache-"));
+  const directory = await mkdtemp(join(tmpdir(), "torve-header-cache-"));
   const plan = { chainId: 8453, digest: "0xplan" };
   const descriptors = buildHeaderChunkDescriptors([11, 12, 20], 2);
   const chunks = [

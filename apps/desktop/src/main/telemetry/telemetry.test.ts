@@ -38,7 +38,7 @@ const BUYER_ADDRESS = '0x1234567890abcdef1234567890abcdef12345678';
 const IMPORTED_BUYER_ADDRESS = '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';
 
 async function makeTempDir(t: test.TestContext): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'antseed-telemetry-'));
+  const dir = await mkdtemp(join(tmpdir(), 'torve-telemetry-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   return dir;
 }

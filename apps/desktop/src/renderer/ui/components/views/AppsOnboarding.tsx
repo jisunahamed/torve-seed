@@ -1,4 +1,4 @@
-import { Button } from '@antseed/ui';
+import { Button } from '@torveai/ui';
 import { BrandIcon } from '../brand/BrandIcon';
 import styles from './AppsOnboarding.module.scss';
 

@@ -19,7 +19,7 @@ import { registerAntsSellerCommand } from './seller.js';
 import { registerAntsVerifyCommand } from './verify.js';
 
 /**
- * `antseed ants` opens the local ANTS staking dashboard; every dashboard
+ * `torve ants` opens the local ANTS staking dashboard; every dashboard
  * action is also a subcommand so the dashboard stays optional.
  */
 export function registerAntsCommands(program: Command): void {

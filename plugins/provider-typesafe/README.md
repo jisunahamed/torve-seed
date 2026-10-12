@@ -1,27 +1,27 @@
-# @antseed/provider-typesafe
+# @torveai/provider-typesafe
 
-Provide System One decision-model capacity on the AntSeed P2P network. Works with TypeSafe's API and any upstream that serves the same `POST /v1/systemone` contract.
+Provide System One decision-model capacity on the Torve P2P network. Works with TypeSafe's API and any upstream that serves the same `POST /v1/systemone` contract.
 
 System One models (TypeSafe Jev) are not chat models. A request carries a `state` and typed `questions` (`choice`, `score`, `noul`); the response carries typed `answers` with probabilities and confidence. Every service under this plugin is advertised with the `typesafe-systemone` API protocol, so buyers route decision requests only to sellers that speak it.
 
 ## Installation
 
 ```bash
-antseed plugin add @antseed/provider-typesafe
+torve plugin add @torveai/provider-typesafe
 ```
 
 ## Usage
 
 ```bash
 export TYPESAFE_API_KEY=<key>
-antseed config seller add-provider typesafe --plugin typesafe
-antseed config seller add-service typesafe jev-latest \
+torve config seller add-provider typesafe --plugin typesafe
+torve config seller add-service typesafe jev-latest \
   --input 0.05 --output 0 \
   --categories decision
-antseed seller start
+torve seller start
 ```
 
-Buyers point the TypeSafe SDKs at their local AntSeed proxy:
+Buyers point the TypeSafe SDKs at their local Torve proxy:
 
 ```bash
 export TYPESAFE_BASE_URL=http://127.0.0.1:8377
@@ -33,13 +33,13 @@ export TYPESAFE_BASE_URL=http://127.0.0.1:8377
 |-----|------|----------|---------|-------------|
 | `TYPESAFE_API_KEY` | secret | Yes | -- | Upstream API key |
 | `TYPESAFE_BASE_URL` | string | No | `https://api.typesafe.ai` | System One API base URL |
-| `ANTSEED_INPUT_USD_PER_MILLION` | number | No | 0.05 | Input token price (USD per 1M) |
-| `ANTSEED_OUTPUT_USD_PER_MILLION` | number | No | 0 | Output token price (USD per 1M) |
-| `ANTSEED_SERVICE_PRICING_JSON` | string | No | -- | Per-service pricing as JSON |
-| `ANTSEED_SERVICE_CAPABILITIES_JSON` | string | No | -- | Per-service capability hints as JSON |
-| `ANTSEED_MAX_CONCURRENCY` | number | No | 10 | Max concurrent requests |
-| `ANTSEED_ALLOWED_SERVICES` | string[] | No | -- | Comma-separated service allowlist |
-| `ANTSEED_SERVICE_ALIAS_MAP_JSON` | string | No | -- | Announced service → upstream model name |
+| `TORVE_INPUT_USD_PER_MILLION` | number | No | 0.05 | Input token price (USD per 1M) |
+| `TORVE_OUTPUT_USD_PER_MILLION` | number | No | 0 | Output token price (USD per 1M) |
+| `TORVE_SERVICE_PRICING_JSON` | string | No | -- | Per-service pricing as JSON |
+| `TORVE_SERVICE_CAPABILITIES_JSON` | string | No | -- | Per-service capability hints as JSON |
+| `TORVE_MAX_CONCURRENCY` | number | No | 10 | Max concurrent requests |
+| `TORVE_ALLOWED_SERVICES` | string[] | No | -- | Comma-separated service allowlist |
+| `TORVE_SERVICE_ALIAS_MAP_JSON` | string | No | -- | Announced service → upstream model name |
 
 ## How It Works
 

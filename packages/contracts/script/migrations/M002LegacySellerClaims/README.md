@@ -14,11 +14,11 @@ safe: both steps check on-chain state first and an `active` pool is a no-op.
 ## Why
 
 Legacy EmissionsV2 routed rewards of sellers without an unlock policy into
-`AntseedSellerRewardsPool`. Claiming from that pool is blocked twice:
+`TorveSellerRewardsPool`. Claiming from that pool is blocked twice:
 
 | Blocker | Revert | Fixed by |
 | --- | --- | --- |
-| `pool.sellerClaimPolicy == 0` | `NoSellerClaimPolicy` | pool owner installs `AntseedLegacySellerClaimPolicy` |
+| `pool.sellerClaimPolicy == 0` | `NoSellerClaimPolicy` | pool owner installs `TorveLegacySellerClaimPolicy` |
 | pool not on `ANTSToken.transferWhitelist` while transfers are disabled | `TransfersNotEnabled` | token owner whitelists the pool |
 
 M001 pins the pool to a registry facade so *locking* keeps working after the
@@ -26,10 +26,10 @@ flip, but leaves both blockers in place on purpose; this migration removes them.
 
 ## What gets deployed
 
-`AntseedLegacySellerClaimPolicy(v2, lastEpoch, releaseBps, washTradingRegistry)`
+`TorveLegacySellerClaimPolicy(v2, lastEpoch, releaseBps, washTradingRegistry)`
 
 - `v2` — the legacy EmissionsV2 that locked into the pool (read from
-  `AntseedLegacyEmissionsEscrow.legacyEmissions()`); `v1` is derived from
+  `TorveLegacyEmissionsEscrow.legacyEmissions()`); `v1` is derived from
   `v2.legacyEmissions()` because V2 merges V1 points for epochs ≤ its
   migration epoch.
 - `lastEpoch = gate.effectiveEpoch() − 1` — the last epoch legacy V2 could ever
@@ -108,7 +108,7 @@ not the stronger (incorrect) claim that V2 never made any direct payouts.
 | `--signer` role | Must be | Sends |
 | --- | --- | --- |
 | `deployer` | `ANTSToken.owner()` | `setTransferWhitelist(pool, true)` (skipped if transfers are enabled or already whitelisted) |
-| `sellerRewardsPoolOwner` | `AntseedSellerRewardsPool.owner()` | policy deployment + `setSellerClaimPolicy` |
+| `sellerRewardsPoolOwner` | `TorveSellerRewardsPool.owner()` | policy deployment + `setSellerClaimPolicy` |
 
 Both signers are always named; the token owner is only *verified* when the
 whitelist call is actually needed. Dry runs simulate each role as its live
@@ -142,7 +142,7 @@ the current policy before broadcasting.
 
 ## After
 
-- Sellers call `AntseedSellerRewardsPool.claim(recipient)`; `NothingToClaim`
+- Sellers call `TorveSellerRewardsPool.claim(recipient)`; `NothingToClaim`
   means no additional rewards are claimable or the seller is a proven wash trader.
 - The configured release share is available immediately, less prior withdrawals.
   The policy itself cannot be reconfigured. The existing pool owner retains

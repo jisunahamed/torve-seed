@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Button, Modal } from '@antseed/ui';
+import { Button, Modal } from '@torveai/ui';
 import styles from './SwitchServiceDialog.module.scss';
 
 type SwitchServiceDialogProps = {

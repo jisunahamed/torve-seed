@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AntseedNode, type PeerInfo } from '../src/node.js';
+import { TorveNode, type PeerInfo } from '../src/node.js';
 import { GITHUB_VERIFICATION_PROOF_TYPE } from '../src/discovery/github-verification.js';
 import * as publicJson from '../src/reputation/public-json.js';
 
@@ -20,9 +20,9 @@ function signals(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe('AntseedNode incremental discovery enrichment', () => {
+describe('TorveNode incremental discovery enrichment', () => {
   it('emits an enriched peer update after a partial metadata-only discovery event', async () => {
-    const node = new AntseedNode({ role: 'buyer' });
+    const node = new TorveNode({ role: 'buyer' });
     const peer = makePeer();
     const discovered = vi.fn();
 
@@ -51,7 +51,7 @@ describe('AntseedNode incremental discovery enrichment', () => {
   });
 
   it('reads every stale peer in one batch and skips fresh ones', async () => {
-    const node = new AntseedNode({ role: 'buyer' });
+    const node = new TorveNode({ role: 'buyer' });
     const stale = [makePeer('a'.repeat(40)), makePeer('b'.repeat(40))];
     const fresh = makePeer('c'.repeat(40));
     fresh.onChainStatsFetchedAt = Date.now();
@@ -67,7 +67,7 @@ describe('AntseedNode incremental discovery enrichment', () => {
   });
 
   it('keeps the last-known snapshot when the batched read fails or omits the peer', async () => {
-    const node = new AntseedNode({ role: 'buyer' });
+    const node = new TorveNode({ role: 'buyer' });
     const previousFetchedAt = Date.now() - 300_000;
     const peer = makePeer();
     peer.onChainChannelCount = 1_208;
@@ -86,7 +86,7 @@ describe('AntseedNode incremental discovery enrichment', () => {
   });
 
   it('zeroes the score of a proven wash trader', async () => {
-    const node = new AntseedNode({ role: 'buyer' });
+    const node = new TorveNode({ role: 'buyer' });
     const peer = makePeer();
     (node as any)._trustSignalsClient = { read: vi.fn(async (sellers: string[]) => new Map(sellers.map((seller) => [seller, signals({ washFlagged: true, washShareBps: 6_000 })]))) };
     await (node as any)._enrichPeersWithOnChainStats([peer]);
@@ -96,7 +96,7 @@ describe('AntseedNode incremental discovery enrichment', () => {
   });
 
   it('emits external verification results without blocking initial discovery events', async () => {
-    const node = new AntseedNode({ role: 'buyer' });
+    const node = new TorveNode({ role: 'buyer' });
     const peer = makePeer();
     peer.metadata = {
       peerId: peer.peerId,
@@ -138,7 +138,7 @@ describe('AntseedNode incremental discovery enrichment', () => {
   });
 
   it('emits a combined trust score when chain enrichment finishes before identity verification', async () => {
-    const node = new AntseedNode({ role: 'buyer' });
+    const node = new TorveNode({ role: 'buyer' });
     const peer = makePeer();
     peer.metadata = {
       peerId: peer.peerId,
@@ -201,7 +201,7 @@ describe('AntseedNode incremental discovery enrichment', () => {
   });
 
   it('reuses verified identity results for the full identity-history TTL', () => {
-    const node = new AntseedNode({ role: 'buyer' });
+    const node = new TorveNode({ role: 'buyer' });
     const peer = makePeer();
     peer.metadata = {
       peerId: peer.peerId,

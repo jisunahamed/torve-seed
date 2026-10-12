@@ -12,7 +12,7 @@ const ABI = [
 
 const POLICY_ABI = ['function claimableSellerRewards(address seller, uint256 lockedAmount) external view returns (uint256)'] as const;
 
-/** Legacy locked seller rewards pool (`AntseedSellerRewardsPool`). Releases are gated by the M002 claim policy. */
+/** Legacy locked seller rewards pool (`TorveSellerRewardsPool`). Releases are gated by the M002 claim policy. */
 export class SellerRewardsPoolClient extends BaseEvmClient {
   constructor(config: SellerRewardsPoolClientConfig) { super(config.rpcUrl, config.contractAddress, config.fallbackRpcUrls, config.evmChainId); }
   private contract(): Contract { return new Contract(this._contractAddress, ABI, this._provider); }

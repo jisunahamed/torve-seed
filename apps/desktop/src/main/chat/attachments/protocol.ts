@@ -2,7 +2,7 @@
  * Custom Electron protocol for serving chat attachments.
  *
  * URL shape:
- *   antseed-attachment://<conversationId>/<attachmentId>
+ *   torve-attachment://<conversationId>/<attachmentId>
  *
  * The scheme is registered as privileged (standard + secure) so the
  * browser engine renders PDFs, HTML, SVG and images natively — no base64

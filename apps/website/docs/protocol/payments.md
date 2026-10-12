@@ -7,7 +7,7 @@ hide_title: true
 
 # Payments
 
-Buyers pre-deposit USDC into the on-chain AntseedDeposits contract. Each session follows a Reserve-Serve-Settle lifecycle where credits are locked via AntseedChannels (which holds no USDC itself), requests flow freely over the P2P transport, and settlement happens when the seller calls `settle()` or `close()`.
+Buyers pre-deposit USDC into the on-chain TorveDeposits contract. Each session follows a Reserve-Serve-Settle lifecycle where credits are locked via TorveChannels (which holds no USDC itself), requests flow freely over the P2P transport, and settlement happens when the seller calls `settle()` or `close()`.
 
 Two EIP-712 signed messages drive the flow: **ReserveAuth** (buyer authorizes a session budget) and **SpendingAuth** (buyer authorizes cumulative spend per request).
 
@@ -51,7 +51,7 @@ The seller calls `settle()` with the latest SpendingAuth to charge the buyer for
 Two EIP-712 typed data messages drive the payment flow. Both share the same domain:
 
 ```text title="EIP-712 domain"
-name:               "AntseedChannels"
+name:               "TorveChannels"
 version:            "7"
 chainId:            <deployment chain>
 verifyingContract:  <channels contract address>
@@ -95,7 +95,7 @@ To finalize, the seller calls `close()` with the final SpendingAuth. This charge
 
 ### Timeout
 
-If the seller disappears, the buyer calls `requestClose()` on AntseedChannels. This marks the session for timeout. After a 15-minute grace period, the buyer calls `withdraw()` to release the locked funds back to the buyer's deposit.
+If the seller disappears, the buyer calls `requestClose()` on TorveChannels. This marks the session for timeout. After a 15-minute grace period, the buyer calls `withdraw()` to release the locked funds back to the buyer's deposit.
 
 ### Token-to-USDC Conversion
 
@@ -130,22 +130,22 @@ totalCostUSDC = unitCostUSD * 1_000_000
 
 `video_seconds` requires an explicit requested duration, and a request with no matching component is refused.
 
-Each paid video gets its own one-off channel, bound to the create's `requestId`. Above `FIRST_SIGN_CAP`, the channel opens at the cap and `topUp()` raises it to the price after settling `ceil(cap × TOP_UP_SETTLED_THRESHOLD_BPS / 10000)`, which counts toward the price. See the [native video spec](https://github.com/AntSeed/antseed/blob/main/docs/protocol/spec/10-native-video.md).
+Each paid video gets its own one-off channel, bound to the create's `requestId`. Above `FIRST_SIGN_CAP`, the channel opens at the cap and `topUp()` raises it to the price after settling `ceil(cap × TOP_UP_SETTLED_THRESHOLD_BPS / 10000)`, which counts toward the price. See the [native video spec](https://github.com/Torve/torve/blob/main/docs/protocol/spec/10-native-video.md).
 
 ## Wallet
 
-Each node's identity is a secp256k1 private key. The EVM address derived from this key serves as both the PeerId on the network and the on-chain wallet address. Set it via `ANTSEED_IDENTITY_HEX` env var (recommended for production) rather than the plaintext `identity.key` file.
+Each node's identity is a secp256k1 private key. The EVM address derived from this key serves as both the PeerId on the network and the on-chain wallet address. Set it via `TORVE_IDENTITY_HEX` env var (recommended for production) rather than the plaintext `identity.key` file.
 
 ```text title="identity = wallet"
 secp256k1 private key (32 bytes)
   → EVM address (20 bytes) = PeerId
 ```
 
-There is no derivation step or two-key system. One secp256k1 key signs everything — protocol messages (using EIP-191 `personal_sign` with domain tags like `"antseed-data-v1:"` and `"antseed-msg-v1:"`), EIP-712 payment messages (ReserveAuth, SpendingAuth), and on-chain transactions. Verification uses `ecrecover`.
+There is no derivation step or two-key system. One secp256k1 key signs everything — protocol messages (using EIP-191 `personal_sign` with domain tags like `"torve-data-v1:"` and `"torve-msg-v1:"`), EIP-712 payment messages (ReserveAuth, SpendingAuth), and on-chain transactions. Verification uses `ecrecover`.
 
 ### Funding
 
-The AntseedDeposits contract's `deposit(address buyer, uint256 amount)` allows any address to fund a buyer's deposit — USDC is pulled from `msg.sender` and credited to the specified buyer. This decouples the funding source from the node identity — a team treasury, a hardware wallet, or another contract can fund the node without exposing the node's private key.
+The TorveDeposits contract's `deposit(address buyer, uint256 amount)` allows any address to fund a buyer's deposit — USDC is pulled from `msg.sender` and credited to the specified buyer. This decouples the funding source from the node identity — a team treasury, a hardware wallet, or another contract can fund the node without exposing the node's private key.
 
 USDC on Base. 6 decimal places. All on-chain amounts are in USDC atomic units (1 USDC = 1,000,000).
 
@@ -156,19 +156,19 @@ The recognized-usage protocol starts **September 10, 2026 at 09:54:21 UTC
 accounting, and rewards:
 
 ```text title="contract architecture"
-AntseedRegistry               Central address book
-AntseedDeposits               Buyer deposits and seller payouts in USDC
-AntseedChannels               Signed payment channels; holds no USDC
+TorveRegistry               Central address book
+TorveDeposits               Buyer deposits and seller payouts in USDC
+TorveChannels               Signed payment channels; holds no USDC
 ANTSToken                     ANTS token; mint authority is the emissions gate
-AntseedEmissionsGate          Emission schedule and reward allocations
-AntseedSellerRegistry         Seller eligibility and ERC-8004 agent lookup
-AntseedSellerPools            Locked ANTS positions and epoch pool power
-AntseedUsageAccounting        Recognized buyer/seller usage points
-AntseedPointsPolicyRegistry   Ordered usage-point policies
-AntseedWashTradingPointsPolicy  Filters usage by historically flagged sellers
-AntseedSellerPoolsRewards     Staker rewards
-AntseedUsageRewards           Buyer and seller/operator rewards
-AntseedPositionInit           Starter-position grants
+TorveEmissionsGate          Emission schedule and reward allocations
+TorveSellerRegistry         Seller eligibility and ERC-8004 agent lookup
+TorveSellerPools            Locked ANTS positions and epoch pool power
+TorveUsageAccounting        Recognized buyer/seller usage points
+TorvePointsPolicyRegistry   Ordered usage-point policies
+TorveWashTradingPointsPolicy  Filters usage by historically flagged sellers
+TorveSellerPoolsRewards     Staker rewards
+TorveUsageRewards           Buyer and seller/operator rewards
+TorvePositionInit           Starter-position grants
 ```
 
 Looking for the pre-migration contracts or older rewards?
@@ -221,12 +221,12 @@ See the [full rewards inventory](./recognized-usage.md#mainnet-contracts) or
 | Contract | Address |
 |---|---|
 | USDC (Circle) | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
-| AntseedRegistry | `0xf33fC901BFa97326379A369401F4490E231B69B0` |
-| AntseedDeposits | `0x0F7a3a8f4Da01637d1202bb5443fcF7F88F99fD2` |
-| AntseedChannels | `0xBA66d3b4fbCf472F6F11D6F9F96aaCE96516F09d` |
-| AntseedSellerRegistry | `0x99c533BCc6Ca646E543dbA835Fdbb9C2ee02Cb60` |
-| AntseedStats | `0x15649ff076BFa5e37e24EE3154a00503149954Fd` |
-| AntseedUsageAccounting | `0xAdd2D85316153D7bfaF7921EE9Bf1Bb6c7A1cBc9` |
+| TorveRegistry | `0xf33fC901BFa97326379A369401F4490E231B69B0` |
+| TorveDeposits | `0x0F7a3a8f4Da01637d1202bb5443fcF7F88F99fD2` |
+| TorveChannels | `0xBA66d3b4fbCf472F6F11D6F9F96aaCE96516F09d` |
+| TorveSellerRegistry | `0x99c533BCc6Ca646E543dbA835Fdbb9C2ee02Cb60` |
+| TorveStats | `0x15649ff076BFa5e37e24EE3154a00503149954Fd` |
+| TorveUsageAccounting | `0xAdd2D85316153D7bfaF7921EE9Bf1Bb6c7A1cBc9` |
 | ANTSToken | `0xa87EE81b2C0Bc659307ca2D9ffdC38514DD85263` |
 | ERC-8004 IdentityRegistry | `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432` |
 

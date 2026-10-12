@@ -259,7 +259,7 @@ describe('image/provider fact extraction', () => {
   });
 
   it('extracts billing fields from a multipart image edits body, skipping file parts', () => {
-    const boundary = '----antseedBoundary123';
+    const boundary = '----torveBoundary123';
     const body = new TextEncoder().encode([
       `--${boundary}`,
       'Content-Disposition: form-data; name="model"',

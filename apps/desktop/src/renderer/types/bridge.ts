@@ -270,7 +270,7 @@ export type ToolApprovalRequest = {
 export type PreparedChatAttachment = {
   id: string;
   /** Stable server-generated ID for the on-disk copy; used by the
-   *  `antseed-attachment://` preview protocol. */
+   *  `torve-attachment://` preview protocol. */
   attachmentId?: string;
   name: string;
   mimeType: string;
@@ -399,8 +399,8 @@ export type DesktopBridge = {
   onWindowFocusChange?: (handler: (isFocused: boolean) => void) => () => void;
   getAppSetupStatus?: () => Promise<{ needed: boolean; complete: boolean }>;
   getTelemetryStatus?: () => Promise<import('../../shared/telemetry.js').TelemetryStatus>;
-  getTeeStatus?: () => Promise<import('@antseed/node/tee-status').DesktopTeeStatus>;
-  checkSellerTee?: (peerId: string) => Promise<import('@antseed/node/tee-status').DesktopTeeStatus>;
+  getTeeStatus?: () => Promise<import('@torveai/node/tee-status').DesktopTeeStatus>;
+  checkSellerTee?: (peerId: string) => Promise<import('@torveai/node/tee-status').DesktopTeeStatus>;
   setTelemetryEnabled?: (enabled: boolean) => Promise<import('../../shared/telemetry.js').TelemetryStatusUpdateResult>;
   telemetryRecordUserAction?: (payload: import('../../shared/telemetry.js').UserActionSignal) => Promise<{ ok: boolean }>;
   telemetryRecordFirstModelShown?: (payload: import('../../shared/telemetry.js').FirstModelShownSignal) => Promise<{ ok: boolean }>;

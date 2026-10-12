@@ -7,7 +7,7 @@ import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-const ENCRYPTED_SETTINGS_PATH = path.join(homedir(), '.antseed', 'telegram.enc');
+const ENCRYPTED_SETTINGS_PATH = path.join(homedir(), '.torve', 'telegram.enc');
 
 export type TelegramSettings = {
   botToken: string;

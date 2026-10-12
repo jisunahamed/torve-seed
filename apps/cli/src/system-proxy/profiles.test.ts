@@ -43,7 +43,7 @@ test('loadSystemProxyProfiles returns empty when no local profile config is set'
 
 test('loadSystemProxyProfiles parses profiles from JSON env', () => {
   const profiles = loadSystemProxyProfiles({
-    ANTSEED_SYSTEM_PROXY_PROFILES_JSON: JSON.stringify(PROFILE_FIXTURE),
+    TORVE_SYSTEM_PROXY_PROFILES_JSON: JSON.stringify(PROFILE_FIXTURE),
   })
   assert.equal(profiles.length, 2)
   assert.equal(profiles[0]?.name, 'api-client')
@@ -53,12 +53,12 @@ test('loadSystemProxyProfiles parses profiles from JSON env', () => {
 })
 
 test('loadSystemProxyProfiles parses profiles from JSON file', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'antseed-profiles-test-'))
+  const dir = await mkdtemp(join(tmpdir(), 'torve-profiles-test-'))
   try {
     const file = join(dir, 'profiles.json')
     await writeFile(file, JSON.stringify(PROFILE_FIXTURE), 'utf8')
     const profiles = loadSystemProxyProfiles({
-      ANTSEED_SYSTEM_PROXY_PROFILES_FILE: file,
+      TORVE_SYSTEM_PROXY_PROFILES_FILE: file,
     })
     assert.equal(profiles.length, 2)
     assert.equal(profiles[1]?.name, 'browser-client')

@@ -10,9 +10,9 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { TextDecoder, TextEncoder } from "node:util";
 import { fileURLToPath } from "node:url";
 
-import { AntseedNode, toPeerId } from "@antseed/node";
-import { DepositsClient, ChannelsClient } from "@antseed/node/payments";
-import { DHTNode } from "@antseed/node/discovery";
+import { TorveNode, toPeerId } from "@torveai/node";
+import { DepositsClient, ChannelsClient } from "@torveai/node/payments";
+import { DHTNode } from "@torveai/node/discovery";
 
 const RPC_URL = process.env.RPC_URL ?? "http://127.0.0.1:8545";
 const CHAIN_ID = process.env.CHAIN_ID ?? "31337";
@@ -265,12 +265,12 @@ async function main() {
     const usdcAddress = parseDeployedAddress(mockDeployOutput);
     logStep(`MockUSDC deployed: ${usdcAddress}`);
 
-    logStep("deploying AntseedIdentity");
+    logStep("deploying TorveIdentity");
     const identityDeployOutput = runCommand(
       "forge",
       [
         "create",
-        "AntseedIdentity.sol:AntseedIdentity",
+        "TorveIdentity.sol:TorveIdentity",
         "--rpc-url",
         RPC_URL,
         "--private-key",
@@ -280,14 +280,14 @@ async function main() {
       { cwd: contractsDir }
     );
     const identityAddress = parseDeployedAddress(identityDeployOutput);
-    logStep(`AntseedIdentity deployed: ${identityAddress}`);
+    logStep(`TorveIdentity deployed: ${identityAddress}`);
 
-    logStep("deploying AntseedStaking");
+    logStep("deploying TorveStaking");
     const stakingDeployOutput = runCommand(
       "forge",
       [
         "create",
-        "AntseedStaking.sol:AntseedStaking",
+        "TorveStaking.sol:TorveStaking",
         "--rpc-url",
         RPC_URL,
         "--private-key",
@@ -300,14 +300,14 @@ async function main() {
       { cwd: contractsDir }
     );
     const stakingAddress = parseDeployedAddress(stakingDeployOutput);
-    logStep(`AntseedStaking deployed: ${stakingAddress}`);
+    logStep(`TorveStaking deployed: ${stakingAddress}`);
 
-    logStep("deploying AntseedDeposits");
+    logStep("deploying TorveDeposits");
     const depositsDeployOutput = runCommand(
       "forge",
       [
         "create",
-        "AntseedDeposits.sol:AntseedDeposits",
+        "TorveDeposits.sol:TorveDeposits",
         "--rpc-url",
         RPC_URL,
         "--private-key",
@@ -319,14 +319,14 @@ async function main() {
       { cwd: contractsDir }
     );
     const depositsAddress = parseDeployedAddress(depositsDeployOutput);
-    logStep(`AntseedDeposits deployed: ${depositsAddress}`);
+    logStep(`TorveDeposits deployed: ${depositsAddress}`);
 
-    logStep("deploying AntseedChannels");
+    logStep("deploying TorveChannels");
     const sessionsDeployOutput = runCommand(
       "forge",
       [
         "create",
-        "AntseedChannels.sol:AntseedChannels",
+        "TorveChannels.sol:TorveChannels",
         "--rpc-url",
         RPC_URL,
         "--private-key",
@@ -340,7 +340,7 @@ async function main() {
       { cwd: contractsDir }
     );
     const channelsAddress = parseDeployedAddress(sessionsDeployOutput);
-    logStep(`AntseedChannels deployed: ${channelsAddress}`);
+    logStep(`TorveChannels deployed: ${channelsAddress}`);
 
     logStep("wiring contracts together");
     castSend([depositsAddress, "setChannelsContract(address)", channelsAddress]);
@@ -362,13 +362,13 @@ async function main() {
     const bootstrapConfig = [{ host: "127.0.0.1", port: bootstrap.getPort() }];
     logStep(`bootstrap DHT on 127.0.0.1:${bootstrap.getPort()}`);
 
-    sellerDataDir = await mkdtemp(join(tmpdir(), "antseed-flow-seller-"));
-    buyerDataDir = await mkdtemp(join(tmpdir(), "antseed-flow-buyer-"));
+    sellerDataDir = await mkdtemp(join(tmpdir(), "torve-flow-seller-"));
+    buyerDataDir = await mkdtemp(join(tmpdir(), "torve-flow-buyer-"));
 
     const sellerProvider = new MockAnthropicProvider();
 
     logStep("starting seller node with payments enabled");
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: "seller",
       dataDir: sellerDataDir,
       dhtPort: 0,
@@ -399,7 +399,7 @@ async function main() {
     logStep(`seller peer=${sellerNode.peerId} evm=${sellerAddress}`);
 
     logStep("starting buyer node with payments enabled");
-    buyerNode = new AntseedNode({
+    buyerNode = new TorveNode({
       role: "buyer",
       dataDir: buyerDataDir,
       dhtPort: 0,

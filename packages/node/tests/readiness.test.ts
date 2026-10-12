@@ -86,7 +86,7 @@ describe('checkSellerReadiness', () => {
 
     const regCheck = checks.find(c => c.name === 'Peer registration')!;
     expect(regCheck.passed).toBe(false);
-    expect(regCheck.command).toBe('antseed seller register');
+    expect(regCheck.command).toBe('torve seller register');
   });
 
   it('accepts an eligible zero-stake seller', async () => {
@@ -108,7 +108,7 @@ describe('checkSellerReadiness', () => {
     const stakeCheck = checks.find(c => c.name === 'Stake')!;
     expect(stakeCheck.passed).toBe(false);
     expect(stakeCheck.message).toContain('Check agent binding and required stake');
-    expect(stakeCheck.command).toBe('antseed seller status');
+    expect(stakeCheck.command).toBe('torve seller status');
   });
 
   it('propagates eligibility RPC errors rather than treating the seller as ready', async () => {
@@ -160,6 +160,6 @@ describe('checkBuyerReadiness', () => {
 
     const balCheck = checks.find(c => c.name === 'Deposit balance')!;
     expect(balCheck.passed).toBe(false);
-    expect(balCheck.command).toBe('antseed buyer deposit 10');
+    expect(balCheck.command).toBe('torve buyer deposit 10');
   });
 });

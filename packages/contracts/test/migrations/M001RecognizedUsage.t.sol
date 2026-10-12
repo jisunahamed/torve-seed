@@ -3,23 +3,23 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Test.sol";
 
-import { AntseedRegistry } from "../../core/AntseedRegistry.sol";
-import { AntseedEmissionsGate } from "../../emissions/AntseedEmissionsGate.sol";
-import { AntseedPointsPolicyRegistry } from "../../policies/AntseedPointsPolicyRegistry.sol";
-import { AntseedWashTradingPointsPolicy } from "../../policies/AntseedWashTradingPointsPolicy.sol";
+import { TorveRegistry } from "../../core/TorveRegistry.sol";
+import { TorveEmissionsGate } from "../../emissions/TorveEmissionsGate.sol";
+import { TorvePointsPolicyRegistry } from "../../policies/TorvePointsPolicyRegistry.sol";
+import { TorveWashTradingPointsPolicy } from "../../policies/TorveWashTradingPointsPolicy.sol";
 
 contract M001RecognizedUsageTest is Test {
-    AntseedRegistry internal registry;
+    TorveRegistry internal registry;
 
     address internal constant LEGACY_EMISSIONS = address(0x1001);
     address internal constant LEGACY_STAKING = address(0x1002);
     address internal constant USAGE_ACCOUNTING = address(0x2001);
     address internal constant SELLER_REGISTRY = address(0x2002);
     address internal constant VERIFICATION_WALLET = address(0x3001);
-    bytes32 internal constant VERIFICATION_MINTER_ID = keccak256("antseed.emissions.verification.v1");
+    bytes32 internal constant VERIFICATION_MINTER_ID = keccak256("torve.emissions.verification.v1");
 
     function setUp() public {
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         registry.setEmissions(LEGACY_EMISSIONS);
         registry.setStaking(LEGACY_STAKING);
     }
@@ -47,9 +47,9 @@ contract M001RecognizedUsageTest is Test {
     }
 
     function test_m001LeavesVerificationConfigurationWithDeployer() public {
-        AntseedEmissionsGate gate = new AntseedEmissionsGate(address(0x4001), address(0x4002), 15_000, 15_000);
-        AntseedPointsPolicyRegistry pointsPolicyRegistry = new AntseedPointsPolicyRegistry(address(this));
-        AntseedWashTradingPointsPolicy washPolicy = new AntseedWashTradingPointsPolicy(address(0x5001));
+        TorveEmissionsGate gate = new TorveEmissionsGate(address(0x4001), address(0x4002), 15_000, 15_000);
+        TorvePointsPolicyRegistry pointsPolicyRegistry = new TorvePointsPolicyRegistry(address(this));
+        TorveWashTradingPointsPolicy washPolicy = new TorveWashTradingPointsPolicy(address(0x5001));
         pointsPolicyRegistry.registerPolicy(address(washPolicy));
 
         gate.setMinter(VERIFICATION_MINTER_ID, VERIFICATION_WALLET, 10_000, true);

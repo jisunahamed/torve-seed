@@ -52,16 +52,16 @@ const MOBILE_UA =
 
 const ELEMENT_PICKER_INJECT = `
 (function() {
-  if (window.__antseedPickerActive) return;
-  window.__antseedPickerActive = true;
+  if (window.__torvePickerActive) return;
+  window.__torvePickerActive = true;
 
   const overlay = document.createElement('div');
-  overlay.id = '__antseed-picker-overlay';
+  overlay.id = '__torve-picker-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483646;cursor:crosshair;';
   document.body.appendChild(overlay);
 
   const highlight = document.createElement('div');
-  highlight.id = '__antseed-picker-highlight';
+  highlight.id = '__torve-picker-highlight';
   highlight.style.cssText = 'position:fixed;z-index:2147483645;pointer-events:none;border:2px solid #1fd87a;background:rgba(31,216,122,0.08);transition:all 0.05s;';
   document.body.appendChild(highlight);
 
@@ -70,9 +70,9 @@ const ELEMENT_PICKER_INJECT = `
   function cleanup() {
     overlay.remove();
     highlight.remove();
-    window.__antseedPickerActive = false;
-    if (window.__antseedPickerCleanup === cleanup) {
-      window.__antseedPickerCleanup = null;
+    window.__torvePickerActive = false;
+    if (window.__torvePickerCleanup === cleanup) {
+      window.__torvePickerCleanup = null;
     }
     document.removeEventListener('keydown', handleKeydown);
   }
@@ -83,7 +83,7 @@ const ELEMENT_PICKER_INJECT = `
     }
   }
 
-  window.__antseedPickerCleanup = cleanup;
+  window.__torvePickerCleanup = cleanup;
 
   function getSelector(el) {
     if (el.id) return '#' + CSS.escape(el.id);
@@ -138,7 +138,7 @@ const ELEMENT_PICKER_INJECT = `
       attributes: getAttrs(lastTarget),
     };
     cleanup();
-    window.__antseedPickerResult = info;
+    window.__torvePickerResult = info;
   });
 
   document.addEventListener('keydown', handleKeydown);
@@ -147,9 +147,9 @@ const ELEMENT_PICKER_INJECT = `
 
 const ELEMENT_PICKER_POLL = `
 (function() {
-  const result = window.__antseedPickerResult;
+  const result = window.__torvePickerResult;
   if (result) {
-    window.__antseedPickerResult = null;
+    window.__torvePickerResult = null;
     return result;
   }
   return null;
@@ -341,7 +341,7 @@ export function BrowserPreview({ url, onClose, onNavigate, onElementSelected }: 
     if (pickerActive) {
       webview
         .executeJavaScript(
-          `const cleanup=window.__antseedPickerCleanup;if(typeof cleanup==='function'){cleanup();}else{const o=document.getElementById('__antseed-picker-overlay');const h=document.getElementById('__antseed-picker-highlight');if(o)o.remove();if(h)h.remove();window.__antseedPickerActive=false;}`,
+          `const cleanup=window.__torvePickerCleanup;if(typeof cleanup==='function'){cleanup();}else{const o=document.getElementById('__torve-picker-overlay');const h=document.getElementById('__torve-picker-highlight');if(o)o.remove();if(h)h.remove();window.__torvePickerActive=false;}`,
         )
         .catch(() => {});
       if (pickerPollRef.current) {

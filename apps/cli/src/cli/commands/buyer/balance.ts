@@ -7,7 +7,7 @@ import {
   loadOrCreateIdentity,
   DepositsClient,
   resolveChainConfig,
-} from '@antseed/node';
+} from '@torveai/node';
 
 function formatUsdc(baseUnits: bigint): string {
   const whole = baseUnits / 1_000_000n;

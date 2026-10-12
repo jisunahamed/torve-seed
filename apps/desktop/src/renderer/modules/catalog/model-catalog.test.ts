@@ -19,8 +19,8 @@ test('TEE browsing counts distinct sellers and intersects pricing with matching 
   const preferences = { ...createInitialUiState().vprRoutingPreferences, minTrustScore: 0 };
   const rows = [
     discoverRow({ peerId: 'standard', serviceId: 'gpt-test', inputUsdPerMillion: 0, outputUsdPerMillion: 0 }),
-    discoverRow({ peerId: 'tee', serviceId: 'gpt-test', advertisedVerifierIds: ['antseed-verifier'], inputUsdPerMillion: 2, outputUsdPerMillion: 4 }),
-    discoverRow({ peerId: 'tee', serviceId: 'openai/gpt-test', advertisedVerifierIds: ['antseed-verifier'], inputUsdPerMillion: 2, outputUsdPerMillion: 4 }),
+    discoverRow({ peerId: 'tee', serviceId: 'gpt-test', advertisedVerifierIds: ['torve-verifier'], inputUsdPerMillion: 2, outputUsdPerMillion: 4 }),
+    discoverRow({ peerId: 'tee', serviceId: 'openai/gpt-test', advertisedVerifierIds: ['torve-verifier'], inputUsdPerMillion: 2, outputUsdPerMillion: 4 }),
     discoverRow({ peerId: 'other', serviceId: 'another-model', advertisedVerifierIds: ['acme'] }),
   ];
   const catalog = projectRowsToVprModelCatalog(rows);
@@ -52,8 +52,8 @@ test('TEE browsing counts distinct sellers and intersects pricing with matching 
 test('TEE browsing keeps existing trust-based pricing eligibility and fallback', () => {
   const preferences = { ...createInitialUiState().vprRoutingPreferences, minTrustScore: 60 };
   const rows = [
-    discoverRow({ peerId: 'low', advertisedVerifierIds: ['antseed-verifier'], effectiveReputationScore: 10, inputUsdPerMillion: 0, outputUsdPerMillion: 0 }),
-    discoverRow({ peerId: 'high', advertisedVerifierIds: ['antseed-verifier'], effectiveReputationScore: 90, inputUsdPerMillion: 3, outputUsdPerMillion: 6 }),
+    discoverRow({ peerId: 'low', advertisedVerifierIds: ['torve-verifier'], effectiveReputationScore: 10, inputUsdPerMillion: 0, outputUsdPerMillion: 0 }),
+    discoverRow({ peerId: 'high', advertisedVerifierIds: ['torve-verifier'], effectiveReputationScore: 90, inputUsdPerMillion: 3, outputUsdPerMillion: 6 }),
   ];
   const catalog = projectRowsToVprModelCatalog(rows, (row) => isRouteEligibleForAutoSelection(row, preferences));
   const [filtered] = projectTeeBrowseCatalog(catalog, rows, preferences, 'tee');
@@ -76,7 +76,7 @@ test('TEE display savings use matching prices rather than the unfiltered free of
   try {
     const rows = [
       discoverRow({ peerId: 'standard', serviceId: 'gpt-test', inputUsdPerMillion: 0, outputUsdPerMillion: 0 }),
-      discoverRow({ peerId: 'tee', serviceId: 'gpt-test', advertisedVerifierIds: ['antseed-verifier'], inputUsdPerMillion: 2, outputUsdPerMillion: 4 }),
+      discoverRow({ peerId: 'tee', serviceId: 'gpt-test', advertisedVerifierIds: ['torve-verifier'], inputUsdPerMillion: 2, outputUsdPerMillion: 4 }),
     ];
     const catalog = projectRowsToVprModelCatalog(rows);
     const [filtered] = projectTeeBrowseCatalog(catalog, rows, createInitialUiState().vprRoutingPreferences, 'tee');
@@ -91,7 +91,7 @@ test('TEE display savings use matching prices rather than the unfiltered free of
 test('TEE browsing uses image offer prices and excludes unknown advertisements', () => {
   const rows = [
     discoverRow({ peerId: 'standard', serviceId: 'art', protocol: 'openai-images', minImageUsdPerImage: 0, maxImageUsdPerImage: 0 }),
-    discoverRow({ peerId: 'tee', serviceId: 'art', protocol: 'openai-images', advertisedVerifierIds: ['antseed-verifier'], minImageUsdPerImage: 0.04, maxImageUsdPerImage: 0.08 }),
+    discoverRow({ peerId: 'tee', serviceId: 'art', protocol: 'openai-images', advertisedVerifierIds: ['torve-verifier'], minImageUsdPerImage: 0.04, maxImageUsdPerImage: 0.08 }),
     discoverRow({ peerId: 'unrelated', serviceId: 'text', advertisedVerifierIds: ['other-verifier'] }),
   ];
   const filtered = projectTeeBrowseCatalog(projectRowsToVprModelCatalog(rows), rows, createInitialUiState().vprRoutingPreferences, 'tee');

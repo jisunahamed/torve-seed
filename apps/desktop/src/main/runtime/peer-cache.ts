@@ -102,7 +102,7 @@ let lastHealthProbe: NetworkHealthProbe | null = null;
 let healthProbeInFlight: Promise<void> | null = null;
 
 /**
- * Probe the buyer proxy's /_antseed/status. A firewall/VPN drops DHT traffic
+ * Probe the buyer proxy's /_torve/status. A firewall/VPN drops DHT traffic
  * silently — lookups "succeed" with zero results — so the routing-table size
  * is the only trustworthy signal that we are actually on the network.
  */
@@ -115,7 +115,7 @@ async function refreshNetworkHealth(): Promise<void> {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 1_500);
       try {
-        const response = await fetch(`http://127.0.0.1:${port}/_antseed/status`, {
+        const response = await fetch(`http://127.0.0.1:${port}/_torve/status`, {
           signal: controller.signal,
         });
         const payload = await response.json().catch(() => null) as Record<string, unknown> | null;

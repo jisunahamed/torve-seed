@@ -1,4 +1,4 @@
-name = "antseed-download-proxy"
+name = "torve-download-proxy"
 main = "src/index.ts"
 compatibility_date = "2026-08-01"
 
@@ -8,16 +8,16 @@ compatibility_date = "2026-08-01"
 [observability]
 enabled = true
 
-# download.antseed.com must be a zone (or subdomain of a zone) on the same
+# download.torveai.com must be a zone (or subdomain of a zone) on the same
 # Cloudflare account. Remove this block to deploy on the workers.dev subdomain
 # while DNS is being set up.
 [[routes]]
-pattern = "download.antseed.com"
+pattern = "download.torveai.com"
 custom_domain = true
 
 [vars]
-GITHUB_REPO = "AntSeed/antseed"
-# GA4 Measurement ID of the antseed.com web property (not a secret). Leave
+GITHUB_REPO = "Torve/torve"
+# GA4 Measurement ID of the torveai.com web property (not a secret). Leave
 # empty to disable GA4 reporting — events are still logged to the console
 # (visible via `wrangler tail` / Workers Logs).
 GA4_MEASUREMENT_ID = "G-DF97Q4KV2X"

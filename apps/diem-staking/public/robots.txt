@@ -33,4 +33,4 @@ User-agent: Meta-ExternalAgent
 Allow: /
 
 # No sitemap here — this subdomain is a single-page static app. Crawlers
-# follow the parent sitemap at antseed.com.
+# follow the parent sitemap at torveai.com.

@@ -1,7 +1,7 @@
 import { verifySignature, hexToBytes } from "../p2p/identity.js";
 import type { DHTNode } from "./dht-node.js";
 import {
-  ANTSEED_WILDCARD_TOPIC,
+  TORVE_WILDCARD_TOPIC,
   capabilityTopic,
   peerTopic,
   subnetTopic,
@@ -102,7 +102,7 @@ export class PeerLookup {
    *
    *   1. Wildcard topic, alone. Its broad reach pulls many peers and warms
    *      the local DHT routing table with nodes that already know about
-   *      AntSeed traffic.
+   *      Torve traffic.
    *   2. Each subnet topic, one at a time, against that hot routing table.
    *      Each subnet only holds ~total/SUBNET_COUNT announcers, which keeps
    *      us well under the K-closest saturation limit that made the single
@@ -153,7 +153,7 @@ export class PeerLookup {
     const wildcardStartedAt = Date.now();
     debugLog(`[PeerLookup] ${mode}: wildcard lookup starting`);
     const wildcardEndpoints = await this.config.dht.lookup(
-      topicToInfoHash(ANTSEED_WILDCARD_TOPIC),
+      topicToInfoHash(TORVE_WILDCARD_TOPIC),
     );
     debugLog(
       `[PeerLookup] ${mode}: wildcard lookup returned ${wildcardEndpoints.length} endpoint(s) `
@@ -265,7 +265,7 @@ export class PeerLookup {
 
   /**
    * Look up a single peer by its peerId via the per-peer DHT topic
-   * (`antseed:peer:<peerId>`). Returns every endpoint whose served metadata
+   * (`torve:peer:<peerId>`). Returns every endpoint whose served metadata
    * actually matches the requested peerId — a remote endpoint announcing
    * the topic but serving a different peer's metadata is filtered out, so
    * a hostile peer cannot squat another peer's identity.

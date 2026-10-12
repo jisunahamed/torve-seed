@@ -1,2 +1,2 @@
-export * from '@antseed/protocol/billing';
-export * from '@antseed/buyer-core/unit-billing';
+export * from '@torveai/protocol/billing';
+export * from '@torveai/buyer-core/unit-billing';

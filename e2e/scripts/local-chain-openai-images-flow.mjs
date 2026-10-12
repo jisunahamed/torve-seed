@@ -6,17 +6,17 @@
  * One-command real-chain OpenAI-compatible image generation flow:
  *   build required packages -> start fresh Anvil -> deploy contracts ->
  *   fund/register/stake/deposit -> start seller + buyer proxy ->
- *   call the Images API through AntSeed -> save the generated image ->
+ *   call the Images API through Torve -> save the generated image ->
  *   verify settlement and print a summary.
  *
  * Required:
- *   OPENAI_API_KEY=... pnpm --filter @antseed/e2e run flow:local-chain-openai-images
+ *   OPENAI_API_KEY=... pnpm --filter @torveai/e2e run flow:local-chain-openai-images
  *
  * Example (xAI Grok Imagine):
  *   OPENAI_API_KEY=... \
  *   OPENAI_BASE_URL=https://api.x.ai \
  *   OPENAI_IMAGE_MODEL=grok-imagine-image \
- *   pnpm --filter @antseed/e2e run flow:local-chain-openai-images
+ *   pnpm --filter @torveai/e2e run flow:local-chain-openai-images
  */
 
 import { spawn, spawnSync } from "node:child_process";
@@ -52,7 +52,7 @@ const CONTRACTS = {
   usdc: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
   registry: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
   ants: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-  antseedRegistry: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+  torveRegistry: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
   staking: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
   deposits: "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
   channels: "0x0165878A594ca255338adfa4d48449f69242Eb8F",
@@ -153,7 +153,7 @@ function buildKnownUnitBillingModel(service) {
 }
 
 function buildServiceUnitBillingModelsConfig(service) {
-  const configured = process.env.ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON?.trim();
+  const configured = process.env.TORVE_SERVICE_UNIT_BILLING_MODELS_JSON?.trim();
   if (configured) {
     return configured;
   }
@@ -277,21 +277,21 @@ function castSend(args, privateKey = DEPLOYER_PRIVATE_KEY) {
 
 function repairProtocolWiring() {
   const deployerAddress = runCommand("cast", ["wallet", "address", "--private-key", DEPLOYER_PRIVATE_KEY]).trim();
-  castSend([CONTRACTS.antseedRegistry, "setChannels(address)", CONTRACTS.channels]);
-  castSend([CONTRACTS.antseedRegistry, "setStats(address)", CONTRACTS.stats]);
-  castSend([CONTRACTS.antseedRegistry, "setDeposits(address)", CONTRACTS.deposits]);
-  castSend([CONTRACTS.antseedRegistry, "setStaking(address)", CONTRACTS.staking]);
-  castSend([CONTRACTS.antseedRegistry, "setEmissions(address)", CONTRACTS.emissions]);
-  castSend([CONTRACTS.antseedRegistry, "setAntsToken(address)", CONTRACTS.ants]);
-  castSend([CONTRACTS.antseedRegistry, "setIdentityRegistry(address)", CONTRACTS.registry]);
-  castSend([CONTRACTS.antseedRegistry, "setProtocolReserve(address)", deployerAddress]);
+  castSend([CONTRACTS.torveRegistry, "setChannels(address)", CONTRACTS.channels]);
+  castSend([CONTRACTS.torveRegistry, "setStats(address)", CONTRACTS.stats]);
+  castSend([CONTRACTS.torveRegistry, "setDeposits(address)", CONTRACTS.deposits]);
+  castSend([CONTRACTS.torveRegistry, "setStaking(address)", CONTRACTS.staking]);
+  castSend([CONTRACTS.torveRegistry, "setEmissions(address)", CONTRACTS.emissions]);
+  castSend([CONTRACTS.torveRegistry, "setAntsToken(address)", CONTRACTS.ants]);
+  castSend([CONTRACTS.torveRegistry, "setIdentityRegistry(address)", CONTRACTS.registry]);
+  castSend([CONTRACTS.torveRegistry, "setProtocolReserve(address)", deployerAddress]);
 
-  castSend([CONTRACTS.channels, "setRegistry(address)", CONTRACTS.antseedRegistry]);
-  castSend([CONTRACTS.deposits, "setRegistry(address)", CONTRACTS.antseedRegistry]);
-  castSend([CONTRACTS.staking, "setRegistry(address)", CONTRACTS.antseedRegistry]);
-  castSend([CONTRACTS.emissions, "setRegistry(address)", CONTRACTS.antseedRegistry]);
-  castSend([CONTRACTS.ants, "setRegistry(address)", CONTRACTS.antseedRegistry]);
-  castSend([CONTRACTS.subPool, "setRegistry(address)", CONTRACTS.antseedRegistry]);
+  castSend([CONTRACTS.channels, "setRegistry(address)", CONTRACTS.torveRegistry]);
+  castSend([CONTRACTS.deposits, "setRegistry(address)", CONTRACTS.torveRegistry]);
+  castSend([CONTRACTS.staking, "setRegistry(address)", CONTRACTS.torveRegistry]);
+  castSend([CONTRACTS.emissions, "setRegistry(address)", CONTRACTS.torveRegistry]);
+  castSend([CONTRACTS.ants, "setRegistry(address)", CONTRACTS.torveRegistry]);
+  castSend([CONTRACTS.subPool, "setRegistry(address)", CONTRACTS.torveRegistry]);
 
   castSend([CONTRACTS.stats, "setWriter(address,bool)", CONTRACTS.channels, "true"]);
 }
@@ -443,11 +443,11 @@ async function buildRequiredPackages() {
   phase(1, "Build Required Packages");
   runCommand("pnpm", ["run", "build:tier0"], { cwd: repoRoot, timeout: 600_000 });
   runCommand("pnpm", ["run", "build:tier1"], { cwd: repoRoot, timeout: 600_000 });
-  runCommand("pnpm", ["--filter", "@antseed/provider-openai", "run", "build"], {
+  runCommand("pnpm", ["--filter", "@torveai/provider-openai", "run", "build"], {
     cwd: repoRoot,
     timeout: 600_000,
   });
-  runCommand("pnpm", ["--filter", "@antseed/cli", "run", "build"], {
+  runCommand("pnpm", ["--filter", "@torveai/cli", "run", "build"], {
     cwd: repoRoot,
     timeout: 600_000,
   });
@@ -557,7 +557,7 @@ async function main() {
     const ethersModule = await import("ethers");
 
     const {
-      AntseedNode,
+      TorveNode,
       loadOrCreateIdentity,
       DepositsClient,
       DHTNode,
@@ -569,8 +569,8 @@ async function main() {
     const openaiPlugin = providerPluginModule.default;
     const { Wallet, JsonRpcProvider, Contract } = ethersModule;
 
-    sellerDataDir = await mkdtemp(join(tmpdir(), "antseed-openai-images-seller-"));
-    buyerDataDir = await mkdtemp(join(tmpdir(), "antseed-openai-images-buyer-"));
+    sellerDataDir = await mkdtemp(join(tmpdir(), "torve-openai-images-seller-"));
+    buyerDataDir = await mkdtemp(join(tmpdir(), "torve-openai-images-buyer-"));
     const sellerIdentity = await loadOrCreateIdentity(sellerDataDir);
     const buyerIdentity = await loadOrCreateIdentity(buyerDataDir);
 
@@ -649,13 +649,13 @@ async function main() {
     const realProvider = openaiPlugin.createProvider({
       OPENAI_API_KEY,
       OPENAI_BASE_URL,
-      ANTSEED_ALLOWED_SERVICES: IMAGE_MODEL,
-      ANTSEED_INPUT_USD_PER_MILLION:
-        process.env.ANTSEED_INPUT_USD_PER_MILLION?.trim() ?? defaultTokenPricing.inputUsdPerMillion,
-      ANTSEED_OUTPUT_USD_PER_MILLION:
-        process.env.ANTSEED_OUTPUT_USD_PER_MILLION?.trim() ?? defaultTokenPricing.outputUsdPerMillion,
+      TORVE_ALLOWED_SERVICES: IMAGE_MODEL,
+      TORVE_INPUT_USD_PER_MILLION:
+        process.env.TORVE_INPUT_USD_PER_MILLION?.trim() ?? defaultTokenPricing.inputUsdPerMillion,
+      TORVE_OUTPUT_USD_PER_MILLION:
+        process.env.TORVE_OUTPUT_USD_PER_MILLION?.trim() ?? defaultTokenPricing.outputUsdPerMillion,
       ...(OPENAI_PROVIDER_FLAVOR ? { OPENAI_PROVIDER_FLAVOR } : {}),
-      ...(serviceUnitBillingModelsJson ? { ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON: serviceUnitBillingModelsJson } : {}),
+      ...(serviceUnitBillingModelsJson ? { TORVE_SERVICE_UNIT_BILLING_MODELS_JSON: serviceUnitBillingModelsJson } : {}),
     });
 
     const payments = {
@@ -672,7 +672,7 @@ async function main() {
       maxReserveAmountUsdc: "10000000",
     };
 
-    sellerNode = new AntseedNode({
+    sellerNode = new TorveNode({
       role: "seller",
       dataDir: sellerDataDir,
       dhtPort: 0,
@@ -685,7 +685,7 @@ async function main() {
     sellerNode.registerProvider(realProvider);
     await sellerNode.start();
 
-    buyerNode = new AntseedNode({
+    buyerNode = new TorveNode({
       role: "buyer",
       dataDir: buyerDataDir,
       dhtPort: 0,
@@ -733,9 +733,9 @@ async function main() {
     await proxy.start();
 
     const client = new OpenAI({
-      apiKey: "antseed",
+      apiKey: "torve",
       baseURL: `http://127.0.0.1:${buyerProxyPort}/v1`,
-      defaultHeaders: { "x-antseed-pin-peer": discoveredSeller.peerId },
+      defaultHeaders: { "x-torve-pin-peer": discoveredSeller.peerId },
     });
 
     const imageRequest = buildImageRequest(IMAGE_MODEL);

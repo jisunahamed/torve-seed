@@ -27,9 +27,9 @@ describe("github verification", () => {
       username: "octocat",
     });
     expect(buildGithubVerificationProofUrl({ username: "Octocat" }))
-      .toBe("https://raw.githubusercontent.com/octocat/octocat/HEAD/antseed.json");
+      .toBe("https://raw.githubusercontent.com/octocat/octocat/HEAD/torve.json");
     expect(buildGithubVerificationProofUrl({ username: "octocat", repository: "my-proofs" }))
-      .toBe("https://raw.githubusercontent.com/octocat/my-proofs/HEAD/antseed.json");
+      .toBe("https://raw.githubusercontent.com/octocat/my-proofs/HEAD/torve.json");
   });
 
   it("verifies a valid proof without following redirects", async () => {
@@ -38,7 +38,7 @@ describe("github verification", () => {
       PEER_ID,
       {
         fetch: async (input, init) => {
-          expect(String(input)).toBe("https://raw.githubusercontent.com/octocat/octocat/HEAD/antseed.json");
+          expect(String(input)).toBe("https://raw.githubusercontent.com/octocat/octocat/HEAD/torve.json");
           expect(init?.redirect).toBe("error");
           return proofResponse(PEER_ID, "octocat");
         },

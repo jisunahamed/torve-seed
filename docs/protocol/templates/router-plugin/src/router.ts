@@ -1,5 +1,5 @@
-import type { Router } from '@antseed/node';
-import type { PeerInfo, SerializedHttpRequest } from '@antseed/node/types';
+import type { Router } from '@torveai/node';
+import type { PeerInfo, SerializedHttpRequest } from '@torveai/node/types';
 
 /**
  * LowestLatencyRouter — selects the peer with the lowest observed latency.

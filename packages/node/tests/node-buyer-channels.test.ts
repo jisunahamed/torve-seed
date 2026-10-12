@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { AntseedNode } from '../src/node.js';
+import { TorveNode } from '../src/node.js';
 import { ChannelStore, CHANNEL_KIND, CHANNEL_ROLE, CHANNEL_STATUS, type StoredChannel } from '../src/payments/channel-store.js';
 
 const buyerAddress = '0x' + '11'.repeat(20);
@@ -35,13 +35,13 @@ function makeChannel(sessionId: string, overrides: Partial<StoredChannel> = {}):
 describe('buyer payment channel summaries', () => {
   let dataDir: string;
   let store: ChannelStore;
-  let node: AntseedNode;
+  let node: TorveNode;
   const getReserveCeiling = vi.fn(() => 1_000_000n);
 
   beforeEach(() => {
-    dataDir = mkdtempSync(join(tmpdir(), 'antseed-buyer-channels-'));
+    dataDir = mkdtempSync(join(tmpdir(), 'torve-buyer-channels-'));
     store = new ChannelStore(dataDir);
-    node = new AntseedNode({ role: 'buyer' });
+    node = new TorveNode({ role: 'buyer' });
     getReserveCeiling.mockClear();
     Object.assign(node, {
       _identity: { wallet: { address: buyerAddress } },

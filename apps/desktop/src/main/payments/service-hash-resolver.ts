@@ -2,7 +2,7 @@
  * Resolves per-service usage hashes back to human service (model) names.
  *
  * The buyer daemon attributes usage per service as keccak256(serviceName)
- * (see getServiceMetadataId in @antseed/node) — the hash is what goes into
+ * (see getServiceMetadataId in @torveai/node) — the hash is what goes into
  * SpendingAuth metadata. To show per-model usage (and price it against a
  * retail baseline) we need the name back. Hashing is one-way, so we build a
  * reverse map from every service name the buyer has ever seen advertised in
@@ -10,7 +10,7 @@
  * null and are simply excluded from savings math.
  */
 import { readFile } from 'node:fs/promises';
-import { getServiceMetadataId } from '@antseed/node';
+import { getServiceMetadataId } from '@torveai/node';
 import { DEFAULT_BUYER_STATE_PATH } from '../constants.js';
 
 /** hash → service name. Grows monotonically within a desktop session so a

@@ -1,8 +1,8 @@
 import type { Command } from 'commander'
 import chalk from 'chalk'
 import { getGlobalOptions } from '../types.js'
-import { loadOrCreateIdentity } from '@antseed/node'
-import { DEFAULT_DHT_CONFIG, DHTNode, parseBootstrapList } from '@antseed/node/discovery'
+import { loadOrCreateIdentity } from '@torveai/node'
+import { DEFAULT_DHT_CONFIG, DHTNode, parseBootstrapList } from '@torveai/node/discovery'
 import { setupShutdownHandler } from '../../shutdown.js'
 
 export function registerNetworkBootstrapCommand(networkCmd: Command): void {
@@ -29,7 +29,7 @@ export function registerNetworkBootstrapCommand(networkCmd: Command): void {
 
       const identity = await loadOrCreateIdentity(globalOptions.dataDir)
 
-      console.log(chalk.bold('AntSeed bootstrap node'))
+      console.log(chalk.bold('Torve bootstrap node'))
       console.log(chalk.gray(`  Peer ID : ${identity.peerId.slice(0, 20)}...`))
       console.log(chalk.gray(`  DHT port: ${port}`))
       if (bootstrapNodes.length > 0) {

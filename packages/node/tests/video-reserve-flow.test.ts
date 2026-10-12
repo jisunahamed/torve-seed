@@ -23,7 +23,7 @@ import type { PeerConnection } from '../src/p2p/connection-manager.js';
 import type { Provider } from '../src/interfaces/seller-provider.js';
 import type { SerializedHttpRequest } from '../src/types/http.js';
 import type { SpendingAuthPayload } from '../src/types/protocol.js';
-import { computeChannelId } from '@antseed/protocol/signatures';
+import { computeChannelId } from '@torveai/protocol/signatures';
 
 interface ChainChannel { deposit: bigint; settled: bigint; status: number }
 
@@ -33,7 +33,7 @@ interface ChainChannel { deposit: bigint; settled: bigint; status: number }
  * Both sides run their production request handlers, payment managers and
  * negotiator, connected by an in-memory framed transport. Only the chain is
  * faked: a map of channel records keyed by channelId that reserve()/topUp()/
- * settle()/close() mutate and getSession() reads, following AntseedChannels
+ * settle()/close() mutate and getSession() reads, following TorveChannels
  * semantics (FIRST_SIGN_CAP caps reserve(); topUp settles the threshold
  * authorization and requires TOP_UP_SETTLED_THRESHOLD_BPS (8500 here) of the
  * old deposit to be settled first).
@@ -85,7 +85,7 @@ function connectionPair(): { buyerSide: PeerConnection; sellerSide: PeerConnecti
   return { buyerSide, sellerSide };
 }
 
-/** Route incoming frames the same way AntseedNode._wireConnection does. */
+/** Route incoming frames the same way TorveNode._wireConnection does. */
 function wireFrames(conn: PeerConnection, muxes: { proxy: { handleFrame(frame: any): Promise<unknown> }; payment: PaymentMux; verification: VerificationMux }): void {
   const decoder = new FrameDecoder();
   conn.on('message', (data: Uint8Array) => {
@@ -129,7 +129,7 @@ describe('one-off video channel flow over the real buyer and seller stacks', () 
   const cleanups: Array<() => void> = [];
 
   beforeEach(() => {
-    directory = mkdtempSync(join(tmpdir(), 'antseed-video-reserve-'));
+    directory = mkdtempSync(join(tmpdir(), 'torve-video-reserve-'));
   });
 
   afterEach(() => {
@@ -272,7 +272,7 @@ describe('one-off video channel flow over the real buyer and seller stacks', () 
         }
         const start = {
           requestId: request.requestId, statusCode: 200, body: new Uint8Array(0),
-          headers: { 'content-type': 'video/mp4', 'content-length': String(VIDEO_FILE.length), 'x-antseed-streaming': '1', 'x-antseed-video-download': 'video-stream-v1' },
+          headers: { 'content-type': 'video/mp4', 'content-length': String(VIDEO_FILE.length), 'x-torve-streaming': '1', 'x-torve-video-download': 'video-stream-v1' },
         };
         callbacks.onResponseStart(start);
         await callbacks.onResponseChunk({ requestId: request.requestId, data: VIDEO_FILE, done: false });
@@ -297,7 +297,7 @@ describe('one-off video channel flow over the real buyer and seller stacks', () 
 
     const { buyerSide, sellerSide } = connectionPair();
 
-    // Seller side, wired like AntseedNode._handleIncomingConnection.
+    // Seller side, wired like TorveNode._handleIncomingConnection.
     const sellerPayment = new PaymentMux(sellerSide);
     const sellerVerification = new VerificationMux(sellerSide);
     sellerPayment.onSpendingAuth((payload) => { void seller.handleSpendingAuth(buyerIdentity.peerId, payload, sellerPayment); });
@@ -313,7 +313,7 @@ describe('one-off video channel flow over the real buyer and seller stacks', () 
     const { mux: sellerProxy } = sellerHandler.handleConnection(sellerSide, buyerIdentity.peerId, sellerPayment, sellerVerification);
     wireFrames(sellerSide, { proxy: sellerProxy, payment: sellerPayment, verification: sellerVerification });
 
-    // Buyer side, wired like AntseedNode's buyer path.
+    // Buyer side, wired like TorveNode's buyer path.
     const negotiator = new BuyerPaymentNegotiator(buyerIdentity, buyer, new DepositsClient({
       rpcUrl: common.rpcUrl, contractAddress: '0x' + 'dd'.repeat(20), usdcAddress: '0x' + 'ee'.repeat(20), evmChainId: 31337,
     } as any), seller.channelsClient, buyerStore, {}, { emit: vi.fn() });
@@ -350,8 +350,8 @@ describe('one-off video channel flow over the real buyer and seller stacks', () 
       path: '/api/v1/video/queue',
       headers: {
         'content-type': 'application/json',
-        'x-antseed-service': 'video-model',
-        'x-antseed-provider': 'venice',
+        'x-torve-service': 'video-model',
+        'x-torve-provider': 'venice',
       },
       body: Buffer.from(JSON.stringify({ model: 'video-model', prompt: 'a cat', duration, resolution: '1080p' })),
     });
@@ -359,14 +359,14 @@ describe('one-off video channel flow over the real buyer and seller stacks', () 
       requestId,
       method: 'POST',
       path: '/api/v1/video/retrieve',
-      headers: { 'content-type': 'application/json', 'x-antseed-service': 'video-model', 'x-antseed-provider': 'venice', 'x-antseed-video-download': 'video-stream-v1' },
+      headers: { 'content-type': 'application/json', 'x-torve-service': 'video-model', 'x-torve-provider': 'venice', 'x-torve-video-download': 'video-stream-v1' },
       body: Buffer.from(JSON.stringify({ model: 'video-model', queue_id: queueId })),
     });
     const chatRequest = (requestId: string): SerializedHttpRequest => ({
       requestId,
       method: 'POST',
       path: '/v1/chat/completions',
-      headers: { 'content-type': 'application/json', 'x-antseed-service': 'chat-model', 'x-antseed-provider': 'venice' },
+      headers: { 'content-type': 'application/json', 'x-torve-service': 'chat-model', 'x-torve-provider': 'venice' },
       body: Buffer.from(JSON.stringify({ model: 'chat-model', messages: [{ role: 'user', content: 'hi' }], max_tokens: 1000 })),
     });
 

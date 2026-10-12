@@ -1,7 +1,7 @@
 import type { ChatServiceOptionEntry, DiscoverRow, ServiceCapabilitiesView, TrustBreakdown, VideoOptionsView } from '../../core/state';
 import type { DiscoverVerificationLink } from '../../core/state';
 import { isTextCapableRow } from './model-capabilities';
-import { normalizeAdvertisedVerifierIds } from '@antseed/node/verifier-capabilities';
+import { normalizeAdvertisedVerifierIds } from '@torveai/node/verifier-capabilities';
 
 const CHAT_SERVICE_SELECTION_SEPARATOR = '\u0001';
 

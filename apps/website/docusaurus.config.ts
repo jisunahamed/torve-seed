@@ -25,7 +25,7 @@ const statsProxyPlugin: PluginModule = () => ({
   },
 });
 
-/** Google Tag Manager container for antseed.com. */
+/** Google Tag Manager container for torveai.com. */
 const GTM_CONTAINER_ID = process.env.GTM_CONTAINER_ID ?? 'GTM-NHCLBQQK';
 
 /**
@@ -37,10 +37,10 @@ const gtmPlugin: PluginConfig[] = GTM_CONTAINER_ID
   : [];
 
 const config: Config = {
-  title: 'Antseed',
+  title: 'Torve',
   tagline: 'Run your agents on your terms. No gatekeepers.',
   favicon: 'logo.svg',
-  url: 'https://antseed.com',
+  url: 'https://torveai.com',
   baseUrl: '/',
   // The host 308-redirects /path to /path/, so without this Docusaurus emitted
   // canonical tags and sitemap entries pointing at the pre-redirect form: every
@@ -78,7 +78,7 @@ const config: Config = {
         blog: {
           showLastUpdateTime: true,
           showReadingTime: true,
-          blogTitle: 'Antseed Blog',
+          blogTitle: 'Torve Blog',
           blogDescription: 'Insights on OpenRouter alternatives, P2P AI networks, and the future of AI inference.',
           postsPerPage: 10,
           blogSidebarCount: 'ALL',
@@ -156,8 +156,8 @@ const config: Config = {
       innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'SoftwareApplication',
-        name: 'Antseed',
-        url: 'https://antseed.com',
+        name: 'Torve',
+        url: 'https://torveai.com',
         description:
           'Run your agents on your terms. Serve or consume AI peer-to-peer. Pay per request in USDC. Anonymous by design, with independent providers and no central account.',
         applicationCategory: 'DeveloperApplication',
@@ -170,12 +170,12 @@ const config: Config = {
         },
         creator: {
           '@type': 'Organization',
-          name: 'Antseed',
-          url: 'https://antseed.com',
+          name: 'Torve',
+          url: 'https://torveai.com',
           sameAs: [
-            'https://github.com/AntSeed/antseed',
-            'https://x.com/antseed',
-            'https://t.me/antseed',
+            'https://github.com/Torve/torve',
+            'https://x.com/torve',
+            'https://t.me/torve',
           ],
         },
         featureList: [
@@ -188,9 +188,9 @@ const config: Config = {
           'Desktop app (AI VPN)',
           'Agent-to-agent commerce support',
         ],
-        downloadUrl: 'https://github.com/AntSeed/antseed/releases',
+        downloadUrl: 'https://github.com/Torve/torve/releases',
         softwareVersion: desktopPkg.version,
-        license: 'https://github.com/AntSeed/antseed/blob/main/LICENSE',
+        license: 'https://github.com/Torve/torve/blob/main/LICENSE',
       }),
     },
   ],
@@ -199,7 +199,7 @@ const config: Config = {
     announcementBar: {
       id: 'foundation-funding-2-4m',
       content:
-        '<a class="funding-announcement" href="/blog/antseed-foundation-raises-2-4m/"><strong>We raised $2.4M, led by Spark Capital.</strong><span>Read the announcement <span aria-hidden="true">→</span></span></a>',
+        '<a class="funding-announcement" href="/blog/torve-foundation-raises-2-4m/"><strong>We raised $2.4M, led by Spark Capital.</strong><span>Read the announcement <span aria-hidden="true">→</span></span></a>',
       backgroundColor: '#001E12',
       textColor: '#FFFFFF',
       isCloseable: true,
@@ -208,17 +208,17 @@ const config: Config = {
       {name: 'google-site-verification', content: '09pzs5Q9kHdpQSNSBpr0vNh9SMq-T8lzhBgH5Zgm6ug'},
       {name: 'description', content: 'Run your agents on your terms. Save on every AI model. No usage limits, no middleman, always anonymous.'},
       {property: 'og:title', content: 'Run your agents on your terms'},
-      {property: 'og:description', content: 'Antseed lets you run your agents on your terms. Save on every AI model. No usage limits, no middleman, always anonymous.'},
+      {property: 'og:description', content: 'Torve lets you run your agents on your terms. Save on every AI model. No usage limits, no middleman, always anonymous.'},
       {property: 'og:type', content: 'website'},
-      {property: 'og:site_name', content: 'Antseed'},
+      {property: 'og:site_name', content: 'Torve'},
       {name: 'twitter:card', content: 'summary_large_image'},
-      {name: 'twitter:site', content: '@antseed'},
-      {name: 'twitter:image', content: 'https://antseed.com/og-image-open-market.png'},
-      {property: 'og:image', content: 'https://antseed.com/og-image-open-market.png'},
+      {name: 'twitter:site', content: '@torve'},
+      {name: 'twitter:image', content: 'https://torveai.com/og-image-open-market.png'},
+      {property: 'og:image', content: 'https://torveai.com/og-image-open-market.png'},
       {property: 'og:image:type', content: 'image/png'},
       {property: 'og:image:width', content: '1200'},
       {property: 'og:image:height', content: '630'},
-      {property: 'og:image:alt', content: 'Antseed, run your agents on your terms'},
+      {property: 'og:image:alt', content: 'Torve, run your agents on your terms'},
     ],
     colorMode: {
       defaultMode: 'light',
@@ -228,7 +228,7 @@ const config: Config = {
     navbar: {
       title: '',
       logo: {
-        alt: 'Antseed',
+        alt: 'Torve',
         src: 'logo-light.svg',
         srcDark: 'logo-dark.svg',
         width: 104,
@@ -264,7 +264,7 @@ const config: Config = {
         {to: '/providers', label: 'Providers', position: 'left'},
         {to: '/ecosystem', label: 'Ecosystem', position: 'left'},
         {
-          href: 'https://antseedstats.com/network',
+          href: 'https://torvestats.com/network',
           label: 'Live prices',
           position: 'left',
           target: '_blank',
@@ -280,19 +280,19 @@ const config: Config = {
         },
         {to: '/blog', label: 'Blog', position: 'right', className: 'header-blog-link'},
         {
-          href: 'https://github.com/antseed',
+          href: 'https://github.com/torve',
           'aria-label': 'GitHub',
           position: 'right',
           className: 'header-github-link',
         },
         {
-          href: 'https://x.com/antseed',
+          href: 'https://x.com/torve',
           'aria-label': 'X',
           position: 'right',
           className: 'header-x-link',
         },
         {
-          href: 'https://t.me/antseed',
+          href: 'https://t.me/torve',
           'aria-label': 'Telegram',
           position: 'right',
           className: 'header-telegram-link',

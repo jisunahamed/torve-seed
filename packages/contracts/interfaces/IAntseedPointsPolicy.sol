@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IAntseedPointsPolicy {
+interface ITorvePointsPolicy {
     function points(bytes32 channelId, address buyer, address seller, uint256 rawPoints)
         external
         view

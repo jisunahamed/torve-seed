@@ -2,7 +2,7 @@ import type { Identity } from "../p2p/identity.js";
 import { signData } from "../p2p/identity.js";
 import type { DHTNode } from "./dht-node.js";
 import {
-  ANTSEED_WILDCARD_TOPIC,
+  TORVE_WILDCARD_TOPIC,
   capabilityTopic,
   peerTopic,
   subnetOf,
@@ -404,7 +404,7 @@ export class PeerAnnouncer {
     // the single-infohash scan) keep finding this peer. Once subnet-aware
     // buyers are universal it can be dropped — see SUBNET_COUNT comment in
     // dht-node.ts.
-    topics.add(ANTSEED_WILDCARD_TOPIC);
+    topics.add(TORVE_WILDCARD_TOPIC);
 
     // Per-peer topic: lets buyers do a deterministic lookup-by-peerId without
     // scanning the wildcard or any subnet.

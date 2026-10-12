@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AntseedNode } from '../src/node.js';
+import { TorveNode } from '../src/node.js';
 import { ConnectionState } from '../src/types/connection.js';
 import {
   CONNECTION_CAPABILITY_COOPERATIVE_CLOSE_V1,
@@ -14,7 +14,7 @@ const SELLER = toPeerId('a'.repeat(40));
  * a live connection to SELLER, a negotiator, and a capability set.
  */
 function makeNode(capabilities: Set<string> | undefined) {
-  const node = new AntseedNode({ role: 'buyer' });
+  const node = new TorveNode({ role: 'buyer' });
   const requestChannelClose = vi.fn().mockResolvedValue({
     version: 1, channelId: '0x' + 'cd'.repeat(32), status: 'closed', txHash: '0xtx', finalAmount: '1',
   });
@@ -34,7 +34,7 @@ function makeNode(capabilities: Set<string> | undefined) {
   return { node, requestChannelClose };
 }
 
-describe('AntseedNode.requestChannelClose capability gating', () => {
+describe('TorveNode.requestChannelClose capability gating', () => {
   it('sends the request when the seller advertises cooperative close', async () => {
     const { node, requestChannelClose } = makeNode(new Set([
       CONNECTION_CAPABILITY_RESPONSE_AUTH_V1,

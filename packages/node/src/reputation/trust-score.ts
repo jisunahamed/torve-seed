@@ -8,21 +8,21 @@ import { IDENTITY_GITHUB_MAX_POINTS as IDENTITY_MAX_POINTS, scoreIdentityHistory
  *
  * Each part is a 0-1 value times its weight from `TRUST_WEIGHTS`:
  *
- * - history (50):  settled service history from `AntseedChannels`, combining
+ * - history (50):  settled service history from `TorveChannels`, combining
  *                  channel count and USDC volume on bounded log curves.
  * - usage (20):    the seller pool's share of all pools' recognized-usage points
- *                  in the last complete weekly epoch (`AntseedUsageAccounting`).
+ *                  in the last complete weekly epoch (`TorveUsageAccounting`).
  *                  Points only accrue for sellers with a pool and already pass
  *                  the on-chain points policies.
  * - power (10):    the pool's share of all pools' lock-weighted staking power in
- *                  the current epoch (`AntseedSellerPools`): what a buyer's spend
+ *                  the current epoch (`TorveSellerPools`): what a buyer's spend
  *                  with this seller earns this week.
  * - identity (20): public history of a verified identity (GitHub portfolio or
  *                  domain registration age, see `identity-history.ts`).
  * - freeModels (+5): a bonus on top of the weighted parts when the seller
  *                  offers at least one model at $0 input and output (and
  *                  cached input, when it prices one); the total caps at 100.
- * - wash:          a seller flagged by `AntseedWashTradingRegistry` scores 0.
+ * - wash:          a seller flagged by `TorveWashTradingRegistry` scores 0.
  *
  * Shares are unitless and self-normalizing, mapped through `shareCurve`, a log
  * curve with a 1000x range (100% → 1, 10% → 0.67, 1% → 0.35). Weights sum to

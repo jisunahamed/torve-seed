@@ -1,16 +1,16 @@
 pragma solidity ^0.8.24;
 
-import { IAntseedPointsModifier } from "../interfaces/IAntseedPointsModifier.sol";
-import { IAntseedWashTradingStatus } from "../interfaces/IAntseedWashTradingStatus.sol";
+import { ITorvePointsModifier } from "../interfaces/ITorvePointsModifier.sol";
+import { ITorveWashTradingStatus } from "../interfaces/ITorveWashTradingStatus.sol";
 
-contract AntseedWashTradingPointsPolicy is IAntseedPointsModifier {
-    IAntseedWashTradingStatus public immutable washTradingRegistry;
+contract TorveWashTradingPointsPolicy is ITorvePointsModifier {
+    ITorveWashTradingStatus public immutable washTradingRegistry;
 
     error InvalidAddress();
 
     constructor(address registry) {
         if (registry == address(0)) revert InvalidAddress();
-        washTradingRegistry = IAntseedWashTradingStatus(registry);
+        washTradingRegistry = ITorveWashTradingStatus(registry);
     }
 
     function points(bytes32, address, address seller, uint256 sellerPoints, uint256 buyerPoints)

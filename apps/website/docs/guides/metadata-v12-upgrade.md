@@ -2,7 +2,7 @@
 sidebar_position: 8
 slug: /guides/metadata-v12-upgrade
 title: Metadata v12 Upgrade
-description: Safe rollout order for Antseed metadata v12, large service catalogs, capabilities, and image unit billing.
+description: Safe rollout order for Torve metadata v12, large service catalogs, capabilities, and image unit billing.
 ---
 
 # Metadata v12 Upgrade
@@ -36,12 +36,12 @@ The seller validates these limits before announcing. Buyers apply the same signe
 
 Upgrade every component that performs buyer discovery before upgrading sellers:
 
-- `@antseed/cli` processes running `antseed buyer start`
-- Antseed Desktop buyer installations
-- Applications embedding `@antseed/node` buyer/discovery APIs
+- `@torveai/cli` processes running `torve buyer start`
+- Torve Desktop buyer installations
+- Applications embedding `@torveai/node` buyer/discovery APIs
 - Routers or long-running services that cache peer metadata
 
-Provider plugins do not independently choose the metadata version. The seller's `@antseed/node` runtime signs and serves metadata v12.
+Provider plugins do not independently choose the metadata version. The seller's `@torveai/node` runtime signs and serves metadata v12.
 
 ## Recommended Rollout
 
@@ -50,7 +50,7 @@ Provider plugins do not independently choose the metadata version. The seller's 
 3. Restart buyers so their discovery runtime accepts metadata v12.
 4. Verify updated buyers can still see existing v10/v11 sellers.
 5. Upgrade a small seller canary group.
-6. Verify the canary sellers appear in `antseed network browse` from updated buyers.
+6. Verify the canary sellers appear in `torve network browse` from updated buyers.
 7. Roll the seller update through the remaining fleet.
 
 For a machine running both roles, upgrade the package once but restart the buyer process before restarting the seller process.
@@ -60,8 +60,8 @@ For a machine running both roles, upgrade the package once but restart the buyer
 Check the installed CLI and browse live peers:
 
 ```bash
-antseed --version
-antseed network browse --json
+torve --version
+torve network browse --json
 ```
 
 In JSON output, upgraded sellers report `"version": 12`. Confirm large providers expose their complete service catalog and that capability/image entries appear where configured.

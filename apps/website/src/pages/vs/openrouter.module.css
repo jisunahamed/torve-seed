@@ -181,7 +181,7 @@
   }
 
   .colAnt::before {
-    content: 'Antseed';
+    content: 'Torve';
     color: var(--as-live-text);
   }
 

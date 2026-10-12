@@ -249,7 +249,7 @@
 }
 
 .providerNative,
-.providerAntseed {
+.providerTorve {
   position: absolute;
   left: 0;
   display: inline-flex;
@@ -259,16 +259,16 @@
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
 
-.providerAntseed {
+.providerTorve {
   color: var(--as-green-deep);
   opacity: 0;
   transform: translateY(6px);
 }
 
-.providerAntseed img { width: 14px; height: 14px; }
+.providerTorve img { width: 14px; height: 14px; }
 
 .connected .providerNative { opacity: 0; transform: translateY(-6px); }
-.connected .providerAntseed { opacity: 1; transform: none; }
+.connected .providerTorve { opacity: 1; transform: none; }
 
 .route {
   font-family: var(--as-font-data);

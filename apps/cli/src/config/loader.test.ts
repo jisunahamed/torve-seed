@@ -14,7 +14,7 @@ import { createDefaultConfig } from './defaults.js';
 import { deriveDisplayNameFromPeerId, shouldDeriveDisplayName } from './identity-display-name.js';
 
 async function withTempConfig(contents: string, fn: (configPath: string) => Promise<void>): Promise<void> {
-  const dir = await mkdtemp(join(tmpdir(), 'antseed-cli-config-'));
+  const dir = await mkdtemp(join(tmpdir(), 'torve-cli-config-'));
   const configPath = join(dir, 'config.json');
   try {
     await writeFile(configPath, contents, 'utf-8');
@@ -28,9 +28,9 @@ test('deriveDisplayNameFromPeerId returns deterministic peer-specific names', ()
   const peerId = '1234567890abcdef1234567890abcdef12345678';
 
   assert.equal(deriveDisplayNameFromPeerId(peerId), deriveDisplayNameFromPeerId(peerId));
-  assert.match(deriveDisplayNameFromPeerId(peerId), /^antseed-[a-z]+-[a-z]+-[0-9a-f]{4}$/);
+  assert.match(deriveDisplayNameFromPeerId(peerId), /^torve-[a-z]+-[a-z]+-[0-9a-f]{4}$/);
   assert.notEqual(deriveDisplayNameFromPeerId(peerId), deriveDisplayNameFromPeerId('abcdef1234567890abcdef1234567890abcdef12'));
-  assert.equal(shouldDeriveDisplayName('Antseed Node'), true);
+  assert.equal(shouldDeriveDisplayName('Torve Node'), true);
   assert.equal(shouldDeriveDisplayName('custom seller'), false);
 });
 
@@ -544,7 +544,7 @@ test('loadConfig preserves seller verifications.github claims', async () => {
         verifications: {
           github: [
             { username: 'OctoCat' },
-            { username: 'hubber', repository: 'Antseed-Proofs' },
+            { username: 'hubber', repository: 'Torve-Proofs' },
           ],
         },
       },
@@ -554,7 +554,7 @@ test('loadConfig preserves seller verifications.github claims', async () => {
       assert.deepEqual(config.seller.verifications, {
         github: [
           { username: 'octocat' },
-          { username: 'hubber', repository: 'antseed-proofs' },
+          { username: 'hubber', repository: 'torve-proofs' },
         ],
       });
     }
@@ -786,12 +786,12 @@ test('loadConfig preserves seller agentDir setting', async () => {
   await withTempConfig(
     JSON.stringify({
       seller: {
-        agentDir: '/etc/antseed/my-agent',
+        agentDir: '/etc/torve/my-agent',
       },
     }),
     async (configPath) => {
       const config = await loadConfig(configPath);
-      assert.equal(config.seller.agentDir, '/etc/antseed/my-agent');
+      assert.equal(config.seller.agentDir, '/etc/torve/my-agent');
     }
   );
 });

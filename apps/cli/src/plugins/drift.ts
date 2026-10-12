@@ -3,31 +3,31 @@
  *
  * Background
  * ----------
- * The CLI ships with a known-good copy of `@antseed/provider-core` (and other
+ * The CLI ships with a known-good copy of `@torveai/provider-core` (and other
  * shared packages) inside its own `node_modules`. Each installed plugin in
- * `~/.antseed/plugins/node_modules/<pkg>/` has its OWN pinned version of
- * `@antseed/provider-core` (because plugin `package.json`s use `workspace:*`
+ * `~/.torve/plugins/node_modules/<pkg>/` has its OWN pinned version of
+ * `@torveai/provider-core` (because plugin `package.json`s use `workspace:*`
  * during development, which pnpm/npm publish rewrites to an exact version).
  *
- * When a user runs `npm i -g @antseed/cli@latest`, the CLI's bundled
- * `provider-core` updates — but the plugins in `~/.antseed/plugins/` do NOT.
+ * When a user runs `npm i -g @torveai/cli@latest`, the CLI's bundled
+ * `provider-core` updates — but the plugins in `~/.torve/plugins/` do NOT.
  * They keep their original pin, so plugin code keeps importing the OLD
  * `provider-core` even though the CLI itself has the new one.
  *
  * This caused real production damage: a fix to the seller-side request
  * relay (`stream_options.include_usage` injection) shipped in
- * `@antseed/provider-core@0.2.49`, but sellers running the upgraded CLI
+ * `@torveai/provider-core@0.2.49`, but sellers running the upgraded CLI
  * were still importing `provider-core@0.2.48` from their plugins dir. The
  * fix never took effect for them.
  *
  * What this module does
  * ---------------------
- * 1. Read the version of each `@antseed/*` core package the CLI itself
+ * 1. Read the version of each `@torveai/*` core package the CLI itself
  *    bundles (the "expected" version).
  * 2. Read the version each installed trusted plugin has pinned in its own
  *    `package.json` `dependencies` map (the "actual" version).
  * 3. If any plugin pins a stale core version, run `npm install <plugin>@latest`
- *    in `~/.antseed/plugins/` for each affected plugin. That naturally pulls
+ *    in `~/.torve/plugins/` for each affected plugin. That naturally pulls
  *    in the matching core version because workspace pinning is exact.
  *
  * The check is best-effort: any failure (network down, registry 5xx, npm
@@ -49,10 +49,10 @@ const execFileAsync = promisify(execFile)
 
 /** Core packages whose drift between CLI-bundled and plugin-pinned versions matters. */
 const TRACKED_CORE_PACKAGES = [
-  '@antseed/provider-core',
-  '@antseed/node',
-  '@antseed/router-core',
-  '@antseed/api-adapter',
+  '@torveai/provider-core',
+  '@torveai/node',
+  '@torveai/router-core',
+  '@torveai/api-adapter',
 ] as const
 
 /** Hard timeout for a single `npm install` invocation during auto-refresh. */
@@ -61,7 +61,7 @@ const NPM_INSTALL_TIMEOUT_MS = 60_000
 const requireFromHere = createRequire(import.meta.url)
 
 export interface PluginDrift {
-  /** Plugin package name, e.g. `@antseed/provider-openai`. */
+  /** Plugin package name, e.g. `@torveai/provider-openai`. */
   plugin: string
   /** Core packages on which this plugin pins a stale version. */
   staleCorePackages: Array<{
@@ -87,7 +87,7 @@ export interface RefreshResult {
 
 /**
  * Read the version of a package as bundled inside the CLI's own
- * `node_modules`. For `@antseed/*` packages, this is the version the CLI
+ * `node_modules`. For `@torveai/*` packages, this is the version the CLI
  * was built against and the "source of truth" we want plugins to match.
  *
  * Resolution starts from this module's URL and walks up via Node's module
@@ -101,12 +101,12 @@ export interface RefreshResult {
  * directories until we find a `package.json` whose `name` matches.
  *
  * Returns `null` if the package is not bundled with the CLI (which would be
- * a build-time error for `@antseed/*` deps, but we don't want to crash the
+ * a build-time error for `@torveai/*` deps, but we don't want to crash the
  * CLI over it at runtime).
  */
 export function getCliBundledVersion(pkgName: string): string | null {
   // Fast path: works for any package whose `exports` allows reading
-  // `package.json` directly (most packages, including all `@antseed/*` ones).
+  // `package.json` directly (most packages, including all `@torveai/*` ones).
   try {
     const pkgJsonPath = requireFromHere.resolve(`${pkgName}/package.json`)
     return readVersionFromPackageJson(pkgJsonPath)
@@ -117,7 +117,7 @@ export function getCliBundledVersion(pkgName: string): string | null {
   // Second fallback: search the standard Node `node_modules` lookup paths
   // directly for `<lookupPath>/<pkgName>/package.json`. This handles
   // workspace packages that have an `exports` field WITHOUT a default
-  // resolvable entry (like @antseed/node, which only exposes named
+  // resolvable entry (like @torveai/node, which only exposes named
   // subpaths) — those fail BOTH `resolve('<pkg>/package.json')` AND
   // `resolve('<pkg>')`, but the package.json is still on disk.
   const lookupPaths = (requireFromHere.resolve.paths(pkgName) ?? []) as string[]
@@ -275,7 +275,7 @@ function computeBundledVersions(): Record<string, string | null> {
 
 /**
  * Reinstall the given plugins at `@latest` to pull in fresh transitive deps
- * (notably the right `@antseed/provider-core` pin).
+ * (notably the right `@torveai/provider-core` pin).
  *
  * Best-effort: each plugin is installed independently; one failure does not
  * abort the others. Each install has a 60-second timeout.
@@ -320,7 +320,7 @@ export async function refreshPlugins(plugins: string[]): Promise<RefreshResult> 
  * Called with `pluginPackages = []` is a no-op.
  *
  * Env vars honored:
- *  - `ANTSEED_SKIP_PLUGIN_UPDATE_CHECK=1`: skip the entire drift check.
+ *  - `TORVE_SKIP_PLUGIN_UPDATE_CHECK=1`: skip the entire drift check.
  *    Use this in air-gapped environments or CI where plugins are pre-baked.
  *
  * The function never throws on its own; refresh failures are logged and
@@ -348,7 +348,7 @@ export async function ensurePluginsUpToDate(
   const env = opts.env ?? process.env
 
   if (pluginPackages.length === 0) return
-  if (isTruthy(env['ANTSEED_SKIP_PLUGIN_UPDATE_CHECK'])) return
+  if (isTruthy(env['TORVE_SKIP_PLUGIN_UPDATE_CHECK'])) return
 
   // Restrict to the trusted plugin set. We do NOT auto-update third-party
   // plugins — those should be managed manually because their release

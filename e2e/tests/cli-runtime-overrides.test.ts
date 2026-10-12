@@ -62,7 +62,7 @@ describe('CLI runtime overrides non-persistence', () => {
   it('runtime override flags do not modify on-disk config', async () => {
     await ensureCliBuilt();
 
-    const tempDir = await mkdtemp(join(tmpdir(), 'antseed-cli-override-test-'));
+    const tempDir = await mkdtemp(join(tmpdir(), 'torve-cli-override-test-'));
     const configPath = join(tempDir, 'config.json');
     await writeFile(configPath, JSON.stringify(baselineConfig, null, 2), 'utf-8');
 

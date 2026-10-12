@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IAntseedWashTradingRegistry {
+interface ITorveWashTradingRegistry {
     struct BlockRef {
         uint64 number;
         bytes32 blockHash;

@@ -12,10 +12,10 @@ import {
   withTimeoutSignal,
 } from "./verification-utils.js";
 
-export const DOMAIN_VERIFICATION_TXT_PREFIX = "antseed-peer=";
-export const DOMAIN_VERIFICATION_TXT_NAME_PREFIX = "_antseed.";
-export const DOMAIN_VERIFICATION_WELL_KNOWN_PATH = "/.well-known/antseed.json";
-export const DOMAIN_VERIFICATION_WELL_KNOWN_TYPE = "antseed-domain-verification";
+export const DOMAIN_VERIFICATION_TXT_PREFIX = "torve-peer=";
+export const DOMAIN_VERIFICATION_TXT_NAME_PREFIX = "_torve.";
+export const DOMAIN_VERIFICATION_WELL_KNOWN_PATH = "/.well-known/torve.json";
+export const DOMAIN_VERIFICATION_WELL_KNOWN_TYPE = "torve-domain-verification";
 
 export interface DomainVerificationAttemptResult {
   method: DomainVerificationMethod;

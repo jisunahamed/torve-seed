@@ -4,7 +4,7 @@ import { Wallet } from 'ethers';
 
 const request = { requestId: 'video', method: 'POST', path: '/api/v1/video/retrieve', headers: {}, body: new TextEncoder().encode('{"queue_id":"job"}') };
 const body = new Uint8Array(3 * 1024 * 1024 + 17).fill(42);
-const response = { requestId: request.requestId, statusCode: 200, headers: { 'content-type': 'video/mp4', 'content-length': String(body.length), 'x-antseed-streaming': '1' }, body };
+const response = { requestId: request.requestId, statusCode: 200, headers: { 'content-type': 'video/mp4', 'content-length': String(body.length), 'x-torve-streaming': '1' }, body };
 
 it('incremental hashing exactly matches v1 response authentication for any chunk boundaries', () => {
   for (const size of [65536, 12345]) {
@@ -23,7 +23,7 @@ it('incremental hashing exactly matches v1 response authentication for any chunk
 });
 
 it('supports bounded streams without a content length and rejects invalid declared lengths', () => {
-  const unknownLength = { ...response, headers: { 'content-type': 'video/mp4', 'x-antseed-streaming': '1' } };
+  const unknownLength = { ...response, headers: { 'content-type': 'video/mp4', 'x-torve-streaming': '1' } };
   const hash = createStreamingResponseHash(unknownLength);
   hash.update(body.subarray(0, 20));
   hash.update(body.subarray(20));

@@ -22,7 +22,7 @@ function safeBoolean(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback;
 }
 
-const DESKTOP_DEV_MODE_KEY = 'antseed.desktop.devMode';
+const DESKTOP_DEV_MODE_KEY = 'torve.desktop.devMode';
 const DESKTOP_DEFAULT_MAX_INPUT_USD_PER_MILLION = 5;
 const DESKTOP_DEFAULT_MAX_OUTPUT_USD_PER_MILLION = 30;
 const DESKTOP_DEFAULT_PEER_REFRESH_INTERVAL_MS = 5 * 60_000;

@@ -4,7 +4,7 @@ import type {
   SerializedHttpRequest,
   SerializedHttpResponse,
   ProviderStreamCallbacks,
-} from '@antseed/node';
+} from '@torveai/node';
 import { AntAgentProvider } from './provider.js';
 import type { AntAgentDefinition } from './loader.js';
 
@@ -212,7 +212,7 @@ describe('AntAgentProvider — persona only (no knowledge)', () => {
 
     const body = inner.requestBodies()[0]!;
     const system = body.system as string;
-    expect(system).not.toContain('antseed_');
+    expect(system).not.toContain('torve_');
   });
 
   it('wraps buyer system prompt as client context (Anthropic string)', async () => {
@@ -264,11 +264,11 @@ describe('AntAgentProvider — persona only (no knowledge)', () => {
 });
 
 describe('AntAgentProvider — agent loop (Anthropic)', () => {
-  it('LLM calls antseed_load_knowledge → executed → re-prompt → text (2 calls)', async () => {
+  it('LLM calls torve_load_knowledge → executed → re-prompt → text (2 calls)', async () => {
     const inner = mockProvider({
       responses: [
         // First call: LLM decides to load knowledge
-        makeAnthropicToolUseResponse('antseed_load_knowledge', 'tool-1', { name: 'linkedin-posting' }),
+        makeAnthropicToolUseResponse('torve_load_knowledge', 'tool-1', { name: 'linkedin-posting' }),
         // Second call: loop sees text (no more tool calls)
         makeAnthropicTextResponse('Here is how to post on LinkedIn.'),
       ],
@@ -280,15 +280,15 @@ describe('AntAgentProvider — agent loop (Anthropic)', () => {
 
     expect(inner.callCount()).toBe(2);
 
-    // First call should have antseed_load_knowledge tool injected
+    // First call should have torve_load_knowledge tool injected
     const firstBody = inner.requestBodies()[0]!;
     const tools = firstBody.tools as { name: string }[];
-    expect(tools.some(t => t.name === 'antseed_load_knowledge')).toBe(true);
+    expect(tools.some(t => t.name === 'torve_load_knowledge')).toBe(true);
     // System prompt should contain persona
     const system = firstBody.system as string;
     expect(system).toContain('You are a social media expert.');
     // System prompt should contain tool-set instructions
-    expect(system).toContain('antseed_');
+    expect(system).toContain('torve_');
 
     // Second call should have tool result in messages
     const secondBody = inner.requestBodies()[1]!;
@@ -335,13 +335,13 @@ describe('AntAgentProvider — agent loop (Anthropic)', () => {
     expect(content[0]!.name).toBe('search_web');
   });
 
-  it('mixed antseed + buyer tool calls → treated as done (no re-prompt)', async () => {
-    // Response has both an antseed tool call and a buyer tool call.
+  it('mixed torve + buyer tool calls → treated as done (no re-prompt)', async () => {
+    // Response has both an torve tool call and a buyer tool call.
     // Re-prompting would leave the buyer tool_use without a matching tool_result,
     // which the API would reject. So mixed calls are treated as done.
     const mixedResponse = makeBody({
       content: [
-        { type: 'tool_use', id: 'antseed-1', name: 'antseed_load_knowledge', input: { name: 'linkedin-posting' } },
+        { type: 'tool_use', id: 'torve-1', name: 'torve_load_knowledge', input: { name: 'linkedin-posting' } },
         { type: 'tool_use', id: 'buyer-1', name: 'search_web', input: { q: 'linkedin' } },
       ],
     });
@@ -369,9 +369,9 @@ describe('AntAgentProvider — agent loop (Anthropic)', () => {
     const inner = mockProvider({
       responses: [
         // First: load linkedin
-        makeAnthropicToolUseResponse('antseed_load_knowledge', 'tool-1', { name: 'linkedin-posting' }),
+        makeAnthropicToolUseResponse('torve_load_knowledge', 'tool-1', { name: 'linkedin-posting' }),
         // Second: load content-strategy
-        makeAnthropicToolUseResponse('antseed_load_knowledge', 'tool-2', { name: 'content-strategy' }),
+        makeAnthropicToolUseResponse('torve_load_knowledge', 'tool-2', { name: 'content-strategy' }),
         // Third: loop sees text (no more tool calls)
         makeAnthropicTextResponse('Combined answer.'),
       ],
@@ -397,7 +397,7 @@ describe('AntAgentProvider — agent loop (Anthropic)', () => {
   it('unknown module name → error tool result', async () => {
     const inner = mockProvider({
       responses: [
-        makeAnthropicToolUseResponse('antseed_load_knowledge', 'tool-1', { name: 'nonexistent-module' }),
+        makeAnthropicToolUseResponse('torve_load_knowledge', 'tool-1', { name: 'nonexistent-module' }),
         makeAnthropicTextResponse('I could not find that module.'),
       ],
     });
@@ -424,7 +424,7 @@ describe('AntAgentProvider — agent loop (Anthropic)', () => {
     // All responses are tool calls — will hit max iterations
     const inner = mockProvider({
       responses: Array(6).fill(null).map((_, i) =>
-        makeAnthropicToolUseResponse('antseed_load_knowledge', `tool-${i}`, { name: 'linkedin-posting' }),
+        makeAnthropicToolUseResponse('torve_load_knowledge', `tool-${i}`, { name: 'linkedin-posting' }),
       ),
     });
     const agent = new AntAgentProvider(inner, agentWithKnowledge(), { maxIterations: 2 });
@@ -438,7 +438,7 @@ describe('AntAgentProvider — agent loop (Anthropic)', () => {
     const result = parseBody(res.body);
     const content = result.content as { type: string; name?: string }[];
     const hasInternalToolUse = content.some(
-      b => b.type === 'tool_use' && b.name?.startsWith('antseed_'),
+      b => b.type === 'tool_use' && b.name?.startsWith('torve_'),
     );
     expect(hasInternalToolUse).toBe(false);
   });
@@ -462,7 +462,7 @@ describe('AntAgentProvider — agent loop (OpenAI)', () => {
   it('tool call → execute → text response', async () => {
     const inner = mockProvider({
       responses: [
-        makeOpenAIToolCallResponse('antseed_load_knowledge', 'call-1', { name: 'linkedin-posting' }),
+        makeOpenAIToolCallResponse('torve_load_knowledge', 'call-1', { name: 'linkedin-posting' }),
         makeOpenAITextResponse('LinkedIn tips here.'),
       ],
     });
@@ -479,7 +479,7 @@ describe('AntAgentProvider — agent loop (OpenAI)', () => {
     // First call should have tools injected
     const firstBody = inner.requestBodies()[0]!;
     const tools = firstBody.tools as { type: string; function: { name: string } }[];
-    expect(tools.some(t => t.function?.name === 'antseed_load_knowledge')).toBe(true);
+    expect(tools.some(t => t.function?.name === 'torve_load_knowledge')).toBe(true);
 
     // System message should have persona
     const messages = firstBody.messages as { role: string; content: string }[];
@@ -524,7 +524,7 @@ describe('AntAgentProvider — agent loop (OpenAI Responses)', () => {
   it('tool call → execute → text response', async () => {
     const inner = mockProvider({
       responses: [
-        makeResponsesFunctionCallResponse('antseed_load_knowledge', 'call-1', { name: 'linkedin-posting' }),
+        makeResponsesFunctionCallResponse('torve_load_knowledge', 'call-1', { name: 'linkedin-posting' }),
         makeResponsesTextResponse('LinkedIn tips here.'),
       ],
     });
@@ -541,7 +541,7 @@ describe('AntAgentProvider — agent loop (OpenAI Responses)', () => {
     // First call should have tools injected (flat function format)
     const firstBody = inner.requestBodies()[0]!;
     const tools = firstBody.tools as { type: string; name: string }[];
-    expect(tools.some(t => t.name === 'antseed_load_knowledge')).toBe(true);
+    expect(tools.some(t => t.name === 'torve_load_knowledge')).toBe(true);
     expect(tools[0]!.type).toBe('function');
     // Should NOT have nested function property (flat Responses API format)
     expect((tools[0] as Record<string, unknown>).function).toBeUndefined();
@@ -601,12 +601,12 @@ describe('AntAgentProvider — agent loop (OpenAI Responses)', () => {
     expect(output[0]!.name).toBe('search_web');
   });
 
-  it('mixed antseed + buyer function calls → treated as done', async () => {
+  it('mixed torve + buyer function calls → treated as done', async () => {
     const mixedResponse = makeBody({
       id: 'resp-1',
       object: 'response',
       output: [
-        { type: 'function_call', call_id: 'call-1', name: 'antseed_load_knowledge', arguments: '{"name":"linkedin-posting"}' },
+        { type: 'function_call', call_id: 'call-1', name: 'torve_load_knowledge', arguments: '{"name":"linkedin-posting"}' },
         { type: 'function_call', call_id: 'call-2', name: 'search_web', arguments: '{"q":"linkedin"}' },
       ],
     });
@@ -664,7 +664,7 @@ describe('AntAgentProvider — agent loop (OpenAI Responses)', () => {
 });
 
 describe('AntAgentProvider — tool injection', () => {
-  it('injects antseed tool alongside buyer tools', async () => {
+  it('injects torve tool alongside buyer tools', async () => {
     const inner = mockProvider({ responses: [makeAnthropicTextResponse('ok')] });
     const agent = new AntAgentProvider(inner, agentWithKnowledge());
 
@@ -678,9 +678,9 @@ describe('AntAgentProvider — tool injection', () => {
 
     const body = inner.requestBodies()[0]!;
     const tools = body.tools as { name: string }[];
-    expect(tools.length).toBe(2); // buyer tool + antseed tool
+    expect(tools.length).toBe(2); // buyer tool + torve tool
     expect(tools.some(t => t.name === 'search_web')).toBe(true);
-    expect(tools.some(t => t.name === 'antseed_load_knowledge')).toBe(true);
+    expect(tools.some(t => t.name === 'torve_load_knowledge')).toBe(true);
   });
 
   it('includes knowledge catalog in tool description', async () => {
@@ -691,7 +691,7 @@ describe('AntAgentProvider — tool injection', () => {
 
     const body = inner.requestBodies()[0]!;
     const tools = body.tools as { name: string; description: string }[];
-    const knowledgeTool = tools.find(t => t.name === 'antseed_load_knowledge')!;
+    const knowledgeTool = tools.find(t => t.name === 'torve_load_knowledge')!;
     expect(knowledgeTool.description).toContain('linkedin-posting');
     expect(knowledgeTool.description).toContain('x-threads');
     expect(knowledgeTool.description).toContain('content-strategy');
@@ -719,7 +719,7 @@ describe('AntAgentProvider — tool injection', () => {
 
     const body = inner.requestBodies()[0]!;
     const tools = body.tools as { name: string }[];
-    // Only buyer's forced tool, no antseed tool
+    // Only buyer's forced tool, no torve tool
     expect(tools.length).toBe(1);
     expect(tools[0]!.name).toBe('forced_tool');
   });
@@ -729,7 +729,7 @@ describe('AntAgentProvider — streaming', () => {
   it('buffered loop + streamed final response', async () => {
     const inner = mockProvider({
       responses: [
-        makeAnthropicToolUseResponse('antseed_load_knowledge', 'tool-1', { name: 'linkedin-posting' }),
+        makeAnthropicToolUseResponse('torve_load_knowledge', 'tool-1', { name: 'linkedin-posting' }),
         makeAnthropicTextResponse('Streamed response.'),
       ],
     });

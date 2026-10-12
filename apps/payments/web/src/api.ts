@@ -23,7 +23,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     if (res.status === 401) {
-      window.dispatchEvent(new CustomEvent('antseed:session-expired'));
+      window.dispatchEvent(new CustomEvent('torve:session-expired'));
     }
     const body = await res.json().catch(() => ({}));
     throw new Error((body as { error?: string }).error || `HTTP ${res.status}`);

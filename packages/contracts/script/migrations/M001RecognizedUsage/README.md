@@ -79,13 +79,13 @@ the boundary arrives.
 ## Broadcast 1 — `Deploy.s.sol`
 
 Deploys the recognized-usage stack, moves ANTS mint authority to
-`AntseedEmissionsGate`, funds the legacy escrow, and re-points legacy
+`TorveEmissionsGate`, funds the legacy escrow, and re-points legacy
 emissions at it. Registry `emissions`/`staking` pointers are **not** touched:
 the network keeps running on the legacy stack until the in-flight epoch
 finalizes.
 
-This phase also deploys `AntseedWashTradingRegistry` and pins its address into
-`AntseedWashTradingPointsPolicy`, registered in the usage-points policy registry.
+This phase also deploys `TorveWashTradingRegistry` and pins its address into
+`TorveWashTradingPointsPolicy`, registered in the usage-points policy registry.
 Proven wash-trading sellers generate zero seller and buyer usage points, but
 can still initialize starter positions and settle USDC payments. Do not deploy
 a separate registry for M001.
@@ -99,7 +99,7 @@ M001 uses the existing deployer signer, not `DEPLOYER_PRIVATE_KEY`.
 
 The deployment record includes the registry's address, constructor arguments,
 and bytecode provenance. Deployment and resumed cutover checks require
-`AntseedWashTradingPointsPolicy.washTradingRegistry()` to match that record and
+`TorveWashTradingPointsPolicy.washTradingRegistry()` to match that record and
 the policy to be the sole registered modifier. The CLI supplies
 `WASH_TRADING_POINTS_POLICY` from the deployment record to the cutover script.
 Activation history
@@ -116,7 +116,7 @@ contract (checked before anything is sent).
 
 ```bash
 pnpm contracts:deploy -- M001 --network base-mainnet --broadcast \
-  --signer deployer=account:antseed-owner
+  --signer deployer=account:torve-owner
 ```
 
 Writes `deployments/<network>/history/001-recognized-usage-deployed.json`.
@@ -124,7 +124,7 @@ Commit that record; broadcast 2 can then run from any machine.
 
 ## Broadcast 2 — `Cutover.s.sol` (next epoch)
 
-The CLI pauses `AntseedChannels` 60 s before the epoch boundary so no usage can
+The CLI pauses `TorveChannels` 60 s before the epoch boundary so no usage can
 land on the legacy ledger for the new epoch, waits for the boundary, runs
 `Cutover.s.sol`, and unpauses **only** after verifying on chain that both
 registry pointers reached the new stack. If the flip fails, Channels stays
@@ -136,7 +136,7 @@ owner key.
 1. (staker key) syncs the DiemStakingProxy reward epochs and claims every
    pre-effective epoch whose pot is not yet funded, so each pot is stored with
    its real ANTS amount before the pointer moves.
-2. (pool owner key) pins `AntseedSellerRewardsPool` to a dedicated registry
+2. (pool owner key) pins `TorveSellerRewardsPool` to a dedicated registry
    facade so locked-path legacy sellers keep claiming.
 3. (registry owner key) `setEmissions(usageAccounting)` and
    `setStaking(sellerRegistry)`.
@@ -145,22 +145,22 @@ Roles are never defaulted from one another. Required for the cutover:
 
 | `--signer` role | Must be |
 | --- | --- |
-| `registryOwner` | `AntseedRegistry.owner()` |
-| `channelsOwner` | `AntseedChannels.owner()` (signs pause/unpause via `cast`) |
+| `registryOwner` | `TorveRegistry.owner()` |
+| `channelsOwner` | `TorveChannels.owner()` (signs pause/unpause via `cast`) |
 | `deployer` | owner of the gate and points-policy registry from broadcast 1 (read-only check) |
 | `diemStaker` | address with DIEM staked on the proxy (mainnet, or when `DIEM_STAKING_PROXY` is set) |
-| `sellerRewardsPoolOwner` | `AntseedSellerRewardsPool.owner()` (same condition) |
+| `sellerRewardsPoolOwner` | `TorveSellerRewardsPool.owner()` (same condition) |
 
 For the recorded mainnet deployment, the same keystore can supply all five
 roles while ownership and DIEM stake remain unchanged:
 
 ```bash
 pnpm contracts:deploy -- M001 --network base-mainnet --broadcast \
-  --signer deployer=account:antseed-deployer \
-  --signer registryOwner=account:antseed-deployer \
-  --signer channelsOwner=account:antseed-deployer \
-  --signer sellerRewardsPoolOwner=account:antseed-deployer \
-  --signer diemStaker=account:antseed-deployer
+  --signer deployer=account:torve-deployer \
+  --signer registryOwner=account:torve-deployer \
+  --signer channelsOwner=account:torve-deployer \
+  --signer sellerRewardsPoolOwner=account:torve-deployer \
+  --signer diemStaker=account:torve-deployer
 ```
 
 `USAGE_ACCOUNTING`, `SELLER_REGISTRY`, and the `EXPECTED_*` legacy addresses
@@ -173,16 +173,16 @@ Writes `history/001-recognized-usage-activated.json` and updates
 
 - Seed the proxy's agent pool before the flip boundary to activate its power
   in the first rewarded epoch. Once the faucet is funded, an authorized proxy operator can call
-  `AntseedPositionInit.initPosition(proxyAddress)`. The operator owns the lANTS
+  `TorvePositionInit.initPosition(proxyAddress)`. The operator owns the lANTS
   position, staker rewards, and withdrawal rights; the proxy's agent pool gets
   the stake. Operator revocation does not remove those position rights. Usage
   of pool-less agents is not accounted, and late stake activates next epoch.
-- Do **not** renounce `AntseedEmissionsGate` ownership before the verification
+- Do **not** renounce `TorveEmissionsGate` ownership before the verification
   rollout: that rollout rotates the editable 10% controller from
-  `VERIFICATION_WALLET` to `AntseedVerification`.
+  `VERIFICATION_WALLET` to `TorveVerification`.
 - `ANTSToken` and the remaining ownable contracts still require their
   separately reviewed production ownership handoff.
-- Keep `AntseedRegistry` ownership: it is the only key that can open the
+- Keep `TorveRegistry` ownership: it is the only key that can open the
   temporary `setStaking(legacy)` window needed to withdraw the proxy's legacy
   USDC stake (`SellerRegistry.unstake` reverts by design).
 - Sellers staked in legacy USDC staking stay eligible via the `SellerRegistry`
@@ -190,7 +190,7 @@ Writes `history/001-recognized-usage-activated.json` and updates
   seller pools are seeded with ANTS stake.
 - Sellers cannot stake ANTS into pools until they are transfer-whitelisted or
   transfers are enabled.
-- Fund the `AntseedPositionInit` faucet with ANTS from a wallet that already
+- Fund the `TorvePositionInit` faucet with ANTS from a wallet that already
   holds them (temporarily whitelist that wallet as a sender via
   `ANTSToken.setTransferWhitelist`, transfer, then de-whitelist). Fund in small
   increments: the faucet has no owner and no sweep, leftovers strand forever.
@@ -217,17 +217,17 @@ pnpm m001:sandbox status --out .m001-sandbox
 The deploy command writes a copied deployment ledger and `.m001-sandbox/cli-config.json`. Point CLI commands at that file to verify legacy mode, then cut over and reuse the refreshed file:
 
 ```bash
-antseed --config .m001-sandbox/cli-config.json --data-dir /tmp/antseed-m001 seller rewards
+torve --config .m001-sandbox/cli-config.json --data-dir /tmp/torve-m001 seller rewards
 
 pnpm m001:sandbox cutover --out .m001-sandbox
 pnpm m001:sandbox fund-position-init 5 --out .m001-sandbox
 pnpm m001:sandbox advance-epoch 2 --out .m001-sandbox
 pnpm m001:sandbox fund-ants 0xYourCliWallet 100 --out .m001-sandbox
 
-antseed --config .m001-sandbox/cli-config.json --data-dir /tmp/antseed-m001 seller register
-antseed --config .m001-sandbox/cli-config.json --data-dir /tmp/antseed-m001 seller legacy claim-starter
-antseed --config .m001-sandbox/cli-config.json --data-dir /tmp/antseed-m001 seller stake 100 --epochs 4
-antseed --config .m001-sandbox/cli-config.json --data-dir /tmp/antseed-m001 seller pool positions
+torve --config .m001-sandbox/cli-config.json --data-dir /tmp/torve-m001 seller register
+torve --config .m001-sandbox/cli-config.json --data-dir /tmp/torve-m001 seller legacy claim-starter
+torve --config .m001-sandbox/cli-config.json --data-dir /tmp/torve-m001 seller stake 100 --epochs 4
+torve --config .m001-sandbox/cli-config.json --data-dir /tmp/torve-m001 seller pool positions
 
 pnpm m001:sandbox down --out .m001-sandbox
 ```

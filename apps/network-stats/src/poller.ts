@@ -1,7 +1,7 @@
 /**
  * NetworkPoller
  *
- * Connects to the AntSeed network as an anonymous buyer, discovers peers,
+ * Connects to the Torve network as an anonymous buyer, discovers peers,
  * and returns raw PeerMetadata for each discovered peer.
  */
 
@@ -17,9 +17,9 @@ import {
   OFFICIAL_BOOTSTRAP_NODES,
   PeerLookup,
   toBootstrapConfig,
-} from '@antseed/node/discovery';
-import { toPeerId } from '@antseed/node';
-import type { PeerMetadata } from '@antseed/node';
+} from '@torveai/node/discovery';
+import { toPeerId } from '@torveai/node';
+import type { PeerMetadata } from '@torveai/node';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

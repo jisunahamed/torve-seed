@@ -4,7 +4,7 @@ import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Command } from 'commander';
-import { AntsContext } from '@antseed/ants';
+import { AntsContext } from '@torveai/ants';
 import { Wallet } from 'ethers';
 import { ants, epochDate, explorerTx, loadAntsContext, parseIds, pct, usdc } from './shared.js';
 

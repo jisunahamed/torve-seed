@@ -96,7 +96,7 @@ try {
   const parameters = await legacy.epochParams(epoch);
   assert(parameters[6] && parameters[0] > 0n && parameters[1] > 0n);
   const compiled = artifacts();
-  const layout = compiled['legacy/AntseedEmissionsV2.sol'].AntseedEmissionsV2.storageLayout.storage;
+  const layout = compiled['legacy/TorveEmissionsV2.sol'].TorveEmissionsV2.storageLayout.storage;
   const mappingSlot = (label, keys) => {
     const field = layout.find(entry => entry.label === label);
     assert(field && field.offset === 0 && field.type.startsWith('t_mapping'));
@@ -121,7 +121,7 @@ try {
     return contract;
   };
   const washStatus = await deploy('test/mocks/AntsRewardsSandbox.sol', 'AntsRewardsSandboxWashStatus', []);
-  const policy = await deploy('policies/AntseedLegacySellerClaimPolicy.sol', 'AntseedLegacySellerClaimPolicy', [legacy.target, epoch, 1000, washStatus.target]);
+  const policy = await deploy('policies/TorveLegacySellerClaimPolicy.sol', 'TorveLegacySellerClaimPolicy', [legacy.target, epoch, 1000, washStatus.target]);
   await ownerSend(legacy, 'setSellerUnlockPolicy', [ZeroAddress]);
   await ownerSend(pool, 'setSellerClaimPolicy', [policy.target]);
   await ownerSend(tokenContract, 'setTransferWhitelist', [pool.target, true]);

@@ -239,10 +239,10 @@ export interface OneOffChannelPlan {
   requestCost: string;
 }
 
-/** AntseedChannels FIRST_SIGN_CAP default: the largest reserve() a fresh channel may open with. */
+/** TorveChannels FIRST_SIGN_CAP default: the largest reserve() a fresh channel may open with. */
 export const DEFAULT_FIRST_SIGN_CAP = 1_000_000n;
 /**
- * AntseedChannels TOP_UP_SETTLED_THRESHOLD_BPS default, used by the seller when
+ * TorveChannels TOP_UP_SETTLED_THRESHOLD_BPS default, used by the seller when
  * the live, owner-configurable value (Base mainnet: 6500) cannot be read. It
  * only makes the serious fee larger, never too small to unlock topUp(). Buyers
  * never assume it: they refuse a plan they cannot check against the contract.
@@ -386,7 +386,7 @@ export interface CloseChannelResultPayload {
 /**
  * Buyer broadcasts a signed gasless deposit sweep for permissionless relayers
  * (sellers by default) to submit on-chain. Carries everything
- * AntseedDepositRelay.sweepDeposit needs; the relayer earns the contract's
+ * TorveDepositRelay.sweepDeposit needs; the relayer earns the contract's
  * fixed, immutable FEE in USDC. The single EIP-3009 signature — addressed to
  * the relay contract — is the buyer's consent to those terms. Replay-safe via
  * the EIP-3009 nonce; losing a submission race is harmless.
@@ -394,7 +394,7 @@ export interface CloseChannelResultPayload {
 export interface SweepRequestPayload {
   version: 1;
   evmChainId: number;
-  /** AntseedDepositRelay address the buyer signed against. Relayers must only
+  /** TorveDepositRelay address the buyer signed against. Relayers must only
    *  submit when this matches their own configured relay address. */
   relayAddress: string;
   from: string;

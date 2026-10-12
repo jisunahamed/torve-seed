@@ -12,7 +12,7 @@ import type { ChatPermissionMode, ToolApprovalRequest } from '../types/bridge';
 import {
   DEFAULT_MODEL_ROUTING_PREFERENCES,
   type ModelRoutingPreferences,
-} from '@antseed/node/model-routing';
+} from '@torveai/node/model-routing';
 
 export type BadgeTone = 'active' | 'idle' | 'warn' | 'bad';
 
@@ -181,9 +181,9 @@ export type VprModelCatalogEntry = {
 };
 
 /**
- * Renderer-side mirror of `TrustBreakdown` from `@antseed/node`
+ * Renderer-side mirror of `TrustBreakdown` from `@torveai/node`
  * (`packages/node/src/reputation/trust-score.ts`). The renderer only imports
- * `@antseed/node` subpath modules, so the shape is restated here.
+ * `@torveai/node` subpath modules, so the shape is restated here.
  *
  *   trust = washFlagged ? 0 : history + usage + power + identity
  *   (weights 50 / 20 / 10 / 20)
@@ -265,12 +265,12 @@ export type DiscoverRow = {
   // Peer metadata
   onChainChannelCount: number | null;
 
-  // On-chain staking (AntseedStakingPools)
+  // On-chain staking (TorveStakingPools)
   agentId: number;
   /** ANTS actively staked in the seller's pool this epoch (whole ANTS). */
   poolStakeAnts: number;
 
-  // On-chain agent stats (AntseedChannels.getAgentStats)
+  // On-chain agent stats (TorveChannels.getAgentStats)
   onChainActiveChannelCount: number;
   onChainGhostCount: number;
   onChainTotalVolumeUsdc: string;
@@ -281,13 +281,13 @@ export type DiscoverRow = {
   effectiveReputationScore?: number | null;
   /** Parts that make up `onChainReputationScore`; `null`/absent when the buyer has not scored the peer. */
   trust?: TrustBreakdown | null;
-  /** `AntseedWashTradingRegistry` verdict; `null` when the registry was unavailable. */
+  /** `TorveWashTradingRegistry` verdict; `null` when the registry was unavailable. */
   washFlagged: boolean | null;
   onChainSybilRisk: number | null;
   onChainSybilFlags: string[];
 
   /**
-   * Network-wide totals from @antseed/network-stats, indexed from AntseedStats.MetadataRecorded.
+   * Network-wide totals from @torveai/network-stats, indexed from TorveStats.MetadataRecorded.
    * Null when the chain has no stats contract (e.g. sepolia), the indexer hasn't seen events
    * for this agentId yet, or network-stats is unreachable. Stored as bigint-string because
    * token/request counts can exceed Number.MAX_SAFE_INTEGER on long-lived agents.

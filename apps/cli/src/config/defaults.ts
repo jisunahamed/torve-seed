@@ -1,5 +1,5 @@
-import { DEFAULT_MODEL_ROUTING_PREFERENCES } from '@antseed/node/model-routing';
-import type { AntseedConfig } from './types.js';
+import { DEFAULT_MODEL_ROUTING_PREFERENCES } from '@torveai/node/model-routing';
+import type { TorveConfig } from './types.js';
 
 export const DEFAULT_BUYER_PEER_REFRESH_INTERVAL_MS = 5 * 60_000;
 export const DEFAULT_BUYER_METADATA_FETCH_TIMEOUT_MS = 1500;
@@ -9,14 +9,14 @@ export const DEFAULT_BUYER_MAX_STREAM_DURATION_MS = 30 * 60_000;
 export const DEFAULT_RESTRICTED_COUNTRIES = ['CU', 'IR', 'KP', 'SY', 'RU'];
 
 /**
- * Create a default Antseed configuration with sensible defaults.
+ * Create a default Torve configuration with sensible defaults.
  */
-export function createDefaultConfig(): AntseedConfig {
+export function createDefaultConfig(): TorveConfig {
   return {
     identity: {
       // Replaced with a deterministic peer-derived name when the CLI creates
-      // or loads an identity (for example, `antseed seller setup/start`).
-      displayName: 'Antseed Node',
+      // or loads an identity (for example, `torve seller setup/start`).
+      displayName: 'Torve Node',
     },
     seller: {
       reserveFloor: 10,

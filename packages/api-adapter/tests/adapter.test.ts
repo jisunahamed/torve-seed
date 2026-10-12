@@ -317,7 +317,7 @@ describe('transformRequest anthropic to chat', () => {
           role: 'assistant',
           content: [
             { type: 'text', text: 'I will search.' },
-            { type: 'tool_use', id: 'toolu_1', name: 'search', input: { q: 'antseed' } },
+            { type: 'tool_use', id: 'toolu_1', name: 'search', input: { q: 'torve' } },
           ],
         }],
       })),
@@ -331,7 +331,7 @@ describe('transformRequest anthropic to chat', () => {
       tool_calls: [{
         id: 'toolu_1',
         type: 'function',
-        function: { name: 'search', arguments: '{"q":"antseed"}' },
+        function: { name: 'search', arguments: '{"q":"torve"}' },
       }],
     }]);
   });
@@ -557,7 +557,7 @@ describe('transformRequest anthropic to responses', () => {
 
     expect(transformed).not.toBeNull();
     expect(transformed!.streamRequested).toBe(false);
-    expect(transformed!.request.headers['x-antseed-client-stream-requested']).toBe('false');
+    expect(transformed!.request.headers['x-torve-client-stream-requested']).toBe('false');
 
     const body = JSON.parse(new TextDecoder().decode(transformed!.request.body)) as Record<string, unknown>;
     expect(body.stream).toBe(true);
@@ -576,7 +576,7 @@ describe('transformRequest anthropic to responses', () => {
 
     expect(transformed).not.toBeNull();
     expect(transformed!.streamRequested).toBe(true);
-    expect(transformed!.request.headers['x-antseed-client-stream-requested']).toBe('true');
+    expect(transformed!.request.headers['x-torve-client-stream-requested']).toBe('true');
 
     const body = JSON.parse(new TextDecoder().decode(transformed!.request.body)) as Record<string, unknown>;
     expect(body.stream).toBe(true);
@@ -592,7 +592,7 @@ describe('transformRequest anthropic to responses', () => {
             role: 'assistant',
             content: [
               { type: 'text', text: 'I will search.' },
-              { type: 'tool_use', id: 'toolu_1', name: 'search', input: { q: 'antseed' } },
+              { type: 'tool_use', id: 'toolu_1', name: 'search', input: { q: 'torve' } },
             ],
           },
           {
@@ -613,7 +613,7 @@ describe('transformRequest anthropic to responses', () => {
         id: 'fc_toolu_1',
         call_id: 'fc_toolu_1',
         name: 'search',
-        arguments: '{"q":"antseed"}',
+        arguments: '{"q":"torve"}',
       },
       {
         type: 'function_call_output',
@@ -873,7 +873,7 @@ describe('createStreamingAdapter chat to anthropic', () => {
       requestId: 'req-multi-tool',
       data: new TextEncoder().encode(
         'data: {"id":"chatcmpl-multi","model":"gpt-4.1","choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"write","arguments":"{\\"path\\":\\"hello.txt\\"}"}}]},"finish_reason":null}]}\n\n'
-        + 'data: {"choices":[{"delta":{"tool_calls":[{"index":1,"id":"call_2","type":"function","function":{"name":"search","arguments":"{\\"q\\":\\"antseed\\"}"}}]},"finish_reason":"tool_calls"}]}\n\n'
+        + 'data: {"choices":[{"delta":{"tool_calls":[{"index":1,"id":"call_2","type":"function","function":{"name":"search","arguments":"{\\"q\\":\\"torve\\"}"}}]},"finish_reason":"tool_calls"}]}\n\n'
         + 'data: [DONE]\n\n',
       ),
       done: true,
@@ -1293,7 +1293,7 @@ describe('transformRequest responses to chat', () => {
             id: 'fc_123',
             call_id: 'call_search_1',
             name: 'search',
-            arguments: '{"q":"antseed"}',
+            arguments: '{"q":"torve"}',
           },
           {
             type: 'function_call_output',
@@ -1315,7 +1315,7 @@ describe('transformRequest responses to chat', () => {
         type: 'function',
         function: {
           name: 'search',
-          arguments: '{"q":"antseed"}',
+          arguments: '{"q":"torve"}',
         },
       }],
     });
@@ -1332,7 +1332,7 @@ describe('transformRequest responses to chat', () => {
         model: 'gpt-4.1',
         input: [
           { type: 'function_call', call_id: 'get_goal:0', name: 'get_goal', arguments: '{}' },
-          { type: 'function_call', call_id: 'search:1', name: 'search', arguments: '{"q":"antseed"}' },
+          { type: 'function_call', call_id: 'search:1', name: 'search', arguments: '{"q":"torve"}' },
           { type: 'function_call_output', call_id: 'get_goal:0', output: 'ship it' },
           { type: 'function_call_output', call_id: 'search:1', output: 'done' },
         ],
@@ -1449,7 +1449,7 @@ describe('transformRequest responses to anthropic', () => {
             type: 'function_call',
             call_id: 'call_search_1',
             name: 'search',
-            arguments: '{"q":"antseed"}',
+            arguments: '{"q":"torve"}',
           },
           {
             type: 'function_call_output',
@@ -1481,7 +1481,7 @@ describe('transformRequest responses to anthropic', () => {
       { role: 'user', content: [{ type: 'text', text: 'hello' }] },
       {
         role: 'assistant',
-        content: [{ type: 'tool_use', id: 'call_search_1', name: 'search', input: { q: 'antseed' } }],
+        content: [{ type: 'tool_use', id: 'call_search_1', name: 'search', input: { q: 'torve' } }],
       },
       {
         role: 'user',
@@ -1854,7 +1854,7 @@ describe('transformRequest chat to responses', () => {
 
     const body = JSON.parse(new TextDecoder().decode(result!.request.body)) as Record<string, unknown>;
     expect(result!.streamRequested).toBe(false);
-    expect(result!.request.headers['x-antseed-client-stream-requested']).toBe('false');
+    expect(result!.request.headers['x-torve-client-stream-requested']).toBe('false');
     expect(body.stream).toBe(true);
     expect(body.max_output_tokens).toBe(64);
     expect(body.stop).toEqual(['END']);
@@ -1921,7 +1921,7 @@ describe('transformRequest chat to anthropic', () => {
             tool_calls: [{
               id: 'call_1',
               type: 'function',
-              function: { name: 'search', arguments: '{"q":"antseed"}' },
+              function: { name: 'search', arguments: '{"q":"torve"}' },
             }],
           },
           { role: 'tool', tool_call_id: 'call_1', content: 'done' },
@@ -1944,7 +1944,7 @@ describe('transformRequest chat to anthropic', () => {
         role: 'assistant',
         content: [
           { type: 'text', text: 'I will search' },
-          { type: 'tool_use', id: 'call_1', name: 'search', input: { q: 'antseed' } },
+          { type: 'tool_use', id: 'call_1', name: 'search', input: { q: 'torve' } },
         ],
       },
       { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'call_1', content: 'done' }] },
@@ -2308,9 +2308,9 @@ describe('createStreamingAdapter responses to anthropic', () => {
         + 'event: response.output_item.added\n'
         + 'data: {"type":"response.output_item.added","output_index":1,"item":{"type":"function_call","id":"fc_1","call_id":"fc_1","name":"search","arguments":"","status":"in_progress"}}\n\n'
         + 'event: response.function_call_arguments.delta\n'
-        + 'data: {"type":"response.function_call_arguments.delta","output_index":1,"item_id":"fc_1","call_id":"fc_1","delta":"{\\"q\\":\\"antseed\\"}"}\n\n'
+        + 'data: {"type":"response.function_call_arguments.delta","output_index":1,"item_id":"fc_1","call_id":"fc_1","delta":"{\\"q\\":\\"torve\\"}"}\n\n'
         + 'event: response.completed\n'
-        + 'data: {"type":"response.completed","response":{"id":"resp_tool","object":"response","model":"gpt-4.1","status":"completed","output":[{"type":"message","id":"msg_1","role":"assistant","status":"completed","content":[{"type":"output_text","text":"Searching...","annotations":[]}]},{"type":"function_call","id":"fc_1","call_id":"fc_1","name":"search","arguments":"{\\"q\\":\\"antseed\\"}","status":"completed"}],"output_text":"Searching...","usage":{"input_tokens":7,"output_tokens":3,"total_tokens":10}}}\n\n'
+        + 'data: {"type":"response.completed","response":{"id":"resp_tool","object":"response","model":"gpt-4.1","status":"completed","output":[{"type":"message","id":"msg_1","role":"assistant","status":"completed","content":[{"type":"output_text","text":"Searching...","annotations":[]}]},{"type":"function_call","id":"fc_1","call_id":"fc_1","name":"search","arguments":"{\\"q\\":\\"torve\\"}","status":"completed"}],"output_text":"Searching...","usage":{"input_tokens":7,"output_tokens":3,"total_tokens":10}}}\n\n'
         + 'data: [DONE]\n\n',
       ),
       done: true,

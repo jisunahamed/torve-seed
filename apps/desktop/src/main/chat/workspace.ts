@@ -4,11 +4,11 @@ import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { ANTSEED_HOME_DIR, CHAT_DATA_DIR, CHAT_WORKSPACE_DIR } from './paths.js';
+import { TORVE_HOME_DIR, CHAT_DATA_DIR, CHAT_WORKSPACE_DIR } from './paths.js';
 import { getChatWorkspacePath, setChatWorkspacePath } from './permissions.js';
 import { asErrorMessage } from '../utils.js';
 
-export { ANTSEED_HOME_DIR, CHAT_DATA_DIR, CHAT_WORKSPACE_DIR };
+export { TORVE_HOME_DIR, CHAT_DATA_DIR, CHAT_WORKSPACE_DIR };
 const LEGACY_CHAT_WORKSPACE_STATE_FILE = path.join(CHAT_DATA_DIR, 'workspace.json');
 const WORKSPACE_PICKER_TOOLING_DIRS = new Set([
   '.claude',

@@ -22,12 +22,12 @@ test('normalizeProviderId returns null for empty or non-string input', () => {
 
 test('sanitizeProviderHint strips the local proxy sentinel', () => {
   // Regression: the buyer proxy rejects a request as
-  //   "Pinned peer ... does not offer provider=antseed-proxy"
-  // when this internal label leaks into x-antseed-provider. Treating
+  //   "Pinned peer ... does not offer provider=torve-proxy"
+  // when this internal label leaks into x-torve-provider. Treating
   // the sentinel as "no hint" makes the buyer proxy auto-select.
   assert.equal(sanitizeProviderHint(PROXY_PROVIDER_ID), null);
-  assert.equal(sanitizeProviderHint('ANTSEED-PROXY'), null);
-  assert.equal(sanitizeProviderHint('  antseed-proxy  '), null);
+  assert.equal(sanitizeProviderHint('TORVE-PROXY'), null);
+  assert.equal(sanitizeProviderHint('  torve-proxy  '), null);
 });
 
 test('sanitizeProviderHint preserves real upstream provider names', () => {

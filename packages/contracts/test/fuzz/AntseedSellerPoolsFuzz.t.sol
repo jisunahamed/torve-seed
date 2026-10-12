@@ -4,8 +4,8 @@ pragma solidity ^0.8.24;
 import "forge-std/Test.sol";
 
 import { ANTSToken } from "../../core/ANTSToken.sol";
-import { AntseedRegistry } from "../../core/AntseedRegistry.sol";
-import { AntseedSellerPools } from "../../sellers/AntseedSellerPools.sol";
+import { TorveRegistry } from "../../core/TorveRegistry.sol";
+import { TorveSellerPools } from "../../sellers/TorveSellerPools.sol";
 import { MockERC8004Registry } from "../mocks/MockERC8004Registry.sol";
 
 contract MockAgentLookup {
@@ -21,7 +21,7 @@ contract MockAgentLookup {
 }
 
 /**
- * @title AntseedSellerPoolsFuzz
+ * @title TorveSellerPoolsFuzz
  * @notice Property/fuzz tests for the seller-pool epoch power model and stake
  *         lifecycle. These target the money-safety invariants that the unit
  *         suite asserts only at fixed inputs:
@@ -41,12 +41,12 @@ contract MockAgentLookup {
  *         The test contract itself is registry.emissions(), so currentEpoch()
  *         is driven by vm.warp.
  */
-contract AntseedSellerPoolsFuzzTest is Test {
+contract TorveSellerPoolsFuzzTest is Test {
     ANTSToken token;
-    AntseedRegistry registry;
+    TorveRegistry registry;
     MockERC8004Registry identityRegistry;
     MockAgentLookup agentLookup;
-    AntseedSellerPools pools;
+    TorveSellerPools pools;
 
     address staker = address(0x5742E);
     address dead = 0x000000000000000000000000000000000000dEaD;
@@ -61,7 +61,7 @@ contract AntseedSellerPoolsFuzzTest is Test {
         vm.warp(1_700_000_000);
         genesis = block.timestamp;
 
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         identityRegistry = new MockERC8004Registry();
         agentLookup = new MockAgentLookup();
         token = new ANTSToken();
@@ -78,13 +78,13 @@ contract AntseedSellerPoolsFuzzTest is Test {
         _registerSellerAgent(7);
         _registerSellerAgent(fixedAgent());
 
-        pools = new AntseedSellerPools(address(token), address(this), address(identityRegistry), address(agentLookup));
+        pools = new TorveSellerPools(address(token), address(this), address(identityRegistry), address(agentLookup));
         token.setTransferWhitelist(address(pools), true);
 
         token.mint(staker, 1_000_000_000 ether);
     }
 
-    // registry.emissions() endpoint used by AntseedSellerPools.currentEpoch()
+    // registry.emissions() endpoint used by TorveSellerPools.currentEpoch()
     function currentEpoch() external view returns (uint256) {
         if (block.timestamp <= genesis) return 0;
         return (block.timestamp - genesis) / EPOCH_DURATION;

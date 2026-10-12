@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { poolsView, formatAnts, formatBps, type PoolView } from '@antseed/ants';
+import { poolsView, formatAnts, formatBps, type PoolView } from '@torveai/ants';
 import { ants, printJson, runRead, usdc } from './shared.js';
 
 /** Display name for a pool row: explorer name, else a shortened seller address, else "unbound". */

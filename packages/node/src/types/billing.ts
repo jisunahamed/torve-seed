@@ -1,1 +1,1 @@
-export * from '@antseed/protocol/billing';
+export * from '@torveai/protocol/billing';

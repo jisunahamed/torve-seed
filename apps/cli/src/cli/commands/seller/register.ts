@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { getGlobalOptions } from '../types.js';
 import { loadConfig } from '../../../config/loader.js';
-import { SellerRegistrationVerificationError } from '@antseed/node/payments';
+import { SellerRegistrationVerificationError } from '@torveai/node/payments';
 import {
   createIdentityClient,
   loadCryptoContext,
@@ -62,7 +62,7 @@ export function registerSellerRegisterCommand(sellerCmd: Command): void {
 
         if (agentId) console.log(chalk.dim(`Agent ID: ${agentId}`));
       } catch (err) {
-        const guidance = err instanceof SellerRegistrationVerificationError ? ' Re-run: antseed seller register' : '';
+        const guidance = err instanceof SellerRegistrationVerificationError ? ' Re-run: torve seller register' : '';
         spinner.fail(chalk.red(`Registration failed: ${(err as Error).message}${guidance}`));
         process.exit(1);
       }

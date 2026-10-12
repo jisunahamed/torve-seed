@@ -1,10 +1,10 @@
 /**
- * Plugin instance configuration stored in ~/.antseed/config.json.
+ * Plugin instance configuration stored in ~/.torve/config.json.
  */
 export interface PluginInstanceConfig {
   /** Unique instance ID (e.g., "my-anthropic", "cheap-openai") */
   id: string
-  /** npm package name (e.g., "@antseed/provider-anthropic") */
+  /** npm package name (e.g., "@torveai/provider-anthropic") */
   package: string
   /** Plugin type */
   type: 'provider' | 'router'

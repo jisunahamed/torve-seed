@@ -1,13 +1,13 @@
 /**
- * Browser example for @antseed/web-sdk: list sellers via a relay, connect
+ * Browser example for @torveai/web-sdk: list sellers via a relay, connect
  * over WebRTC, and stream a chat completion. Bundled by the package's
  * `example` script (esbuild); see example.html for the markup.
  */
 
 import { Wallet } from 'ethers';
-import { CONNECTION_CAPABILITY_WEBRTC_V1 } from '@antseed/protocol/messages';
+import { CONNECTION_CAPABILITY_WEBRTC_V1 } from '@torveai/protocol/messages';
 import {
-  AntseedWebClient,
+  TorveWebClient,
   type BuyerPeerView,
   type SellerSession,
   type SellerSummary,
@@ -25,7 +25,7 @@ const statusDiv = el<HTMLDivElement>('status');
 const outputDiv = el<HTMLDivElement>('output');
 const sendButton = el<HTMLButtonElement>('send');
 
-let client: AntseedWebClient | null = null;
+let client: TorveWebClient | null = null;
 let session: SellerSession | null = null;
 
 function status(message: string): void {
@@ -87,7 +87,7 @@ el('listSellers').onclick = async () => {
     client?.closeAll();
     if (!privateKeyInput.value.trim()) privateKeyInput.value = Wallet.createRandom().privateKey;
 
-    client = new AntseedWebClient({
+    client = new TorveWebClient({
       relayUrl: relayUrlInput.value.trim(),
       privateKey: privateKeyInput.value.trim(),
       env: {

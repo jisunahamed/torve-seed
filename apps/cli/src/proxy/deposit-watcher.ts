@@ -1,7 +1,7 @@
 /**
  * Watches the buyer's hot wallet for incoming USDC and sweeps it into the
  * deposits contract via a relayer — the daemon-side engine behind the
- * desktop's automatic deposits and `antseed deposit`.
+ * desktop's automatic deposits and `torve deposit`.
  *
  * The buyer never holds funds and never pays gas: the sweep is authorized
  * off-chain (EIP-3009 receive authorization) and broadcast by whichever peer
@@ -11,8 +11,8 @@
  * (dispatch through the live node) and inside one-shot CLI commands
  * (dispatch through an ephemeral node).
  */
-import { buildReceiveAuthorization, makeUsdcDomain } from '@antseed/node'
-import type { Identity, SweepReceiptPayload, SweepRequestPayload } from '@antseed/node'
+import { buildReceiveAuthorization, makeUsdcDomain } from '@torveai/node'
+import type { Identity, SweepReceiptPayload, SweepRequestPayload } from '@torveai/node'
 
 export type DepositWatchPhase = 'deferred' | 'received' | 'sweeping' | 'credited' | 'error'
 
@@ -27,7 +27,7 @@ export interface DepositWatchEvent {
 }
 
 /**
- * active — a deposit flow is on screen (desktop view or `antseed deposit`).
+ * active — a deposit flow is on screen (desktop view or `torve deposit`).
  * background — the flow closed; card/Fun deliveries can land minutes later,
  *   so keep a slow poll until the linger window passes with an empty wallet.
  * idle — the daemon's resting cadence (auto-sweep on): watch forever, cheaply.
@@ -93,7 +93,7 @@ const SWEEP_POLL_INTERVAL_MS = 1_000
 // After a failed/incomplete sweep the funds stay in the wallet; retry on the
 // watcher tick once this cooldown passes instead of hammering the network.
 const SWEEP_RETRY_COOLDOWN_MS = 60_000
-// AntseedDeposits enforces a 1 USDC minimum first deposit (net of the fee).
+// TorveDeposits enforces a 1 USDC minimum first deposit (net of the fee).
 const MIN_FIRST_DEPOSIT_BASE_UNITS = 1_000_000n
 // Minimum top-up when the sweep is clamped by the credit-limit headroom.
 // Without a floor, a wallet holding more than the remaining headroom would

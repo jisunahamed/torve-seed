@@ -1,7 +1,7 @@
 import type { Command } from 'commander';
 import chalk from 'chalk';
 import { getGlobalOptions } from '../types.js';
-import { loadOrCreateIdentity } from '@antseed/node';
+import { loadOrCreateIdentity } from '@torveai/node';
 import { openChannelStore } from '../../payment-utils.js';
 
 function formatUsdc(baseUnits: string | number | bigint): string {

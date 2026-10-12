@@ -4,15 +4,15 @@ import styles from './CodingHeroArt.module.css';
 /**
  * /coding hero animation — the "coding tools" design-system card, brought
  * to life. The plan-based AI app burns through its allowance until it hits
- * LIMIT and a reset countdown appears; underneath, the Antseed row keeps
+ * LIMIT and a reset countdown appears; underneath, the Torve row keeps
  * streaming while a token counter and running cost line tick upward with
  * the list price struck through. prefers-reduced-motion shows the end state.
  */
 
 const FILL_MS = 5200; // how long the plan bar takes to hit the limit
 const RESET_START = 4 * 3600 + 59 * 60 + 59; // "resets in 4:59:59"
-const START = {tokens: 9840, antseed: 0.31, list: 1.42};
-const PER_TOKEN = {antseed: 0.0000045, list: 0.000021};
+const START = {tokens: 9840, torve: 0.31, list: 1.42};
+const PER_TOKEN = {torve: 0.0000045, list: 0.000021};
 
 const money = (n: number) => `$${n.toFixed(2)}`;
 const hms = (s: number) => {
@@ -35,7 +35,7 @@ export function CodingHeroArt() {
   const [reduced, setReduced] = useState(false);
   const [capped, setCapped] = useState(false);
   const [tokens, setTokens] = useState(START.tokens);
-  const [cost, setCost] = useState(START.antseed);
+  const [cost, setCost] = useState(START.torve);
   const [list, setList] = useState(START.list);
   const [reset, setReset] = useState(RESET_START);
 
@@ -50,7 +50,7 @@ export function CodingHeroArt() {
     const tick = window.setInterval(() => {
       const n = 40 + Math.floor(Math.random() * 90);
       setTokens((t) => t + n);
-      setCost((c) => c + n * PER_TOKEN.antseed);
+      setCost((c) => c + n * PER_TOKEN.torve);
       setList((l) => l + n * PER_TOKEN.list);
     }, 160);
     const countdown = window.setInterval(() => setReset((r) => (r > 0 ? r - 1 : r)), 1000);
@@ -65,7 +65,7 @@ export function CodingHeroArt() {
 
   return (
     <div className={`${styles.well} ${reduced ? styles.reduced : ''} ${capped ? styles.capped : ''}`}>
-      <div className={styles.panel} role="img" aria-label="A plan-based AI app hits its usage limit while Antseed keeps going">
+      <div className={styles.panel} role="img" aria-label="A plan-based AI app hits its usage limit while Torve keeps going">
         {/* the plan-based app */}
         <div className={`${styles.row} ${styles.plan}`}>
           <span className={styles.chip}><i /></span>
@@ -81,10 +81,10 @@ export function CodingHeroArt() {
           <span>Resets in <b>{hms(reset)}</b></span>
         </div>
 
-        {/* antseed keeps going */}
+        {/* torve keeps going */}
         <div className={`${styles.row} ${styles.live}`}>
           <span className={`${styles.chip} ${styles.chipAnt}`}><img src="/logo.svg" alt="" /></span>
-          <span className={styles.name}>Antseed</span>
+          <span className={styles.name}>Torve</span>
           <span className={styles.stream} aria-hidden="true">
             <i /><i /><i /><i /><i /><i /><i /><i />
           </span>

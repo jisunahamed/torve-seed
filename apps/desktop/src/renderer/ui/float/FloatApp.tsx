@@ -43,7 +43,7 @@ function AppMark({ app, tool, size }: { app?: VprFloatApp | null; tool?: string;
  * receiving traffic show a green pulse on their row.
  */
 export function FloatApp() {
-  const bridge = window.antseedDesktop;
+  const bridge = window.torveDesktop;
   const [data, setData] = useState<VprFloatData | null>(null);
   // Whether the conversations panel is open; the window grows while it is.
   const [menuOpen, setMenuOpen] = useState(false);
@@ -186,8 +186,8 @@ export function FloatApp() {
     return models.find((model) => model.serviceId === recent)?.label ?? recent;
   }, [conversations, models]);
 
-  // The pill leads with the Antseed identity — the badge is always the
-  // Antseed mark; model branding stays inside the dropdown rows.
+  // The pill leads with the Torve identity — the badge is always the
+  // Torve mark; model branding stays inside the dropdown rows.
   const badgeIcon = <VprMark size={26} />;
 
   // The idle state used to read "Ready", which people took to mean the app was
@@ -199,7 +199,7 @@ export function FloatApp() {
       ? (recentModelLabel ?? 'Routing...')
       : 'Connected · idle';
   const statusHint = !runtimeOn
-    ? 'Routing is stopped — apps are not going through Antseed. Open AI VPN to start it.'
+    ? 'Routing is stopped — apps are not going through Torve. Open AI VPN to start it.'
     : data?.trafficActive
       ? 'Connected — a request is being routed right now.'
       : 'Connected and waiting. Nothing is being routed until an app sends a request.';
@@ -249,7 +249,7 @@ export function FloatApp() {
           click on the same pixels. */}
       <div
         className={styles.pillContent}
-        title="Antseed"
+        title="Torve"
       >
         <span className={styles.appBadge}>{badgeIcon}</span>
         <span className={styles.body}>
@@ -431,7 +431,7 @@ export function FloatApp() {
               <HugeiconsIcon icon={ArrowRight01Icon} size={14} strokeWidth={2} className={styles.menuRowChevron} />
             </button>
           ) : null}
-          {/* Pinned footer: opens the main Antseed window (AI VPN). */}
+          {/* Pinned footer: opens the main Torve window (AI VPN). */}
           <button
             type="button"
             className={styles.menuFooter}

@@ -1,6 +1,6 @@
-# @antseed/website
+# @torveai/website
 
-Marketing and documentation website for Antseed.
+Marketing and documentation website for Torve.
 
 ## Development
 

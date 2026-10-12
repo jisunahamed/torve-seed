@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import chalk from 'chalk';
-import { loadOrCreateIdentity } from '@antseed/node';
+import { loadOrCreateIdentity } from '@torveai/node';
 import { getGlobalOptions } from '../types.js';
 import { formatUsdc, openChannelStore, shortId } from '../../payment-utils.js';
 import { registerBuyerChannelWithdrawCommands } from './channel-withdraw.js';

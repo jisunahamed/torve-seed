@@ -3,7 +3,7 @@ import { join, resolve } from "node:path";
 import { encodeRlp, keccak256 } from "ethers";
 import { normalizeHash, stableDigest } from "./wash-trading-blockhash-backfill-lib.mjs";
 
-export const HEADER_CACHE_KIND = "antseed-wash-trading-header-cache";
+export const HEADER_CACHE_KIND = "torve-wash-trading-header-cache";
 
 export function encodeRpcBlockHeader(block, expectedBlockNumber = null) {
   if (block === null || typeof block !== "object") throw new Error("missing RPC block");
@@ -72,7 +72,7 @@ export async function writeHeaderChunk(directory, planDigest, descriptor, header
   if (headers.length !== descriptor.blockNumbers.length) throw new Error("header chunk count mismatch");
   const chunkWithoutDigest = {
     version: 1,
-    kind: "antseed-wash-trading-header-cache-chunk",
+    kind: "torve-wash-trading-header-cache-chunk",
     planDigest,
     index: descriptor.index,
     firstBlock: descriptor.firstBlock,
@@ -185,7 +185,7 @@ function validateHeaderChunk(chunk, planDigest, descriptor) {
   const { digest, ...chunkWithoutDigest } = chunk;
   if (
     chunk.version !== 1
-    || chunk.kind !== "antseed-wash-trading-header-cache-chunk"
+    || chunk.kind !== "torve-wash-trading-header-cache-chunk"
     || chunk.planDigest !== planDigest
     || chunk.index !== descriptor.index
     || chunk.firstBlock !== descriptor.firstBlock

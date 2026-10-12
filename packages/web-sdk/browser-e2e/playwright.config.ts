@@ -8,7 +8,7 @@ export default defineConfig({
   timeout: 60_000,
   fullyParallel: false,
   workers: 1,
-  outputDir: join(tmpdir(), 'antseed-web-sdk-playwright'),
+  outputDir: join(tmpdir(), 'torve-web-sdk-playwright'),
   use: {
     headless: true,
   },

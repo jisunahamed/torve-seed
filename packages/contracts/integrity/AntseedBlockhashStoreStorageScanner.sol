@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 /// @notice Read-only helper used through an eth_call state override on Chainlink's BlockhashStore.
 /// @dev This contract must not be deployed. Replacing the target's code for eth_call preserves its storage,
 ///      allowing the caller to enumerate non-zero entries in s_blockhashes without sending transactions.
-contract AntseedBlockhashStoreStorageScanner {
+contract TorveBlockhashStoreStorageScanner {
     function scan(uint256 startBlock, uint256 count) external view returns (bytes memory bitmap, uint256 found) {
         bitmap = new bytes((count + 7) / 8);
         for (uint256 index; index < count; ++index) {

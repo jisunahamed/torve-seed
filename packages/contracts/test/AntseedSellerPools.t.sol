@@ -7,10 +7,10 @@ import { IERC721Receiver } from "@openzeppelin/contracts/token/ERC721/IERC721Rec
 import { IERC721Errors } from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
 import { ANTSToken } from "../core/ANTSToken.sol";
-import { AntseedRegistry } from "../core/AntseedRegistry.sol";
-import { IAntseedSellerPools } from "../interfaces/IAntseedSellerPools.sol";
-import { AntseedSellerRegistry } from "../sellers/AntseedSellerRegistry.sol";
-import { AntseedSellerPools } from "../sellers/AntseedSellerPools.sol";
+import { TorveRegistry } from "../core/TorveRegistry.sol";
+import { ITorveSellerPools } from "../interfaces/ITorveSellerPools.sol";
+import { TorveSellerRegistry } from "../sellers/TorveSellerRegistry.sol";
+import { TorveSellerPools } from "../sellers/TorveSellerPools.sol";
 import { MockERC8004Registry } from "./mocks/MockERC8004Registry.sol";
 
 contract PositionReceiver is IERC721Receiver {
@@ -40,12 +40,12 @@ contract MockLegacyStaking {
     }
 }
 
-contract AntseedSellerPoolsTest is Test {
+contract TorveSellerPoolsTest is Test {
     ANTSToken token;
-    AntseedRegistry registry;
+    TorveRegistry registry;
     MockERC8004Registry identityRegistry;
-    AntseedSellerPools pools;
-    AntseedSellerRegistry sellerRegistry;
+    TorveSellerPools pools;
+    TorveSellerRegistry sellerRegistry;
 
     address seller = address(0x100);
     address buyerSeller = address(0x200);
@@ -61,7 +61,7 @@ contract AntseedSellerPoolsTest is Test {
     function setUp() public {
         vm.warp(1_700_000_000);
         genesis = block.timestamp;
-        registry = new AntseedRegistry();
+        registry = new TorveRegistry();
         identityRegistry = new MockERC8004Registry();
         token = new ANTSToken();
         token.setRegistry(address(registry));
@@ -69,9 +69,9 @@ contract AntseedSellerPoolsTest is Test {
         registry.setEmissions(address(this));
         registry.setIdentityRegistry(address(identityRegistry));
 
-        pools = new AntseedSellerPools(address(token), address(this), address(identityRegistry), address(0));
+        pools = new TorveSellerPools(address(token), address(this), address(identityRegistry), address(0));
         token.setTransferWhitelist(address(pools), true);
-        sellerRegistry = new AntseedSellerRegistry(address(identityRegistry), address(pools), address(0));
+        sellerRegistry = new TorveSellerRegistry(address(identityRegistry), address(pools), address(0));
         registry.setStaking(address(sellerRegistry));
         pools.setStakingSource(address(sellerRegistry));
         vm.prank(seller);
@@ -94,14 +94,14 @@ contract AntseedSellerPoolsTest is Test {
     }
 
     function test_constructorRejectsZeroCoreAddresses() public {
-        vm.expectRevert(IAntseedSellerPools.InvalidAddress.selector);
-        new AntseedSellerPools(address(0), address(this), address(identityRegistry), address(0));
+        vm.expectRevert(ITorveSellerPools.InvalidAddress.selector);
+        new TorveSellerPools(address(0), address(this), address(identityRegistry), address(0));
 
-        vm.expectRevert(IAntseedSellerPools.InvalidAddress.selector);
-        new AntseedSellerPools(address(token), address(0), address(identityRegistry), address(0));
+        vm.expectRevert(ITorveSellerPools.InvalidAddress.selector);
+        new TorveSellerPools(address(token), address(0), address(identityRegistry), address(0));
 
-        vm.expectRevert(IAntseedSellerPools.InvalidAddress.selector);
-        new AntseedSellerPools(address(token), address(this), address(0), address(0));
+        vm.expectRevert(ITorveSellerPools.InvalidAddress.selector);
+        new TorveSellerPools(address(token), address(this), address(0), address(0));
     }
 
     function test_stakeActivatesNextEpochAndUsesAgentIdWeight() public {
@@ -166,7 +166,7 @@ contract AntseedSellerPoolsTest is Test {
         assertEq(pools.poolWeightAtEpoch(agentId, 1), 400 ether);
 
         vm.prank(recipient);
-        vm.expectRevert(IAntseedSellerPools.NotPositionOwner.selector);
+        vm.expectRevert(ITorveSellerPools.NotPositionOwner.selector);
         pools.moveStake(positionId, otherAgentId);
 
         vm.prank(staker);
@@ -178,14 +178,14 @@ contract AntseedSellerPoolsTest is Test {
 
         vm.startPrank(staker);
         token.approve(address(pools), 1 ether);
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.stakeFor(staker, unregisteredAgentId, 1 ether, 1);
         vm.stopPrank();
 
         uint256 positionId = _stake(staker, agentId, 100 ether, 4);
 
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.moveStake(positionId, unregisteredAgentId);
 
         (,,,,,, uint64 closedAtEpoch,) = pools.positions(positionId);
@@ -195,7 +195,7 @@ contract AntseedSellerPoolsTest is Test {
         positionIds[0] = positionId;
 
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.moveStakes(positionIds, unregisteredAgentId);
     }
 
@@ -217,7 +217,7 @@ contract AntseedSellerPoolsTest is Test {
         assertEq(pools.stakerAgentActiveStake(recipient, agentId), 100 ether);
 
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.NotPositionOwner.selector);
+        vm.expectRevert(ITorveSellerPools.NotPositionOwner.selector);
         pools.withdrawStake(positionId);
 
         vm.prank(recipient);
@@ -233,7 +233,7 @@ contract AntseedSellerPoolsTest is Test {
         pools.transferFrom(staker, recipient, positionId);
 
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.NotPositionOwner.selector);
+        vm.expectRevert(ITorveSellerPools.NotPositionOwner.selector);
         pools.moveStake(positionId, otherAgentId);
 
         vm.prank(recipient);
@@ -451,7 +451,7 @@ contract AntseedSellerPoolsTest is Test {
     function test_extendLockCapsAtMaxDurationAndRejectsInvalidStates() public {
         uint256 positionId = _stake(staker, agentId, 100 ether, 4);
 
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         vm.prank(staker);
         pools.extendLock(positionId, 0);
 
@@ -462,7 +462,7 @@ contract AntseedSellerPoolsTest is Test {
         assertEq(stakeEndEpoch, 105);
         assertEq(pools.positionWeightAtEpoch(positionId, 1), 10_400 ether);
 
-        vm.expectRevert(IAntseedSellerPools.StakeDurationOutOfBounds.selector);
+        vm.expectRevert(ITorveSellerPools.StakeDurationOutOfBounds.selector);
         vm.prank(staker);
         pools.extendLock(positionId, 1);
 
@@ -471,7 +471,7 @@ contract AntseedSellerPoolsTest is Test {
         vm.prank(staker);
         pools.enableMaxLock(maxLockPositionId);
 
-        vm.expectRevert(IAntseedSellerPools.PositionClosed.selector);
+        vm.expectRevert(ITorveSellerPools.PositionClosed.selector);
         vm.prank(staker);
         pools.extendLock(maxLockPositionId, 1);
     }
@@ -539,13 +539,13 @@ contract AntseedSellerPoolsTest is Test {
 
         // The max lock only takes effect next epoch; withdrawing now would
         // leave its scheduled pool power behind with no position backing it.
-        vm.expectRevert(IAntseedSellerPools.PositionChangePending.selector);
+        vm.expectRevert(ITorveSellerPools.PositionChangePending.selector);
         vm.prank(staker);
         pools.withdrawStake(positionId);
 
         // Once live, the normal max-lock rule applies.
         vm.warp(genesis + 2 * EPOCH_DURATION);
-        vm.expectRevert(IAntseedSellerPools.PositionClosed.selector);
+        vm.expectRevert(ITorveSellerPools.PositionClosed.selector);
         vm.prank(staker);
         pools.withdrawStake(positionId);
     }
@@ -557,7 +557,7 @@ contract AntseedSellerPoolsTest is Test {
         vm.prank(staker);
         pools.extendLock(positionId, 4);
 
-        vm.expectRevert(IAntseedSellerPools.PositionChangePending.selector);
+        vm.expectRevert(ITorveSellerPools.PositionChangePending.selector);
         vm.prank(staker);
         pools.withdrawStake(positionId);
 
@@ -580,7 +580,7 @@ contract AntseedSellerPoolsTest is Test {
 
         vm.warp(block.timestamp + EPOCH_DURATION);
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.PositionClosed.selector);
+        vm.expectRevert(ITorveSellerPools.PositionClosed.selector);
         pools.withdrawStake(positionId);
         assertEq(pools.earlyExitSlashBps(positionId), pools.maxSlashBps());
 
@@ -671,37 +671,37 @@ contract AntseedSellerPoolsTest is Test {
     function test_validationAndAdmin() public {
         vm.startPrank(staker);
         token.approve(address(pools), 1 ether);
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.stake(0, 1 ether, 1);
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.stake(agentId, 0, 1);
-        vm.expectRevert(IAntseedSellerPools.StakeDurationOutOfBounds.selector);
+        vm.expectRevert(ITorveSellerPools.StakeDurationOutOfBounds.selector);
         pools.stake(agentId, 1 ether, 0);
-        vm.expectRevert(IAntseedSellerPools.InvalidAddress.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidAddress.selector);
         pools.stakeFor(address(0), agentId, 1 ether, 1);
         vm.stopPrank();
 
-        vm.expectRevert(IAntseedSellerPools.InvalidAddress.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidAddress.selector);
         pools.setRewardStaker(address(0), true);
         pools.setRewardStaker(recipient, true);
         assertTrue(pools.rewardStakers(recipient));
 
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.setRestakedRewardWeightBonus(2_001);
         pools.setRestakedRewardWeightBonus(1_000);
         assertEq(pools.restakedRewardWeightBonusBps(), 1_000);
 
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.setMoveWeightPenalty(10_001);
         pools.setMoveWeightPenalty(2_000);
         assertEq(pools.moveWeightPenaltyBps(), 2_000);
     }
 
     function test_stakeActivationDelayConfigValidation() public {
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.setPoolConfig(1, 0, 5_000, 500);
 
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.setPoolConfig(1, 105, 5_000, 500);
 
         pools.setPoolConfig(1, 2, 5_000, 500);
@@ -764,15 +764,15 @@ contract AntseedSellerPoolsTest is Test {
         token.setTransferWhitelist(staker, true);
         vm.startPrank(staker);
         token.approve(address(pools), 1 ether);
-        vm.expectRevert(IAntseedSellerPools.StakeDurationOutOfBounds.selector);
+        vm.expectRevert(ITorveSellerPools.StakeDurationOutOfBounds.selector);
         pools.stake(agentId, 1 ether, 105);
         vm.stopPrank();
     }
 
     function test_sellerRegistryLegacyStakeFallbackKeepsSellersEligible() public {
         MockLegacyStaking legacy = new MockLegacyStaking();
-        AntseedSellerRegistry adapter =
-            new AntseedSellerRegistry(address(identityRegistry), address(pools), address(legacy));
+        TorveSellerRegistry adapter =
+            new TorveSellerRegistry(address(identityRegistry), address(pools), address(legacy));
 
         legacy.setAgent(seller, agentId);
         legacy.setStaked(seller, true);
@@ -794,8 +794,8 @@ contract AntseedSellerPoolsTest is Test {
 
     function test_sellerRegistryAgentHandoverSupersedesLegacyBinding() public {
         MockLegacyStaking legacy = new MockLegacyStaking();
-        AntseedSellerRegistry adapter =
-            new AntseedSellerRegistry(address(identityRegistry), address(pools), address(legacy));
+        TorveSellerRegistry adapter =
+            new TorveSellerRegistry(address(identityRegistry), address(pools), address(legacy));
 
         address oldSeller = address(0x600);
         vm.prank(oldSeller);
@@ -915,9 +915,9 @@ contract AntseedSellerPoolsTest is Test {
         (uint256 firstId,) = pools.splitStake(positionId, 40 ether);
 
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.PositionChangePending.selector);
+        vm.expectRevert(ITorveSellerPools.PositionChangePending.selector);
         pools.withdrawStake(firstId);
-        vm.expectRevert(IAntseedSellerPools.PositionChangePending.selector);
+        vm.expectRevert(ITorveSellerPools.PositionChangePending.selector);
         pools.earlyExitSlashBps(firstId);
 
         vm.warp(block.timestamp + EPOCH_DURATION);
@@ -939,7 +939,7 @@ contract AntseedSellerPoolsTest is Test {
         uint256 movedId = pools.moveStake(positionId, otherAgentId);
 
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.PositionChangePending.selector);
+        vm.expectRevert(ITorveSellerPools.PositionChangePending.selector);
         pools.withdrawStake(movedId);
 
         vm.warp(block.timestamp + EPOCH_DURATION);
@@ -974,7 +974,7 @@ contract AntseedSellerPoolsTest is Test {
         assertEq(pools.poolWeightAtEpoch(agentId, 53), 100 ether * 52);
 
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.PositionChangePending.selector);
+        vm.expectRevert(ITorveSellerPools.PositionChangePending.selector);
         pools.withdrawStake(chainedFirstId);
 
         vm.warp(block.timestamp + EPOCH_DURATION);
@@ -994,7 +994,7 @@ contract AntseedSellerPoolsTest is Test {
         vm.warp(block.timestamp + EPOCH_DURATION);
 
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.PositionClosed.selector);
+        vm.expectRevert(ITorveSellerPools.PositionClosed.selector);
         pools.splitStake(positionId, 40 ether);
 
         // Disable, split, and re-enable the parts within one epoch: max power
@@ -1052,7 +1052,7 @@ contract AntseedSellerPoolsTest is Test {
         uint256 mergedId = pools.mergeStakes(ids);
 
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.PositionChangePending.selector);
+        vm.expectRevert(ITorveSellerPools.PositionChangePending.selector);
         pools.withdrawStake(mergedId);
 
         vm.warp(block.timestamp + EPOCH_DURATION);
@@ -1076,7 +1076,7 @@ contract AntseedSellerPoolsTest is Test {
         ids[0] = firstId;
         ids[1] = secondId;
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.mergeStakes(ids);
     }
 
@@ -1094,7 +1094,7 @@ contract AntseedSellerPoolsTest is Test {
         ids[0] = firstId;
         ids[1] = secondId;
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.PositionClosed.selector);
+        vm.expectRevert(ITorveSellerPools.PositionClosed.selector);
         pools.mergeStakes(ids);
 
         // Disabling both in the same epoch aligns their end epochs, so sources
@@ -1120,13 +1120,13 @@ contract AntseedSellerPoolsTest is Test {
 
         // Split: bad amounts and wrong owner.
         vm.startPrank(staker);
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.splitStake(firstId, 0);
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.splitStake(firstId, 60 ether);
         vm.stopPrank();
         vm.prank(recipient);
-        vm.expectRevert(IAntseedSellerPools.NotPositionOwner.selector);
+        vm.expectRevert(ITorveSellerPools.NotPositionOwner.selector);
         pools.splitStake(firstId, 30 ether);
 
         // Merge: mismatched end epochs, mismatched pools, max-locked sources,
@@ -1135,28 +1135,28 @@ contract AntseedSellerPoolsTest is Test {
         ids[0] = firstId;
         ids[1] = shorterId;
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.mergeStakes(ids);
 
         ids[1] = otherPoolId;
         vm.prank(staker);
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.mergeStakes(ids);
 
         uint256 sameTermId = _stake(staker, agentId, 40 ether, 3);
         vm.startPrank(staker);
         pools.enableMaxLock(sameTermId);
         ids[1] = sameTermId;
-        vm.expectRevert(IAntseedSellerPools.PositionClosed.selector);
+        vm.expectRevert(ITorveSellerPools.PositionClosed.selector);
         pools.mergeStakes(ids);
 
         ids[1] = firstId;
-        vm.expectRevert(IAntseedSellerPools.PositionClosed.selector);
+        vm.expectRevert(ITorveSellerPools.PositionClosed.selector);
         pools.mergeStakes(ids);
 
         uint256[] memory single = new uint256[](1);
         single[0] = firstId;
-        vm.expectRevert(IAntseedSellerPools.InvalidValue.selector);
+        vm.expectRevert(ITorveSellerPools.InvalidValue.selector);
         pools.mergeStakes(single);
         vm.stopPrank();
     }
@@ -1188,7 +1188,7 @@ contract AntseedSellerPoolsTest is Test {
         vm.prank(seller);
         identityRegistry.transferAgent(agentId, buyerSeller);
         vm.prank(buyerSeller);
-        vm.expectRevert(AntseedSellerRegistry.AgentIdMismatch.selector);
+        vm.expectRevert(TorveSellerRegistry.AgentIdMismatch.selector);
         sellerRegistry.registerSeller(agentId);
 
         // The previous seller must still lose the binding, the pool stake it
@@ -1204,8 +1204,8 @@ contract AntseedSellerPoolsTest is Test {
 
     function test_agentTransferEndsLegacyBindingWithoutNewOwnerRegistering() public {
         MockLegacyStaking legacy = new MockLegacyStaking();
-        AntseedSellerRegistry adapter =
-            new AntseedSellerRegistry(address(identityRegistry), address(pools), address(legacy));
+        TorveSellerRegistry adapter =
+            new TorveSellerRegistry(address(identityRegistry), address(pools), address(legacy));
 
         address oldSeller = address(0x600);
         vm.prank(oldSeller);
@@ -1236,7 +1236,7 @@ contract AntseedSellerPoolsTest is Test {
         vm.prank(seller);
         uint256 secondAgentId = identityRegistry.register();
         vm.prank(seller);
-        vm.expectRevert(AntseedSellerRegistry.AgentIdMismatch.selector);
+        vm.expectRevert(TorveSellerRegistry.AgentIdMismatch.selector);
         sellerRegistry.registerSeller(secondAgentId);
     }
 }

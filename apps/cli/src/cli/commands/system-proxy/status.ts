@@ -44,7 +44,7 @@ export function registerSystemProxyStatusCommand(cmd: Command): void {
       }
 
       console.log(chalk.bold('System Proxy status:'))
-      console.log(`  CA certificate: ${caExists ? chalk.green('exists') : chalk.yellow('not generated - run: antseed system-proxy install-ca')}`)
+      console.log(`  CA certificate: ${caExists ? chalk.green('exists') : chalk.yellow('not generated - run: torve system-proxy install-ca')}`)
       if (caExists) {
         console.log(`  CA file: ${chalk.dim(caManager.certFilePath)}`)
       }
@@ -58,7 +58,7 @@ export function registerSystemProxyStatusCommand(cmd: Command): void {
 
       if (!running && caExists) {
         console.log('')
-        console.log(chalk.dim('Start with:  antseed system-proxy start --peer <peerId>'))
+        console.log(chalk.dim('Start with:  torve system-proxy start --peer <peerId>'))
       }
     })
 }

@@ -371,7 +371,7 @@ describe('createStreamingAdapter chat to anthropic', () => {
       requestId: 'req-multi-tool',
       data: new TextEncoder().encode(
         'data: {"id":"chatcmpl-multi","model":"gpt-4.1","choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"write","arguments":"{\\"path\\":\\"hello.txt\\"}"}}]},"finish_reason":null}]}\n\n'
-        + 'data: {"choices":[{"delta":{"tool_calls":[{"index":1,"id":"call_2","type":"function","function":{"name":"search","arguments":"{\\"q\\":\\"antseed\\"}"}}]},"finish_reason":"tool_calls"}]}\n\n'
+        + 'data: {"choices":[{"delta":{"tool_calls":[{"index":1,"id":"call_2","type":"function","function":{"name":"search","arguments":"{\\"q\\":\\"torve\\"}"}}]},"finish_reason":"tool_calls"}]}\n\n'
         + 'data: [DONE]\n\n',
       ),
       done: true,
@@ -575,7 +575,7 @@ describe('transformRequest responses to chat', () => {
             id: 'fc_123',
             call_id: 'call_search_1',
             name: 'search',
-            arguments: '{"q":"antseed"}',
+            arguments: '{"q":"torve"}',
           },
           {
             type: 'function_call_output',
@@ -597,7 +597,7 @@ describe('transformRequest responses to chat', () => {
         type: 'function',
         function: {
           name: 'search',
-          arguments: '{"q":"antseed"}',
+          arguments: '{"q":"torve"}',
         },
       }],
     });

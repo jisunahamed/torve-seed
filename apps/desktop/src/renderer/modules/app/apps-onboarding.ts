@@ -11,7 +11,7 @@ import {
  * Seen-state persists per install (localStorage) like the other one-off
  * dialog dismissals.
  */
-export const APPS_ONBOARDING_SEEN_KEY = 'antseed:appsOnboardingSeen';
+export const APPS_ONBOARDING_SEEN_KEY = 'torve:appsOnboardingSeen';
 
 export function isAppsOnboardingSeen(storage: StorageLike | null = defaultStorage()): boolean {
   return readStorageFlag(APPS_ONBOARDING_SEEN_KEY, storage);

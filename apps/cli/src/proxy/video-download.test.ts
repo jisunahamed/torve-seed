@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createServer } from 'node:http'
 import { downloadVideo } from './video-download.js'
-import type { RequestStreamCallbacks, SerializedHttpRequest, SerializedHttpResponse } from '@antseed/node'
+import type { RequestStreamCallbacks, SerializedHttpRequest, SerializedHttpResponse } from '@torveai/node'
 
 const request: SerializedHttpRequest = { requestId: 'download', method: 'POST', path: '/api/v1/video/retrieve', headers: { 'content-type': 'application/json' }, body: Buffer.from('{"queue_id":"task"}') }
 const video = Buffer.alloc(3 * 1024 * 1024 + 17, 42)
@@ -27,7 +27,7 @@ test('streams several MB with one request and no ranges', async () => {
   await serve(async (sent, callbacks) => {
     calls += 1
     assert.equal(sent.headers.range, undefined)
-    assert.equal(sent.headers['x-antseed-video-download'], 'video-stream-v1')
+    assert.equal(sent.headers['x-torve-video-download'], 'video-stream-v1')
     callbacks.onResponseStart!(start, { streaming: true })
     for (let offset = 0; offset < video.length; offset += 65536) {
       await callbacks.onResponseChunk!({ requestId: sent.requestId, data: video.subarray(offset, offset + 65536), done: false })

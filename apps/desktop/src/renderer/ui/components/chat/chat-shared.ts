@@ -23,7 +23,7 @@ function isSafeHref(href: string): boolean {
   const trimmed = href.trim();
   if (!trimmed) return false;
   try {
-    const parsed = new URL(trimmed, 'https://antseed.invalid');
+    const parsed = new URL(trimmed, 'https://torve.invalid');
     const protocol = parsed.protocol.toLowerCase();
     return protocol === 'http:' || protocol === 'https:' || protocol === 'mailto:';
   } catch {
@@ -207,7 +207,7 @@ export type ContentBlock = {
   mimeType?: string;
   size?: number;
   /** ID under which the raw bytes live in the attachment store. When
-   *  present the renderer can build an `antseed-attachment://` URL and
+   *  present the renderer can build an `torve-attachment://` URL and
    *  preview the file natively. */
   attachmentId?: string;
   generated?: boolean;

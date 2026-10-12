@@ -3,12 +3,12 @@ pragma solidity ^0.8.24;
 
 import "forge-std/Script.sol";
 
-import {ISetRegistry, ISetWriter} from "../interfaces/IAntseedWiring.sol";
-import {AntseedRegistry} from "../core/AntseedRegistry.sol";
+import {ISetRegistry, ISetWriter} from "../interfaces/ITorveWiring.sol";
+import {TorveRegistry} from "../core/TorveRegistry.sol";
 
 /**
  * @title Deploy
- * @notice Deploys the full AntSeed protocol to a local anvil chain.
+ * @notice Deploys the full Torve protocol to a local anvil chain.
  *         Uses MockERC8004Registry for local testing (on mainnet, use the real ERC-8004).
  *
  * Usage:
@@ -49,88 +49,88 @@ contract Deploy is Script {
         require(antsToken != address(0), "ANTSToken deploy failed");
         console.log("ANTSToken:            ", antsToken);
 
-        // 4. AntseedRegistry (central address book)
-        AntseedRegistry antseedRegistry = new AntseedRegistry();
-        console.log("AntseedRegistry:      ", address(antseedRegistry));
+        // 4. TorveRegistry (central address book)
+        TorveRegistry torveRegistry = new TorveRegistry();
+        console.log("TorveRegistry:      ", address(torveRegistry));
 
-        // 5. AntseedStaking(usdc, registry)
+        // 5. TorveStaking(usdc, registry)
         bytes memory stakingBytecode = abi.encodePacked(
-            vm.getCode("AntseedStaking.sol:AntseedStaking"),
-            abi.encode(usdc, address(antseedRegistry))
+            vm.getCode("TorveStaking.sol:TorveStaking"),
+            abi.encode(usdc, address(torveRegistry))
         );
         address staking;
         assembly { staking := create(0, add(stakingBytecode, 0x20), mload(stakingBytecode)) }
         require(staking != address(0), "Staking deploy failed");
-        console.log("AntseedStaking:       ", staking);
+        console.log("TorveStaking:       ", staking);
 
-        // 6. AntseedDeposits(usdc)
+        // 6. TorveDeposits(usdc)
         bytes memory depositsBytecode = abi.encodePacked(
-            vm.getCode("AntseedDeposits.sol:AntseedDeposits"),
+            vm.getCode("TorveDeposits.sol:TorveDeposits"),
             abi.encode(usdc)
         );
         address deposits;
         assembly { deposits := create(0, add(depositsBytecode, 0x20), mload(depositsBytecode)) }
         require(deposits != address(0), "Deposits deploy failed");
-        console.log("AntseedDeposits:      ", deposits);
+        console.log("TorveDeposits:      ", deposits);
 
-        // 7. AntseedChannels(registry)
+        // 7. TorveChannels(registry)
         bytes memory channelsBytecode = abi.encodePacked(
-            vm.getCode("AntseedChannels.sol:AntseedChannels"),
-            abi.encode(address(antseedRegistry))
+            vm.getCode("TorveChannels.sol:TorveChannels"),
+            abi.encode(address(torveRegistry))
         );
         address channels;
         assembly { channels := create(0, add(channelsBytecode, 0x20), mload(channelsBytecode)) }
         require(channels != address(0), "Channels deploy failed");
-        console.log("AntseedChannels:      ", channels);
+        console.log("TorveChannels:      ", channels);
 
-        // 8. AntseedStats
-        bytes memory statsBytecode = vm.getCode("AntseedStats.sol:AntseedStats");
+        // 8. TorveStats
+        bytes memory statsBytecode = vm.getCode("TorveStats.sol:TorveStats");
         address stats;
         assembly { stats := create(0, add(statsBytecode, 0x20), mload(statsBytecode)) }
         require(stats != address(0), "Stats deploy failed");
-        console.log("AntseedStats:         ", stats);
+        console.log("TorveStats:         ", stats);
 
-        // 9. AntseedEmissions(registry, initialEmission, epochDuration)
+        // 9. TorveEmissions(registry, initialEmission, epochDuration)
         bytes memory emissionsBytecode = abi.encodePacked(
-            vm.getCode("AntseedEmissions.sol:AntseedEmissions"),
-            abi.encode(address(antseedRegistry), uint256(5_000_000e18), uint256(7 days))
+            vm.getCode("TorveEmissions.sol:TorveEmissions"),
+            abi.encode(address(torveRegistry), uint256(5_000_000e18), uint256(7 days))
         );
         address emissions;
         assembly { emissions := create(0, add(emissionsBytecode, 0x20), mload(emissionsBytecode)) }
         require(emissions != address(0), "Emissions deploy failed");
-        console.log("AntseedEmissions:     ", emissions);
+        console.log("TorveEmissions:     ", emissions);
 
-        // 10. AntseedDepositRelay(usdc, deposits, FEE)
+        // 10. TorveDepositRelay(usdc, deposits, FEE)
         //     Keep this LAST among contract creations — the deterministic anvil
         //     addresses of everything above (nonces 0-8) are hardcoded in
         //     scripts/setup-local-test.sh and chain-config base-local.
         bytes memory relayBytecode = abi.encodePacked(
-            vm.getCode("AntseedDepositRelay.sol:AntseedDepositRelay"),
+            vm.getCode("TorveDepositRelay.sol:TorveDepositRelay"),
             abi.encode(usdc, deposits, uint256(50_000)) // fixed fee: $0.05
         );
         address depositRelay;
         assembly { depositRelay := create(0, add(relayBytecode, 0x20), mload(relayBytecode)) }
         require(depositRelay != address(0), "DepositRelay deploy failed");
-        console.log("AntseedDepositRelay:  ", depositRelay);
+        console.log("TorveDepositRelay:  ", depositRelay);
 
         // ---- Wire registry ----
-        antseedRegistry.setChannels(channels);
-        antseedRegistry.setStats(stats);
-        antseedRegistry.setDeposits(deposits);
-        antseedRegistry.setStaking(staking);
-        antseedRegistry.setEmissions(emissions);
-        antseedRegistry.setAntsToken(antsToken);
-        antseedRegistry.setIdentityRegistry(identityRegistry);
-        antseedRegistry.setProtocolReserve(protocolReserve);
+        torveRegistry.setChannels(channels);
+        torveRegistry.setStats(stats);
+        torveRegistry.setDeposits(deposits);
+        torveRegistry.setStaking(staking);
+        torveRegistry.setEmissions(emissions);
+        torveRegistry.setAntsToken(antsToken);
+        torveRegistry.setIdentityRegistry(identityRegistry);
+        torveRegistry.setProtocolReserve(protocolReserve);
 
         // ---- Point each contract at the registry ----
         // Channels and Staking already received the registry in their constructors,
         // but we include them here for uniformity so the pattern is obvious in upgrades.
-        ISetRegistry(channels).setRegistry(address(antseedRegistry));
-        ISetRegistry(deposits).setRegistry(address(antseedRegistry));
-        ISetRegistry(staking).setRegistry(address(antseedRegistry));
-        ISetRegistry(emissions).setRegistry(address(antseedRegistry));
-        ISetRegistry(antsToken).setRegistry(address(antseedRegistry));
+        ISetRegistry(channels).setRegistry(address(torveRegistry));
+        ISetRegistry(deposits).setRegistry(address(torveRegistry));
+        ISetRegistry(staking).setRegistry(address(torveRegistry));
+        ISetRegistry(emissions).setRegistry(address(torveRegistry));
+        ISetRegistry(antsToken).setRegistry(address(torveRegistry));
 
         // ---- Authorize Channels as Stats writer ----
         ISetWriter(stats).setWriter(channels, true);

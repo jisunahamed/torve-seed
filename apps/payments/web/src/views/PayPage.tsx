@@ -35,7 +35,7 @@ const COPY: Record<PayPageAction, { eyebrow: string; title: string; subtitle: st
   deposit: {
     eyebrow: 'Adding credits',
     title: 'Deposit USDC',
-    subtitle: 'Connect a wallet to add credits to your AntSeed account.',
+    subtitle: 'Connect a wallet to add credits to your Torve account.',
   },
   withdraw: {
     eyebrow: 'Withdrawing credits',
@@ -144,7 +144,7 @@ export function PayPage({ action, amount: amountParam, channelId, popup, config,
   return (
     <div className="pay-checkout">
       <header className="pay-checkout-topbar">
-        <span className="pay-checkout-brand">AntSeed</span>
+        <span className="pay-checkout-brand">Torve</span>
         <span className="pay-checkout-secure">
           <LockIcon />
           Secure checkout
@@ -298,7 +298,7 @@ export function PayPage({ action, amount: amountParam, channelId, popup, config,
         </div>
 
         <ul className="pay-checkout-trust">
-          <li>Non-custodial — funds go to AntSeed's on-chain escrow contract, never to a company account.</li>
+          <li>Non-custodial — funds go to Torve's on-chain escrow contract, never to a company account.</li>
           <li>Withdraw unused credits back to your wallet at any time.</li>
           <li>Runs on Base — low fees, settles in seconds.</li>
         </ul>
@@ -318,7 +318,7 @@ export function PayPage({ action, amount: amountParam, channelId, popup, config,
       </main>
 
       <footer className="pay-checkout-footer">
-        Opened by your AntSeed app · antseed.com
+        Opened by your Torve app · torveai.com
       </footer>
     </div>
   );

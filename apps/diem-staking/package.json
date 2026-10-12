@@ -1,8 +1,8 @@
 {
-  "name": "@antseed/diem-staking",
+  "name": "@torveai/diem-staking",
   "private": true,
   "version": "0.1.0",
-  "description": "DIEM Staking portal (diemantseed.com)",
+  "description": "DIEM Staking portal (diemtorveai.com)",
   "type": "module",
   "scripts": {
     "dev": "vite",

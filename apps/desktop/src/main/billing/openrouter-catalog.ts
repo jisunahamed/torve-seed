@@ -7,7 +7,7 @@
  * OpenRouter-compatible models schema —
  * `{ data: [{ id, name, pricing: { prompt, completion, input_cache_read } }] }`
  * with prices in USD per token — which is what the OpenRouter* type names in
- * this file refer to. The URL comes from the ANTSEED_COMPARABLE_PRICES_URL
+ * this file refer to. The URL comes from the TORVE_COMPARABLE_PRICES_URL
  * environment variable (e.g. set it to OpenRouter's models endpoint);
  * release builds bake a default via scripts/bake-comparable-prices-url.mjs,
  * and a set-but-empty env disables it. With neither, retail baselines and
@@ -16,10 +16,10 @@
  * empty map — the UI omits the struck-through baseline.
  */
 
-import { canonicalModelKey } from '@antseed/node/model-identity';
+import { canonicalModelKey } from '@torveai/node/model-identity';
 import { BAKED_COMPARABLE_PRICES_URL } from '../generated/baked-defaults.js';
 
-export const COMPARABLE_PRICES_URL_ENV = 'ANTSEED_COMPARABLE_PRICES_URL';
+export const COMPARABLE_PRICES_URL_ENV = 'TORVE_COMPARABLE_PRICES_URL';
 
 function comparablePricesUrl(): string | null {
   const raw = process.env[COMPARABLE_PRICES_URL_ENV];

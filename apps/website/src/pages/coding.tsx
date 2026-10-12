@@ -15,9 +15,9 @@ import {PrivacyPanel} from '../components/PrivacyPanel';
 import {ConnectSwitchArt} from '../components/ConnectSwitchArt';
 import {Cursor} from '@lobehub/icons';
 
-const TITLE = 'Coding apps without usage limits, at a fraction of the price | Antseed';
+const TITLE = 'Coding apps without usage limits, at a fraction of the price | Torve';
 const DESCRIPTION =
-  'Claude Code, Codex, Cursor, OpenCode, Pi. Keep the tool you like, point it at Antseed, and pay a fraction of what the same work costs on a plan. No five-hour window, no weekly cap, no sign-up.';
+  'Claude Code, Codex, Cursor, OpenCode, Pi. Keep the tool you like, point it at Torve, and pay a fraction of what the same work costs on a plan. No five-hour window, no weekly cap, no sign-up.';
 
 /* Logo band — the coding apps with an integration page */
 const CODING_APPS: LogoItem[] = [
@@ -81,7 +81,7 @@ function ConnectApps() {
       <Reveal>
         <SectionHeader
           title="Works with the coding apps you already use."
-          lead="One command launches the tool through Antseed. Your projects, chats, and settings stay the way they were."
+          lead="One command launches the tool through Torve. Your projects, chats, and settings stay the way they were."
         />
       </Reveal>
       <div className={own.connectSplit}>
@@ -114,13 +114,13 @@ const CODING_POINTS = [
   {icon: 'pt-wallet', text: 'Pay per request, straight to the provider. No subscription.'},
 ];
 
-/* Commands from the integration guides: antseed claude / codex / opencode */
+/* Commands from the integration guides: torve claude / codex / opencode */
 const CODING_TERMINAL_BLOCKS: TBlock[] = [
   {
-    comment: '# Run Claude Code through Antseed',
+    comment: '# Run Claude Code through Torve',
     tokens: [
       {text: '$ ', cls: 'tGreen'},
-      {text: 'antseed', cls: 'tPurple'},
+      {text: 'torve', cls: 'tPurple'},
       {text: ' '},
       {text: 'claude', cls: 'tBlue'},
     ],
@@ -129,7 +129,7 @@ const CODING_TERMINAL_BLOCKS: TBlock[] = [
     comment: '# Codex, pinned to one model for this run',
     tokens: [
       {text: '$ ', cls: 'tGreen'},
-      {text: 'antseed', cls: 'tPurple'},
+      {text: 'torve', cls: 'tPurple'},
       {text: ' '},
       {text: 'codex', cls: 'tBlue'},
       {text: ' '},
@@ -142,7 +142,7 @@ const CODING_TERMINAL_BLOCKS: TBlock[] = [
     comment: '# OpenCode on an open model',
     tokens: [
       {text: '$ ', cls: 'tGreen'},
-      {text: 'antseed', cls: 'tPurple'},
+      {text: 'torve', cls: 'tPurple'},
       {text: ' '},
       {text: 'opencode', cls: 'tBlue'},
       {text: ' '},
@@ -176,7 +176,7 @@ function PointAtLocalhost() {
 const CODING_FAQ = [
   {
     q: 'Do I have to cancel my Claude or ChatGPT plan?',
-    a: 'No. Keep it if it earns its price. When the plan’s window runs out, launch the same tool through Antseed and keep working, then switch back whenever you like. Nothing about your projects or settings changes between the two.',
+    a: 'No. Keep it if it earns its price. When the plan’s window runs out, launch the same tool through Torve and keep working, then switch back whenever you like. Nothing about your projects or settings changes between the two.',
   },
   {
     q: 'Is it the same model I get on the plan?',
@@ -184,7 +184,7 @@ const CODING_FAQ = [
   },
   {
     q: 'Does Cursor work?',
-    a: "Yes, through a public endpoint. Some Cursor requests come from Cursor's own servers, which cannot reach your <code>localhost</code>, so publish an authenticated HTTPS endpoint from the AI VPN, then in Cursor's model settings paste the Antseed key as the OpenAI API key and the endpoint as the OpenAI base URL. <a href=\"/docs/guides/public-tunnels#use-it-with-cursor\">Cursor setup →</a>",
+    a: "Yes, through a public endpoint. Some Cursor requests come from Cursor's own servers, which cannot reach your <code>localhost</code>, so publish an authenticated HTTPS endpoint from the AI VPN, then in Cursor's model settings paste the Torve key as the OpenAI API key and the endpoint as the OpenAI base URL. <a href=\"/docs/guides/public-tunnels#use-it-with-cursor\">Cursor setup →</a>",
   },
   {
     q: 'How do I pick which model my tool uses?',
@@ -231,11 +231,11 @@ export default function CodingPage(): JSX.Element {
         <meta name="description" content={DESCRIPTION} />
         <meta property="og:title" content={TITLE} />
         <meta property="og:description" content={DESCRIPTION} />
-        <link rel="canonical" href="https://antseed.com/coding/" />
+        <link rel="canonical" href="https://torveai.com/coding/" />
         <script type="application/ld+json">{JSON.stringify(CODING_FAQ_LD)}</script>
       </Head>
       <CodingHero />
-      <LogoBar items={CODING_APPS} ariaLabel="Coding apps that work with Antseed" />
+      <LogoBar items={CODING_APPS} ariaLabel="Coding apps that work with Torve" />
       <CodingPricing />
       <ConnectApps />
       <PointAtLocalhost />

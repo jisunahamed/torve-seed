@@ -3,12 +3,12 @@ pragma solidity ^0.8.24;
 
 import { Test } from "forge-std/Test.sol";
 
-import { AntseedRegistry } from "../core/AntseedRegistry.sol";
-import { AntseedEmissionsGate } from "../emissions/AntseedEmissionsGate.sol";
-import { AntseedUsageAccounting } from "../emissions/AntseedUsageAccounting.sol";
-import { AntseedPointsPolicyRegistry } from "../policies/AntseedPointsPolicyRegistry.sol";
-import { AntseedWashTradingPointsPolicy } from "../policies/AntseedWashTradingPointsPolicy.sol";
-import { WashTradingStatusForPoints } from "./AntseedWashTradingPointsPolicy.t.sol";
+import { TorveRegistry } from "../core/TorveRegistry.sol";
+import { TorveEmissionsGate } from "../emissions/TorveEmissionsGate.sol";
+import { TorveUsageAccounting } from "../emissions/TorveUsageAccounting.sol";
+import { TorvePointsPolicyRegistry } from "../policies/TorvePointsPolicyRegistry.sol";
+import { TorveWashTradingPointsPolicy } from "../policies/TorveWashTradingPointsPolicy.sol";
+import { WashTradingStatusForPoints } from "./TorveWashTradingPointsPolicy.t.sol";
 import { MockERC8004Registry } from "./mocks/MockERC8004Registry.sol";
 
 contract RecognizedUsageLegacyEmissionsMarker { }
@@ -18,12 +18,12 @@ contract RecognizedUsageLegacyStakingMarker { }
 contract RecognizedUsageFoundationTest is Test {
     uint256 private constant GENESIS = 1_775_728_461;
     address private constant ANTS_TOKEN = 0xa87EE81b2C0Bc659307ca2D9ffdC38514DD85263;
-    bytes32 private constant VERIFICATION_MINTER_ID = keccak256("antseed.emissions.verification.v1");
+    bytes32 private constant VERIFICATION_MINTER_ID = keccak256("torve.emissions.verification.v1");
 
     function test_washPolicyPassesHonestUsageThroughBeforeBoundaryFlip() public {
         vm.warp(GENESIS + 8 days);
 
-        AntseedRegistry registry = new AntseedRegistry();
+        TorveRegistry registry = new TorveRegistry();
         deployCodeTo("ANTSToken.sol:ANTSToken", ANTS_TOKEN);
         registry.setAntsToken(ANTS_TOKEN);
         registry.setIdentityRegistry(address(new MockERC8004Registry()));
@@ -35,11 +35,11 @@ contract RecognizedUsageFoundationTest is Test {
         registry.setEmissions(address(legacyEmissions));
         registry.setStaking(address(legacyStaking));
 
-        AntseedEmissionsGate gate = new AntseedEmissionsGate(address(0xA11CE), address(0xB0B), 15_000, 15_000);
-        AntseedUsageAccounting usageAccounting = new AntseedUsageAccounting(address(0), address(this), address(gate));
-        AntseedPointsPolicyRegistry pointsPolicyRegistry = new AntseedPointsPolicyRegistry(address(this));
+        TorveEmissionsGate gate = new TorveEmissionsGate(address(0xA11CE), address(0xB0B), 15_000, 15_000);
+        TorveUsageAccounting usageAccounting = new TorveUsageAccounting(address(0), address(this), address(gate));
+        TorvePointsPolicyRegistry pointsPolicyRegistry = new TorvePointsPolicyRegistry(address(this));
         WashTradingStatusForPoints washStatus = new WashTradingStatusForPoints();
-        AntseedWashTradingPointsPolicy washPolicy = new AntseedWashTradingPointsPolicy(address(washStatus));
+        TorveWashTradingPointsPolicy washPolicy = new TorveWashTradingPointsPolicy(address(washStatus));
         pointsPolicyRegistry.registerPolicy(address(washPolicy));
         address verificationWallet = address(0xF1ED);
 

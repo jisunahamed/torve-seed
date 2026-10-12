@@ -1,8 +1,8 @@
-import type { PeerId } from '@antseed/protocol/peer-id';
-import { peerIdToAddress } from '@antseed/protocol/peer-id';
-import type { PeerMetadata } from '@antseed/protocol/peer-metadata';
+import type { PeerId } from '@torveai/protocol/peer-id';
+import { peerIdToAddress } from '@torveai/protocol/peer-id';
+import type { PeerMetadata } from '@torveai/protocol/peer-metadata';
 import { debugWarn } from './debug.js';
-import type { AntseedErrorCode, FaultAttribution } from './errors.js';
+import type { TorveErrorCode, FaultAttribution } from './errors.js';
 
 const DEFAULT_CACHE_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_CACHE_MAX_ENTRIES = 1024;
@@ -21,9 +21,9 @@ export type IsOperatorChecker = (
 
 export class SellerAuthorizationError extends Error {
   readonly attribution: FaultAttribution;
-  readonly code: AntseedErrorCode;
+  readonly code: TorveErrorCode;
 
-  private constructor(reason: string, attribution: FaultAttribution, code: AntseedErrorCode, cause?: unknown) {
+  private constructor(reason: string, attribution: FaultAttribution, code: TorveErrorCode, cause?: unknown) {
     super(`seller authorization failed: ${reason}`, cause !== undefined ? { cause } : undefined);
     this.name = "SellerAuthorizationError";
     this.attribution = attribution;

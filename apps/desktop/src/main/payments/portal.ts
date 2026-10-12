@@ -8,7 +8,7 @@
  * closes itself once the payment lands).
  */
 import { app, BrowserWindow, shell } from 'electron';
-import { createServer as createPaymentsServer } from '@antseed/payments';
+import { createServer as createPaymentsServer } from '@torveai/payments';
 import { isDev } from '../app-context.js';
 import { LOCALHOST, LOCALHOST_URL } from '../constants.js';
 import { ACTIVE_CONFIG_PATH } from '../runtime/active-config.js';
@@ -19,7 +19,7 @@ import { invalidateCreditsCache } from './credits.js';
 import { asRecord, asString } from '../utils.js';
 
 export let paymentsServer: Awaited<ReturnType<typeof createPaymentsServer>> | null = null;
-export const PAYMENTS_PORT = Number(process.env['ANTSEED_PAYMENTS_PORT']) || 3118;
+export const PAYMENTS_PORT = Number(process.env['TORVE_PAYMENTS_PORT']) || 3118;
 
 export function focusMainWindow(): void {
   const win = getMainWindow();
@@ -34,7 +34,7 @@ export async function startPaymentsPortal(): Promise<void> {
   if (paymentsServer) return;
   try {
     await ensureSecureIdentity();
-    const identityHex = secureIdentityEnv().ANTSEED_IDENTITY_HEX;
+    const identityHex = secureIdentityEnv().TORVE_IDENTITY_HEX;
     paymentsServer = await createPaymentsServer({
       port: PAYMENTS_PORT,
       identityHex,
@@ -87,7 +87,7 @@ export function openPaymentsPopup(url: string): void {
     minWidth: 420,
     minHeight: 620,
     ...(parent ? { parent } : {}),
-    title: 'Antseed — Secure payment',
+    title: 'Torve — Secure payment',
     autoHideMenuBar: true,
     backgroundColor: '#ffffff',
     webPreferences: {
@@ -113,33 +113,33 @@ export function openPaymentsPopup(url: string): void {
 
 
 // Card payments open a hosted checkout page. USDC bought with a card is
-// delivered on Base to the buyer hot wallet and credited into AntseedDeposits
+// delivered on Base to the buyer hot wallet and credited into TorveDeposits
 // via the P2P deposit relay — same path as a direct QR transfer.
 //
 // Providers come from config (payments.card.providers) as HTTPS URL templates
-// with {address} and optional {amount} placeholders. The default is Antseed's
+// with {address} and optional {amount} placeholders. The default is Torve's
 // hosted card page, which handles the Coinbase Onramp session server-side so
 // the CDP secret key never ships inside the app.
 export type CardProvider = { id: string; label: string; url: string };
 
 // The hosted pay page. Dev builds target the locally-run checkout (the
-// antseed-pay repo's `pnpm dev` on :3120) so the flow is testable end-to-end
-// before a deploy; ANTSEED_PAY_URL overrides the target in any build.
-const ANTSEED_PAY_URL =
-  process.env['ANTSEED_PAY_URL']?.trim()
-  || (isDev ? 'http://localhost:3120/' : 'https://antseed-pay.com/');
+// torve-pay repo's `pnpm dev` on :3120) so the flow is testable end-to-end
+// before a deploy; TORVE_PAY_URL overrides the target in any build.
+const TORVE_PAY_URL =
+  process.env['TORVE_PAY_URL']?.trim()
+  || (isDev ? 'http://localhost:3120/' : 'https://torve-pay.com/');
 
 export const DEFAULT_CARD_PROVIDERS: CardProvider[] = [
-  { id: 'meridian', label: 'Meridian', url: 'https://antseed.mrdn.finance/?buyer={address}' },
-  { id: 'antseed-pay', label: 'Antseed Pay', url: ANTSEED_PAY_URL },
+  { id: 'meridian', label: 'Meridian', url: 'https://torve.mrdn.finance/?buyer={address}' },
+  { id: 'torve-pay', label: 'Torve Pay', url: TORVE_PAY_URL },
   // Same page, opened on its Stripe integration (US only).
-  { id: 'antseed-pay-stripe', label: 'Antseed Pay (Stripe)', url: ANTSEED_PAY_URL },
+  { id: 'torve-pay-stripe', label: 'Torve Pay (Stripe)', url: TORVE_PAY_URL },
 ];
 
 /** Which pay-page integration a provider id opens; null for other providers. */
 export function payPageProvider(id: string): 'crossmint' | 'stripe' | null {
-  if (id === 'antseed-pay') return 'crossmint';
-  if (id === 'antseed-pay-stripe') return 'stripe';
+  if (id === 'torve-pay') return 'crossmint';
+  if (id === 'torve-pay-stripe') return 'stripe';
   return null;
 }
 

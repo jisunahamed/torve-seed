@@ -14,8 +14,8 @@ import {
   formatAnts,
   resolveCliContractStack,
 } from '../payment-utils.js';
-import { legacyEpochs, newEpochs } from '@antseed/node/payments';
-import { claimBuyerEpochRewards, claimEpochRewards, pendingEpochRewards } from '@antseed/node/payments';
+import { legacyEpochs, newEpochs } from '@torveai/node/payments';
+import { claimBuyerEpochRewards, claimEpochRewards, pendingEpochRewards } from '@torveai/node/payments';
 import { RewardClaimProgress } from './reward-actions.js';
 
 export type EmissionsRole = 'seller' | 'buyer';

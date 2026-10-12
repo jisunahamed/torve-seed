@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { PeerInfo, SerializedHttpRequest } from '@antseed/node';
+import type { PeerInfo, SerializedHttpRequest } from '@torveai/node';
 import { LocalRouter } from './router.js';
 
 function makePeer(overrides?: Partial<PeerInfo>): PeerInfo {

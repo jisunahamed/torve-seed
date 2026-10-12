@@ -64,7 +64,7 @@ test('wslToolProbeCommand checks the binary and every home-relative signal', () 
 });
 
 test('WSL targets file keeps per-tool rows independent and clears when empty', async () => {
-  const dir = await mkdtemp(path.join(tmpdir(), 'antseed-wsl-targets-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'torve-wsl-targets-'));
   try {
     const filePath = path.join(dir, 'system-proxy.wsl-targets.json');
     const opencodeTargets: WslConfigTarget[] = [

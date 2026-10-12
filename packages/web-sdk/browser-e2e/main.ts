@@ -1,4 +1,4 @@
-import { AntseedWebClient } from '../src/client.ts';
+import { TorveWebClient } from '../src/client.ts';
 
 interface BrowserRunConfig {
   relayUrl: string;
@@ -8,26 +8,26 @@ interface BrowserRunConfig {
 
 declare global {
   interface Window {
-    runAntseedAcceptance(config: BrowserRunConfig): Promise<{
+    runTorveAcceptance(config: BrowserRunConfig): Promise<{
       peerId: string;
       statusCode: number;
       body: string;
     }>;
-    runPaidAntseedAcceptance(config: BrowserRunConfig): Promise<{
+    runPaidTorveAcceptance(config: BrowserRunConfig): Promise<{
       peerId: string;
       statusCode: number;
       channelId: string;
       authMax: string;
     }>;
-    openAntseedBuyer(config: BrowserRunConfig & { waitForLock?: boolean }): Promise<string>;
-    closeAntseedBuyer(): Promise<void>;
+    openTorveBuyer(config: BrowserRunConfig & { waitForLock?: boolean }): Promise<string>;
+    closeTorveBuyer(): Promise<void>;
   }
 }
 
-let heldClient: AntseedWebClient | null = null;
+let heldClient: TorveWebClient | null = null;
 
-window.openAntseedBuyer = async (config) => {
-  heldClient = await AntseedWebClient.create({
+window.openTorveBuyer = async (config) => {
+  heldClient = await TorveWebClient.create({
     relayUrl: config.relayUrl,
     privateKey: config.buyerPrivateKey,
     payment: { rpcUrl: '' },
@@ -36,13 +36,13 @@ window.openAntseedBuyer = async (config) => {
   return heldClient.peerId;
 };
 
-window.closeAntseedBuyer = async () => {
+window.closeTorveBuyer = async () => {
   await heldClient?.close();
   heldClient = null;
 };
 
-window.runAntseedAcceptance = async (config) => {
-  const client = await AntseedWebClient.create({
+window.runTorveAcceptance = async (config) => {
+  const client = await TorveWebClient.create({
     relayUrl: config.relayUrl,
     privateKey: config.buyerPrivateKey,
     payment: { rpcUrl: '' },
@@ -64,8 +64,8 @@ window.runAntseedAcceptance = async (config) => {
   }
 };
 
-window.runPaidAntseedAcceptance = async (config) => {
-  const client = await AntseedWebClient.create({
+window.runPaidTorveAcceptance = async (config) => {
+  const client = await TorveWebClient.create({
     relayUrl: config.relayUrl,
     privateKey: config.buyerPrivateKey,
     payment: {
@@ -111,7 +111,7 @@ window.runPaidAntseedAcceptance = async (config) => {
   }
 };
 
-async function waitForActiveAuthorization(client: AntseedWebClient) {
+async function waitForActiveAuthorization(client: TorveWebClient) {
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {
     const channel = client.listActiveChannels()[0];

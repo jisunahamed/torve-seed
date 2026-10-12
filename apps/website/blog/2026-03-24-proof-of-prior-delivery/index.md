@@ -1,9 +1,9 @@
 ---
 slug: proof-of-prior-delivery
 title: "Proof of Prior Delivery"
-authors: [antseed]
+authors: [torve]
 tags: [protocol, payments, cryptography, proof-of-delivery, reputation, open-network]
-description: How Antseed's SpendingAuth signature serves as both payment authorization and cryptographic proof of delivery — building an open, verifiable record of what every seller has delivered.
+description: How Torve's SpendingAuth signature serves as both payment authorization and cryptographic proof of delivery — building an open, verifiable record of what every seller has delivered.
 keywords: [proof of delivery, SpendingAuth, EIP-712, payment protocol, P2P payments, cumulative voucher, payment negotiation, on-chain stats, agentic AI, open network]
 image: /og-image.jpg
 date: 2026-03-27
@@ -13,7 +13,7 @@ In peer-to-peer compute markets, proving service delivery is the hard problem. N
 
 Most decentralized compute projects sidestep this. They use self-reported metrics (trivially gameable), trusted validators (re-introducing centralization), or optimistic assumptions with dispute windows (which require honest majorities). These are reasonable tradeoffs, but they're not proofs. They're social mechanisms dressed up as cryptographic ones.
 
-Antseed's answer is the **metadataHash** — a hash of delivery metrics that the buyer signs into every payment authorization. When the seller wants to settle more funds, they must submit a signature that includes this hash. The hash covers what was actually delivered: tokens in, tokens out, average latency, number of requests. The seller can't get paid without presenting proof of what the buyer received. That proof is the `metadataHash`.
+Torve's answer is the **metadataHash** — a hash of delivery metrics that the buyer signs into every payment authorization. When the seller wants to settle more funds, they must submit a signature that includes this hash. The hash covers what was actually delivered: tokens in, tokens out, average latency, number of requests. The seller can't get paid without presenting proof of what the buyer received. That proof is the `metadataHash`.
 
 <!-- truncate -->
 
@@ -68,28 +68,28 @@ This creates a rolling bilateral agreement. At any point, the seller holds a sin
 
 ## Settlement as Proof
 
-When the seller calls `settle()` or `close()` on the AntseedChannels contract, they submit the buyer's latest SpendingAuth signature. The contract:
+When the seller calls `settle()` or `close()` on the TorveChannels contract, they submit the buyer's latest SpendingAuth signature. The contract:
 
 1. Verifies the buyer's EIP-712 signature
 2. Charges the cumulative amount from the buyer's locked deposit
 3. Credits the seller's earnings (minus platform fee)
-4. Optionally forwards the buyer-signed metadata to `AntseedStats`
+4. Optionally forwards the buyer-signed metadata to `TorveStats`
 
-Step 4 is the proof path for optional metadata aggregation. The **AntseedStats** contract can contain delivery metrics attested by the buyer's own signature. No oracle reported these numbers. No validator observed them. The buyer signed them because they were there when the service was delivered.
+Step 4 is the proof path for optional metadata aggregation. The **TorveStats** contract can contain delivery metrics attested by the buyer's own signature. No oracle reported these numbers. No validator observed them. The buyer signed them because they were there when the service was delivered.
 
-The core counters that accumulate per seller in `AntseedChannels`:
+The core counters that accumulate per seller in `TorveChannels`:
 
 - **Session count** — completed sessions
 - **Ghost count** — sessions where the seller disappeared without settling
 - **Total volume** — cumulative USDC settled
 - **Last settled** — timestamp of most recent settlement
 
-If `AntseedStats` is configured, it can additionally aggregate:
+If `TorveStats` is configured, it can additionally aggregate:
 
 - **Total tokens** — cumulative input and output tokens
 - **Total requests** — cumulative requests served
 
-These values are keyed by ERC-8004 agentId. `AntseedStats` accepts writes only from addresses granted its writer role, and the deployed flow grants that role to `AntseedChannels`.
+These values are keyed by ERC-8004 agentId. `TorveStats` accepts writes only from addresses granted its writer role, and the deployed flow grants that role to `TorveChannels`.
 
 ## Budget Exhaustion and Renewal
 
@@ -109,7 +109,7 @@ Why a full refund? Because the seller cannot unilaterally prove delivery. Only t
 
 ## An Open Record for an Open Network
 
-These stats are public, on-chain, and queryable by anyone — not just Antseed clients, but any smart contract, any indexer, any agent framework that reads the chain. And because they're tied to the seller's ERC-8004 identity, they're portable. A seller's track record belongs to their wallet, not to a platform that can revoke it.
+These stats are public, on-chain, and queryable by anyone — not just Torve clients, but any smart contract, any indexer, any agent framework that reads the chain. And because they're tied to the seller's ERC-8004 identity, they're portable. A seller's track record belongs to their wallet, not to a platform that can revoke it.
 
 This matters most for agentic workflows. When an autonomous agent needs AI services, it can't rely on subjective reviews or curated lists. It needs hard data:
 

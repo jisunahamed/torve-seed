@@ -1,4 +1,4 @@
-import { resolveChainConfig } from '@antseed/node'
+import { resolveChainConfig } from '@torveai/node'
 import { Contract, JsonRpcProvider } from 'ethers'
 import { loadConfig } from '../config/loader.js'
 import { GatewayAccounting } from './accounting.js'
@@ -10,7 +10,7 @@ import { X402Facilitator, type X402Asset } from './x402.js'
 import { cdpAuthorization, type CdpCredentials } from './cdp-auth.js'
 
 const DEFAULT_MAX_PER_REQUEST_USDC = '300000'
-// AntseedDeposits takes at least 1 USDC on a first deposit, after the sweep fee.
+// TorveDeposits takes at least 1 USDC on a first deposit, after the sweep fee.
 const DEFAULT_TOPUP_MIN_USD = '2'
 const DEFAULT_TOPUP_MAX_USD = '500'
 
@@ -33,7 +33,7 @@ export interface GatewayRuntimeOptions {
   /** Port of the buyer every key is served through; defaults to the config's buyer.proxyPort. */
   buyerPort?: number
   /**
-   * Legacy single key from ANTSEED_TUNNEL_API_KEY, kept as an unlimited
+   * Legacy single key from TORVE_TUNNEL_API_KEY, kept as an unlimited
    * default key. `null` means the tunnel started without it, which retires
    * the stored key; omit it to leave that key as it is.
    */
@@ -93,7 +93,7 @@ function facilitatorAuth(config: GatewayTopupConfig): { authorize?: (endpointUrl
 }
 
 export async function liveBuyerIdentityAddress(buyerPort: number, name: string): Promise<string | null> {
-  const response = await fetch(`http://127.0.0.1:${buyerPort}/_antseed/buyer-identities`, {
+  const response = await fetch(`http://127.0.0.1:${buyerPort}/_torve/buyer-identities`, {
     signal: AbortSignal.timeout(3_000),
   })
   if (!response.ok) return null
@@ -101,7 +101,7 @@ export async function liveBuyerIdentityAddress(buyerPort: number, name: string):
   return body.identities?.find((identity) => identity.name === name)?.address ?? null
 }
 
-/** Gateway server + spend feed, shared by `antseed gateway start` and `antseed tunnel start`. */
+/** Gateway server + spend feed, shared by `torve gateway start` and `torve tunnel start`. */
 export async function startGatewayRuntime(options: GatewayRuntimeOptions): Promise<GatewayRuntime> {
   const config = await loadConfig(options.configPath)
   const buyerPort = options.buyerPort ?? config.buyer.proxyPort
@@ -109,13 +109,13 @@ export async function startGatewayRuntime(options: GatewayRuntimeOptions): Promi
 
   try {
     if (options.environmentApiKey) {
-      if (options.environmentApiKey.length < 16) throw new Error('ANTSEED_TUNNEL_API_KEY must be at least 16 characters.')
+      if (options.environmentApiKey.length < 16) throw new Error('TORVE_TUNNEL_API_KEY must be at least 16 characters.')
       store.syncEnvironmentKey(options.environmentApiKey)
     } else if (options.environmentApiKey === null && store.retireEnvironmentKey()) {
-      options.onLog?.('ANTSEED_TUNNEL_API_KEY is unset; revoked the key it created')
+      options.onLog?.('TORVE_TUNNEL_API_KEY is unset; revoked the key it created')
     }
     if (store.countActiveKeys() === 0) {
-      throw new Error('No active API keys. Create one with `antseed gateway key create --label <name>`.')
+      throw new Error('No active API keys. Create one with `torve gateway key create --label <name>`.')
     }
   } catch (error) {
     store.close()

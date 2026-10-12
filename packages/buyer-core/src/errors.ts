@@ -1,6 +1,6 @@
 export type FaultAttribution = 'buyer' | 'peer' | 'unknown';
 
-export type AntseedErrorCode =
+export type TorveErrorCode =
   | 'node-not-started'
   | 'node-stopped'
   | 'invalid-request'
@@ -16,22 +16,22 @@ export type AntseedErrorCode =
   | 'peer-not-authorized'
   | 'peer-protocol-violation';
 
-export interface AntseedRequestErrorOptions {
+export interface TorveRequestErrorOptions {
   cause?: unknown;
 }
 
-export class AntseedRequestError extends Error {
+export class TorveRequestError extends Error {
   readonly attribution: FaultAttribution;
-  readonly code: AntseedErrorCode;
+  readonly code: TorveErrorCode;
 
   constructor(
     message: string,
-    code: AntseedErrorCode,
+    code: TorveErrorCode,
     attribution: FaultAttribution,
-    options?: AntseedRequestErrorOptions,
+    options?: TorveRequestErrorOptions,
   ) {
     super(message, options?.cause !== undefined ? { cause: options.cause } : undefined);
-    this.name = 'AntseedRequestError';
+    this.name = 'TorveRequestError';
     this.code = code;
     this.attribution = attribution;
   }
@@ -39,18 +39,18 @@ export class AntseedRequestError extends Error {
 
 export function buyerFault(
   message: string,
-  code: AntseedErrorCode,
-  options?: AntseedRequestErrorOptions,
-): AntseedRequestError {
-  return new AntseedRequestError(message, code, 'buyer', options);
+  code: TorveErrorCode,
+  options?: TorveRequestErrorOptions,
+): TorveRequestError {
+  return new TorveRequestError(message, code, 'buyer', options);
 }
 
 export function peerFault(
   message: string,
-  code: AntseedErrorCode,
-  options?: AntseedRequestErrorOptions,
-): AntseedRequestError {
-  return new AntseedRequestError(message, code, 'peer', options);
+  code: TorveErrorCode,
+  options?: TorveRequestErrorOptions,
+): TorveRequestError {
+  return new TorveRequestError(message, code, 'peer', options);
 }
 
 export function faultAttributionOf(err: unknown, depth = 0): FaultAttribution {
@@ -65,11 +65,11 @@ export function faultAttributionOf(err: unknown, depth = 0): FaultAttribution {
   return 'unknown';
 }
 
-export function faultCodeOf(err: unknown, depth = 0): AntseedErrorCode | null {
+export function faultCodeOf(err: unknown, depth = 0): TorveErrorCode | null {
   if (depth > 5) return null;
   const code = (err as { code?: unknown } | null)?.code;
-  if (typeof code === 'string' && ANTSEED_ERROR_CODES.has(code as AntseedErrorCode)) {
-    return code as AntseedErrorCode;
+  if (typeof code === 'string' && TORVE_ERROR_CODES.has(code as TorveErrorCode)) {
+    return code as TorveErrorCode;
   }
   if (err instanceof Error && err.cause !== undefined && err.cause !== err) {
     return faultCodeOf(err.cause, depth + 1);
@@ -77,7 +77,7 @@ export function faultCodeOf(err: unknown, depth = 0): AntseedErrorCode | null {
   return null;
 }
 
-const ANTSEED_ERROR_CODES: ReadonlySet<AntseedErrorCode> = new Set<AntseedErrorCode>([
+const TORVE_ERROR_CODES: ReadonlySet<TorveErrorCode> = new Set<TorveErrorCode>([
   'node-not-started', 'node-stopped', 'invalid-request', 'buyer-stream-limit',
   'buyer-budget-too-low', 'buyer-reserve-misconfigured', 'buyer-session-state',
   'buyer-deposits-insufficient', 'buyer-reserve-topup-timeout', 'buyer-transport-closed', 'invalid-spending-auth-header',

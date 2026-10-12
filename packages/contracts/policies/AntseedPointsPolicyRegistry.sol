@@ -4,10 +4,10 @@ pragma solidity ^0.8.24;
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
-import { IAntseedPointsModifier } from "../interfaces/IAntseedPointsModifier.sol";
-import { IAntseedPointsPolicy } from "../interfaces/IAntseedPointsPolicy.sol";
+import { ITorvePointsModifier } from "../interfaces/ITorvePointsModifier.sol";
+import { ITorvePointsPolicy } from "../interfaces/ITorvePointsPolicy.sol";
 
-contract AntseedPointsPolicyRegistry is IAntseedPointsPolicy, Ownable2Step {
+contract TorvePointsPolicyRegistry is ITorvePointsPolicy, Ownable2Step {
     uint256 public constant MAX_POLICIES = 8;
     address[] private _policies;
     mapping(address policy => uint256 indexPlusOne) private _policyIndexPlusOne;
@@ -72,7 +72,7 @@ contract AntseedPointsPolicyRegistry is IAntseedPointsPolicy, Ownable2Step {
         uint256 count = _policies.length;
         for (uint256 index = 0; index < count; ++index) {
             (uint256 nextSellerPoints, uint256 nextBuyerPoints) =
-                IAntseedPointsModifier(_policies[index]).points(channelId, buyer, seller, sellerPoints, buyerPoints);
+                ITorvePointsModifier(_policies[index]).points(channelId, buyer, seller, sellerPoints, buyerPoints);
             if (buyerPoints != 0) buyerPoints = nextBuyerPoints;
             if (sellerPoints != 0) sellerPoints = nextSellerPoints;
             if (buyerPoints == 0 && sellerPoints == 0) return (0, 0);

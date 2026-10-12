@@ -15,16 +15,16 @@ const NODE_BUILTINS = new Set([
   ...builtinModules.map((name) => `node:${name}`),
 ]);
 
-export const DEFAULT_PLUGINS_DIR = path.join(homedir(), '.antseed', 'plugins');
+export const DEFAULT_PLUGINS_DIR = path.join(homedir(), '.torve', 'plugins');
 const DEFAULT_PLUGINS_PACKAGE_JSON = path.join(DEFAULT_PLUGINS_DIR, 'package.json');
 export const SAFE_PLUGIN_PACKAGE_PATTERN = /^(@?[a-z0-9][a-z0-9._-]*)(\/[a-z0-9][a-z0-9._-]*)?$/i;
 export const PLUGIN_PACKAGE_ALIAS_MAP: Record<string, string> = {
-  'local': '@antseed/router-local',
-  'router-local': '@antseed/router-local',
-  'antseed-router-local': '@antseed/router-local',
+  'local': '@torveai/router-local',
+  'router-local': '@torveai/router-local',
+  'torve-router-local': '@torveai/router-local',
 };
 export const SCOPED_TO_LEGACY_PLUGIN_PACKAGE_MAP: Record<string, string> = {
-  '@antseed/router-local': 'antseed-router-local',
+  '@torveai/router-local': 'torve-router-local',
 };
 
 export type InstalledPlugin = {
@@ -61,7 +61,7 @@ export function normalizePluginPackageName(value: string): string {
   }
 
   if (lower.startsWith('provider-') || lower.startsWith('router-')) {
-    return `@antseed/${lower}`;
+    return `@torveai/${lower}`;
   }
 
   return trimmed;
@@ -153,7 +153,7 @@ function hasMissingInstalledDependencyTree(
   const manifest = readPackageManifestSync(packageDir);
   if (!manifest) return true;
 
-  const includePeers = (manifest.name ?? packageName).startsWith('@antseed/');
+  const includePeers = (manifest.name ?? packageName).startsWith('@torveai/');
   for (const depName of dependencyNamesForManifest(manifest, includePeers)) {
     const depManifestPath = path.resolve(packageManifestPath(pluginsDir, depName));
     if (!depManifestPath.startsWith(path.resolve(pluginsDir))) return true;
@@ -169,7 +169,7 @@ export async function ensurePluginsDirectory(): Promise<void> {
 
   if (!existsSync(DEFAULT_PLUGINS_PACKAGE_JSON)) {
     const emptyPackageJson = {
-      name: 'antseed-plugins',
+      name: 'torve-plugins',
       version: '1.0.0',
       private: true,
       dependencies: {},
@@ -265,10 +265,10 @@ export async function installPluginDependencies(packageSpecs: string[]): Promise
 
 async function removeDefaultRouterRuntimePackages(): Promise<void> {
   const packages = [
-    '@antseed/router-local',
-    '@antseed/router-core',
-    '@antseed/node',
-    '@antseed/api-adapter',
+    '@torveai/router-local',
+    '@torveai/router-core',
+    '@torveai/node',
+    '@torveai/api-adapter',
   ];
   for (const packageName of packages) {
     await rm(packageNodeModulesPath(DEFAULT_PLUGINS_DIR, packageName), { recursive: true, force: true });
@@ -291,9 +291,9 @@ export async function installPluginFromBundle(packageName: string): Promise<bool
   const destRoot = path.join(DEFAULT_PLUGINS_DIR, 'node_modules');
 
   // Copy every package from the bundle (scoped and unscoped) into the user's
-  // plugins dir. The bundle contains the plugin itself, the @antseed/* peer
+  // plugins dir. The bundle contains the plugin itself, the @torveai/* peer
   // packages it imports at runtime, and the full transitive runtime dependency
-  // tree of @antseed/node (ethers, @silentbot1/nat-api, ...) so the desktop
+  // tree of @torveai/node (ethers, @silentbot1/nat-api, ...) so the desktop
   // can repair itself fully offline — no Node/npm required on the user box.
   const bundleEntries = await readdir(bundleRoot, { withFileTypes: true });
 
@@ -366,7 +366,7 @@ export async function resolveLocalPluginSource(packageName: string): Promise<str
   const dedupedRoots = [...new Set(rootCandidates)];
   const acceptedPackageNames = resolveLocalPackageNameAliases(packageName);
   const packageSuffix = packageName.includes('/') ? packageName.split('/').pop() ?? packageName : packageName;
-  const inferredDir = packageSuffix.replace(/^antseed-/, '');
+  const inferredDir = packageSuffix.replace(/^torve-/, '');
 
   const relativeCandidates = [
     packageName,
@@ -478,9 +478,9 @@ export async function ensureDefaultPlugin(
       if (localSource) {
         await installPluginDependency(toFileInstallSpec(packageName, localSource));
       } else {
-        // 3. Fall back to npm registry. Install @antseed/node explicitly so npm
+        // 3. Fall back to npm registry. Install @torveai/node explicitly so npm
         //    repairs its runtime deps instead of treating a stale copied peer as OK.
-        await installPluginDependencies([`${packageName}@latest`, '@antseed/node@latest']);
+        await installPluginDependencies([`${packageName}@latest`, '@torveai/node@latest']);
       }
     }
     ctx.appendLog('connect', 'system', `Installed plugin "${packageName}".`);

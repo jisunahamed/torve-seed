@@ -14,7 +14,7 @@ import {
   type InitialWireType,
   type TcpEncAckMessage,
   type TcpEncOffer,
-} from '@antseed/protocol/connection-auth';
+} from '@torveai/protocol/connection-auth';
 import { sha256Hex, X25519_PUB_HEX_REGEX } from './secure-channel.js';
 
 export { INTRO_AUTH_MAX_SKEW_MS };

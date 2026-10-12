@@ -1,6 +1,6 @@
-import { MessageType, type FramedMessage } from '@antseed/protocol/messages';
+import { MessageType, type FramedMessage } from '@torveai/protocol/messages';
 import type { BuyerConnection } from './interfaces.js';
-import { encodeFrame } from '@antseed/protocol/framing';
+import { encodeFrame } from '@torveai/protocol/framing';
 import {
   encodeHttpRequest,
   decodeHttpRequest,
@@ -10,22 +10,22 @@ import {
   decodeHttpResponseChunk,
   encodeHttpRequestChunk,
   decodeHttpRequestChunk,
-} from "@antseed/protocol/request-codec";
+} from "@torveai/protocol/request-codec";
 import {
-  ANTSEED_STREAMING_RESPONSE_HEADER,
-  ANTSEED_UPLOAD_CHUNK_HEADER,
-  ANTSEED_UPLOAD_THRESHOLD_BYTES,
-  ANTSEED_UPLOAD_CHUNK_SIZE,
+  TORVE_STREAMING_RESPONSE_HEADER,
+  TORVE_UPLOAD_CHUNK_HEADER,
+  TORVE_UPLOAD_THRESHOLD_BYTES,
+  TORVE_UPLOAD_CHUNK_SIZE,
   VIDEO_DOWNLOAD_STREAM_HEADER,
   VIDEO_DOWNLOAD_STREAM_VERSION,
   VIDEO_DOWNLOAD_CHUNK_BYTES,
-} from '@antseed/protocol/http';
+} from '@torveai/protocol/http';
 import { debugLog } from './debug.js';
 import type {
   SerializedHttpRequest,
   SerializedHttpResponse,
   SerializedHttpResponseChunk,
-} from '@antseed/protocol/http';
+} from '@torveai/protocol/http';
 
 type ResponseHandler = (
   response: SerializedHttpResponse,
@@ -39,7 +39,7 @@ export interface ProxyMuxUploadLimits {
   /** Max body bytes for a single upload. Default: 64 MiB. Buyer receives 413 on violation. */
   maxUploadBodyBytes?: number;
   /**
-   * Buyer-side chunked-upload threshold. Default: ANTSEED_UPLOAD_THRESHOLD_BYTES
+   * Buyer-side chunked-upload threshold. Default: TORVE_UPLOAD_THRESHOLD_BYTES
    * (512 KiB). Transports with smaller message ceilings (e.g. W3C WebRTC's
    * ~256 KiB SCTP default against libdatachannel peers) lower this.
    */
@@ -97,7 +97,7 @@ export class ProxyMux {
   constructor(connection: BuyerConnection, uploadLimits?: ProxyMuxUploadLimits) {
     this._connection = connection;
     this._maxUploadBodyBytes       = uploadLimits?.maxUploadBodyBytes       ?? DEFAULT_MAX_UPLOAD_BODY_BYTES;
-    this._uploadThresholdBytes     = uploadLimits?.uploadThresholdBytes     ?? ANTSEED_UPLOAD_THRESHOLD_BYTES;
+    this._uploadThresholdBytes     = uploadLimits?.uploadThresholdBytes     ?? TORVE_UPLOAD_THRESHOLD_BYTES;
     this._maxTotalPendingUploadBytes = uploadLimits?.maxTotalPendingUploadBytes ?? DEFAULT_MAX_TOTAL_PENDING_BYTES;
     this._uploadTimeoutMs          = uploadLimits?.uploadTimeoutMs          ?? DEFAULT_UPLOAD_TIMEOUT_MS;
   }
@@ -133,7 +133,7 @@ export class ProxyMux {
     // Header frame: metadata only, empty body, upload marker
     const headerRequest: SerializedHttpRequest = {
       ...request,
-      headers: { ...request.headers, [ANTSEED_UPLOAD_CHUNK_HEADER]: 'chunked' },
+      headers: { ...request.headers, [TORVE_UPLOAD_CHUNK_HEADER]: 'chunked' },
       body: new Uint8Array(0),
     };
     this._connection.send(encodeFrame({
@@ -142,11 +142,11 @@ export class ProxyMux {
       payload: encodeHttpRequest(headerRequest),
     }));
 
-    // Stream body in ANTSEED_UPLOAD_CHUNK_SIZE slices
+    // Stream body in TORVE_UPLOAD_CHUNK_SIZE slices
     const body = request.body;
     let offset = 0;
     while (offset < body.length) {
-      const end = Math.min(offset + ANTSEED_UPLOAD_CHUNK_SIZE, body.length);
+      const end = Math.min(offset + TORVE_UPLOAD_CHUNK_SIZE, body.length);
       const isLast = end >= body.length;
       const payload = encodeHttpRequestChunk({
         requestId: request.requestId,
@@ -260,14 +260,14 @@ export class ProxyMux {
           if (request.headers[VIDEO_DOWNLOAD_STREAM_HEADER] === VIDEO_DOWNLOAD_STREAM_VERSION) {
             // Venice downloads are a small JSON POST naming the job.
             const validBody = request.method === 'POST' && request.body.length <= 4096;
-            if (!validBody || request.headers[ANTSEED_UPLOAD_CHUNK_HEADER]) throw new Error('Invalid download request');
+            if (!validBody || request.headers[TORVE_UPLOAD_CHUNK_HEADER]) throw new Error('Invalid download request');
             if (this._downloadControllers.has(request.requestId)) throw new Error('Duplicate download request');
             this._downloadControllers.set(request.requestId, new AbortController());
           }
           debugLog(
-            `[ProxyMux] recv request reqId=${request.requestId.slice(0, 8)} chunked=${request.headers[ANTSEED_UPLOAD_CHUNK_HEADER] === 'chunked' ? "true" : "false"} bodyBytes=${request.body?.length ?? 0} bodyType=${typeof request.body}`,
+            `[ProxyMux] recv request reqId=${request.requestId.slice(0, 8)} chunked=${request.headers[TORVE_UPLOAD_CHUNK_HEADER] === 'chunked' ? "true" : "false"} bodyBytes=${request.body?.length ?? 0} bodyType=${typeof request.body}`,
           );
-          if (request.headers[ANTSEED_UPLOAD_CHUNK_HEADER] === 'chunked') {
+          if (request.headers[TORVE_UPLOAD_CHUNK_HEADER] === 'chunked') {
             // Body will arrive via HttpRequestChunk/HttpRequestEnd — start buffering.
             // If a duplicate header frame arrives for the same requestId, evict the
             // existing entry first to prevent timer leaks and accounting drift.
@@ -354,7 +354,7 @@ export class ProxyMux {
             for (const c of entry.chunks) c.fill(0);
             entry.chunks.length = 0;
 
-            const { [ANTSEED_UPLOAD_CHUNK_HEADER]: _marker, ...cleanHeaders } = entry.headerReq.headers;
+            const { [TORVE_UPLOAD_CHUNK_HEADER]: _marker, ...cleanHeaders } = entry.headerReq.headers;
             await this._requestHandler({ ...entry.headerReq, headers: cleanHeaders, body });
           }
           break;
@@ -363,11 +363,11 @@ export class ProxyMux {
           // Buyer side: response from seller (start frame for streams).
           const response = decodeHttpResponse(frame.payload);
           debugLog(
-            `[ProxyMux] recv response reqId=${response.requestId.slice(0, 8)} status=${response.statusCode} bytes=${response.body?.length ?? 0} streamingStart=${response.headers[ANTSEED_STREAMING_RESPONSE_HEADER] === '1' ? "true" : "false"}`,
+            `[ProxyMux] recv response reqId=${response.requestId.slice(0, 8)} status=${response.statusCode} bytes=${response.body?.length ?? 0} streamingStart=${response.headers[TORVE_STREAMING_RESPONSE_HEADER] === '1' ? "true" : "false"}`,
           );
           const handler = this._responseHandlers.get(response.requestId);
           if (handler) {
-            const streamingStart = response.headers[ANTSEED_STREAMING_RESPONSE_HEADER] === '1';
+            const streamingStart = response.headers[TORVE_STREAMING_RESPONSE_HEADER] === '1';
             if (!streamingStart) {
               this._downloads.delete(response.requestId);
               this._responseHandlers.delete(response.requestId);
@@ -503,7 +503,7 @@ export class ProxyMux {
       statusCode,
       headers: {
         'content-type': 'text/plain',
-        ...(statusCode === 413 ? { 'x-antseed-max-upload-body-bytes': String(this._maxUploadBodyBytes) } : {}),
+        ...(statusCode === 413 ? { 'x-torve-max-upload-body-bytes': String(this._maxUploadBodyBytes) } : {}),
       },
       body: new TextEncoder().encode(reason),
     });

@@ -5,10 +5,10 @@ import { createRequire } from 'node:module';
 import { existsSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-const APP_NAME = 'Antseed AI VPN';
+const APP_NAME = 'Torve AI VPN';
 // Earlier branded names — migrated to APP_NAME if found.
-const LEGACY_APP_NAMES = ['AntSeed VPR', 'AntSeed Desktop'];
-const APP_BUNDLE_ID = 'com.antseed.desktop-dev';
+const LEGACY_APP_NAMES = ['Torve VPR', 'Torve Desktop'];
+const APP_BUNDLE_ID = 'com.torveai.desktop-dev';
 const require = createRequire(import.meta.url);
 
 function runPlistBuddy(plistPath, command) {

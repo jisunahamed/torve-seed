@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { shouldRemoveSharedConfigPatches } from './dev-instance.js';
 
-const MULTI_INSTANCE_ENV = 'ANTSEED_DESKTOP_MULTI_INSTANCE';
+const MULTI_INSTANCE_ENV = 'TORVE_DESKTOP_MULTI_INSTANCE';
 
 test('explicit disconnect removes shared config patches in multi-instance development', () => {
   const previous = process.env[MULTI_INSTANCE_ENV];

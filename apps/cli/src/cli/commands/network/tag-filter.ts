@@ -1,4 +1,4 @@
-import type { PeerInfo } from '@antseed/node';
+import type { PeerInfo } from '@torveai/node';
 
 /**
  * Parse a comma-separated `--tag` argument into a lowercased set. Empty or

@@ -8,7 +8,7 @@ import type {
   NeedAuthPayload,
   CloseChannelRequestPayload,
   OneOffChannelPlan,
-} from '@antseed/protocol/messages';
+} from '@torveai/protocol/messages';
 import { DepositsClient } from './deposits-client.js';
 import {
   signSpendingAuth,
@@ -20,12 +20,12 @@ import {
   ZERO_METADATA,
   ZERO_METADATA_HASH,
   computeChannelId,
-} from '@antseed/protocol/signatures';
-import type { SpendingAuthMessage, SpendingAuthMetadata } from '@antseed/protocol/signatures';
+} from '@torveai/protocol/signatures';
+import type { SpendingAuthMessage, SpendingAuthMetadata } from '@torveai/protocol/signatures';
 import { debugLog, debugWarn } from './debug.js';
-import { peerIdToAddress, type PeerId } from '@antseed/protocol/peer-id';
+import { peerIdToAddress, type PeerId } from '@torveai/protocol/peer-id';
 import type { SellerAddressResolver } from './seller-address-resolver.js';
-import type { PeerMetadata } from '@antseed/protocol/peer-metadata';
+import type { PeerMetadata } from '@torveai/protocol/peer-metadata';
 import { BuyerChannelStore, CHANNEL_KIND, CHANNEL_ROLE, CHANNEL_STATUS, type StoredChannel } from './channel-store-types.js';
 import {
   advanceUsageMetadata,
@@ -38,9 +38,9 @@ import {
   computeCostUsdc,
   type ServicePricing,
 } from './pricing.js';
-import type { UnitBillingContext, UnitBillingModelV1, UnitBillingUsage } from '@antseed/protocol/billing';
+import type { UnitBillingContext, UnitBillingModelV1, UnitBillingUsage } from '@torveai/protocol/billing';
 import type { BillingRequestFacts } from './unit-billing.js';
-import { evaluateUnitBilling, unitUsageFromReport, validateUnitBillingUsage } from '@antseed/protocol/billing';
+import { evaluateUnitBilling, unitUsageFromReport, validateUnitBillingUsage } from '@torveai/protocol/billing';
 import { isUnitBilledProtocol, nativeVideoUnitUsage } from './unit-billing.js';
 import { buyerFault, faultCodeOf } from './errors.js';
 

@@ -1,4 +1,4 @@
-import { DEFAULT_BUYER_IDENTITY } from '@antseed/node'
+import { DEFAULT_BUYER_IDENTITY } from '@torveai/node'
 import Database from 'better-sqlite3'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -143,7 +143,7 @@ export function gatewayDir(dataDir: string): string {
 
 /**
  * Durable state for the API-key gateway: keys, request log and the per-key
- * ledger. SQLite in WAL mode so `antseed gateway key …`
+ * ledger. SQLite in WAL mode so `torve gateway key …`
  * commands can change keys while a gateway process is serving them.
  */
 export class GatewayStore {
@@ -194,8 +194,8 @@ export class GatewayStore {
   }
 
   /**
-   * The single key `antseed tunnel start` used to take from
-   * ANTSEED_TUNNEL_API_KEY becomes an unlimited key on the default identity,
+   * The single key `torve tunnel start` used to take from
+   * TORVE_TUNNEL_API_KEY becomes an unlimited key on the default identity,
    * so existing tunnel clients keep working. A changed env key replaces it.
    */
   syncEnvironmentKey(secret: string): ApiKeyRecord {
@@ -215,7 +215,7 @@ export class GatewayStore {
   }
 
   /**
-   * Revokes the ANTSEED_TUNNEL_API_KEY key once the tunnel starts without the
+   * Revokes the TORVE_TUNNEL_API_KEY key once the tunnel starts without the
    * env var, so unsetting it retires the shared unlimited key. Returns the
    * revoked key, or null when there was no active one.
    */

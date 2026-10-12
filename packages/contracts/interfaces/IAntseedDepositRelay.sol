@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-interface IAntseedDepositRelay {
+interface ITorveDepositRelay {
     function sweepDeposit(
         address from,
         uint256 amount,

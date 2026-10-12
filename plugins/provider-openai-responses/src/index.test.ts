@@ -21,7 +21,7 @@ function makeJwt(payload: Record<string, unknown>): string {
 }
 
 function writeAuthFile(contents: Record<string, unknown>): string {
-  const dir = join(tmpdir(), `antseed-openai-responses-${Math.random().toString(16).slice(2)}`);
+  const dir = join(tmpdir(), `torve-openai-responses-${Math.random().toString(16).slice(2)}`);
   mkdirSync(dir, { recursive: true });
   const path = join(dir, 'auth.json');
   writeFileSync(path, JSON.stringify(contents), 'utf8');
@@ -57,7 +57,7 @@ describe('provider-openai-responses plugin', () => {
     });
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex',
     });
     expect(provider.serviceApiProtocols?.['gpt-5-codex']).toEqual(['openai-responses']);
     rmSync(dirname(authFile), { recursive: true, force: true });
@@ -75,7 +75,7 @@ describe('provider-openai-responses plugin', () => {
     });
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex',
     });
 
     expect(provider.maxConcurrency).toBe(50);
@@ -135,7 +135,7 @@ describe('provider-openai-responses plugin', () => {
     });
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex,o4-mini',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex,o4-mini',
     });
 
     const response = await provider.handleRequest({
@@ -170,7 +170,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex',
     });
 
     const response = await provider.handleRequest({
@@ -213,7 +213,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5.6-sol',
+      TORVE_ALLOWED_SERVICES: 'gpt-5.6-sol',
     });
 
     await provider.handleRequest({
@@ -254,8 +254,8 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'codex',
-      ANTSEED_SERVICE_ALIAS_MAP_JSON: '{"codex":"gpt-5-codex"}',
+      TORVE_ALLOWED_SERVICES: 'codex',
+      TORVE_SERVICE_ALIAS_MAP_JSON: '{"codex":"gpt-5-codex"}',
     });
 
     await provider.handleRequest({
@@ -296,7 +296,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex',
     });
 
     await provider.handleRequest({
@@ -337,7 +337,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5.5',
+      TORVE_ALLOWED_SERVICES: 'gpt-5.5',
     });
 
     await provider.handleRequest({
@@ -406,7 +406,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5.5',
+      TORVE_ALLOWED_SERVICES: 'gpt-5.5',
     });
 
     const response = await provider.handleRequest({
@@ -462,7 +462,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5.5',
+      TORVE_ALLOWED_SERVICES: 'gpt-5.5',
     });
     const callbacks = {
       onResponseStart: vi.fn(),
@@ -512,7 +512,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5.5',
+      TORVE_ALLOWED_SERVICES: 'gpt-5.5',
     });
 
     const response = await provider.handleRequest({
@@ -521,7 +521,7 @@ describe('provider-openai-responses plugin', () => {
       path: '/v1/responses',
       headers: {
         'content-type': 'application/json',
-        'x-antseed-client-stream-requested': 'false',
+        'x-torve-client-stream-requested': 'false',
       },
       body: new TextEncoder().encode(JSON.stringify({
         model: 'gpt-5.5',
@@ -534,7 +534,7 @@ describe('provider-openai-responses plugin', () => {
     const upstreamHeaders = init.headers as Record<string, string>;
     const upstreamBody = JSON.parse(new TextDecoder().decode((init.body as Uint8Array) ?? new Uint8Array(0))) as Record<string, unknown>;
     expect(upstreamBody.stream).toBe(true);
-    expect(upstreamHeaders['x-antseed-client-stream-requested']).toBeUndefined();
+    expect(upstreamHeaders['x-torve-client-stream-requested']).toBeUndefined();
     expect(response.headers['content-type']).toBe('application/json');
     const body = JSON.parse(new TextDecoder().decode(response.body)) as Record<string, unknown>;
     expect(body.id).toBe('resp_2');
@@ -564,7 +564,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5.5',
+      TORVE_ALLOWED_SERVICES: 'gpt-5.5',
     });
 
     const response = await provider.handleRequest({
@@ -610,7 +610,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5.5',
+      TORVE_ALLOWED_SERVICES: 'gpt-5.5',
     });
 
     await provider.handleRequest({
@@ -649,7 +649,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex',
     });
 
     const response = await provider.handleRequest({
@@ -820,7 +820,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex',
     });
 
     const response = await provider.handleRequest({
@@ -888,7 +888,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex',
     });
 
     const response = await provider.handleRequest({
@@ -962,7 +962,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex',
     });
 
     const response = await provider.handleRequest({
@@ -1016,7 +1016,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex',
     });
 
     await provider.handleRequest({
@@ -1083,7 +1083,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex',
     });
 
     const starts: Array<{ statusCode: number }> = [];
@@ -1156,7 +1156,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex',
     });
 
     const starts: Array<{ statusCode: number }> = [];
@@ -1225,7 +1225,7 @@ describe('provider-openai-responses plugin', () => {
 
     const provider = plugin.createProvider({
       OPENAI_RESPONSES_AUTH_FILE: authFile,
-      ANTSEED_ALLOWED_SERVICES: 'gpt-5-codex',
+      TORVE_ALLOWED_SERVICES: 'gpt-5-codex',
     });
 
     const pendingResponse = provider.handleRequest({

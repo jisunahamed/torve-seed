@@ -35,7 +35,7 @@ export interface ChainConfig {
   registryContractAddress?: string;
   depositsContractAddress: string;
   channelsContractAddress: string;
-  /** Optional AntseedFreeUsage contract address for zero-price signed usage. */
+  /** Optional TorveFreeUsage contract address for zero-price signed usage. */
   freeUsageContractAddress?: string;
   stakingContractAddress?: string;
   usdcContractAddress: string;
@@ -58,15 +58,15 @@ export interface ChainConfig {
   recognizedUsage?: RecognizedUsageDeployment;
   /** Block when Channels contract was deployed. Floor for event log scans. */
   channelsDeployBlock?: number;
-  /** AntseedStats contract address. Populated only where an indexer aggregates it. */
+  /** TorveStats contract address. Populated only where an indexer aggregates it. */
   statsContractAddress?: string;
-  /** Deployment block of AntseedStats for cold-start indexer backfill. */
+  /** Deployment block of TorveStats for cold-start indexer backfill. */
   statsDeployBlock?: number;
-  /** Public URL of the @antseed/network-stats aggregator that indexes the stats contract for this chain. */
+  /** Public URL of the @torveai/network-stats aggregator that indexes the stats contract for this chain. */
   networkStatsUrl?: string;
   /** Public REST API of the chain explorer (Antscan). Serves per-seller on-chain stats at /api/sellers. */
   explorerApiUrl?: string;
-  /** AntseedDepositRelay contract for gasless USDC sweeps from buyer hot wallets. */
+  /** TorveDepositRelay contract for gasless USDC sweeps from buyer hot wallets. */
   depositRelayAddress?: string;
 }
 
@@ -96,20 +96,20 @@ const CHAIN_CONFIGS: Record<ChainId, ChainConfig> = {
       'https://base-public.nodies.app',
       'https://mainnet.base.org',
     ],
-    networkStatsUrl: 'https://network.antseed.com',
+    networkStatsUrl: 'https://network.torveai.com',
     explorerApiUrl: 'https://antscan.co',
   },
   'base-sepolia': {
     ...DEPLOYED_CONTRACT_ADDRESSES['base-sepolia'],
     chainId: 'base-sepolia',
     rpcUrl: 'https://sepolia.base.org',
-    // depositRelayAddress: TODO — set after AntseedDepositRelay sepolia deployment
+    // depositRelayAddress: TODO — set after TorveDepositRelay sepolia deployment
   },
   'base-local': {
     chainId: 'base-local',
     evmChainId: 31337,
     rpcUrl: 'http://127.0.0.1:8545',
-    // Nonce sequence: 0=USDC, 1=Registry, 2=ANTSToken, 3=AntseedRegistry, 4=Staking, 5=Deposits, 6=Channels, 7=Stats, 8=Emissions, 9=DepositRelay
+    // Nonce sequence: 0=USDC, 1=Registry, 2=ANTSToken, 3=TorveRegistry, 4=Staking, 5=Deposits, 6=Channels, 7=Stats, 8=Emissions, 9=DepositRelay
     usdcContractAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
     identityRegistryAddress: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
     registryContractAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0',

@@ -10,7 +10,7 @@ function applyEnvFile(filePath: string): void {
  * Precedence: existing process.env > explicit env file > .env.local > .env
  */
 export function loadEnvFromFiles(): void {
-  const explicit = process.env['ANTSEED_ENV_FILE'];
+  const explicit = process.env['TORVE_ENV_FILE'];
   if (explicit) {
     applyEnvFile(resolve(explicit));
   }

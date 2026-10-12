@@ -58,7 +58,7 @@ export class SpendFeedPoller {
       let response: Response
       try {
         response = await fetchImpl(
-          `http://127.0.0.1:${this._options.buyerPort}/_antseed/attributed-spend?after=${this._after}`,
+          `http://127.0.0.1:${this._options.buyerPort}/_torve/attributed-spend?after=${this._after}`,
           { signal: AbortSignal.timeout(POLL_TIMEOUT_MS) },
         )
       } catch {

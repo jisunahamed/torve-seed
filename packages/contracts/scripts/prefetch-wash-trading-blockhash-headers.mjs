@@ -38,7 +38,7 @@ const plan = JSON.parse(await readFile(planPath, "utf8"));
 const { digest, ...planWithoutDigest } = plan;
 if (
   plan.version !== 2
-  || plan.kind !== "antseed-wash-trading-sparse-blockhash-backfill-plan"
+  || plan.kind !== "torve-wash-trading-sparse-blockhash-backfill-plan"
   || stableDigest(planWithoutDigest) !== digest
 ) throw new Error("invalid blockhash backfill plan");
 

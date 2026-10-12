@@ -58,7 +58,7 @@ const ADDRESS = {
   sellerRewardsPool: '0x00000000000000000000000000000000000000ee',
 };
 
-const REHEARSAL_FORK = { rpcEnv: 'ANTSEED_TEST_FORK_RPC_URL', forkBlockNumber: 123, chainId: 8453 };
+const REHEARSAL_FORK = { rpcEnv: 'TORVE_TEST_FORK_RPC_URL', forkBlockNumber: 123, chainId: 8453 };
 const REHEARSAL_OPTIONS = { migration: 'M004', network: 'base-mainnet', mode: 'fork-test', signers: {} };
 
 function rehearsalMigration(id, prerequisites = [], fork) {
@@ -119,7 +119,7 @@ test('validates the network for prerequisite rehearsals and preserves M001 stand
 });
 
 test('M001 rehearsal retains its fixtures, epoch advancement, activation, and no-op check', async (t) => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'antseed-m001-hook-'));
+  const directory = await mkdtemp(path.join(tmpdir(), 'torve-m001-hook-'));
   const calls = [];
   const driven = [];
   const previousVerifier = process.env.SP1_VERIFIER;
@@ -168,7 +168,7 @@ test('M001 rehearsal retains its fixtures, epoch advancement, activation, and no
 
 for (const failPrerequisite of [false, true]) {
   test(`rehearsals isolate their ledger and clean up Anvil on ${failPrerequisite ? 'failure' : 'success'}`, async (t) => {
-    const canonicalRoot = await mkdtemp(path.join(tmpdir(), 'antseed-rehearsal-baseline-'));
+    const canonicalRoot = await mkdtemp(path.join(tmpdir(), 'torve-rehearsal-baseline-'));
     const logs = [];
     const calls = [];
     let outputRoot;
@@ -281,7 +281,7 @@ test('temporary canonical roots never regenerate repository chain configuration'
 
 for (const mode of ['dry-run', 'broadcast']) {
   test(`${mode} does not resolve or execute rehearsal prerequisites`, async (t) => {
-    const directory = await mkdtemp(path.join(tmpdir(), 'antseed-non-rehearsal-'));
+    const directory = await mkdtemp(path.join(tmpdir(), 'torve-non-rehearsal-'));
     t.after(() => rm(directory, { recursive: true, force: true }));
     await writeJsonAtomic(path.join(directory, 'base-mainnet', 'current.json'), { release: 'active' });
     const current = {
@@ -384,7 +384,7 @@ test('parses signer specs and resolves them to addresses, never keys', async () 
     /one --ledger per run/,
   );
 
-  const keystoreDirectory = await mkdtemp(path.join(tmpdir(), 'antseed-keystore-'));
+  const keystoreDirectory = await mkdtemp(path.join(tmpdir(), 'torve-keystore-'));
   try {
     const file = path.join(keystoreDirectory, 'owner.json');
     await writeJsonAtomic(file, { address: '0000000000000000000000000000000000000001', crypto: {} });
@@ -481,7 +481,7 @@ test('rejects invalid and duplicate migration registrations', () => {
 });
 
 test('writes mutable artifacts atomically and history records once', async () => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'antseed-deployment-artifacts-'));
+  const directory = await mkdtemp(path.join(tmpdir(), 'torve-deployment-artifacts-'));
   try {
     const currentFile = path.join(directory, 'current.json');
     const historyFile = path.join(directory, 'history', '001-example.json');
@@ -501,7 +501,7 @@ test('writes mutable artifacts atomically and history records once', async () =>
 });
 
 test('reconciles history and current.json independently after an interrupted run', async () => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'antseed-deployment-reconcile-'));
+  const directory = await mkdtemp(path.join(tmpdir(), 'torve-deployment-reconcile-'));
   try {
     const context = { outputRoot: directory, network: 'base-sepolia' };
     const release = '001-recognized-usage-activated';
@@ -612,7 +612,7 @@ function mockCast(t, reply) {
 
 for (const creationType of ['CREATE', 'CREATE2', null]) {
   test(`preserves creation provenance with ${creationType ?? 'CALL-only'} broadcasts`, async (t) => {
-    const directory = await mkdtemp(path.join(tmpdir(), 'antseed-broadcast-'));
+    const directory = await mkdtemp(path.join(tmpdir(), 'torve-broadcast-'));
     t.after(() => rm(directory, { recursive: true, force: true }));
     const codeHash = `0x${'ab'.repeat(32)}`;
     mockCast(t, (args) => {
@@ -623,7 +623,7 @@ for (const creationType of ['CREATE', 'CREATE2', null]) {
     const creation = {
       hash: `0x${'11'.repeat(32)}`,
       transactionType: creationType,
-      contractName: 'AntseedSellerPools',
+      contractName: 'TorveSellerPools',
       contractAddress: ADDRESS.sellerRegistry,
       arguments: [ADDRESS.ants, ADDRESS.registry],
     };
@@ -646,14 +646,14 @@ for (const creationType of ['CREATE', 'CREATE2', null]) {
         to: transaction.transactionType === 'CALL' ? ADDRESS.sellerRegistry : null,
       })),
     });
-    const parsed = await parseBroadcast(file, 'http://unused', { AntseedSellerPools: 'sellerPools' });
+    const parsed = await parseBroadcast(file, 'http://unused', { TorveSellerPools: 'sellerPools' });
     assert.equal(parsed.transactions.length, transactions.length);
     assert.equal(parsed.transactions.at(-1).action, configuration.function);
     if (!creationType) {
       assert.deepEqual(parsed.contracts, {});
       return;
     }
-    assert.equal(parsed.transactions[0].action, 'deploy AntseedSellerPools');
+    assert.equal(parsed.transactions[0].action, 'deploy TorveSellerPools');
     assert.deepEqual(parsed.contracts.sellerPools, {
       address: ADDRESS.sellerRegistry,
       deploymentBlock: 100,
@@ -673,7 +673,7 @@ for (const [cached, registryState] of [
   [true, 'missing-policy'], [true, 'wrong-policy'],
 ]) {
   test(`checks activation ${cached ? 'with' : 'without'} a local checkpoint and ${registryState} wash registry`, async (t) => {
-    const directory = await mkdtemp(path.join(tmpdir(), 'antseed-activated-'));
+    const directory = await mkdtemp(path.join(tmpdir(), 'torve-activated-'));
     t.after(() => rm(directory, { recursive: true, force: true }));
     const emissionsGate = '0x0000000000000000000000000000000000000008';
     const pointsPolicyRegistry = '0x0000000000000000000000000000000000000009';
@@ -863,7 +863,7 @@ test('release helpers preserve explicit metadata, transaction order, and creatio
 });
 
 test('activation record writes never overwrite existing history while repairing current', async (testContext) => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'antseed-activation-records-'));
+  const directory = await mkdtemp(path.join(tmpdir(), 'torve-activation-records-'));
   testContext.after(() => rm(directory, { recursive: true, force: true }));
   const context = { outputRoot: directory, network: 'test' };
   const record = { release: '002-example', sourceCommit: 'reviewed-commit' };
@@ -878,18 +878,18 @@ test('activation record writes never overwrite existing history while repairing 
 let fixtureChainId = 990000;
 
 async function m001Fixture(testContext) {
-  const directory = await mkdtemp(path.join(tmpdir(), 'antseed-readable-m001-'));
+  const directory = await mkdtemp(path.join(tmpdir(), 'torve-readable-m001-'));
   const network = 'base-sepolia';
   const chainId = ++fixtureChainId;
   const contracts = {
-    AntseedUsageAccounting: ADDRESS.usageAccounting,
-    AntseedSellerRegistry: ADDRESS.sellerRegistry,
-    AntseedEmissionsGate: '0x0000000000000000000000000000000000000008',
-    AntseedPointsPolicyRegistry: '0x0000000000000000000000000000000000000009',
-    AntseedLegacyEmissionsEscrow: '0x000000000000000000000000000000000000000a',
-    AntseedPositionInit: '0x000000000000000000000000000000000000000b',
-    AntseedWashTradingRegistry: '0x000000000000000000000000000000000000000c',
-    AntseedWashTradingPointsPolicy: '0x000000000000000000000000000000000000000d',
+    TorveUsageAccounting: ADDRESS.usageAccounting,
+    TorveSellerRegistry: ADDRESS.sellerRegistry,
+    TorveEmissionsGate: '0x0000000000000000000000000000000000000008',
+    TorvePointsPolicyRegistry: '0x0000000000000000000000000000000000000009',
+    TorveLegacyEmissionsEscrow: '0x000000000000000000000000000000000000000a',
+    TorvePositionInit: '0x000000000000000000000000000000000000000b',
+    TorveWashTradingRegistry: '0x000000000000000000000000000000000000000c',
+    TorveWashTradingPointsPolicy: '0x000000000000000000000000000000000000000d',
   };
   const canonical = {
     network, chainId, release: '000-baseline', status: 'active', $schema: '../schema.json',
@@ -969,19 +969,19 @@ async function m001Fixture(testContext) {
     assert.equal(operation, 'call');
     if (signature === 'owner()(address)') return result(owners[address] ?? ADDRESS.registry);
     if (signature === 'registry()(address)') return result(!state.deployed ? ADDRESS.registry
-      : address === ADDRESS.ants ? contracts.AntseedEmissionsGate : contracts.AntseedLegacyEmissionsEscrow);
+      : address === ADDRESS.ants ? contracts.TorveEmissionsGate : contracts.TorveLegacyEmissionsEscrow);
     const replies = {
       'antsToken()(address)': ADDRESS.ants, 'channels()(address)': ADDRESS.channels,
       'emissions()(address)': state.active ? ADDRESS.usageAccounting : ADDRESS.legacyEmissions,
       'staking()(address)': state.active ? ADDRESS.sellerRegistry : ADDRESS.legacyStaking,
-      'emissionsGate()(address)': contracts.AntseedEmissionsGate,
-      'pointsPolicy()(address)': contracts.AntseedPointsPolicyRegistry,
-      'washTradingRegistry()(address)': contracts.AntseedWashTradingRegistry,
+      'emissionsGate()(address)': contracts.TorveEmissionsGate,
+      'pointsPolicy()(address)': contracts.TorvePointsPolicyRegistry,
+      'washTradingRegistry()(address)': contracts.TorveWashTradingRegistry,
       'sellerRewardsPool()(address)': ADDRESS.sellerRewardsPool,
       'paused()(bool)': String(state.paused), 'currentEpoch()(uint256)': '11',
       'effectiveEpoch()(uint256)': '11', 'genesis()(uint256)': '1000', 'epochDuration()(uint256)': '100',
       'policyCount()(uint256)': String(state.policyCount),
-      'policyAt(uint256)(address)': contracts.AntseedWashTradingPointsPolicy,
+      'policyAt(uint256)(address)': contracts.TorveWashTradingPointsPolicy,
       'minters(bytes32)(address,uint32,bool)': JSON.stringify([ADDRESS.registry, 10000, true]),
       'staked(address)(uint256)': '1',
     };
@@ -1074,7 +1074,7 @@ test('M001 uses one configuration snapshot for checkpoint validation', async (te
   fixture.state.policyCount = 0;
   assert.equal((await migration.observe(fixture.context)).state, 'invalid');
   fixture.state.policyCount = 1;
-  fixture.owners[fixture.contracts.AntseedEmissionsGate] = ADDRESS.channels;
+  fixture.owners[fixture.contracts.TorveEmissionsGate] = ADDRESS.channels;
   assert.equal((await migration.observe(fixture.context)).state, 'invalid');
 });
 
@@ -1097,7 +1097,7 @@ test('M001 signer discovery and validation share ownership targets without dropp
   const deployed = await migration.observe(fixture.context);
   migration.verifyRoles(fixture.context, deployed, environment);
   for (const [role, contract, label] of [
-    ['deployer', fixture.contracts.AntseedEmissionsGate, 'emissions gate'], ['registryOwner', ADDRESS.registry, 'Registry'],
+    ['deployer', fixture.contracts.TorveEmissionsGate, 'emissions gate'], ['registryOwner', ADDRESS.registry, 'Registry'],
     ['channelsOwner', ADDRESS.channels, 'Channels'], ['sellerRewardsPoolOwner', ADDRESS.sellerRewardsPool, 'seller rewards pool'],
   ]) {
     fixture.owners[contract] = ADDRESS.ants;
@@ -1123,10 +1123,10 @@ test('M001 signer discovery and validation share ownership targets without dropp
 test('M001 environment keeps overrides and checkpoint addresses in their original precedence', async (testContext) => {
   const fixture = await m001Fixture(testContext);
   const signerAddresses = { deployer: ADDRESS.registry };
-  const extra = { DEPLOYER: ADDRESS.ants, ANTSEED_REGISTRY: ADDRESS.channels, DIEM_STAKING_PROXY: ADDRESS.ants };
+  const extra = { DEPLOYER: ADDRESS.ants, TORVE_REGISTRY: ADDRESS.channels, DIEM_STAKING_PROXY: ADDRESS.ants };
   const ready = migration.environment(fixture.context, { state: 'ready' }, signerAddresses, extra);
   assert.equal(ready.DEPLOYER, extra.DEPLOYER);
-  assert.equal(ready.ANTSEED_REGISTRY, extra.ANTSEED_REGISTRY);
+  assert.equal(ready.TORVE_REGISTRY, extra.TORVE_REGISTRY);
   assert.equal(ready.DIEM_STAKING_PROXY, extra.DIEM_STAKING_PROXY);
   await fixture.deploy('broadcast');
   const observed = await migration.observe(fixture.context);
@@ -1241,7 +1241,7 @@ test('selects the deploy phase before deployment and the cutover phase after it'
 });
 
 test('passes phase run results into async plans and preserves transaction order', async () => {
-  const directory = await mkdtemp(path.join(tmpdir(), 'antseed-runner-plan-'));
+  const directory = await mkdtemp(path.join(tmpdir(), 'torve-runner-plan-'));
   const simulationFile = path.join(directory, 'simulation.json');
   await writeJsonAtomic(simulationFile, {
     transactions: [{
@@ -1367,7 +1367,7 @@ test('always terminates disposable Anvil forks after success or failure', async 
 });
 
 test('rebuilds a missing checkpoint from the committed history record', async () => {
-  const outputRoot = await mkdtemp(path.join(tmpdir(), 'antseed-checkpoint-'));
+  const outputRoot = await mkdtemp(path.join(tmpdir(), 'torve-checkpoint-'));
   const context = {
     outputRoot,
     network: 'base-sepolia',

@@ -1,4 +1,4 @@
-import type { AntseedProviderPlugin, Provider } from '@antseed/node';
+import type { TorveProviderPlugin, Provider } from '@torveai/node';
 import {
   BaseProvider,
   StaticTokenProvider,
@@ -10,8 +10,8 @@ import {
   parseServiceUnitBillingModelsJson,
   parseServiceAliasMap,
   parseServicePricingJson,
-} from '@antseed/provider-core';
-import type { ServiceApiProtocol, ServiceCapabilities } from '@antseed/node';
+} from '@torveai/provider-core';
+import type { ServiceApiProtocol, ServiceCapabilities } from '@torveai/node';
 
 const SPECIAL_OPENAI_COMPAT_PROVIDERS = ['openrouter'] as const;
 type OpenAiCompatFlavor = 'generic' | (typeof SPECIAL_OPENAI_COMPAT_PROVIDERS)[number];
@@ -111,7 +111,7 @@ function withImageServiceCapabilityDefaults(
   return merged;
 }
 
-const plugin: AntseedProviderPlugin = {
+const plugin: TorveProviderPlugin = {
   name: 'openai',
   displayName: 'OpenAI-Compatible',
   version: '0.1.0',
@@ -125,15 +125,15 @@ const plugin: AntseedProviderPlugin = {
     { key: 'OPENAI_EXTRA_HEADERS_JSON', label: 'Extra Headers JSON', type: 'string', required: false, description: 'Optional JSON object of extra headers' },
     { key: 'OPENAI_BODY_INJECT_JSON', label: 'Body Inject JSON', type: 'string', required: false, description: 'Optional JSON object merged into request body' },
     { key: 'OPENAI_STRIP_HEADER_PREFIXES', label: 'Strip Header Prefixes', type: 'string[]', required: false, description: 'Comma-separated header prefixes to strip before relay' },
-    { key: 'ANTSEED_INPUT_USD_PER_MILLION', label: 'Input Price', type: 'number', required: false, default: 10, description: 'Input price in USD per 1M tokens' },
-    { key: 'ANTSEED_OUTPUT_USD_PER_MILLION', label: 'Output Price', type: 'number', required: false, default: 10, description: 'Output price in USD per 1M tokens' },
-    { key: 'ANTSEED_CACHED_INPUT_USD_PER_MILLION', label: 'Cached Input Price', type: 'number', required: false, description: 'Cached input price in USD per 1M tokens (defaults to input price)' },
-    { key: 'ANTSEED_SERVICE_PRICING_JSON', label: 'Service Pricing JSON', type: 'string', required: false, description: 'Per-service pricing JSON' },
-    { key: 'ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON', label: 'Service Unit Billing Models JSON', type: 'string', required: false, description: 'Per-service/protocol unit billing model JSON' },
-    { key: 'ANTSEED_SERVICE_CAPABILITIES_JSON', label: 'Service Capabilities JSON', type: 'string', required: false, description: 'Per-service model capability JSON (contextWindow, maxOutputTokens, inputs, outputs, reasoning, toolUse, structuredOutput, supportedParameters)' },
-    { key: 'ANTSEED_MAX_CONCURRENCY', label: 'Max Concurrency', type: 'number', required: false, default: 10, description: 'Max concurrent requests' },
-    { key: 'ANTSEED_ALLOWED_SERVICES', label: 'Allowed Services', type: 'string[]', required: false, description: 'Service allow-list' },
-    { key: 'ANTSEED_SERVICE_ALIAS_MAP_JSON', label: 'Service Alias Map', type: 'string', required: false, description: 'JSON map of announced service → upstream model name (generic, works across all providers)' },
+    { key: 'TORVE_INPUT_USD_PER_MILLION', label: 'Input Price', type: 'number', required: false, default: 10, description: 'Input price in USD per 1M tokens' },
+    { key: 'TORVE_OUTPUT_USD_PER_MILLION', label: 'Output Price', type: 'number', required: false, default: 10, description: 'Output price in USD per 1M tokens' },
+    { key: 'TORVE_CACHED_INPUT_USD_PER_MILLION', label: 'Cached Input Price', type: 'number', required: false, description: 'Cached input price in USD per 1M tokens (defaults to input price)' },
+    { key: 'TORVE_SERVICE_PRICING_JSON', label: 'Service Pricing JSON', type: 'string', required: false, description: 'Per-service pricing JSON' },
+    { key: 'TORVE_SERVICE_UNIT_BILLING_MODELS_JSON', label: 'Service Unit Billing Models JSON', type: 'string', required: false, description: 'Per-service/protocol unit billing model JSON' },
+    { key: 'TORVE_SERVICE_CAPABILITIES_JSON', label: 'Service Capabilities JSON', type: 'string', required: false, description: 'Per-service model capability JSON (contextWindow, maxOutputTokens, inputs, outputs, reasoning, toolUse, structuredOutput, supportedParameters)' },
+    { key: 'TORVE_MAX_CONCURRENCY', label: 'Max Concurrency', type: 'number', required: false, default: 10, description: 'Max concurrent requests' },
+    { key: 'TORVE_ALLOWED_SERVICES', label: 'Allowed Services', type: 'string[]', required: false, description: 'Service allow-list' },
+    { key: 'TORVE_SERVICE_ALIAS_MAP_JSON', label: 'Service Alias Map', type: 'string', required: false, description: 'JSON map of announced service → upstream model name (generic, works across all providers)' },
     { key: 'OPENAI_PATH_REWRITE_JSON', label: 'Path Rewrite', type: 'string', required: false, description: 'JSON map of path prefix rewrites, e.g. {"/v1":"/v4"} for APIs that use a different version prefix' },
   ],
 
@@ -143,22 +143,22 @@ const plugin: AntseedProviderPlugin = {
       throw new Error('OPENAI_API_KEY is required');
     }
 
-    const servicePricing = parseServicePricingJson(config['ANTSEED_SERVICE_PRICING_JSON']);
+    const servicePricing = parseServicePricingJson(config['TORVE_SERVICE_PRICING_JSON']);
     const pricing: Provider['pricing'] = {
       defaults: {
-        inputUsdPerMillion: parseNonNegativeNumber(config['ANTSEED_INPUT_USD_PER_MILLION'], 'ANTSEED_INPUT_USD_PER_MILLION', 10),
-        outputUsdPerMillion: parseNonNegativeNumber(config['ANTSEED_OUTPUT_USD_PER_MILLION'], 'ANTSEED_OUTPUT_USD_PER_MILLION', 10),
-        ...(config['ANTSEED_CACHED_INPUT_USD_PER_MILLION'] ? { cachedInputUsdPerMillion: parseNonNegativeNumber(config['ANTSEED_CACHED_INPUT_USD_PER_MILLION'], 'ANTSEED_CACHED_INPUT_USD_PER_MILLION', 0) } : {}),
+        inputUsdPerMillion: parseNonNegativeNumber(config['TORVE_INPUT_USD_PER_MILLION'], 'TORVE_INPUT_USD_PER_MILLION', 10),
+        outputUsdPerMillion: parseNonNegativeNumber(config['TORVE_OUTPUT_USD_PER_MILLION'], 'TORVE_OUTPUT_USD_PER_MILLION', 10),
+        ...(config['TORVE_CACHED_INPUT_USD_PER_MILLION'] ? { cachedInputUsdPerMillion: parseNonNegativeNumber(config['TORVE_CACHED_INPUT_USD_PER_MILLION'], 'TORVE_CACHED_INPUT_USD_PER_MILLION', 0) } : {}),
       },
       ...(servicePricing ? { services: servicePricing } : {}),
     };
 
-    const maxConcurrency = parseInt(config['ANTSEED_MAX_CONCURRENCY'] ?? '10', 10);
+    const maxConcurrency = parseInt(config['TORVE_MAX_CONCURRENCY'] ?? '10', 10);
     if (Number.isNaN(maxConcurrency)) {
-      throw new Error('ANTSEED_MAX_CONCURRENCY must be a valid number');
+      throw new Error('TORVE_MAX_CONCURRENCY must be a valid number');
     }
 
-    const allowedServices = parseCsv(config['ANTSEED_ALLOWED_SERVICES']);
+    const allowedServices = parseCsv(config['TORVE_ALLOWED_SERVICES']);
     const configuredBaseUrl = config['OPENAI_BASE_URL']?.trim();
     const flavor = resolveFlavor(config['OPENAI_PROVIDER_FLAVOR'], configuredBaseUrl);
     const baseUrl = configuredBaseUrl && configuredBaseUrl.length > 0
@@ -176,12 +176,12 @@ const plugin: AntseedProviderPlugin = {
       : (flavor === 'openrouter' ? ['anthropic-', 'x-stainless-'] : []);
 
     const tokenProvider = new StaticTokenProvider(apiKey);
-    const serviceRewriteMap = parseServiceAliasMap(config['ANTSEED_SERVICE_ALIAS_MAP_JSON']);
+    const serviceRewriteMap = parseServiceAliasMap(config['TORVE_SERVICE_ALIAS_MAP_JSON']);
     const serviceApiProtocols = buildOpenAiServiceApiProtocols(allowedServices, flavor, serviceRewriteMap);
-    const serviceUnitBillingModels = parseServiceUnitBillingModelsJson(config['ANTSEED_SERVICE_UNIT_BILLING_MODELS_JSON']);
+    const serviceUnitBillingModels = parseServiceUnitBillingModelsJson(config['TORVE_SERVICE_UNIT_BILLING_MODELS_JSON']);
     const serviceCapabilities = withImageServiceCapabilityDefaults(
       serviceApiProtocols,
-      parseServiceCapabilitiesJson(config['ANTSEED_SERVICE_CAPABILITIES_JSON']),
+      parseServiceCapabilitiesJson(config['TORVE_SERVICE_CAPABILITIES_JSON']),
     );
     const pathRewrite = parseJsonObject(config['OPENAI_PATH_REWRITE_JSON'], 'OPENAI_PATH_REWRITE_JSON') as Record<string, string> | undefined;
 

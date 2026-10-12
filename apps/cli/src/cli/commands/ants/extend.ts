@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
 import { parsePositiveInteger } from '../parse-positive-integer.js';
-import { extend } from '@antseed/ants';
+import { extend } from '@torveai/ants';
 import { runAction } from './shared.js';
 
 export function registerAntsExtendCommand(antsCmd: Command): void {

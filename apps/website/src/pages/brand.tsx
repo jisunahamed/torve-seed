@@ -57,28 +57,28 @@ const ICONS: LogoAsset[] = [
     swatch: 'light',
     svg: '/logo.svg',
     downloadSvg: '/logo.svg',
-    downloadPng: '/brand/downloads/antseed-icon-green.png',
+    downloadPng: '/brand/downloads/torve-icon-green.png',
   },
   {
     name: 'Icon - Money',
     swatch: 'light',
-    svg: '/logos/antseed-mark-clay.svg',
-    downloadSvg: '/logos/antseed-mark-clay.svg',
-    downloadPng: '/brand/downloads/antseed-icon-clay.png',
+    svg: '/logos/torve-mark-clay.svg',
+    downloadSvg: '/logos/torve-mark-clay.svg',
+    downloadPng: '/brand/downloads/torve-icon-clay.png',
   },
   {
     name: 'Icon - Black',
     swatch: 'light',
-    svg: '/logos/antseed-mark-ink.svg',
-    downloadSvg: '/logos/antseed-mark-ink.svg',
-    downloadPng: '/brand/downloads/antseed-icon-ink.png',
+    svg: '/logos/torve-mark-ink.svg',
+    downloadSvg: '/logos/torve-mark-ink.svg',
+    downloadPng: '/brand/downloads/torve-icon-ink.png',
   },
   {
     name: 'Icon - White',
     swatch: 'ink',
-    svg: '/logos/antseed-mark-white.svg',
-    downloadSvg: '/logos/antseed-mark-white.svg',
-    downloadPng: '/brand/downloads/antseed-icon-white.png',
+    svg: '/logos/torve-mark-white.svg',
+    downloadSvg: '/logos/torve-mark-white.svg',
+    downloadPng: '/brand/downloads/torve-icon-white.png',
   },
 ];
 
@@ -88,28 +88,28 @@ const WORDMARKS: LogoAsset[] = [
     swatch: 'light',
     svg: '/logo-light.svg',
     downloadSvg: '/logo-light.svg',
-    downloadPng: '/brand/downloads/antseed-logo-light.png',
+    downloadPng: '/brand/downloads/torve-logo-light.png',
   },
   {
     name: 'For dark backgrounds',
     swatch: 'ink',
     svg: '/logo-dark.svg',
     downloadSvg: '/logo-dark.svg',
-    downloadPng: '/brand/downloads/antseed-logo-dark.png',
+    downloadPng: '/brand/downloads/torve-logo-dark.png',
   },
   {
     name: 'Monochrome black',
     swatch: 'light',
-    svg: '/logos/antseed-wordmark-black.svg',
-    downloadSvg: '/logos/antseed-wordmark-black.svg',
-    downloadPng: '/brand/downloads/antseed-logo-black.png',
+    svg: '/logos/torve-wordmark-black.svg',
+    downloadSvg: '/logos/torve-wordmark-black.svg',
+    downloadPng: '/brand/downloads/torve-logo-black.png',
   },
   {
     name: 'Monochrome white',
     swatch: 'ink',
     svg: '/logo-white.svg',
     downloadSvg: '/logo-white.svg',
-    downloadPng: '/brand/downloads/antseed-logo-white.png',
+    downloadPng: '/brand/downloads/torve-logo-white.png',
   },
 ];
 
@@ -126,12 +126,12 @@ export default function BrandPage(): JSX.Element {
   return (
     <Layout
       title="Brand"
-      description="A lightweight reference for the Antseed identity: logo, color, typography, visual language, and the principles behind it."
+      description="A lightweight reference for the Torve identity: logo, color, typography, visual language, and the principles behind it."
     >
       <PageHero
         kicker="Brand"
-        title={<>The Antseed identity, <em>at a glance.</em></>}
-        lead="Antseed is an open peer-to-peer network for AI services. Our visual identity reflects the same principles as the protocol itself: openness, precision, transparency, and simplicity."
+        title={<>The Torve identity, <em>at a glance.</em></>}
+        lead="Torve is an open peer-to-peer network for AI services. Our visual identity reflects the same principles as the protocol itself: openness, precision, transparency, and simplicity."
         animatedDots
       />
 
@@ -187,7 +187,7 @@ export default function BrandPage(): JSX.Element {
 
           <div className={styles.kitRow}>
             <p>Every file above, SVG and PNG, in one archive.</p>
-            <a href="/brand/downloads/antseed-brand-assets.zip" download className={styles.kitDownload}>
+            <a href="/brand/downloads/torve-brand-assets.zip" download className={styles.kitDownload}>
               Download full kit (.zip)
             </a>
           </div>
@@ -245,7 +245,7 @@ export default function BrandPage(): JSX.Element {
             <div className={styles.typeRow}>
               <span className={styles.typeLabel}>Data<span>Geist Mono · numbers, code</span></span>
               <p className={styles.typeSampleData}>
-                $ antseed network browse --service minimax
+                $ torve network browse --service minimax
                 <span>✓ found 23 peers · sorted by reputation</span>
               </p>
             </div>
@@ -258,7 +258,7 @@ export default function BrandPage(): JSX.Element {
         <Reveal>
           <SectionHeader
             title="Visual Language"
-            lead="Antseed visuals are inspired by decentralized networks and collective intelligence. Simple geometric forms, subtle dot patterns, and clean technical lines communicate openness without unnecessary complexity."
+            lead="Torve visuals are inspired by decentralized networks and collective intelligence. Simple geometric forms, subtle dot patterns, and clean technical lines communicate openness without unnecessary complexity."
           />
         </Reveal>
         <Reveal>
@@ -295,7 +295,7 @@ export default function BrandPage(): JSX.Element {
             </div>
             <div className={styles.motifCard}>
               <div className={`${styles.motifSwatch} ${styles.motifSwatchGradient}`} />
-              <h3>Antseed gradient</h3>
+              <h3>Torve gradient</h3>
               <p>The signature green gradient - accents, CTAs, and moments that need energy.</p>
             </div>
           </div>

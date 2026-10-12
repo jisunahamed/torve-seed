@@ -14,7 +14,7 @@ import {
 } from '../src/p2p/identity.js';
 
 function tmpDir(): string {
-  return path.join(os.tmpdir(), `antseed-test-${randomBytes(8).toString('hex')}`);
+  return path.join(os.tmpdir(), `torve-test-${randomBytes(8).toString('hex')}`);
 }
 
 const dirsToClean: string[] = [];

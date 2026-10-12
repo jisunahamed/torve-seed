@@ -1,4 +1,4 @@
-import type { NativeVideoProtocol } from '@antseed/node';
+import type { NativeVideoProtocol } from '@torveai/node';
 import type {
   DiscoverRow,
   ServiceCapabilitiesView,

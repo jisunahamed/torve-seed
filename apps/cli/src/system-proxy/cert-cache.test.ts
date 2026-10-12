@@ -12,7 +12,7 @@ async function makeCA(tmpDir: string) {
 }
 
 test('CertCache.get() returns PEM cert and key for a hostname', async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-cert-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-cert-test-'))
   try {
     const { keys } = await makeCA(tmpDir)
     const cache = new CertCache(keys)
@@ -25,7 +25,7 @@ test('CertCache.get() returns PEM cert and key for a hostname', async () => {
 })
 
 test('CertCache.get() returns the same cert on repeated calls (cached)', async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-cert-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-cert-test-'))
   try {
     const { keys } = await makeCA(tmpDir)
     const cache = new CertCache(keys)
@@ -39,7 +39,7 @@ test('CertCache.get() returns the same cert on repeated calls (cached)', async (
 })
 
 test('CertCache.get() generates different certs for different hostnames', async () => {
-  const tmpDir = await mkdtemp(join(tmpdir(), 'antseed-cert-test-'))
+  const tmpDir = await mkdtemp(join(tmpdir(), 'torve-cert-test-'))
   try {
     const { keys } = await makeCA(tmpDir)
     const cache = new CertCache(keys)

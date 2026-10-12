@@ -1,4 +1,4 @@
-import type { TokenProvider, TokenProviderState } from '@antseed/node';
+import type { TokenProvider, TokenProviderState } from '@torveai/node';
 
 export type { TokenProvider, TokenProviderState };
 
@@ -7,7 +7,7 @@ const DEFAULT_REFRESH_TIMEOUT_MS = 15_000;
 const DEFAULT_OAUTH_TOKEN_ENDPOINT = 'https://console.anthropic.com/v1/oauth/token';
 
 function getRefreshTimeoutMs(): number {
-  const raw = process.env['ANTSEED_OAUTH_REFRESH_TIMEOUT_MS'];
+  const raw = process.env['TORVE_OAUTH_REFRESH_TIMEOUT_MS'];
   if (!raw) {
     return DEFAULT_REFRESH_TIMEOUT_MS;
   }
@@ -39,7 +39,7 @@ export class StaticTokenProvider implements TokenProvider {
 // ---------------------------------------------------------------------------
 
 export class OAuthRefreshError extends Error {
-  readonly code = 'ANTSEED_OAUTH_REFRESH_FAILED';
+  readonly code = 'TORVE_OAUTH_REFRESH_FAILED';
 }
 
 export interface OAuthState {

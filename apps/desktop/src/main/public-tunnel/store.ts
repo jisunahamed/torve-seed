@@ -9,7 +9,7 @@ import {
 
 export type { PublicTunnelSettings, TunnelProvider, TunnelProviderSettings } from './settings.js';
 
-const SETTINGS_PATH = path.join(homedir(), '.antseed', 'tunnel.enc');
+const SETTINGS_PATH = path.join(homedir(), '.torve', 'tunnel.enc');
 
 export async function loadPublicTunnelSettings(): Promise<PublicTunnelSettings | null> {
   if (!safeStorage.isEncryptionAvailable()) return null;

@@ -74,7 +74,7 @@ available only after M002 is installed; its default is an immediate
 
 ## Escrow and flushes {#escrow-and-flushes}
 
-Since M001 phase 1, V2's registry points to `AntseedLegacyEmissionsEscrow`.
+Since M001 phase 1, V2's registry points to `TorveLegacyEmissionsEscrow`.
 Its existing `mint()` calls now transfer pre-minted ANTS from the escrow;
 they do not create additional token supply.
 
@@ -93,11 +93,11 @@ destination. Do not sweep the escrow while legitimate legacy claims remain.
 ## Legacy USDC staking
 
 Before migration, sellers register their ERC-8004 identity and stake at least
-10 USDC through `AntseedStaking`. The legacy CLI calls are:
+10 USDC through `TorveStaking`. The legacy CLI calls are:
 
 ```bash
-antseed seller stake 10
-antseed seller unstake
+torve seller stake 10
+torve seller unstake
 ```
 
 These are not ANTS pool-position commands. Following migration, legacy stake
@@ -110,11 +110,11 @@ before attempting legacy withdrawals after the registry switch.
 
 | Contract | Base mainnet address |
 |---|---|
-| AntseedStaking | `0x3652E6B22919bd322A25723B94BB207602E5c8e6` |
-| AntseedEmissionsV2 | `0xF13bE52c4A3afC6AE29536f073588d01A0564088` |
-| AntseedEmissions V1 | `0x36877fBa8Fa333aa46a1c57b66D132E4995C86b5` |
-| AntseedSellerRewardsPool | `0xA065C0dE80dbd3d824F7b584E231b76b9fefB261` |
-| AntseedLegacyEmissionsEscrow | `0x4d0fC3C0BBb5233Af6c4Ce33223e5330c34db9ab` |
+| TorveStaking | `0x3652E6B22919bd322A25723B94BB207602E5c8e6` |
+| TorveEmissionsV2 | `0xF13bE52c4A3afC6AE29536f073588d01A0564088` |
+| TorveEmissions V1 | `0x36877fBa8Fa333aa46a1c57b66D132E4995C86b5` |
+| TorveSellerRewardsPool | `0xA065C0dE80dbd3d824F7b584E231b76b9fefB261` |
+| TorveLegacyEmissionsEscrow | `0x4d0fC3C0BBb5233Af6c4Ce33223e5330c34db9ab` |
 
 Buyer deposits, Channels, and ANTSToken are shared with the
 [recognized-usage protocol](./recognized-usage.md); they are not replaced by migration.

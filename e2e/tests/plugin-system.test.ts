@@ -4,10 +4,10 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import type {
-  AntseedProviderPlugin,
-  AntseedRouterPlugin,
+  TorveProviderPlugin,
+  TorveRouterPlugin,
   PluginConfigKey,
-} from '@antseed/node';
+} from '@torveai/node';
 
 // Import official plugin sources from the monorepo workspace
 import providerPlugin from '../../plugins/provider-anthropic/src/index.js';
@@ -17,7 +17,7 @@ import routerPlugin, { TOOL_HINTS } from '../../plugins/router-local/src/index.j
 import { TRUSTED_PLUGINS, type TrustedPlugin } from '../../apps/cli/src/plugins/registry.js';
 
 // ---------------------------------------------------------------------------
-// Helper: buildPluginConfig (mirrors antseed-cli/src/plugins/loader.ts)
+// Helper: buildPluginConfig (mirrors torve-cli/src/plugins/loader.ts)
 // ---------------------------------------------------------------------------
 function buildPluginConfig(configKeys: PluginConfigKey[]): Record<string, string> {
   const config: Record<string, string> = {};
@@ -37,7 +37,7 @@ describe('Plugin Loader', () => {
   let tmpDir: string;
 
   beforeEach(async () => {
-    tmpDir = await mkdtemp(join(tmpdir(), 'antseed-loader-test-'));
+    tmpDir = await mkdtemp(join(tmpdir(), 'torve-loader-test-'));
   });
 
   afterEach(async () => {
@@ -82,7 +82,7 @@ describe('Plugin Loader', () => {
 
     const pluginPath = pathToFileURL(join(pluginDir, 'index.mjs')).href;
     const mod = await import(pluginPath) as { default?: unknown };
-    const plugin = mod.default as AntseedProviderPlugin;
+    const plugin = mod.default as TorveProviderPlugin;
 
     expect(plugin).toBeDefined();
     expect(plugin.type).toBe('provider');
@@ -113,7 +113,7 @@ describe('Plugin Loader', () => {
 
     const pluginPath = pathToFileURL(join(pluginDir, 'index.mjs')).href;
     const mod = await import(pluginPath) as { default?: unknown };
-    const plugin = mod.default as AntseedRouterPlugin;
+    const plugin = mod.default as TorveRouterPlugin;
 
     expect(plugin).toBeDefined();
     expect(plugin.type).toBe('router');
@@ -233,11 +233,11 @@ describe('Plugin Registry', () => {
 });
 
 // ---------------------------------------------------------------------------
-// @antseed/provider-anthropic plugin shape
+// @torveai/provider-anthropic plugin shape
 // ---------------------------------------------------------------------------
-describe('@antseed/provider-anthropic plugin shape', () => {
-  it('satisfies AntseedProviderPlugin interface', () => {
-    const plugin = providerPlugin as AntseedProviderPlugin;
+describe('@torveai/provider-anthropic plugin shape', () => {
+  it('satisfies TorveProviderPlugin interface', () => {
+    const plugin = providerPlugin as TorveProviderPlugin;
     expect(plugin.name).toBe('anthropic');
     expect(plugin.displayName).toBeTruthy();
     expect(plugin.version).toBeTruthy();
@@ -262,7 +262,7 @@ describe('@antseed/provider-anthropic plugin shape', () => {
   it('createProvider returns a Provider', () => {
     const provider = providerPlugin.createProvider({
       ANTHROPIC_API_KEY: 'test-key',
-      ANTSEED_AUTH_TYPE: 'apikey',
+      TORVE_AUTH_TYPE: 'apikey',
     });
 
     expect(provider).toBeDefined();
@@ -277,11 +277,11 @@ describe('@antseed/provider-anthropic plugin shape', () => {
 });
 
 // ---------------------------------------------------------------------------
-// @antseed/router-local plugin shape
+// @torveai/router-local plugin shape
 // ---------------------------------------------------------------------------
-describe('@antseed/router-local plugin shape', () => {
-  it('satisfies AntseedRouterPlugin interface', () => {
-    const plugin = routerPlugin as AntseedRouterPlugin;
+describe('@torveai/router-local plugin shape', () => {
+  it('satisfies TorveRouterPlugin interface', () => {
+    const plugin = routerPlugin as TorveRouterPlugin;
     expect(plugin.name).toBe('local');
     expect(plugin.displayName).toBeTruthy();
     expect(plugin.version).toBeTruthy();

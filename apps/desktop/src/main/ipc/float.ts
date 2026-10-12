@@ -61,7 +61,7 @@ export function registerFloatIpc(): void {
   ipcMain.handle('buyer:conversations-list', async () => {
     try {
       const buyerPort = await resolveBuyerProxyPort();
-      const response = await fetch(`http://127.0.0.1:${buyerPort}/_antseed/conversations`, {
+      const response = await fetch(`http://127.0.0.1:${buyerPort}/_torve/conversations`, {
         signal: AbortSignal.timeout(3_000),
       });
       const parsed = await response.json() as { conversations?: unknown[] };
@@ -83,7 +83,7 @@ export function registerFloatIpc(): void {
     if (record.peerSource === 'user' || record.peerSource === 'auto') payload.peerSource = record.peerSource;
     try {
       const buyerPort = await resolveBuyerProxyPort();
-      const response = await fetch(`http://127.0.0.1:${buyerPort}/_antseed/conversations/update`, {
+      const response = await fetch(`http://127.0.0.1:${buyerPort}/_torve/conversations/update`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload),

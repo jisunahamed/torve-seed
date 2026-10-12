@@ -1,4 +1,4 @@
-import { normalizedModelReputationScore, type PeerInfo } from '@antseed/node'
+import { normalizedModelReputationScore, type PeerInfo } from '@torveai/node'
 
 export interface TokenPricingUsdPerMillion {
   inputUsdPerMillion: number

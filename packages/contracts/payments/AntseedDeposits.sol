@@ -8,13 +8,13 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import {IAntseedRegistry} from "../interfaces/IAntseedRegistry.sol";
+import {ITorveRegistry} from "../interfaces/ITorveRegistry.sol";
 /**
- * @title AntseedDeposits
+ * @title TorveDeposits
  * @notice Buyer USDC custody with credit limits and seller payouts.
- *         Stable contract — holds funds. Channel logic lives in AntseedChannels (swappable).
+ *         Stable contract — holds funds. Channel logic lives in TorveChannels (swappable).
  */
-contract AntseedDeposits is EIP712, Ownable, ReentrancyGuard {
+contract TorveDeposits is EIP712, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // ─── EIP-712 ─────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ contract AntseedDeposits is EIP712, Ownable, ReentrancyGuard {
 
     // ─── State ───────────────────────────────────────────────────────────
     IERC20 public immutable usdc;
-    IAntseedRegistry public registry;
+    ITorveRegistry public registry;
 
     // ─── Configurable Constants ─────────────────────────────────────────
     uint256 public MIN_BUYER_DEPOSIT = 1_000_000;
@@ -80,7 +80,7 @@ contract AntseedDeposits is EIP712, Ownable, ReentrancyGuard {
 
     // ─── Constructor ────────────────────────────────────────────────────
     constructor(address _usdc)
-        EIP712("AntseedDeposits", "1")
+        EIP712("TorveDeposits", "1")
         Ownable(msg.sender)
     {
         if (_usdc == address(0)) revert InvalidAddress();
@@ -267,7 +267,7 @@ contract AntseedDeposits is EIP712, Ownable, ReentrancyGuard {
 
     function setRegistry(address _registry) external onlyOwner {
         if (_registry == address(0)) revert InvalidAddress();
-        registry = IAntseedRegistry(_registry);
+        registry = ITorveRegistry(_registry);
     }
 
     function setCreditLimitOverride(address buyer, uint256 limit) external onlyOwner {

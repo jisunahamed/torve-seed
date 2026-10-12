@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 /// @notice Transforms the current seller/buyer points in registration order.
 ///         A zeroed side cannot be restored by subsequent policies.
-interface IAntseedPointsModifier {
+interface ITorvePointsModifier {
     function points(bytes32 channelId, address buyer, address seller, uint256 sellerPoints, uint256 buyerPoints)
         external
         view

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { HttpRelay, type RelayConfig, type RelayCallbacks } from './http-relay.js';
-import type { SerializedHttpRequest, SerializedHttpResponse, SerializedHttpResponseChunk } from '@antseed/node';
+import type { SerializedHttpRequest, SerializedHttpResponse, SerializedHttpResponseChunk } from '@torveai/node';
 
 function makeRequest(overrides?: Partial<SerializedHttpRequest>): SerializedHttpRequest {
   return {
@@ -182,7 +182,7 @@ describe('HttpRelay', () => {
       path: '/v1/images/edits',
       headers: {
         'content-type': webRequest.headers.get('content-type') ?? '',
-        'x-antseed-service': 'gpt-image-2',
+        'x-torve-service': 'gpt-image-2',
       },
       body: new Uint8Array(await webRequest.arrayBuffer()),
     }));
@@ -190,7 +190,7 @@ describe('HttpRelay', () => {
     expect(responses[0]?.statusCode).toBe(200);
     const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
     const sentHeaders = options.headers as Record<string, string>;
-    expect(sentHeaders['x-antseed-service']).toBeUndefined();
+    expect(sentHeaders['x-torve-service']).toBeUndefined();
     const forwarded = await new Response(options.body, {
       headers: { 'content-type': sentHeaders['content-type'] ?? '' },
     }).formData();
@@ -256,8 +256,8 @@ describe('HttpRelay', () => {
       headers: {
         'content-type': 'application/json',
         'connection': 'keep-alive',
-        'x-antseed-provider': 'anthropic',
-        'x-antseed-service': 'claude-sonnet-4-20250514',
+        'x-torve-provider': 'anthropic',
+        'x-torve-service': 'claude-sonnet-4-20250514',
         'host': 'localhost:3000',
         'x-custom': 'keep-me',
       },
@@ -266,8 +266,8 @@ describe('HttpRelay', () => {
     const [, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
     const sentHeaders = opts.headers as Record<string, string>;
     expect(sentHeaders['connection']).toBeUndefined();
-    expect(sentHeaders['x-antseed-provider']).toBeUndefined();
-    expect(sentHeaders['x-antseed-service']).toBeUndefined();
+    expect(sentHeaders['x-torve-provider']).toBeUndefined();
+    expect(sentHeaders['x-torve-service']).toBeUndefined();
     expect(sentHeaders['host']).toBeUndefined();
     expect(sentHeaders['x-custom']).toBe('keep-me');
   });
@@ -350,7 +350,7 @@ describe('HttpRelay', () => {
 
     expect(responses).toHaveLength(1);
     expect(responses[0]!.statusCode).toBe(200);
-    expect(responses[0]!.headers['x-antseed-streaming']).toBe('1');
+    expect(responses[0]!.headers['x-torve-streaming']).toBe('1');
     expect(responses[0]!.body.length).toBe(0);
 
     expect(responseChunks).toHaveLength(3);

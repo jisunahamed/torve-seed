@@ -1,5 +1,5 @@
-import { resolveChainConfig } from '@antseed/node';
-import type { AntsChainConfig } from '@antseed/ants';
+import { resolveChainConfig } from '@torveai/node';
+import type { AntsChainConfig } from '@torveai/ants';
 import { asRecord } from '../utils.js';
 
 /** Resolve only the active VPR config; CLI environment overrides do not select this wallet's network. */

@@ -8,7 +8,7 @@ import { hexToBytes, bytesToHex } from "../utils/hex.js";
 
 export { hexToBytes, bytesToHex };
 
-const CONFIG_DIR = join(homedir(), ".antseed");
+const CONFIG_DIR = join(homedir(), ".torve");
 const PRIVATE_KEY_FILE = "identity.key";
 const ENCRYPTED_PRIVATE_KEY_FILE = "identity.enc";
 
@@ -77,7 +77,7 @@ function isMissingFileError(error: unknown): boolean {
 }
 
 /** Environment variable for passing identity hex from a parent process (e.g. desktop → CLI). */
-const IDENTITY_HEX_ENV = 'ANTSEED_IDENTITY_HEX';
+const IDENTITY_HEX_ENV = 'TORVE_IDENTITY_HEX';
 
 /** Cache the identity resolved from the env var so repeated calls in the same process return the same key. */
 let _envIdentityCache: Identity | undefined;
@@ -132,5 +132,5 @@ export async function loadOrCreateIdentity(configDirOrStore?: string | IdentityS
   return identityFromPrivateKeyHex(hex);
 }
 
-// Signing primitives moved to @antseed/protocol; re-exported for compatibility.
-export { signData, verifySignature, signUtf8, verifyUtf8 } from '@antseed/protocol/signing';
+// Signing primitives moved to @torveai/protocol; re-exported for compatibility.
+export { signData, verifySignature, signUtf8, verifyUtf8 } from '@torveai/protocol/signing';

@@ -1,6 +1,6 @@
 name: Release Desktop
 
-# Builds and publishes the AntSeed Desktop Electron app for macOS,
+# Builds and publishes the Torve Desktop Electron app for macOS,
 # Windows, and Linux in parallel, attaching artifacts to the same GitHub
 # Release (tagged v<version>, read from apps/desktop/package.json).
 #
@@ -121,7 +121,7 @@ jobs:
 
       - name: Bake comparable-prices URL
         env:
-          ANTSEED_COMPARABLE_PRICES_URL: ${{ vars.ANTSEED_COMPARABLE_PRICES_URL }}
+          TORVE_COMPARABLE_PRICES_URL: ${{ vars.TORVE_COMPARABLE_PRICES_URL }}
         run: node scripts/bake-comparable-prices-url.mjs --require
 
       - name: Bake desktop telemetry config
@@ -174,7 +174,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: antseed-desktop-mac
+          name: torve-desktop-mac
           path: |
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip
@@ -221,7 +221,7 @@ jobs:
 
       - name: Bake comparable-prices URL
         env:
-          ANTSEED_COMPARABLE_PRICES_URL: ${{ vars.ANTSEED_COMPARABLE_PRICES_URL }}
+          TORVE_COMPARABLE_PRICES_URL: ${{ vars.TORVE_COMPARABLE_PRICES_URL }}
         run: node scripts/bake-comparable-prices-url.mjs --require
         shell: pwsh
 
@@ -288,7 +288,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: antseed-desktop-win
+          name: torve-desktop-win
           path: |
             apps/desktop/release/*.exe
             apps/desktop/release/*.exe.blockmap
@@ -346,7 +346,7 @@ jobs:
 
       - name: Bake comparable-prices URL
         env:
-          ANTSEED_COMPARABLE_PRICES_URL: ${{ vars.ANTSEED_COMPARABLE_PRICES_URL }}
+          TORVE_COMPARABLE_PRICES_URL: ${{ vars.TORVE_COMPARABLE_PRICES_URL }}
         run: node scripts/bake-comparable-prices-url.mjs --require
 
       - name: Bake desktop telemetry config
@@ -378,7 +378,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: antseed-desktop-linux-${{ matrix.arch }}
+          name: torve-desktop-linux-${{ matrix.arch }}
           path: |
             apps/desktop/release/*.AppImage
             apps/desktop/release/*.deb

@@ -25,7 +25,7 @@ const AEAD_ALGORITHM = "aes-256-gcm";
 const AEAD_TAG_BYTES = 16;
 const FRAME_HEADER_BYTES = 4;
 export const MAX_FRAME_PLAINTEXT_BYTES = 16 * 1024 * 1024;
-const HKDF_INFO = "antseed-tcp-enc-v1";
+const HKDF_INFO = "torve-tcp-enc-v1";
 const X25519_RAW_KEY_BYTES = 32;
 /** DER SPKI prefix for an X25519 public key (RFC 8410). */
 const X25519_SPKI_PREFIX = Buffer.from("302a300506032b656e032100", "hex");

@@ -6,18 +6,18 @@ import {ArrowRight, Button, Reveal} from '../components/ui';
 import styles from './network.module.css';
 
 /**
- * /network — what the network side of Antseed is and why it matters to a
+ * /network — what the network side of Torve is and why it matters to a
  * buyer or a provider. Six short sections, one visual each. Everything
  * deeper (subnets, ranking tie-breaks, channel mechanics, fee percentages,
  * emission caps) lives in /docs and is linked, not repeated.
  */
 
-const SOURCE = 'https://github.com/AntSeed/antseed/tree/main';
+const SOURCE = 'https://github.com/Torve/torve/tree/main';
 
 const STAGES = [
   {name: 'Find', label: '01 / FIND', title: 'Your device finds providers itself.', detail: 'It asks Mainline DHT, the same network BitTorrent uses, for provider addresses, then reads each provider’s signed listing: which models, at what price.'},
-  {name: 'Choose', label: '02 / CHOOSE', title: 'Your machine picks the route.', detail: 'Price and trust decide, on your device. There is no Antseed server making that call for you.'},
-  {name: 'Connect', label: '03 / CONNECT', title: 'Direct and encrypted.', detail: 'Your device talks to the provider over an encrypted connection. Antseed never sees the request or the response.'},
+  {name: 'Choose', label: '02 / CHOOSE', title: 'Your machine picks the route.', detail: 'Price and trust decide, on your device. There is no Torve server making that call for you.'},
+  {name: 'Connect', label: '03 / CONNECT', title: 'Direct and encrypted.', detail: 'Your device talks to the provider over an encrypted connection. Torve never sees the request or the response.'},
   {name: 'Pay', label: '04 / PAY', title: 'Per request, in USDC on Base.', detail: 'You sign a running total after each response. The provider settles it on Base and gets paid in USDC.'},
 ];
 
@@ -215,8 +215,8 @@ function RequestTrace({motionPaused}: {motionPaused: boolean}) {
 
 const JOURNEY = [
   ['Find', 'Providers are found over Mainline DHT, the same network BitTorrent uses. It holds only addresses, never model names or prompts.', '/docs/discovery'],
-  ['Choose', 'Your device picks the provider by price and trust. There is no Antseed server making that call.', '/docs/router-api'],
-  ['Connect', 'The connection is direct and encrypted. Antseed never sees the request.', '/docs/transport'],
+  ['Choose', 'Your device picks the provider by price and trust. There is no Torve server making that call.', '/docs/router-api'],
+  ['Connect', 'The connection is direct and encrypted. Torve never sees the request.', '/docs/transport'],
   ['Pay', 'You sign a running total per request, and the provider settles it in USDC on Base.', '/docs/payments'],
 ];
 
@@ -250,20 +250,20 @@ const STACK = [
 export default function NetworkPage() {
   const [motionPaused, setMotionPaused] = useState(false);
   return (
-    <Layout title="How the Antseed network works" description="Your device finds providers over Mainline DHT, the same network BitTorrent uses, picks the route itself, talks to the provider directly, and pays per request in USDC on Base. Nobody sits in the middle.">
-      <Head><link rel="canonical" href="https://antseed.com/network/" /></Head>
+    <Layout title="How the Torve network works" description="Your device finds providers over Mainline DHT, the same network BitTorrent uses, picks the route itself, talks to the provider directly, and pays per request in USDC on Base. Nobody sits in the middle.">
+      <Head><link rel="canonical" href="https://torveai.com/network/" /></Head>
       <main className={`${styles.page} ${motionPaused ? styles.paused : ''}`}>
         <header className={styles.hero}>
           <div className={styles.inner}>
-            <div className={styles.heroTop}><Eyebrow>ANTSEED / NETWORK</Eyebrow><button type="button" className={styles.motionToggle} aria-pressed={motionPaused} onClick={() => setMotionPaused(!motionPaused)}>{motionPaused ? 'Resume motion' : 'Pause motion'}</button></div>
-            <Reveal><h1>Antseed Network.<br /><span>Not another API gateway.</span></h1><p className={styles.heroLead}>Your device finds providers itself, talks to them directly, and pays per request. Nobody sits in the middle: no account, no server that sees your prompts, no company that can shut you off.</p></Reveal>
+            <div className={styles.heroTop}><Eyebrow>TORVE / NETWORK</Eyebrow><button type="button" className={styles.motionToggle} aria-pressed={motionPaused} onClick={() => setMotionPaused(!motionPaused)}>{motionPaused ? 'Resume motion' : 'Pause motion'}</button></div>
+            <Reveal><h1>Torve Network.<br /><span>Not another API gateway.</span></h1><p className={styles.heroLead}>Your device finds providers itself, talks to them directly, and pays per request. Nobody sits in the middle: no account, no server that sees your prompts, no company that can shut you off.</p></Reveal>
             <div className={styles.ctas}><Button href="#how" size="lg" arrow>Follow a request</Button><Button to="/docs/overview" variant="ghost" size="lg">Read the protocol</Button></div>
             <RequestTrace motionPaused={motionPaused} />
             <div className={styles.heroFooter}><span>Discovery is distributed.</span><span>Routing is local.</span><span>Delivery is direct.</span><span>Settlement is onchain.</span></div>
           </div>
         </header>
 
-        <Chapter id="how" title="How a request travels." intro="Four steps, all of them either on your device, between you and the provider, or on Base. None of them on an Antseed server.">
+        <Chapter id="how" title="How a request travels." intro="Four steps, all of them either on your device, between you and the provider, or on Base. None of them on an Torve server.">
           <div className={styles.fourCards}>
             {JOURNEY.map(([title, text, doc], index) => (
               <Reveal key={title} className={styles.journeyCard} delay={index * 80}>
@@ -276,7 +276,7 @@ export default function NetworkPage() {
           </div>
         </Chapter>
 
-        <Chapter id="where" dark title="What lives where." intro="Three places, and nothing else. Once you know which is which, you know what Antseed can and cannot see.">
+        <Chapter id="where" dark title="What lives where." intro="Three places, and nothing else. Once you know which is which, you know what Torve can and cannot see.">
           <div className={styles.boundaries}>{BOUNDARIES.map(([title, text]) => <div key={title}><h3>{title}</h3><p>{text}</p></div>)}</div>
           <p className={styles.transportNote}>Encryption protects traffic in transit. It does not hide anything from the provider you chose.</p>
           <DocLink to="/docs/security">Where the security boundaries are</DocLink>

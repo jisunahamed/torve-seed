@@ -15,14 +15,14 @@
   },
   "transactions": [
     {
-      "action": "deploy AntseedWashTradingRegistry",
+      "action": "deploy TorveWashTradingRegistry",
       "hash": "0xba4b22bc506b8ea320c361b674726a9e4d3a7532eaf09ef781d14801397b47a8",
       "blockNumber": 50955026,
       "from": "0x48f4142f4abf7b77a03f0cdffcd511edd9b6d54a",
       "to": null
     },
     {
-      "action": "deploy AntseedEmissionsGate",
+      "action": "deploy TorveEmissionsGate",
       "hash": "0xfac7210de465ca15bf39be60a3cdd1d5b9270ace0059337a21dd309c5fcdf84a",
       "blockNumber": 50955027,
       "from": "0x48f4142f4abf7b77a03f0cdffcd511edd9b6d54a",
@@ -36,14 +36,14 @@
       "to": "0xe60a31e6cd2f8455503ca0b3f6545dd3ddf543bd"
     },
     {
-      "action": "deploy AntseedSellerPools",
+      "action": "deploy TorveSellerPools",
       "hash": "0x4bc7c19033a6521a2d6de7bccf0fb071fea9b9aef62b5e9d72649ecc6f7da6f1",
       "blockNumber": 50955029,
       "from": "0x48f4142f4abf7b77a03f0cdffcd511edd9b6d54a",
       "to": null
     },
     {
-      "action": "deploy AntseedSellerRegistry",
+      "action": "deploy TorveSellerRegistry",
       "hash": "0x30bb68fb86e94b75190edf54dcfc00c499b341e6e13e79369066d2d5b75580bb",
       "blockNumber": 50955030,
       "from": "0x48f4142f4abf7b77a03f0cdffcd511edd9b6d54a",
@@ -64,28 +64,28 @@
       "to": "0xe60a31e6cd2f8455503ca0b3f6545dd3ddf543bd"
     },
     {
-      "action": "deploy AntseedPositionInit",
+      "action": "deploy TorvePositionInit",
       "hash": "0xc5c3b33138a59222871104acfe987076f7fd40f3c1a89907a40e11e3373be09e",
       "blockNumber": 50955033,
       "from": "0x48f4142f4abf7b77a03f0cdffcd511edd9b6d54a",
       "to": null
     },
     {
-      "action": "deploy AntseedUsageAccounting",
+      "action": "deploy TorveUsageAccounting",
       "hash": "0xdd65cec51382558aa745f8f48b906a045b7df231af62a2a679d2f8457b65c31d",
       "blockNumber": 50955034,
       "from": "0x48f4142f4abf7b77a03f0cdffcd511edd9b6d54a",
       "to": null
     },
     {
-      "action": "deploy AntseedPointsPolicyRegistry",
+      "action": "deploy TorvePointsPolicyRegistry",
       "hash": "0xb6e24df4541042e39c7f76e1f07e7968a9f581acf64d90f4cb24a0bac5df4997",
       "blockNumber": 50955035,
       "from": "0x48f4142f4abf7b77a03f0cdffcd511edd9b6d54a",
       "to": null
     },
     {
-      "action": "deploy AntseedWashTradingPointsPolicy",
+      "action": "deploy TorveWashTradingPointsPolicy",
       "hash": "0x7852bf9f71b8d46a332f20238ae0cdf2862fa1c38fcdf4488832ff3aae25fc82",
       "blockNumber": 50955036,
       "from": "0x48f4142f4abf7b77a03f0cdffcd511edd9b6d54a",
@@ -106,14 +106,14 @@
       "to": "0xadd2d85316153d7bfaf7921ee9bf1bb6c7a1cbc9"
     },
     {
-      "action": "deploy AntseedSellerPoolsRewards",
+      "action": "deploy TorveSellerPoolsRewards",
       "hash": "0x86f2c86d56f978e5ba0d7646c6ebc0b7a0ddb0f044f5dff4790519be925013ae",
       "blockNumber": 50955039,
       "from": "0x48f4142f4abf7b77a03f0cdffcd511edd9b6d54a",
       "to": null
     },
     {
-      "action": "deploy AntseedUsageRewards",
+      "action": "deploy TorveUsageRewards",
       "hash": "0xcedecb746657edb2a0b16217ced1780ccb1d45a654f9f34a83e865d7fa5c4cbc",
       "blockNumber": 50955040,
       "from": "0x48f4142f4abf7b77a03f0cdffcd511edd9b6d54a",
@@ -141,7 +141,7 @@
       "to": "0x78330bf154172f1137219bb559d4f3a270b3201f"
     },
     {
-      "action": "deploy AntseedLegacyEmissionsEscrow",
+      "action": "deploy TorveLegacyEmissionsEscrow",
       "hash": "0xd19e9a6960cf3b5fba4a603396e68cce913eefbc3b1a835280de962812d3b8b4",
       "blockNumber": 50955044,
       "from": "0x48f4142f4abf7b77a03f0cdffcd511edd9b6d54a",

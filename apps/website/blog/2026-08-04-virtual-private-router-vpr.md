@@ -1,7 +1,7 @@
 ---
 slug: virtual-private-router-vpr
 title: "What Is an AI VPN? The Private Alternative to a VPN for AI"
-authors: [antseed]
+authors: [torve]
 tags: [AI VPN, VPN for AI, private AI, privacy, AI infrastructure]
 description: "An AI VPN does for your AI what a VPN does for browsing, and more. It routes each prompt so no single AI provider ever sees you."
 keywords: [AI VPN for agents, AI VPN, what is an AI VPN, VPN for AI, AI VPN alternative, private AI without a provider]
@@ -56,7 +56,7 @@ The two even stack. You can run a VPN underneath an AI VPN: the VPN hides the co
 
 ## How an AI VPN actually works
 
-Antseed is a working AI VPN. You run a small local proxy at `localhost:8377`. It discovers providers across a peer-to-peer network, scores them on price and reliability, and routes each request over an encrypted connection to whichever one fits. The interface is OpenAI and Anthropic compatible, so pointing an existing tool at it is usually a one-line base-URL change rather than a rewrite.
+Torve is a working AI VPN. You run a small local proxy at `localhost:8377`. It discovers providers across a peer-to-peer network, scores them on price and reliability, and routes each request over an encrypted connection to whichever one fits. The interface is OpenAI and Anthropic compatible, so pointing an existing tool at it is usually a one-line base-URL change rather than a rewrite.
 
 Because there is no account, there is nothing to log in to and no billing profile attaching your prompts to your name. Because the network contains independent providers rather than one endpoint, you are not locked to a single operator. The router ranks eligible sellers using shared Price + Trust preferences and peer-health signals. Within one conversation it softly prefers the seller that already served that chat, preserving continuity without creating a hard lock: if that seller becomes unavailable, unhealthy, or policy-ineligible, model-only routing can fail over. The privacy is a property of the network architecture, not a promise in a policy document that can change next quarter. If you want the hands-on version, we wrote a walkthrough of how to [run Claude, DeepSeek, and Llama with no account or identity attached](/blog/use-claude-deepseek-llama-privately), and the fastest start is to [install the local proxy](/docs/install).
 

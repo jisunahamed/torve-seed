@@ -2,10 +2,10 @@
 pragma solidity ^0.8.24;
 
 import { Test } from "forge-std/Test.sol";
-import { IAntseedPointsModifier } from "../interfaces/IAntseedPointsModifier.sol";
-import { AntseedPointsPolicyRegistry } from "../policies/AntseedPointsPolicyRegistry.sol";
+import { ITorvePointsModifier } from "../interfaces/ITorvePointsModifier.sol";
+import { TorvePointsPolicyRegistry } from "../policies/TorvePointsPolicyRegistry.sol";
 
-contract MockPointsModifier is IAntseedPointsModifier {
+contract MockPointsModifier is ITorvePointsModifier {
     uint256 internal immutable _sellerMultiplierBps;
     uint256 internal immutable _buyerMultiplierBps;
     bool internal immutable _reverts;
@@ -26,7 +26,7 @@ contract MockPointsModifier is IAntseedPointsModifier {
     }
 }
 
-contract AddingPointsModifier is IAntseedPointsModifier {
+contract AddingPointsModifier is ITorvePointsModifier {
     function points(bytes32, address, address, uint256 sellerPoints, uint256 buyerPoints)
         external
         pure
@@ -36,7 +36,7 @@ contract AddingPointsModifier is IAntseedPointsModifier {
     }
 }
 
-contract ContextCheckingPointsModifier is IAntseedPointsModifier {
+contract ContextCheckingPointsModifier is ITorvePointsModifier {
     function points(bytes32 channelId, address buyer, address seller, uint256 sellerPoints, uint256 buyerPoints)
         external
         pure
@@ -54,10 +54,10 @@ contract PointsPolicyRegistryTest is Test {
     bytes32 internal constant CHANNEL_ID = bytes32(uint256(7));
     address internal constant BUYER = address(0xB0B);
     address internal constant SELLER = address(0xA11CE);
-    AntseedPointsPolicyRegistry internal registry;
+    TorvePointsPolicyRegistry internal registry;
 
     function setUp() public {
-        registry = new AntseedPointsPolicyRegistry(address(this));
+        registry = new TorvePointsPolicyRegistry(address(this));
     }
 
     function test_emptyRegistryPassesRawPointsThrough() public view {
@@ -149,24 +149,24 @@ contract PointsPolicyRegistryTest is Test {
     }
 
     function test_registrationRejectsInvalidAndDuplicateAddresses() public {
-        vm.expectRevert(AntseedPointsPolicyRegistry.InvalidPolicy.selector);
+        vm.expectRevert(TorvePointsPolicyRegistry.InvalidPolicy.selector);
         registry.registerPolicy(address(0));
-        vm.expectRevert(AntseedPointsPolicyRegistry.InvalidPolicy.selector);
+        vm.expectRevert(TorvePointsPolicyRegistry.InvalidPolicy.selector);
         registry.registerPolicy(address(0xBEEF));
-        vm.expectRevert(AntseedPointsPolicyRegistry.InvalidPolicy.selector);
+        vm.expectRevert(TorvePointsPolicyRegistry.InvalidPolicy.selector);
         registry.registerPolicy(address(registry));
 
         MockPointsModifier policy = new MockPointsModifier(10_000, 10_000, false);
         registry.registerPolicy(address(policy));
         vm.expectRevert(
-            abi.encodeWithSelector(AntseedPointsPolicyRegistry.PolicyAlreadyRegistered.selector, address(policy))
+            abi.encodeWithSelector(TorvePointsPolicyRegistry.PolicyAlreadyRegistered.selector, address(policy))
         );
         registry.registerPolicy(address(policy));
     }
 
     function test_removingUnknownPolicyReverts() public {
         vm.expectRevert(
-            abi.encodeWithSelector(AntseedPointsPolicyRegistry.PolicyNotRegistered.selector, address(0xBEEF))
+            abi.encodeWithSelector(TorvePointsPolicyRegistry.PolicyNotRegistered.selector, address(0xBEEF))
         );
         registry.removePolicy(address(0xBEEF));
     }
@@ -176,7 +176,7 @@ contract PointsPolicyRegistryTest is Test {
             registry.registerPolicy(address(new MockPointsModifier(10_000, 10_000, false)));
         }
         MockPointsModifier overflowPolicy = new MockPointsModifier(10_000, 10_000, false);
-        vm.expectRevert(AntseedPointsPolicyRegistry.TooManyPolicies.selector);
+        vm.expectRevert(TorvePointsPolicyRegistry.TooManyPolicies.selector);
         registry.registerPolicy(address(overflowPolicy));
     }
 

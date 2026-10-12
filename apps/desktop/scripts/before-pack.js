@@ -33,6 +33,6 @@ export default async function beforePack(context) {
   execFileSync(process.execPath, [path.join(__dirname, 'prepare-dist.mjs')], {
     stdio: 'inherit',
     cwd: path.resolve(__dirname, '..'),
-    env: { ...process.env, ANTSEED_PACK_ARCH: arch },
+    env: { ...process.env, TORVE_PACK_ARCH: arch },
   });
 }

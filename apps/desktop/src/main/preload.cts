@@ -96,7 +96,7 @@ type RawChatAttachment = {
 type PreparedChatAttachment = {
   id: string;
   /** Stable server-generated ID for the on-disk copy; used by the
-   *  `antseed-attachment://` preview protocol. */
+   *  `torve-attachment://` preview protocol. */
   attachmentId?: string;
   name: string;
   mimeType: string;
@@ -713,7 +713,7 @@ const isAppDocument =
   location.hostname === 'localhost' ||
   location.hostname === '127.0.0.1';
 if (isAppDocument) {
-  contextBridge.exposeInMainWorld('antseedDesktop', api);
+  contextBridge.exposeInMainWorld('torveDesktop', api);
 }
 
 export type DesktopBridge = typeof api;

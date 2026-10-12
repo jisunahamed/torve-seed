@@ -5,7 +5,7 @@ import { runMigrations } from '../storage/migrate.js';
 import { channelMigrations } from '../storage/migrations/channels/index.js';
 import type { SpendingAuthMetadata, SpendingAuthServiceMetadata } from './evm/signatures.js';
 
-// Channel constants/types + BuyerChannelStore interface moved to @antseed/buyer-core.
+// Channel constants/types + BuyerChannelStore interface moved to @torveai/buyer-core.
 export {
   CHANNEL_STATUS,
   CHANNEL_KIND,
@@ -16,7 +16,7 @@ export {
   type StoredChannel,
   type StoredChannelServiceTotal,
   type BuyerChannelStore,
-} from '@antseed/buyer-core/channel-store-types';
+} from '@torveai/buyer-core/channel-store-types';
 import {
   CHANNEL_STATUS,
   CHANNEL_KIND,
@@ -26,7 +26,7 @@ import {
   type ChannelRole,
   type StoredChannel,
   type StoredChannelServiceTotal,
-} from '@antseed/buyer-core/channel-store-types';
+} from '@torveai/buyer-core/channel-store-types';
 
 export interface StoredReceipt {
   id?: number;

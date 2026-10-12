@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { BuyerRequestHandler, stripPeerControlledResponseHeaders } from '../src/buyer-request-handler.js';
 import { ConnectionState } from '../src/types/connection.js';
-import { ANTSEED_STREAMING_RESPONSE_HEADER } from '../src/types/http.js';
+import { TORVE_STREAMING_RESPONSE_HEADER } from '../src/types/http.js';
 import type {
   SerializedHttpRequest,
   SerializedHttpResponse,
@@ -16,8 +16,8 @@ describe('buyer request response sanitization', () => {
       statusCode: 503,
       headers: {
         'content-type': 'application/json',
-        'X-Antseed-Fault-Attribution': 'peer',
-        'x-antseed-fault-attribution': 'buyer',
+        'X-Torve-Fault-Attribution': 'peer',
+        'x-torve-fault-attribution': 'buyer',
       },
       body: new Uint8Array(),
     };
@@ -25,8 +25,8 @@ describe('buyer request response sanitization', () => {
     const sanitized = stripPeerControlledResponseHeaders(response);
 
     expect(sanitized.headers).toEqual({ 'content-type': 'application/json' });
-    expect(response.headers['X-Antseed-Fault-Attribution']).toBe('peer');
-    expect(response.headers['x-antseed-fault-attribution']).toBe('buyer');
+    expect(response.headers['X-Torve-Fault-Attribution']).toBe('peer');
+    expect(response.headers['x-torve-fault-attribution']).toBe('buyer');
   });
 });
 
@@ -95,7 +95,7 @@ describe('BuyerRequestHandler payments-inactive 402 handling', () => {
 
     const response = await handler.sendRequest(peer, makeChatRequest());
     expect(response.statusCode).toBe(503);
-    expect(response.headers['x-antseed-fault-attribution']).toBe('buyer');
+    expect(response.headers['x-torve-fault-attribution']).toBe('buyer');
     const parsed = JSON.parse(new TextDecoder().decode(response.body)) as Record<string, unknown>;
     expect(parsed.error).toBe('buyer_payments_inactive');
     expect(parsed.peerId).toBe(peer.peerId);
@@ -111,7 +111,7 @@ describe('BuyerRequestHandler payments-inactive 402 handling', () => {
 
     const response = await handler.sendRequest(peer, makeChatRequest());
     expect(response.statusCode).toBe(402);
-    expect(response.headers['x-antseed-fault-attribution']).toBe('peer');
+    expect(response.headers['x-torve-fault-attribution']).toBe('peer');
     const parsed = JSON.parse(new TextDecoder().decode(response.body)) as {
       error: { type: string; message: string; peer_message: string; peer_status: number };
     };
@@ -120,7 +120,7 @@ describe('BuyerRequestHandler payments-inactive 402 handling', () => {
     expect(parsed.error.peer_status).toBe(402);
     expect(parsed.error.message).toBe([
       'Oops, peer could not complete the request.',
-      'Antseed is a peer-to-peer network. Try another peer or use Auto routing.',
+      'Torve is a peer-to-peer network. Try another peer or use Auto routing.',
       'Original Response: {"message":"No billing tier matches this request.","status":402}',
     ].join('\n'));
   });
@@ -143,7 +143,7 @@ describe('BuyerRequestHandler payments-inactive 402 handling', () => {
           statusCode: 429,
           headers: {
             'content-type': 'text/event-stream',
-            [ANTSEED_STREAMING_RESPONSE_HEADER]: '1',
+            [TORVE_STREAMING_RESPONSE_HEADER]: '1',
           },
           body: new Uint8Array(),
         }, { streamingStart: true });
@@ -173,16 +173,16 @@ describe('BuyerRequestHandler payments-inactive 402 handling', () => {
     expect(onResponseStart).not.toHaveBeenCalled();
     expect(onResponseChunk).not.toHaveBeenCalled();
     expect(response.statusCode).toBe(429);
-    expect(response.headers['x-antseed-fault-attribution']).toBe('peer');
+    expect(response.headers['x-torve-fault-attribution']).toBe('peer');
     const parsed = JSON.parse(new TextDecoder().decode(response.body)) as {
-      error: { message: string; antseed_pinned: boolean; peer_message: string; peer_status: number };
+      error: { message: string; torve_pinned: boolean; peer_message: string; peer_status: number };
     };
-    expect(parsed.error.antseed_pinned).toBe(true);
+    expect(parsed.error.torve_pinned).toBe(true);
     expect(parsed.error.peer_message).toBe('Insufficient balance or no resource package. Please recharge.');
     expect(parsed.error.peer_status).toBe(429);
     expect(parsed.error.message).toBe([
       'Oops, pinned peer could not complete the request.',
-      'Antseed is a peer-to-peer network. Try another peer or use Auto routing.',
+      'Torve is a peer-to-peer network. Try another peer or use Auto routing.',
       'Original Response: {"message":"Insufficient balance or no resource package. Please recharge.","status":429}',
     ].join('\n'));
   });
