@@ -41,7 +41,6 @@ export interface VerifiedSupabaseUser {
 let cachedJwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 let cachedIssuer: string | null = null;
 let cachedAudience: string | null = null;
-let cachedSuperadminEmail: string | null = null;
 
 function getSupabaseConfig(): { issuer: string; jwksUrl: string; audience: string; superadminEmail: string } {
   // Mirrors supabase-jwt.service.ts: SUPABASE_URL + SUPABASE_ADMIN_EMAIL required.
@@ -76,13 +75,12 @@ function getSupabaseConfig(): { issuer: string; jwksUrl: string; audience: strin
 }
 
 function getJwks(): ReturnType<typeof createRemoteJWKSet> {
-  const { issuer, jwksUrl, audience, superadminEmail } = getSupabaseConfig();
+  const { issuer, jwksUrl, audience } = getSupabaseConfig();
 
   // Invalidate cache if SUPABASE_URL changes (e.g. tests or env reload).
   if (!cachedJwks || cachedIssuer !== issuer || cachedAudience !== audience) {
     cachedIssuer = issuer;
     cachedAudience = audience;
-    cachedSuperadminEmail = superadminEmail;
     cachedJwks = createRemoteJWKSet(new URL(jwksUrl), {
       timeoutDuration: 5_000,
       cooldownDuration: 30_000,

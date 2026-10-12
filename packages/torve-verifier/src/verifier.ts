@@ -170,7 +170,7 @@ const verifierPlugin: TorveVerifierPlugin = {
   version: '0.1.0',
   description:
     'Capability-based seller attestation: one claim per capability. Requires the seller node\'s genuine Intel TDX hardware (seller-node-tee-genuine) and a seller-identity binding over the whole bundle (seller-bound); also reports the provider TEE (seller-provider-tee-genuine), measured-image and gpu-cc when available.',
-  verify: (ctx) => runVerify(ctx),
+  verify: (ctx: VerifyContext) => runVerify(ctx),
 }
 
 export default verifierPlugin
