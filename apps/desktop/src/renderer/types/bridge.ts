@@ -367,6 +367,11 @@ export type DesktopBridge = {
   chatAiSetWorkspace?: (workspacePath: string) => Promise<{ ok: boolean; data?: { current: string; default: string }; error?: string }>;
   pickDirectory?: () => Promise<{ ok: boolean; path: string | null }>;
   openExternalUrl?: (url: string) => Promise<{ ok: boolean; error?: string }>;
+  /** Torve Account — Codex connect (§ main/ipc/torve-account.ts). */
+  torveAccountGet?: () => Promise<{ apiKey: string | null; email: string | null }>;
+  torveAccountSet?: (payload: { apiKey: string; email?: string | null }) => Promise<{ ok: boolean; error?: string }>;
+  torveAccountClear?: () => Promise<{ ok: boolean; error?: string }>;
+  torveLaunchCodex?: () => Promise<{ ok: boolean; error?: string; command?: string }>;
   openTool?: (toolName: string) => Promise<{ ok: boolean; error?: string; fallback?: string }>;
   /** Reopen a tool chat session: 'terminal' runs the tool's resume command
       (`codex resume <id>`, ...); 'app' launches the tool's desktop app. */

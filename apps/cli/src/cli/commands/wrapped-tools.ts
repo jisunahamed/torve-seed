@@ -6,6 +6,7 @@ import { accessSync, constants } from 'node:fs'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
+import { loadCredentials } from '../../auth/credentials.js'
 import { getGlobalOptions } from './types.js'
 
 type ToolName = 'codex' | 'claude' | 'opencode'
@@ -165,7 +166,7 @@ export function buildCodexConfigArgs(baseUrlV1: string, model: string): string[]
   ]
 }
 
-export function buildOpenCodeConfigContent(baseUrlV1: string, model: string): string {
+export function buildOpenCodeConfigContent(baseUrlV1: string, model: string, apiKey: string = DEFAULT_RUNTIME_API_KEY): string {
   return JSON.stringify({
     provider: {
       torve: {
@@ -173,7 +174,7 @@ export function buildOpenCodeConfigContent(baseUrlV1: string, model: string): st
         name: 'Torve',
         options: {
           baseURL: baseUrlV1,
-          apiKey: 'torve',
+          apiKey,
         },
         models: {
           [model]: {
@@ -268,42 +269,43 @@ async function prepareToolInvocation(
   toolName: ToolName,
   parsed: ParsedWrappedToolArgs,
   baseUrl: NormalizedBaseUrl,
+  apiKey: string,
 ): Promise<PreparedInvocation> {
   switch (toolName) {
     case 'codex':
-      return prepareCodexInvocation(parsed, baseUrl)
+      return prepareCodexInvocation(parsed, baseUrl, apiKey)
     case 'claude':
-      return prepareClaudeInvocation(parsed, baseUrl)
+      return prepareClaudeInvocation(parsed, baseUrl, apiKey)
     case 'opencode':
-      return await prepareOpenCodeInvocation(parsed, baseUrl)
+      return await prepareOpenCodeInvocation(parsed, baseUrl, apiKey)
   }
 }
 
-function prepareCodexInvocation(parsed: ParsedWrappedToolArgs, baseUrl: NormalizedBaseUrl): PreparedInvocation {
+function prepareCodexInvocation(parsed: ParsedWrappedToolArgs, baseUrl: NormalizedBaseUrl, apiKey: string): PreparedInvocation {
   const model = resolveModel(parsed.model, 'codex')
   return {
     args: [...buildCodexConfigArgs(baseUrl.v1, model), ...parsed.childArgs],
-    env: withDefaultEnv('TORVE_API_KEY', DEFAULT_RUNTIME_API_KEY),
+    env: withDefaultEnv('TORVE_API_KEY', apiKey),
     cleanup: NOOP_CLEANUP,
   }
 }
 
-function prepareClaudeInvocation(parsed: ParsedWrappedToolArgs, baseUrl: NormalizedBaseUrl): PreparedInvocation {
+function prepareClaudeInvocation(parsed: ParsedWrappedToolArgs, baseUrl: NormalizedBaseUrl, apiKey: string): PreparedInvocation {
   return {
     args: parsed.model ? ['--model', parsed.model, ...parsed.childArgs] : parsed.childArgs,
     env: {
-      ...withDefaultEnv('ANTHROPIC_API_KEY', DEFAULT_RUNTIME_API_KEY),
+      ...withDefaultEnv('ANTHROPIC_API_KEY', apiKey),
       ANTHROPIC_BASE_URL: baseUrl.root,
     },
     cleanup: NOOP_CLEANUP,
   }
 }
 
-async function prepareOpenCodeInvocation(parsed: ParsedWrappedToolArgs, baseUrl: NormalizedBaseUrl): Promise<PreparedInvocation> {
+async function prepareOpenCodeInvocation(parsed: ParsedWrappedToolArgs, baseUrl: NormalizedBaseUrl, apiKey: string): Promise<PreparedInvocation> {
   const model = resolveModel(parsed.model, 'opencode')
   const configDir = await mkdtemp(join(tmpdir(), OPENCODE_CONFIG_PREFIX))
   const configPath = join(configDir, 'opencode.json')
-  await writeFile(configPath, buildOpenCodeConfigContent(baseUrl.v1, model), 'utf-8')
+  await writeFile(configPath, buildOpenCodeConfigContent(baseUrl.v1, model, apiKey), 'utf-8')
   return {
     args: parsed.childArgs,
     env: {
@@ -326,6 +328,17 @@ function proxyDisplayUrl(toolName: ToolName, baseUrl: NormalizedBaseUrl): string
 }
 
 async function runWrappedTool(toolName: ToolName, rawArgs: string[], dataDir: string, configPath: string): Promise<void> {
+  // Auth gate — require stored credentials for wrapped tools
+  // Honor env passthrough: if TORVE_API_KEY / ANTHROPIC_API_KEY already set, allow without stored creds
+  const creds = await loadCredentials(dataDir)
+  const envApiKey = process.env['TORVE_API_KEY'] || process.env['ANTHROPIC_API_KEY']
+  if (!creds && !envApiKey) {
+    console.error(chalk.red('Not logged in. Run: torve auth login'))
+    process.exitCode = 1
+    return
+  }
+  const runtimeApiKey = creds?.apiKey ?? envApiKey ?? DEFAULT_RUNTIME_API_KEY
+
   const tool = TOOL_CONFIGS[toolName]
   let parsed: ParsedWrappedToolArgs
   let baseUrl: NormalizedBaseUrl
@@ -333,7 +346,7 @@ async function runWrappedTool(toolName: ToolName, rawArgs: string[], dataDir: st
   try {
     parsed = parseWrappedToolArgs(rawArgs)
     baseUrl = normalizeTorveBaseUrl(parsed.torveBaseUrl ?? await resolveDefaultTorveBaseUrl(dataDir, configPath))
-    prepared = await prepareToolInvocation(toolName, parsed, baseUrl)
+    prepared = await prepareToolInvocation(toolName, parsed, baseUrl, runtimeApiKey)
   } catch (err) {
     console.error(chalk.red((err as Error).message))
     process.exitCode = 1

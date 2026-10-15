@@ -4,7 +4,7 @@
  * BlogPostItems card grid below, paginator at the end. Metadata and
  * structured data are kept from the original implementation.
  */
-import type {ReactNode} from 'react';
+import type {ComponentProps, ReactNode} from 'react';
 import clsx from 'clsx';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import {
@@ -12,6 +12,7 @@ import {
   HtmlClassNameProvider,
   ThemeClassNames,
 } from '@docusaurus/theme-common';
+import {TitleFormatterProvider} from '@docusaurus/theme-common/internal';
 import Layout from '@theme/Layout';
 import BlogListPaginator from '@theme/BlogListPaginator';
 import SearchMetadata from '@theme/SearchMetadata';
@@ -53,15 +54,25 @@ function BlogListPageContent(props: Props): ReactNode {
 }
 
 export default function BlogListPage(props: Props): ReactNode {
+  // Docusaurus 3.9+ provides TitleFormatterProvider via ThemeProvider, but
+  // with pnpm hoisted + shamefully-hoist the swizzled build can resolve
+  // @docusaurus/theme-common to a different module instance than the
+  // ThemeProvider's internal import, creating two React contexts and an
+  // SSG crash: "Hook useTitleFormatterContext is called outside the
+  // <TitleFormatterProvider>." Wrapping here with a local provider makes
+  // the swizzled page resilient regardless of which instance webpack binds.
+  const formatter: ComponentProps<typeof TitleFormatterProvider>['formatter'] = (params) => params.defaultFormatter(params)
   return (
-    <HtmlClassNameProvider
-      className={clsx(
-        ThemeClassNames.wrapper.blogPages,
-        ThemeClassNames.page.blogListPage,
-      )}>
-      <BlogListPageMetadata {...props} />
-      <BlogListPageStructuredData {...props} />
-      <BlogListPageContent {...props} />
-    </HtmlClassNameProvider>
+    <TitleFormatterProvider formatter={formatter}>
+      <HtmlClassNameProvider
+        className={clsx(
+          ThemeClassNames.wrapper.blogPages,
+          ThemeClassNames.page.blogListPage,
+        )}>
+        <BlogListPageMetadata {...props} />
+        <BlogListPageStructuredData {...props} />
+        <BlogListPageContent {...props} />
+      </HtmlClassNameProvider>
+    </TitleFormatterProvider>
   );
 }

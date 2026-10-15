@@ -174,6 +174,15 @@ export const VIEW_REGISTRY = {
       preloadPriority: 'idle',
     },
   ),
+  'torve-account': createViewEntry(
+    async () => (await import('./views/TorveAccountView')).TorveAccountView as ComponentType<RoutedViewProps>,
+    {
+      receivesOnSelectView: true,
+      slideIndex: 11,
+      preloadPriority: 'idle',
+      nav: { slot: 'main', label: 'Torve Account', icon: ConnectIcon },
+    },
+  ),
   peers: createViewEntry(
     async () => (await import('./views/PeersView')).PeersView as ComponentType<RoutedViewProps>,
     { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },

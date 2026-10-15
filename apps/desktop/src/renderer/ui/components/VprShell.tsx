@@ -31,6 +31,7 @@ const VIEWS_WITH_HEADER_CREDITS: ReadonlySet<ViewName> = new Set([
   'rewards',
   'preferences',
   'help',
+  'torve-account',
 ]);
 
 declare const __APP_VERSION__: string;

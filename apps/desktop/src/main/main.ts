@@ -77,6 +77,7 @@ import { registerRuntimeIpc } from './ipc/runtime.js';
 import { registerSystemProxyIpc } from './ipc/system-proxy.js';
 import { registerTelegramIpc } from './ipc/telegram.js';
 import { registerPublicTunnelIpc } from './ipc/public-tunnel.js';
+import { registerTorveAccountIpc } from './ipc/torve-account.js';
 import {
   effectiveLaunchTarget,
 } from './connected-apps/profile-targets.js';
@@ -299,6 +300,7 @@ registerStakingIpc();
 registerDesktopIpc();
 registerAppIpc();
 registerFloatIpc();
+registerTorveAccountIpc();
 registerSystemProxyIpc({ processManager });
 const publicTunnelRuntime = registerPublicTunnelIpc({ processManager });
 registerRuntimeIpc({

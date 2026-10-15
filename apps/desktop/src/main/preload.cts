@@ -357,6 +357,19 @@ const api = {
   openExternalUrl(url: string): Promise<{ ok: boolean; error?: string }> {
     return ipcRenderer.invoke('desktop:open-external-url', url) as Promise<{ ok: boolean; error?: string }>;
   },
+  // Torve Account — Codex connect (§ apps/desktop/src/main/ipc/torve-account.ts)
+  torveAccountGet(): Promise<{ apiKey: string | null; email: string | null }> {
+    return ipcRenderer.invoke('torve:account-get') as Promise<{ apiKey: string | null; email: string | null }>;
+  },
+  torveAccountSet(payload: { apiKey: string; email?: string | null }): Promise<{ ok: boolean; error?: string }> {
+    return ipcRenderer.invoke('torve:account-set', payload) as Promise<{ ok: boolean; error?: string }>;
+  },
+  torveAccountClear(): Promise<{ ok: boolean; error?: string }> {
+    return ipcRenderer.invoke('torve:account-clear') as Promise<{ ok: boolean; error?: string }>;
+  },
+  torveLaunchCodex(): Promise<{ ok: boolean; error?: string; command?: string }> {
+    return ipcRenderer.invoke('torve:launch-codex') as Promise<{ ok: boolean; error?: string; command?: string }>;
+  },
   openTool(toolName: string): Promise<{ ok: boolean; error?: string; fallback?: string }> {
     return ipcRenderer.invoke('desktop:open-tool', toolName) as Promise<{ ok: boolean; error?: string; fallback?: string }>;
   },

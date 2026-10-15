@@ -17,6 +17,7 @@ import { registerSystemProxyCommands } from './commands/system-proxy/index.js';
 import { registerTunnelCommands } from './commands/tunnel/index.js';
 import { registerGatewayCommands } from './commands/gateway/index.js';
 import { registerAntsCommands } from './commands/ants/index.js';
+import { registerAuthCommands } from './commands/auth/index.js';
 
 loadEnvFromFiles();
 
@@ -48,5 +49,6 @@ registerSystemProxyCommands(program);
 registerTunnelCommands(program);
 registerGatewayCommands(program);
 registerAntsCommands(program);
+registerAuthCommands(program);
 
 program.parse(process.argv);

@@ -51,6 +51,8 @@ async function withTempWorkspace<T>(fn: (paths: TempWorkspace) => Promise<T>): P
     const dataDir = join(root, 'data')
     await mkdir(binDir)
     await mkdir(dataDir)
+    // Seed auth so the wrapped-tool gate passes (mimics `torve auth login`)
+    await writeFile(join(dataDir, 'credentials.json'), JSON.stringify({ apiKey: 'torve', savedAt: new Date().toISOString() }))
     return await fn({ binDir, dataDir, configPath: join(dataDir, 'config.json') })
   } finally {
     await rm(root, { recursive: true, force: true })
