@@ -178,6 +178,9 @@ importers:
       '@torveai/ants':
         specifier: workspace:*
         version: link:../ants
+      '@torveai/api-adapter':
+        specifier: workspace:*
+        version: link:../../packages/api-adapter
       '@torveai/node':
         specifier: workspace:*
         version: link:../../packages/node

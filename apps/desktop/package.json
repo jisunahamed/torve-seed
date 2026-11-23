@@ -42,6 +42,7 @@
     "release:linux": "npm run build && npm run prepare-dist && electron-builder --config electron-builder.linux.cjs --linux --publish always"
   },
   "dependencies": {
+    "@torveai/api-adapter": "workspace:*",
     "@torveai/torve-verifier": "workspace:*",
     "@torveai/node": "workspace:*",
     "@torveai/payments": "workspace:*",

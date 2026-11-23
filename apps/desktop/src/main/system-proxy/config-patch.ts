@@ -1,6 +1,6 @@
 import { TORVE_MODEL_CONTEXT_WINDOW, TORVE_MODEL_MAX_OUTPUT_TOKENS } from '@torveai/node/types';
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { Document, parseDocument } from 'yaml';
@@ -148,6 +148,18 @@ export type T3CodeConfigPatchDef = {
   readonly baseURL: string;
 };
 
+/** Gemini CLI persists a loopback base URL in its user settings. */
+export type GeminiConfigPatchDef = {
+  readonly format: 'gemini-cli';
+  readonly configPath: string;
+  readonly envPath: string;
+  readonly baseURL: string;
+  readonly model?: string;
+};
+export type AiderConfigPatchDef = { readonly format: 'aider'; readonly configPath: string; readonly baseURL: string };
+export type ContinueConfigPatchDef = { readonly format: 'continue'; readonly configPath: string; readonly legacyConfigPath?: string; readonly baseURL: string };
+export type AntigravityConfigPatchDef = { readonly format: 'antigravity-mcp'; readonly configPath: string; readonly serverPath: string; readonly baseURL: string };
+
 /**
  * Claude Desktop ships a native third-party inference mode: when the profile
  * config says `deploymentMode: "3p"` it boots against a separate profile
@@ -182,6 +194,10 @@ export type ConfigPatchDef =
   | ZedConfigPatchDef
   | ClaudeCodeConfigPatchDef
   | T3CodeConfigPatchDef
+  | GeminiConfigPatchDef
+  | AiderConfigPatchDef
+  | ContinueConfigPatchDef
+  | AntigravityConfigPatchDef
   | ClaudeDesktopConfigPatchDef;
 
 /**
@@ -228,6 +244,18 @@ export function readConfigPatch(value: unknown, profileName: string): ConfigPatc
       baseURL: readRequiredString(raw, 'baseURL', profileName),
     };
   }
+  if (format === 'gemini-cli') {
+    return {
+      format: 'gemini-cli',
+      configPath: readRequiredString(raw, 'configPath', profileName),
+      envPath: readRequiredString(raw, 'envPath', profileName),
+      baseURL: readRequiredString(raw, 'baseURL', profileName),
+      ...(readString(raw, 'model') ? { model: readString(raw, 'model') } : {}),
+    };
+  }
+  if (format === 'aider') return { format: 'aider', configPath: readRequiredString(raw, 'configPath', profileName), baseURL: readRequiredString(raw, 'baseURL', profileName) };
+  if (format === 'continue') return { format: 'continue', configPath: readRequiredString(raw, 'configPath', profileName), ...(readString(raw, 'legacyConfigPath') ? { legacyConfigPath: readString(raw, 'legacyConfigPath') } : {}), baseURL: readRequiredString(raw, 'baseURL', profileName) };
+  if (format === 'antigravity-mcp') return { format: 'antigravity-mcp', configPath: readRequiredString(raw, 'configPath', profileName), serverPath: readRequiredString(raw, 'serverPath', profileName), baseURL: readRequiredString(raw, 'baseURL', profileName) };
   const configPath = readRequiredString(raw, 'configPath', profileName);
   const providerKey = readRequiredString(raw, 'providerKey', profileName);
   const baseURL = readRequiredString(raw, 'baseURL', profileName);
@@ -474,7 +502,25 @@ function writeJsonFile(filePath: string, data: JsonObject): void {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
+  const temp = path.join(dir, `.${path.basename(filePath)}.torve-${process.pid}-${Date.now()}.tmp`);
+  try {
+    writeFileSync(temp, JSON.stringify(data, null, 2) + '\n', 'utf8');
+    renameSync(temp, filePath);
+  } finally {
+    if (existsSync(temp)) unlinkSync(temp);
+  }
+}
+
+function writeTextFileAtomically(filePath: string, content: string): void {
+  const dir = path.dirname(filePath);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  const temp = path.join(dir, `.${path.basename(filePath)}.torve-${process.pid}-${Date.now()}.tmp`);
+  try {
+    writeFileSync(temp, content, 'utf8');
+    renameSync(temp, filePath);
+  } finally {
+    if (existsSync(temp)) unlinkSync(temp);
+  }
 }
 
 function backupConfigFile(filePath: string): void {
@@ -501,7 +547,7 @@ function removeFromStringArray(config: JsonObject, key: string, value: string): 
  * sessions without a config rewrite.
  */
 export function applyConfigPatch(patch: ConfigPatchDef, peerId: string, buyerPort: number, wslTargetsFile?: string): void {
-  if (!isBuyerProxyRoutablePeerId(peerId)) {
+  if (peerId !== 'direct' && !isBuyerProxyRoutablePeerId(peerId)) {
     throw new Error('Config-based routing requires a 40-character hex peer ID. Select a chain-backed peer before enabling this tool.');
   }
   if (patch.format === 'codex') {
@@ -540,6 +586,13 @@ export function applyConfigPatch(patch: ConfigPatchDef, peerId: string, buyerPor
     applyT3CodeConfigPatch(patch, buyerPort);
     return;
   }
+  if (patch.format === 'gemini-cli') {
+    applyGeminiCliConfigPatch(patch, buyerPort);
+    return;
+  }
+  if (patch.format === 'aider') { applyAiderConfigPatch(patch, buyerPort); return; }
+  if (patch.format === 'continue') { applyContinueConfigPatch(patch, buyerPort); return; }
+  if (patch.format === 'antigravity-mcp') { applyAntigravityPatch(patch, buyerPort); return; }
   if (patch.format === 'claude-desktop') {
     applyClaudeDesktopConfigPatch(patch);
     return;
@@ -711,6 +764,12 @@ export function removeConfigPatch(patch: ConfigPatchDef, wslTargetsFile?: string
   if (patch.format === 't3code') {
     return removeT3CodeConfigPatch(patch);
   }
+  if (patch.format === 'gemini-cli') {
+    return removeGeminiCliConfigPatch(patch);
+  }
+  if (patch.format === 'aider') return removeAiderConfigPatch(patch);
+  if (patch.format === 'continue') return removeContinueConfigPatch(patch);
+  if (patch.format === 'antigravity-mcp') return removeAntigravityPatch(patch);
   if (patch.format === 'claude-desktop') {
     return removeClaudeDesktopConfigPatch(patch);
   }
@@ -746,7 +805,7 @@ function writeTextFile(filePath: string, content: string): void {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  writeFileSync(filePath, content, 'utf8');
+  writeTextFileAtomically(filePath, content);
 }
 
 // --- Droid CLI + Factory Desktop (`~/.factory/settings.json`) ---
@@ -1400,7 +1459,7 @@ function readHermesConfigDocument(filePath: string): Document.Parsed {
 function writeHermesConfigDocument(filePath: string, document: Document.Parsed): void {
   const dir = path.dirname(filePath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(filePath, document.toString(), 'utf8');
+  writeTextFileAtomically(filePath, document.toString());
 }
 
 function applyHermesConfigPatch(patch: HermesConfigPatchDef, buyerPort: number): void {
@@ -1760,6 +1819,165 @@ function removeT3CodeConfigPatch(patch: T3CodeConfigPatchDef): boolean {
   backupConfigFile(filePath);
   writeJsonFile(filePath, config);
   return true;
+}
+
+function applyGeminiCliConfigPatch(patch: GeminiConfigPatchDef, buyerPort: number): void {
+  const configPath = expandTilde(patch.configPath);
+  const envPath = expandTilde(patch.envPath);
+  backupConfigFile(configPath);
+  backupConfigFile(envPath);
+  const config = readConfigPatchFile(configPath);
+  const security = asObject(config['security']);
+  const auth = asObject(security['auth']);
+  auth['selectedType'] = 'gemini-api-key';
+  security['auth'] = auth;
+  config['security'] = security;
+  writeJsonFile(configPath, config);
+  writeManagedEnv(envPath, {
+    GOOGLE_GEMINI_BASE_URL: patch.baseURL.replace('{buyerPort}', String(buyerPort)),
+    GEMINI_API_KEY: 'torve-local-proxy',
+    GEMINI_MODEL: patch.model ?? ROUTED_MODEL_ALIAS,
+  });
+}
+
+function applyAiderConfigPatch(patch: AiderConfigPatchDef, buyerPort: number): void {
+  const filePath = expandTilde(patch.configPath);
+  backupConfigFile(filePath);
+  const document = existsSync(filePath) ? parseDocument(readFileSync(filePath, 'utf8')) : new Document({});
+  if (document.errors.length > 0) throw new Error(`Unable to parse Aider YAML config at ${filePath}`);
+  document.set('openai-api-base', patch.baseURL.replace('{buyerPort}', String(buyerPort)));
+  document.set('openai-api-key', 'torve-local-proxy');
+  document.set('model', `openai/${ROUTED_MODEL_ALIAS}`);
+  writeTextFileAtomically(filePath, document.toString());
+}
+
+function removeAiderConfigPatch(patch: AiderConfigPatchDef): boolean {
+  const filePath = expandTilde(patch.configPath);
+  if (!existsSync(filePath)) return false;
+  const document = parseDocument(readFileSync(filePath, 'utf8'));
+  const base = document.get('openai-api-base');
+  if (typeof base !== 'string' || !isLoopbackHost(base)) return false;
+  for (const key of ['openai-api-base', 'openai-api-key', 'model']) document.delete(key);
+  writeTextFileAtomically(filePath, document.toString());
+  return true;
+}
+
+function continuePath(patch: ContinueConfigPatchDef): string {
+  const yamlPath = expandTilde(patch.configPath);
+  const legacy = patch.legacyConfigPath ? expandTilde(patch.legacyConfigPath) : null;
+  return !existsSync(yamlPath) && legacy && existsSync(legacy) ? legacy : yamlPath;
+}
+
+function applyContinueConfigPatch(patch: ContinueConfigPatchDef, buyerPort: number): void {
+  const filePath = continuePath(patch);
+  backupConfigFile(filePath);
+  const base = patch.baseURL.replace('{buyerPort}', String(buyerPort));
+  const entry = { name: 'Torve', provider: 'openai', model: ROUTED_MODEL_ALIAS, apiBase: base, apiKey: 'torve-local-proxy' };
+  if (filePath.endsWith('.json')) {
+    const config = readConfigPatchFile(filePath);
+    const models = Array.isArray(config['models']) ? config['models'].filter((item) => !(item && typeof item === 'object' && (item as JsonObject)['name'] === 'Torve')) : [];
+    config['models'] = [...models, entry];
+    writeJsonFile(filePath, config);
+    return;
+  }
+  const document = existsSync(filePath) ? parseDocument(readFileSync(filePath, 'utf8')) : new Document({});
+  if (document.errors.length > 0) throw new Error(`Unable to parse Continue YAML config at ${filePath}`);
+  const config = (document.toJS() ?? {}) as JsonObject;
+  const models = Array.isArray(config['models']) ? config['models'].filter((item) => !(item && typeof item === 'object' && (item as JsonObject)['name'] === 'Torve')) : [];
+  config['models'] = [...models, entry];
+  writeTextFileAtomically(filePath, new Document(config).toString());
+}
+
+function removeContinueConfigPatch(patch: ContinueConfigPatchDef): boolean {
+  const filePath = continuePath(patch);
+  if (!existsSync(filePath)) return false;
+  if (filePath.endsWith('.json')) {
+    const config = tryReadConfigPatchFile(filePath); if (!config) return false;
+    const models = Array.isArray(config['models']) ? config['models'] : [];
+    const filtered = models.filter((item) => !(item && typeof item === 'object' && (item as JsonObject)['name'] === 'Torve'));
+    if (filtered.length === models.length) return false;
+    config['models'] = filtered; writeJsonFile(filePath, config); return true;
+  }
+  const document = parseDocument(readFileSync(filePath, 'utf8'));
+  const config = (document.toJS() ?? {}) as JsonObject;
+  const models = Array.isArray(config['models']) ? config['models'] : [];
+  const filtered = models.filter((item) => !(item && typeof item === 'object' && (item as JsonObject)['name'] === 'Torve'));
+  if (filtered.length === models.length) return false;
+  config['models'] = filtered; writeTextFileAtomically(filePath, new Document(config).toString()); return true;
+}
+
+function applyAntigravityPatch(patch: AntigravityConfigPatchDef, buyerPort: number): void {
+  const configPath = expandTilde(patch.configPath);
+  const serverPath = expandTilde(patch.serverPath);
+  backupConfigFile(configPath); backupConfigFile(serverPath);
+  const baseURL = patch.baseURL.replace('{buyerPort}', String(buyerPort));
+  const script = `import readline from 'node:readline';\nconst base=${JSON.stringify(baseURL)};\nconst send=(x)=>process.stdout.write(JSON.stringify(x)+'\\n');\nconst rl=readline.createInterface({input:process.stdin});\nrl.on('line',async(line)=>{let r;try{r=JSON.parse(line)}catch{return}const out={jsonrpc:'2.0',id:r.id};try{if(r.method==='initialize')send({...out,result:{protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'torve-local',version:'1.0.0'}}});else if(r.method==='notifications/initialized'){}else if(r.method==='tools/list')send({...out,result:{tools:[{name:'torve_list_models',description:'List Torve Cloud models',inputSchema:{type:'object',properties:{}}},{name:'torve_chat',description:'Chat with a Torve model',inputSchema:{type:'object',properties:{prompt:{type:'string'},model:{type:'string'}},required:['prompt']}}]}});else if(r.method==='tools/call'){const a=r.params?.arguments||{};if(r.params?.name==='torve_list_models'){const j=await fetch(base+'/v1/models',{headers:{authorization:'Bearer torve-local-proxy'}}).then(x=>x.json());send({...out,result:{content:[{type:'text',text:JSON.stringify(j.data||j)}]}})}else{const j=await fetch(base+'/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer torve-local-proxy'},body:JSON.stringify({model:a.model||'torve',messages:[{role:'user',content:a.prompt}]})}).then(x=>x.json());send({...out,result:{content:[{type:'text',text:j.choices?.[0]?.message?.content||JSON.stringify(j)}]}})}}else send({...out,error:{code:-32601,message:'Method not found'}})}catch(e){send({...out,error:{code:-32000,message:String(e?.message||e)}})}});\n`;
+  writeTextFileAtomically(serverPath, script);
+  const config = readConfigPatchFile(configPath);
+  const servers = asObject(config['mcpServers']);
+  servers['torve'] = { command: process.execPath, args: [serverPath], env: { ELECTRON_RUN_AS_NODE: '1' } };
+  config['mcpServers'] = servers;
+  writeJsonFile(configPath, config);
+}
+
+function removeAntigravityPatch(patch: AntigravityConfigPatchDef): boolean {
+  const configPath = expandTilde(patch.configPath);
+  const config = tryReadConfigPatchFile(configPath);
+  let changed = false;
+  if (config) {
+    const servers = asObject(config['mcpServers']);
+    if (servers['torve']) { delete servers['torve']; changed = true; }
+    if (Object.keys(servers).length === 0) delete config['mcpServers']; else config['mcpServers'] = servers;
+    if (changed) writeJsonFile(configPath, config);
+  }
+  const serverPath = expandTilde(patch.serverPath);
+  if (existsSync(serverPath)) { unlinkSync(serverPath); changed = true; }
+  return changed;
+}
+
+function removeGeminiCliConfigPatch(patch: GeminiConfigPatchDef): boolean {
+  const configPath = expandTilde(patch.configPath);
+  const envPath = expandTilde(patch.envPath);
+  const config = tryReadConfigPatchFile(configPath);
+  let changed = false;
+  if (config) {
+    const security = asObject(config['security']);
+    const auth = asObject(security['auth']);
+    if (auth['selectedType'] === 'gemini-api-key') {
+      delete auth['selectedType'];
+      if (Object.keys(auth).length === 0) delete security['auth']; else security['auth'] = auth;
+      if (Object.keys(security).length === 0) delete config['security']; else config['security'] = security;
+      writeJsonFile(configPath, config);
+      changed = true;
+    }
+  }
+  return removeManagedEnv(envPath, ['GOOGLE_GEMINI_BASE_URL', 'GEMINI_API_KEY', 'GEMINI_MODEL']) || changed;
+}
+
+function writeManagedEnv(filePath: string, values: Readonly<Record<string, string>>): void {
+  const existing = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+  const keys = new Set(Object.keys(values));
+  const lines = existing.split(/\r?\n/).filter((line) => {
+    const match = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=/.exec(line);
+    return !match || !keys.has(match[1]!);
+  });
+  while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop();
+  for (const [key, value] of Object.entries(values)) lines.push(`${key}=${value}`);
+  writeTextFileAtomically(filePath, `${lines.join('\n')}\n`);
+}
+
+function removeManagedEnv(filePath: string, keysToRemove: readonly string[]): boolean {
+  if (!existsSync(filePath)) return false;
+  const keys = new Set(keysToRemove);
+  const existing = readFileSync(filePath, 'utf8');
+  let changed = false;
+  const lines = existing.split(/\r?\n/).filter((line) => {
+    const match = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=/.exec(line);
+    if (match && keys.has(match[1]!)) { changed = true; return false; }
+    return true;
+  });
+  if (changed) writeTextFileAtomically(filePath, lines.join('\n').replace(/\n*$/, '\n'));
+  return changed;
 }
 
 /** One Claude Desktop install location: the normal-profile config plus the

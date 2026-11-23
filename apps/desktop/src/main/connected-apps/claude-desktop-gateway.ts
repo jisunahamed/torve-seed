@@ -84,6 +84,9 @@ const DROPPED_RESPONSE_HEADERS = new Set(['connection', 'keep-alive', 'transfer-
 export type ClaudeDesktopGatewayOptions = {
   readonly port: number;
   readonly buyerPort: number;
+  /** Optional path inserted before the Anthropic route. Direct Cloud uses an
+      app-scoped prefix while the legacy buyer proxy leaves it empty. */
+  readonly upstreamPrefix?: string;
   readonly log?: (line: string) => void;
   /** Curated picker models for the catalog slots; defaults to the shared
       source injected via setClaudeDesktopGatewayModelSource. */
@@ -149,6 +152,10 @@ export class ClaudeDesktopGateway {
     return this.options.buyerPort;
   }
 
+  get upstreamPrefix(): string {
+    return this.options.upstreamPrefix ?? '';
+  }
+
   get running(): boolean {
     return this.server?.listening === true;
   }
@@ -172,7 +179,7 @@ export class ClaudeDesktopGateway {
       });
     });
     this.server = server;
-    this.options.log?.(`Claude Desktop gateway listening on 127.0.0.1:${this.port} (buyer proxy on ${this.options.buyerPort})`);
+    this.options.log?.(`Claude Desktop gateway listening on 127.0.0.1:${this.port} (upstream on ${this.options.buyerPort}${this.options.upstreamPrefix ?? ''})`);
   }
 
   async stop(): Promise<void> {
@@ -350,7 +357,7 @@ export class ClaudeDesktopGateway {
       const payload = rewriteModel(body, this.slotModels, { routingNote: url === '/v1/messages' });
       headers['content-length'] = String(Buffer.byteLength(payload));
       const upstream = http.request(
-        { host: '127.0.0.1', port: this.options.buyerPort, path: url, method: 'POST', headers },
+        { host: '127.0.0.1', port: this.options.buyerPort, path: `${this.options.upstreamPrefix ?? ''}${url}`, method: 'POST', headers },
         (upstreamRes) => {
           const responseHeaders: Record<string, string | string[]> = {};
           for (const [name, value] of Object.entries(upstreamRes.headers)) {
@@ -474,12 +481,15 @@ export async function ensureClaudeDesktopGateway(
   buyerPort: number,
   log?: (line: string) => void,
   stateFile?: string,
+  upstreamPrefix = '',
 ): Promise<void> {
-  if (activeGateway?.running && activeGateway.buyerPort === buyerPort) return;
+  if (activeGateway?.running && activeGateway.buyerPort === buyerPort
+    && activeGateway.upstreamPrefix === upstreamPrefix) return;
   await stopClaudeDesktopGateway();
   const gateway = new ClaudeDesktopGateway({
     port: CLAUDE_GATEWAY_DEFAULT_PORT,
     buyerPort,
+    upstreamPrefix,
     ...(log ? { log } : {}),
     ...(stateFile ? { stateFile } : {}),
   });

@@ -93,6 +93,36 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
     },
   },
   {
+    name: 'gemini-cli',
+    displayName: 'Gemini CLI',
+    kind: 'config-patch',
+    method: 'Config patch',
+    toolSlugs: ['gemini', 'gemini-cli'],
+    domains: [],
+    pathPrefixes: [],
+    configPatch: {
+      format: 'gemini-cli',
+      configPath: '~/.gemini/settings.json',
+      envPath: '~/.gemini/.env',
+      baseURL: 'http://localhost:{buyerPort}',
+    },
+  },
+  {
+    name: 'aider', displayName: 'Aider', kind: 'config-patch', method: 'Config patch',
+    toolSlugs: ['aider'], domains: [], pathPrefixes: [],
+    configPatch: { format: 'aider', configPath: '~/.aider.conf.yml', baseURL: 'http://127.0.0.1:{buyerPort}/v1' },
+  },
+  {
+    name: 'continue', displayName: 'Continue', kind: 'config-patch', method: 'Config patch',
+    toolSlugs: ['continue'], domains: [], pathPrefixes: [],
+    configPatch: { format: 'continue', configPath: '~/.continue/config.yaml', legacyConfigPath: '~/.continue/config.json', baseURL: 'http://127.0.0.1:{buyerPort}/v1' },
+  },
+  {
+    name: 'antigravity', displayName: 'Google Antigravity', kind: 'config-patch', method: 'MCP Bridge (Antigravity does not support custom Base URL yet)',
+    toolSlugs: ['antigravity'], domains: [], pathPrefixes: [],
+    configPatch: { format: 'antigravity-mcp', configPath: '~/.gemini/config/mcp_config.json', serverPath: '~/.torve/mcp/torve-local.mjs', baseURL: 'http://127.0.0.1:{buyerPort}' },
+  },
+  {
     name: 'claude-desktop',
     displayName: 'Claude',
     kind: 'config-patch',

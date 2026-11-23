@@ -86,6 +86,46 @@
   background: transparent;
 }
 
+.modelToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.modelToolbar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.modelPicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0 30px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.modelPicker select {
+  min-width: 0;
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font: inherit;
+}
+
 .appHead {
   display: flex;
   align-items: center;
@@ -998,3 +1038,17 @@
 .learnMore:hover {
   color: var(--text-primary);
 }
+
+.activityButton { margin-left: auto; }
+.activityRing { width: 9px; height: 9px; border: 2px solid var(--text-muted); border-radius: 50%; }
+.activityRingOk { border-color: #35b779; box-shadow: 0 0 0 3px rgba(53, 183, 121, 0.14); }
+.activityDrawer { display: grid; gap: 8px; max-height: 260px; overflow: auto; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-card); }
+.activityDrawer p { color: var(--text-muted); font-size: 12px; }
+.activityHead { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+.activityHead button { border: 0; background: transparent; color: var(--text-muted); cursor: pointer; }
+.activityRow { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 8px; border-radius: 9px; background: var(--bg-surface); font-size: 11px; }
+.activityRow > span { display: grid; gap: 2px; min-width: 0; }
+.activityRow > span:last-child { text-align: right; }
+.activityRow small { overflow: hidden; color: var(--text-muted); text-overflow: ellipsis; white-space: nowrap; }
+.activitySuccess { color: #35b779; }
+.activityError { color: var(--danger, #e05c5c); }

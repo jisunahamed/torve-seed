@@ -1,106 +1,85 @@
-/**
- * Torve Account — desktop-local credential store for the "Connect Torve Account"
- * flow. Keeps the Torve API key on this device only (never leaves the machine
- * except as the Authorization header to the local buyer proxy at 8377).
- *
- * Storage: ~/.torve/desktop-credentials.json (0600). This is intentionally
- * separate from identity.enc (the chain signer) so rotating one never touches
- * the other. When safeStorage is available the file is still plain JSON for
- * v1 — the key is already scoped to Torve-routed requests; a follow-up can
- * wrap it with safeStorage without changing the IPC surface.
- *
- * Also owns the "Launch Codex with Torve" helper which spawns a terminal
- * running `codex` against the buyer proxy with OPENAI_* env pointing at
- * localhost:8377.
- */
-import { ipcMain } from 'electron';
-import { execFileSync, spawn } from 'node:child_process';
+/** Torve Cloud credentials never leave the Electron main process. */
+import { BrowserWindow, ipcMain, safeStorage } from 'electron';
+import { randomUUID } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
-import { mkdir, readFile, writeFile, unlink, rename } from 'node:fs/promises';
-import { resolveBuyerProxyPort } from '../runtime/active-config.js';
+import { clearDirectCloudActivity, getDirectCloudActivity, setDirectCloudActivitySink, startTorveCloudProxy, torveCloudProxyStatus } from '../torve-cloud/proxy.js';
+import { refreshTorveCloudModels, torveCloudModelsStatus } from '../torve-cloud/models.js';
+import { startTorveCloudProfiles, stopTorveCloudProfiles, torveCloudProfilesState } from '../torve-cloud/profiles.js';
+import { getDirectCloudOverrides, setDirectCloudOverride } from '../torve-cloud/overrides.js';
 
 const CREDENTIALS_DIR = path.join(homedir(), '.torve');
-const CREDENTIALS_PATH = path.join(CREDENTIALS_DIR, 'desktop-credentials.json');
+const CREDENTIALS_PATH = path.join(CREDENTIALS_DIR, 'desktop-credentials.enc');
+const LEGACY_CREDENTIALS_PATH = path.join(CREDENTIALS_DIR, 'desktop-credentials.json');
+type StoredCredentials = { apiKey: string; email: string | null; updatedAt: number };
+export type TorveAccountStatus = { connected: boolean; email: string | null; keyHint: string | null; updatedAt: number | null; secureStorage: boolean };
 
-type TorveAccountPayload = {
-  apiKey: string | null;
-  email: string | null;
-};
-
-type StoredCredentials = {
-  apiKey: string;
-  email?: string | null;
-  updatedAt: number;
-};
+function safeStorageAvailable(): boolean { try { return safeStorage.isEncryptionAvailable(); } catch { return false; } }
+function keyHint(key: string): string { return key.length < 12 ? '••••••••' : `${key.slice(0, 8)}…${key.slice(-4)}`; }
 
 async function readStored(): Promise<StoredCredentials | null> {
+  if (!safeStorageAvailable()) return null;
   try {
-    const raw = await readFile(CREDENTIALS_PATH, 'utf8');
-    const parsed = JSON.parse(raw) as Partial<StoredCredentials>;
+    const parsed = JSON.parse(safeStorage.decryptString(await readFile(CREDENTIALS_PATH))) as Partial<StoredCredentials>;
     if (typeof parsed.apiKey !== 'string' || !parsed.apiKey.trim()) return null;
-    return {
-      apiKey: parsed.apiKey.trim(),
-      email: typeof parsed.email === 'string' ? parsed.email.trim() || null : null,
-      updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : Date.now(),
-    };
+    return { apiKey: parsed.apiKey.trim(), email: typeof parsed.email === 'string' ? parsed.email.trim() || null : null, updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : Date.now() };
   } catch {
-    return null;
+    // One-way migration from the short-lived v1 plaintext scaffold. Never
+    // continue using that file after safeStorage is available.
+    try {
+      const legacy = JSON.parse(await readFile(LEGACY_CREDENTIALS_PATH, 'utf8')) as Partial<StoredCredentials>;
+      if (typeof legacy.apiKey !== 'string' || !legacy.apiKey.trim()) return null;
+      const migrated: StoredCredentials = { apiKey: legacy.apiKey.trim(), email: typeof legacy.email === 'string' ? legacy.email.trim() || null : null, updatedAt: typeof legacy.updatedAt === 'number' ? legacy.updatedAt : Date.now() };
+      await writeStored(migrated.apiKey, migrated.email);
+      await unlink(LEGACY_CREDENTIALS_PATH);
+      return migrated;
+    } catch { return null; }
   }
 }
 
 async function writeStored(apiKey: string, email: string | null): Promise<void> {
-  const trimmedKey = apiKey.trim();
-  if (!trimmedKey) throw new Error('API key is required.');
-  if (/\s/.test(trimmedKey)) throw new Error('API key must not contain whitespace.');
-  if (trimmedKey.length < 16) throw new Error('API key looks too short.');
-  const payload: StoredCredentials = {
-    apiKey: trimmedKey,
-    email: email?.trim() ? email.trim() : null,
-    updatedAt: Date.now(),
-  };
+  if (!safeStorageAvailable()) throw new Error('Secure OS credential storage is unavailable. Torve will not save an API key unencrypted.');
+  const key = apiKey.trim();
+  if (!key || /\s/.test(key) || key.length < 16) throw new Error('The API key is invalid.');
   await mkdir(CREDENTIALS_DIR, { recursive: true });
-  const tmp = `${CREDENTIALS_PATH}.tmp`;
-  await writeFile(tmp, JSON.stringify(payload, null, 2) + '\n', { mode: 0o600 });
-  await rename(tmp, CREDENTIALS_PATH);
-  // Ensure restrictive perms even when rename preserved the tmp mode differently on some FS.
-  try {
-    const { chmod } = await import('node:fs/promises');
-    await chmod(CREDENTIALS_PATH, 0o600);
-  } catch {
-    // best-effort on Windows where chmod is a no-op
-  }
+  const temp = `${CREDENTIALS_PATH}.${randomUUID()}.tmp`;
+  await writeFile(temp, safeStorage.encryptString(JSON.stringify({ apiKey: key, email: email?.trim() || null, updatedAt: Date.now() })), { mode: 0o600 });
+  await rename(temp, CREDENTIALS_PATH);
 }
 
-function buildCodexCommand(apiKey: string, port: number): string {
-  const baseUrl = `http://localhost:${port}/v1`;
-  // Quote lightly: keys are expected to be single tokens (no spaces/quotes).
-  // If a key somehow contains a double quote, fall back to single-quote wrapping
-  // on POSIX and leave Windows quoting to cmd.exe.
-  const safeKey = apiKey.replace(/"/g, '');
-  if (process.platform === 'win32') {
-    return `set OPENAI_BASE_URL=${baseUrl} && set OPENAI_API_KEY=${safeKey} && codex`;
-  }
-  return `OPENAI_BASE_URL=${baseUrl} OPENAI_API_KEY=${safeKey} codex`;
+/** Used exclusively by the direct-cloud loopback proxy. */
+export async function getTorveCloudApiKey(): Promise<string | null> { return (await readStored())?.apiKey ?? null; }
+export async function getTorveAccountStatus(): Promise<TorveAccountStatus> {
+  const stored = await readStored();
+  return { connected: Boolean(stored), email: stored?.email ?? null, keyHint: stored ? keyHint(stored.apiKey) : null, updatedAt: stored?.updatedAt ?? null, secureStorage: safeStorageAvailable() };
+}
+
+/** Start an existing secure account after Electron's safeStorage is ready. */
+export async function resumeTorveCloudProxy(): Promise<void> {
+  if (await getTorveCloudApiKey()) await startTorveCloudProxy();
 }
 
 export function registerTorveAccountIpc(): void {
-  ipcMain.handle('torve:account-get', async (): Promise<TorveAccountPayload> => {
-    const stored = await readStored();
-    if (!stored) return { apiKey: null, email: null };
-    return { apiKey: stored.apiKey, email: stored.email ?? null };
+  setDirectCloudActivitySink((activity) => {
+    for (const window of BrowserWindow.getAllWindows()) window.webContents.send('direct-cloud:activity', activity);
   });
+  ipcMain.handle('torve:account-get', getTorveAccountStatus);
 
   ipcMain.handle(
     'torve:account-set',
-    async (_event, payload: unknown): Promise<{ ok: boolean; error?: string }> => {
+    async (_event, payload: unknown): Promise<{ ok: boolean; error?: string; status?: TorveAccountStatus }> => {
       try {
         const raw = payload as Partial<{ apiKey: unknown; email: unknown }>;
         const apiKey = typeof raw.apiKey === 'string' ? raw.apiKey : '';
         const email = typeof raw.email === 'string' ? raw.email : null;
         if (!apiKey.trim()) return { ok: false, error: 'Paste your Torve API key.' };
+        // Do not overwrite a valid credential until the new one has been verified.
+        await refreshTorveCloudModels(apiKey.trim(), { force: true });
         await writeStored(apiKey, email);
-        return { ok: true };
+        await startTorveCloudProxy();
+        return { ok: true, status: await getTorveAccountStatus() };
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
       }
@@ -109,7 +88,9 @@ export function registerTorveAccountIpc(): void {
 
   ipcMain.handle('torve:account-clear', async (): Promise<{ ok: boolean; error?: string }> => {
     try {
-      await unlink(CREDENTIALS_PATH);
+      await stopTorveCloudProfiles();
+      if (existsSync(CREDENTIALS_PATH)) await unlink(CREDENTIALS_PATH);
+      if (existsSync(LEGACY_CREDENTIALS_PATH)) await unlink(LEGACY_CREDENTIALS_PATH);
     } catch (err) {
       const code = (err as NodeJS.ErrnoException)?.code;
       if (code !== 'ENOENT') {
@@ -119,55 +100,32 @@ export function registerTorveAccountIpc(): void {
     return { ok: true };
   });
 
-  ipcMain.handle(
-    'torve:launch-codex',
-    async (): Promise<{ ok: boolean; error?: string; command?: string }> => {
-      const stored = await readStored();
-      if (!stored) {
-        return { ok: false, error: 'No Torve API key saved — connect your account first.' };
-      }
-      let port = 8377;
-      try {
-        port = await resolveBuyerProxyPort();
-      } catch {
-        // fallback to default
-      }
-      const command = buildCodexCommand(stored.apiKey, port);
-      try {
-        if (process.platform === 'darwin') {
-          execFileSync(
-            'osascript',
-            [
-              '-e',
-              `tell application "Terminal" to do script ${JSON.stringify(command)}`,
-              '-e',
-              'tell application "Terminal" to activate',
-            ],
-            { stdio: 'pipe' },
-          );
-          return { ok: true, command };
-        }
-        if (process.platform === 'win32') {
-          const child = spawn('cmd.exe', ['/c', 'start', '', 'cmd.exe', '/k', command], {
-            detached: true,
-            stdio: 'ignore',
-          });
-          child.unref();
-          return { ok: true, command };
-        }
-        // Linux / other: no single terminal launcher; return the command for the renderer to copy.
-        return {
-          ok: false,
-          error: `Run it yourself: ${command}`,
-          command,
-        };
-      } catch (err) {
-        return {
-          ok: false,
-          error: err instanceof Error ? err.message : String(err),
-          command,
-        };
-      }
-    },
-  );
+  ipcMain.handle('torve:models-get', torveCloudModelsStatus);
+  ipcMain.handle('torve:models-refresh', async (): Promise<{ ok: boolean; error?: string }> => {
+    try { const key = await getTorveCloudApiKey(); if (!key) throw new Error('Connect a Torve account first.'); await refreshTorveCloudModels(key, { force: true }); return { ok: true }; }
+    catch (err) { return { ok: false, error: err instanceof Error ? err.message : String(err) }; }
+  });
+  ipcMain.handle('torve:proxy-status', torveCloudProxyStatus);
+  ipcMain.handle('torve:overrides-get', getDirectCloudOverrides);
+  ipcMain.handle('torve:override-set', async (_event, appId: unknown, value: unknown) => {
+    try {
+      if (typeof appId !== 'string') throw new Error('Invalid connected app.');
+      const record = value && typeof value === 'object' ? value as Record<string, unknown> : null;
+      const override = record && typeof record['modelId'] === 'string'
+        ? { modelId: record['modelId'], enabled: record['enabled'] !== false }
+        : null;
+      return { ok: true, overrides: await setDirectCloudOverride(appId, override) };
+    } catch (err) { return { ok: false, error: err instanceof Error ? err.message : String(err) }; }
+  });
+  ipcMain.handle('torve:activity-get', getDirectCloudActivity);
+  ipcMain.handle('torve:activity-clear', () => { clearDirectCloudActivity(); return { ok: true }; });
+  ipcMain.handle('torve:direct-state', torveCloudProfilesState);
+  ipcMain.handle('torve:direct-start', async (_event, profiles: unknown): Promise<{ ok: boolean; state?: Awaited<ReturnType<typeof torveCloudProfilesState>>; error?: string }> => {
+    try { return { ok: true, state: await startTorveCloudProfiles(Array.isArray(profiles) ? profiles.filter((name): name is string => typeof name === 'string') : []) }; }
+    catch (err) { return { ok: false, error: err instanceof Error ? err.message : String(err) }; }
+  });
+  ipcMain.handle('torve:direct-stop', async (): Promise<{ ok: boolean; state?: Awaited<ReturnType<typeof torveCloudProfilesState>>; error?: string }> => {
+    try { return { ok: true, state: await stopTorveCloudProfiles() }; }
+    catch (err) { return { ok: false, error: err instanceof Error ? err.message : String(err) }; }
+  });
 }

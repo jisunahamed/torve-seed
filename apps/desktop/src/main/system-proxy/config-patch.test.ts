@@ -147,6 +147,40 @@ test('applyConfigPatch creates a new config file when one does not exist', async
   });
 });
 
+test('Gemini CLI patch preserves unrelated env and settings values', async () => {
+  await withTempConfig(async (dir) => {
+    const settings = path.join(dir, 'settings.json');
+    const env = path.join(dir, '.env');
+    await writeFile(settings, JSON.stringify({ theme: 'dark', security: { sandbox: true } }), 'utf8');
+    await writeFile(env, 'KEEP_ME=yes\nGEMINI_API_KEY=old\n', 'utf8');
+    const patch: ConfigPatchDef = { format: 'gemini-cli', configPath: settings, envPath: env, baseURL: 'http://127.0.0.1:{buyerPort}/app/gemini-cli' };
+    applyConfigPatch(patch, 'direct', 8378);
+    const saved = JSON.parse(await readFile(settings, 'utf8')) as Record<string, any>;
+    assert.equal(saved.theme, 'dark');
+    assert.equal(saved.security.sandbox, true);
+    assert.equal(saved.security.auth.selectedType, 'gemini-api-key');
+    const envText = await readFile(env, 'utf8');
+    assert.match(envText, /KEEP_ME=yes/);
+    assert.match(envText, /GOOGLE_GEMINI_BASE_URL=http:\/\/127\.0\.0\.1:8378\/app\/gemini-cli/);
+    assert.match(envText, /GEMINI_API_KEY=torve-local-proxy/);
+  });
+});
+
+test('Aider and Continue write only local placeholder credentials', async () => {
+  await withTempConfig(async (dir) => {
+    const aider = path.join(dir, 'aider.yml');
+    const cont = path.join(dir, 'continue.yaml');
+    applyConfigPatch({ format: 'aider', configPath: aider, baseURL: 'http://127.0.0.1:{buyerPort}/app/aider/v1' }, 'direct', 8378);
+    applyConfigPatch({ format: 'continue', configPath: cont, baseURL: 'http://127.0.0.1:{buyerPort}/app/continue/v1' }, 'direct', 8378);
+    const aiderText = await readFile(aider, 'utf8');
+    const continueText = await readFile(cont, 'utf8');
+    assert.match(aiderText, /torve-local-proxy/);
+    assert.match(continueText, /torve-local-proxy/);
+    assert.match(aiderText, /app\/aider\/v1/);
+    assert.match(continueText, /app\/continue\/v1/);
+  });
+});
+
 test('applyConfigPatch rejects routes without a routable peer ID', async () => {
   await withTempConfig(async (_dir, configPath) => {
     assert.throws(
@@ -156,6 +190,7 @@ test('applyConfigPatch rejects routes without a routable peer ID', async () => {
     assert.equal(existsSync(configPath), false);
   });
 });
+
 
 test('applyConfigPatch leaves malformed existing configs unchanged', async () => {
   await withTempConfig(async (_dir, configPath) => {

@@ -77,7 +77,7 @@ import { registerRuntimeIpc } from './ipc/runtime.js';
 import { registerSystemProxyIpc } from './ipc/system-proxy.js';
 import { registerTelegramIpc } from './ipc/telegram.js';
 import { registerPublicTunnelIpc } from './ipc/public-tunnel.js';
-import { registerTorveAccountIpc } from './ipc/torve-account.js';
+import { registerTorveAccountIpc, resumeTorveCloudProxy } from './ipc/torve-account.js';
 import {
   effectiveLaunchTarget,
 } from './connected-apps/profile-targets.js';
@@ -285,7 +285,8 @@ initSystemProxyRuntime({
 // ── Payments Portal ──
 
 async function stopDesktopServices(): Promise<void> {
-  await Promise.all([telegramBridge.stop(), stopManagedRuntimes(), stopPaymentsPortal(), stakingSessions.stop()]);
+  const { stopTorveCloudProxy } = await import('./torve-cloud/proxy.js');
+  await Promise.all([telegramBridge.stop(), stopManagedRuntimes(), stopPaymentsPortal(), stakingSessions.stop(), stopTorveCloudProxy()]);
 }
 
 function getCombinedProcessState(): RuntimeProcessState[] {
@@ -551,6 +552,9 @@ app.whenReady().then(async () => {
   // Needs app-ready because the token store decrypts via safeStorage.
   void telegramBridge.start().catch((err) => {
     appendLog('connect', 'system', `[telegram] Bridge resume failed: ${err instanceof Error ? err.message : String(err)}`);
+  });
+  void resumeTorveCloudProxy().catch((err) => {
+    appendLog('connect', 'system', `Torve Cloud proxy could not resume: ${err instanceof Error ? err.message : String(err)}`);
   });
 
   // Payments portal starts lazily on first open (via payments:open-portal IPC)

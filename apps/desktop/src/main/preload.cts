@@ -357,18 +357,50 @@ const api = {
   openExternalUrl(url: string): Promise<{ ok: boolean; error?: string }> {
     return ipcRenderer.invoke('desktop:open-external-url', url) as Promise<{ ok: boolean; error?: string }>;
   },
-  // Torve Account — Codex connect (§ apps/desktop/src/main/ipc/torve-account.ts)
-  torveAccountGet(): Promise<{ apiKey: string | null; email: string | null }> {
-    return ipcRenderer.invoke('torve:account-get') as Promise<{ apiKey: string | null; email: string | null }>;
+  // Torve Cloud account — deliberately returns status only, never the key.
+  torveAccountGet(): Promise<{ connected: boolean; email: string | null; keyHint: string | null; updatedAt: number | null; secureStorage: boolean }> {
+    return ipcRenderer.invoke('torve:account-get') as Promise<{ connected: boolean; email: string | null; keyHint: string | null; updatedAt: number | null; secureStorage: boolean }>;
   },
-  torveAccountSet(payload: { apiKey: string; email?: string | null }): Promise<{ ok: boolean; error?: string }> {
-    return ipcRenderer.invoke('torve:account-set', payload) as Promise<{ ok: boolean; error?: string }>;
+  torveAccountSet(payload: { apiKey: string; email?: string | null }): Promise<{ ok: boolean; error?: string; status?: { email: string | null; keyHint: string | null } }> {
+    return ipcRenderer.invoke('torve:account-set', payload) as Promise<{ ok: boolean; error?: string; status?: { email: string | null; keyHint: string | null } }>;
   },
   torveAccountClear(): Promise<{ ok: boolean; error?: string }> {
     return ipcRenderer.invoke('torve:account-clear') as Promise<{ ok: boolean; error?: string }>;
   },
-  torveLaunchCodex(): Promise<{ ok: boolean; error?: string; command?: string }> {
-    return ipcRenderer.invoke('torve:launch-codex') as Promise<{ ok: boolean; error?: string; command?: string }>;
+  torveModelsGet() {
+    return ipcRenderer.invoke('torve:models-get');
+  },
+  torveModelsRefresh(): Promise<{ ok: boolean; error?: string }> {
+    return ipcRenderer.invoke('torve:models-refresh') as Promise<{ ok: boolean; error?: string }>;
+  },
+  torveCloudProxyStatus() {
+    return ipcRenderer.invoke('torve:proxy-status');
+  },
+  torveOverridesGet() {
+    return ipcRenderer.invoke('torve:overrides-get');
+  },
+  torveOverrideSet(appId: string, value: { modelId: string; enabled: boolean } | null) {
+    return ipcRenderer.invoke('torve:override-set', appId, value);
+  },
+  torveActivityGet() {
+    return ipcRenderer.invoke('torve:activity-get');
+  },
+  torveActivityClear() {
+    return ipcRenderer.invoke('torve:activity-clear');
+  },
+  onTorveActivity(handler: (activity: unknown) => void): () => void {
+    const listener = (_event: unknown, activity: unknown) => handler(activity);
+    ipcRenderer.on('direct-cloud:activity', listener);
+    return () => ipcRenderer.off('direct-cloud:activity', listener);
+  },
+  torveDirectState() {
+    return ipcRenderer.invoke('torve:direct-state');
+  },
+  torveDirectStart(profiles: string[]) {
+    return ipcRenderer.invoke('torve:direct-start', profiles);
+  },
+  torveDirectStop() {
+    return ipcRenderer.invoke('torve:direct-stop');
   },
   openTool(toolName: string): Promise<{ ok: boolean; error?: string; fallback?: string }> {
     return ipcRenderer.invoke('desktop:open-tool', toolName) as Promise<{ ok: boolean; error?: string; fallback?: string }>;

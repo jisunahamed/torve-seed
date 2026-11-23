@@ -367,11 +367,21 @@ export type DesktopBridge = {
   chatAiSetWorkspace?: (workspacePath: string) => Promise<{ ok: boolean; data?: { current: string; default: string }; error?: string }>;
   pickDirectory?: () => Promise<{ ok: boolean; path: string | null }>;
   openExternalUrl?: (url: string) => Promise<{ ok: boolean; error?: string }>;
-  /** Torve Account — Codex connect (§ main/ipc/torve-account.ts). */
-  torveAccountGet?: () => Promise<{ apiKey: string | null; email: string | null }>;
-  torveAccountSet?: (payload: { apiKey: string; email?: string | null }) => Promise<{ ok: boolean; error?: string }>;
+  /** Torve Cloud account status — the renderer never receives a raw API key. */
+  torveAccountGet?: () => Promise<{ connected: boolean; email: string | null; keyHint: string | null; updatedAt: number | null; secureStorage: boolean }>;
+  torveAccountSet?: (payload: { apiKey: string; email?: string | null }) => Promise<{ ok: boolean; error?: string; status?: { connected: boolean; email: string | null; keyHint: string | null; updatedAt: number | null; secureStorage: boolean } }>;
   torveAccountClear?: () => Promise<{ ok: boolean; error?: string }>;
-  torveLaunchCodex?: () => Promise<{ ok: boolean; error?: string; command?: string }>;
+  torveModelsGet?: () => Promise<{ models: Array<{ id: string }>; updatedAt: number | null; stale: boolean; upstream: string }>;
+  torveModelsRefresh?: () => Promise<{ ok: boolean; error?: string }>;
+  torveCloudProxyStatus?: () => Promise<{ running: boolean; port: number; upstream: string }>;
+  torveOverridesGet?: () => Promise<Record<string, { modelId: string; enabled: boolean }>>;
+  torveOverrideSet?: (appId: string, value: { modelId: string; enabled: boolean } | null) => Promise<{ ok: boolean; overrides?: Record<string, { modelId: string; enabled: boolean }>; error?: string }>;
+  torveActivityGet?: () => Promise<Array<{ id: string; timestamp: number; appId: string | null; protocol: string; requestedModel: string | null; resolvedModel: string | null; statusCode: number; latencyMs: number; stream: boolean; usage: { inputTokens: number; outputTokens: number } | null; errorSummary: string | null }>>;
+  torveActivityClear?: () => Promise<{ ok: boolean }>;
+  onTorveActivity?: (handler: (activity: { id: string; timestamp: number; appId: string | null; protocol: string; requestedModel: string | null; resolvedModel: string | null; statusCode: number; latencyMs: number; stream: boolean; usage: { inputTokens: number; outputTokens: number } | null; errorSummary: string | null }) => void) => () => void;
+  torveDirectState?: () => Promise<{ running: boolean; port: number; activeProfileNames: string[]; mode: 'system-proxy'; peerId: string; pid: null; startedAt: number; lastExitCode: null; lastError: null }>;
+  torveDirectStart?: (profiles: string[]) => Promise<{ ok: boolean; state?: { running: boolean; port: number; activeProfileNames: string[]; mode: 'system-proxy'; peerId: string; pid: null; startedAt: number; lastExitCode: null; lastError: null }; error?: string }>;
+  torveDirectStop?: () => Promise<{ ok: boolean; state?: { running: boolean; port: number; activeProfileNames: string[]; mode: 'system-proxy'; peerId: string; pid: null; startedAt: number; lastExitCode: null; lastError: null }; error?: string }>;
   openTool?: (toolName: string) => Promise<{ ok: boolean; error?: string; fallback?: string }>;
   /** Reopen a tool chat session: 'terminal' runs the tool's resume command
       (`codex resume <id>`, ...); 'app' launches the tool's desktop app. */

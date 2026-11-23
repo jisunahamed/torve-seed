@@ -14,29 +14,20 @@ type Props = { onSelectView?: (view: import('../../types').ViewName) => void };
 
 const TORVE_LOGIN_URL = 'https://torveai.com/login';
 const TORVE_DASHBOARD_KEYS_URL = 'https://torveai.com/dashboard/api-keys';
-const TORVE_PROXY_BASE_URL = 'http://localhost:8377/v1';
-const STORAGE_KEY = 'torve:account:apiKey';
-const STORAGE_EMAIL_KEY = 'torve:account:email';
+const TORVE_PROXY_BASE_URL = 'http://localhost:8378/v1';
 
-// Declared in preload.cts when the main handler is registered; fallback to
-// localStorage keeps v1 working without rebuilding the main process.
 type TorveAccountBridge = {
-  torveAccountGet?: () => Promise<{ apiKey: string | null; email: string | null }>;
-  torveAccountSet?: (payload: { apiKey: string; email?: string | null }) => Promise<{ ok: boolean; error?: string }>;
+  torveAccountGet?: () => Promise<{ connected: boolean; email: string | null; keyHint: string | null; secureStorage: boolean }>;
+  torveAccountSet?: (payload: { apiKey: string; email?: string | null }) => Promise<{ ok: boolean; error?: string; status?: { email: string | null; keyHint: string | null } }>;
   torveAccountClear?: () => Promise<{ ok: boolean }>;
-  torveLaunchCodex?: () => Promise<{ ok: boolean; error?: string; command?: string }>;
+  torveModelsGet?: () => Promise<{ models: Array<{ id: string }>; updatedAt: number | null; stale: boolean; upstream: string }>;
+  torveModelsRefresh?: () => Promise<{ ok: boolean; error?: string }>;
+  torveCloudProxyStatus?: () => Promise<{ running: boolean; port: number }>;
   openExternalUrl?: (url: string) => Promise<{ ok: boolean; error?: string }>;
-  chatAiGetProxyStatus?: () => Promise<{ ok: boolean; data: { running: boolean; port: number } }>;
 };
 
 function getBridge(): TorveAccountBridge | null {
   return (window as unknown as { torveDesktop?: TorveAccountBridge }).torveDesktop ?? null;
-}
-
-function maskKey(key: string): string {
-  const trimmed = key.trim();
-  if (trimmed.length <= 12) return '••••••••';
-  return `${trimmed.slice(0, 8)}…${trimmed.slice(-4)}`;
 }
 
 function validateKey(key: string): string | null {
@@ -50,19 +41,19 @@ function validateKey(key: string): string | null {
 export function TorveAccountView(_props: Props) {
   const [apiKey, setApiKey] = useState('');
   const [email, setEmail] = useState('');
-  const [savedKey, setSavedKey] = useState<string | null>(null);
+  const [savedKeyHint, setSavedKeyHint] = useState<string | null>(null);
   const [savedEmail, setSavedEmail] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState<'key' | 'command' | null>(null);
+  const [copied, setCopied] = useState<'command' | null>(null);
   const [launchState, setLaunchState] = useState<'idle' | 'launching' | 'done' | 'error'>('idle');
   const [launchMessage, setLaunchMessage] = useState<string | null>(null);
   const [proxyRunning, setProxyRunning] = useState<boolean | null>(null);
 
-  const isConnected = useMemo(() => Boolean(savedKey && savedKey.trim().length > 0), [savedKey]);
+  const isConnected = useMemo(() => Boolean(savedKeyHint), [savedKeyHint]);
 
-  // Load saved credentials: prefer main-process store (encrypted file) then
-  // fall back to localStorage so the view works before main is rebuilt.
+  // The main process returns a masked status only; raw credentials never enter
+  // renderer memory or browser storage.
   useEffect(() => {
     let cancelled = false;
     const bridge = getBridge();
@@ -71,41 +62,29 @@ export function TorveAccountView(_props: Props) {
         try {
           const result = await bridge.torveAccountGet();
           if (!cancelled && result) {
-            if (result.apiKey) setSavedKey(result.apiKey);
+            if (result.connected) setSavedKeyHint(result.keyHint);
             if (result.email) setSavedEmail(result.email);
             return;
           }
-        } catch {
-          // fall through to localStorage
-        }
-      }
-      try {
-        const localKey = localStorage.getItem(STORAGE_KEY);
-        const localEmail = localStorage.getItem(STORAGE_EMAIL_KEY);
-        if (!cancelled) {
-          if (localKey) setSavedKey(localKey);
-          if (localEmail) setSavedEmail(localEmail);
-        }
-      } catch {
-        // storage unavailable
+        } catch { /* display disconnected state */ }
       }
     };
     void load();
     return () => { cancelled = true; };
   }, []);
 
-  // Poll proxy status so the launch button can hint when the buyer is not running.
+  // Poll the direct loopback proxy; the P2P buyer is not required here.
   useEffect(() => {
     let cancelled = false;
     const check = async () => {
       const bridge = getBridge();
-      if (!bridge?.chatAiGetProxyStatus) {
+      if (!bridge?.torveCloudProxyStatus) {
         setProxyRunning(null);
         return;
       }
       try {
-        const res = await bridge.chatAiGetProxyStatus();
-        if (!cancelled) setProxyRunning(Boolean(res?.data?.running));
+        const res = await bridge.torveCloudProxyStatus();
+        if (!cancelled) setProxyRunning(Boolean(res?.running));
       } catch {
         if (!cancelled) setProxyRunning(null);
       }
@@ -138,13 +117,12 @@ export function TorveAccountView(_props: Props) {
     const trimmedEmail = email.trim() || null;
     const bridge = getBridge();
 
-    // Prefer main-process encrypted store; always mirror to localStorage so the
-    // renderer can render connected state even if IPC is unavailable.
     if (bridge?.torveAccountSet) {
+      let result: { ok: boolean; error?: string; status?: { email: string | null; keyHint: string | null } };
       try {
-        const res = await bridge.torveAccountSet({ apiKey: trimmedKey, email: trimmedEmail });
-        if (!res.ok) {
-          setError(res.error ?? 'Could not save key.');
+        result = await bridge.torveAccountSet({ apiKey: trimmedKey, email: trimmedEmail });
+        if (!result.ok) {
+          setError(result.error ?? 'Could not save key.');
           setSaving(false);
           return;
         }
@@ -153,18 +131,13 @@ export function TorveAccountView(_props: Props) {
         setSaving(false);
         return;
       }
+      setSavedKeyHint(result.status?.keyHint ?? '••••••••');
+      setSavedEmail(result.status?.email ?? trimmedEmail);
+    } else {
+      setError('Torve Desktop needs to be updated before it can store credentials securely.');
+      setSaving(false);
+      return;
     }
-
-    try {
-      localStorage.setItem(STORAGE_KEY, trimmedKey);
-      if (trimmedEmail) localStorage.setItem(STORAGE_EMAIL_KEY, trimmedEmail);
-      else localStorage.removeItem(STORAGE_EMAIL_KEY);
-    } catch {
-      // quota or privacy mode — still treat as saved in memory
-    }
-
-    setSavedKey(trimmedKey);
-    setSavedEmail(trimmedEmail);
     setApiKey('');
     setSaving(false);
   };
@@ -174,23 +147,17 @@ export function TorveAccountView(_props: Props) {
     if (bridge?.torveAccountClear) {
       try { await bridge.torveAccountClear(); } catch { /* ignore */ }
     }
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem(STORAGE_EMAIL_KEY);
-    } catch { /* ignore */ }
-    setSavedKey(null);
+    setSavedKeyHint(null);
     setSavedEmail(null);
     setError(null);
     setLaunchState('idle');
     setLaunchMessage(null);
   };
 
-  const handleCopy = async (kind: 'key' | 'command') => {
+  const handleCopy = async (kind: 'command') => {
     try {
-      if (kind === 'key' && savedKey) {
-        await navigator.clipboard.writeText(savedKey);
-      } else if (kind === 'command') {
-        const cmd = launchCommandForCopy(savedKey);
+      if (kind === 'command') {
+        const cmd = launchCommandForCopy();
         await navigator.clipboard.writeText(cmd);
       }
       setCopied(kind);
@@ -201,55 +168,35 @@ export function TorveAccountView(_props: Props) {
   };
 
   const handleLaunchCodex = async () => {
-    if (!savedKey) {
+    if (!savedKeyHint) {
       setError('Connect your Torve account first — paste an API key above.');
       return;
     }
     setLaunchState('launching');
     setLaunchMessage(null);
     setError(null);
-    const bridge = getBridge();
-    if (bridge?.torveLaunchCodex) {
-      try {
-        const res = await bridge.torveLaunchCodex();
-        if (res.ok) {
-          setLaunchState('done');
-          setLaunchMessage(res.command ? `Launched: ${res.command}` : 'Codex launched via Torve proxy.');
-          return;
-        }
-        setLaunchState('error');
-        setLaunchMessage(res.error ?? 'Could not launch Codex. Copy the command below and run it in your terminal.');
-        return;
-      } catch (err) {
-        setLaunchState('error');
-        setLaunchMessage(err instanceof Error ? err.message : String(err));
-        return;
-      }
-    }
-
-    // Fallback when main handler is not yet registered: copy the command so the
-    // user can run it themselves — the proxy at 8377 uses the stored key.
+    // The direct loopback proxy owns the API credential, so the command holds
+    // only a harmless placeholder API value.
     try {
-      const cmd = launchCommandForCopy(savedKey);
+      const cmd = launchCommandForCopy();
       await navigator.clipboard.writeText(cmd);
       setLaunchState('done');
-      setLaunchMessage('Launch command copied — paste it in your terminal. (Wire torve:launch-codex in main for one-click next.)');
+      setLaunchMessage('Launch command copied — paste it in your terminal. It uses the local Torve Cloud proxy.');
     } catch {
       setLaunchState('error');
-      setLaunchMessage(launchCommandForCopy(savedKey));
+      setLaunchMessage(launchCommandForCopy());
     }
   };
 
-  function launchCommandForCopy(key: string | null): string {
-    const displayKey = key ? key.slice(0, 8) + '…' : '<your-torve-key>';
-    // Buyer proxy is OpenAI-compatible at /v1; Codex reads OPENAI_* env.
+  function launchCommandForCopy(): string {
+    // The direct proxy authenticates in the Electron main process.
     if (typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('win')) {
-      return `set OPENAI_BASE_URL=${TORVE_PROXY_BASE_URL} && set OPENAI_API_KEY=${displayKey} && codex`;
+      return `set OPENAI_BASE_URL=${TORVE_PROXY_BASE_URL} && set OPENAI_API_KEY=torve-local && codex`;
     }
-    return `OPENAI_BASE_URL=${TORVE_PROXY_BASE_URL} OPENAI_API_KEY=${displayKey} codex`;
+    return `OPENAI_BASE_URL=${TORVE_PROXY_BASE_URL} OPENAI_API_KEY=torve-local codex`;
   }
 
-  const launchCommandPreview = useMemo(() => launchCommandForCopy(savedKey), [savedKey]);
+  const launchCommandPreview = useMemo(() => launchCommandForCopy(), []);
 
   return (
     <section className={`view view-vpr-torve-account view-pinned-header ${styles.view}`} role="tabpanel" aria-label="Torve Account">
@@ -263,8 +210,8 @@ export function TorveAccountView(_props: Props) {
             <div className={styles.heroText}>
               <h2 className={styles.heroTitle}>Use Torve models in Codex — 1 click</h2>
               <p className={styles.heroSubtitle}>
-                Connect your Torve account, then launch Codex through the local buyer proxy at <code>localhost:8377</code>.
-                No API key resale — Torve routes to value-added providers.
+                Connect your Torve account, then launch Codex through the local Torve Cloud proxy at <code>localhost:8378</code>.
+                Your API key stays inside the desktop app.
               </p>
             </div>
           </div>
@@ -295,17 +242,7 @@ export function TorveAccountView(_props: Props) {
                   <div className={styles.kvRow}>
                     <span className={styles.kvLabel}>API key</span>
                     <span className={styles.kvValueMono}>
-                      {maskKey(savedKey!)}
-                      <button
-                        type="button"
-                        className={styles.inlineCopy}
-                        onClick={() => handleCopy('key')}
-                        aria-label="Copy API key"
-                        title="Copy API key"
-                      >
-                        <HugeiconsIcon icon={Copy01Icon} size={14} strokeWidth={1.8} />
-                        {copied === 'key' ? 'Copied' : 'Copy'}
-                      </button>
+                      {savedKeyHint}
                     </span>
                   </div>
                   <div className={styles.kvRow}>
@@ -314,8 +251,7 @@ export function TorveAccountView(_props: Props) {
                   </div>
                 </div>
                 <p className={styles.secureNote}>
-                  Key is stored locally{getBridge()?.torveAccountGet ? ' via encrypted file at ~/.torve/desktop-credentials.json' : ' in this app (localStorage for v1)'}.
-                  It is sent only to the local buyer proxy for Torve-routed requests.
+                  Key is encrypted by your OS credential store and is only decrypted inside the local Torve Cloud proxy.
                 </p>
                 <div className={styles.cardActions}>
                   <button type="button" className={styles.secondaryButton} onClick={handleClear}>
@@ -393,7 +329,7 @@ export function TorveAccountView(_props: Props) {
                 >
                   {saving ? 'Saving…' : isConnected ? 'Update key' : 'Save key'}
                 </button>
-                <span className={styles.formHint}>Stored encrypted when the main handler is wired; otherwise localStorage.</span>
+                <span className={styles.formHint}>Stored only in your OS credential store.</span>
               </div>
             </div>
           </VprCard>
@@ -406,13 +342,13 @@ export function TorveAccountView(_props: Props) {
                 Launch Codex with Torve
               </h3>
               <p className={styles.sectionHint}>
-                Runs Codex against the buyer proxy — same models you see in the desktop&apos;s Models list. No extra login inside Codex.
+                Runs Codex against the local Torve Cloud proxy — same models you see in the desktop&apos;s Models list. No extra login inside Codex.
               </p>
             </div>
 
             {proxyRunning === false ? (
               <div className={styles.warning} role="status">
-                Buyer proxy is not running. Start the AI VPN on Home (power button) first — Codex talks to it at <code>localhost:8377</code>.
+                Torve Cloud proxy is not running. Reconnect your Torve account, then try again.
               </div>
             ) : null}
 

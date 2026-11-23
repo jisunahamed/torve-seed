@@ -29,7 +29,7 @@ declare const __TORVE_SYSTEM_PROXY_PORT__: number;
 
 const DEFAULT_PORT = __TORVE_SYSTEM_PROXY_PORT__;
 
-const BUILT_IN_APP_INFO: Readonly<Record<string, { description: string; websiteUrl: string }>> = {
+const BUILT_IN_APP_INFO: Readonly<Record<string, { description: string; websiteUrl?: string }>> = {
   opencode: {
     description: 'An open-source coding agent for the terminal, desktop, and IDE.',
     websiteUrl: 'https://opencode.ai/',
@@ -66,6 +66,10 @@ const BUILT_IN_APP_INFO: Readonly<Record<string, { description: string; websiteU
     description: 'A desktop AI agent with tools, skills, file previews, voice, profiles, and automation.',
     websiteUrl: 'https://hermes-agent.nousresearch.com/',
   },
+  'gemini-cli': { description: 'Google Gemini CLI configured persistently through its official environment and settings files.', websiteUrl: 'https://geminicli.com/' },
+  aider: { description: 'A terminal pair-programming assistant using Torve through its OpenAI-compatible endpoint.', websiteUrl: 'https://aider.chat/' },
+  continue: { description: 'The open-source coding assistant configured with a dedicated Torve model provider.', websiteUrl: 'https://continue.dev/' },
+  antigravity: { description: 'MCP Bridge (Antigravity does not support custom Base URL yet). Installs local torve_chat and torve_list_models tools.' },
   zed: {
     description: 'A high-performance collaborative code editor with built-in AI assistance.',
     websiteUrl: 'https://zed.dev/download',
@@ -101,6 +105,8 @@ type GuiTestResult = {
   error?: string;
 };
 
+type CloudActivity = { id: string; timestamp: number; appId: string | null; protocol: string; requestedModel: string | null; resolvedModel: string | null; statusCode: number; latencyMs: number; stream: boolean; usage: { inputTokens: number; outputTokens: number } | null; errorSummary: string | null };
+
 export function VprToolsView() {
   const actions = useActions();
   const snap = useUiSelector((state) => ({
@@ -127,6 +133,13 @@ export function VprToolsView() {
   const [guiTest, setGuiTest] = useState<GuiTestResult | null>(null);
   const [trustBusy, setTrustBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [cloudModels, setCloudModels] = useState<Array<{ id: string }>>([]);
+  const [modelOverrides, setModelOverrides] = useState<Record<string, { modelId: string; enabled: boolean }>>({});
+  const [modelsRefreshing, setModelsRefreshing] = useState(false);
+  const [cloudConnected, setCloudConnected] = useState(false);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [activities, setActivities] = useState<CloudActivity[]>([]);
+  const [activityFilter, setActivityFilter] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [addUrl, setAddUrl] = useState('');
   const [addBusy, setAddBusy] = useState(false);
@@ -191,6 +204,51 @@ export function VprToolsView() {
 
   const refresh = systemProxyResource.refresh;
 
+  const refreshCloudModels = useCallback(async (force = false) => {
+    const bridge = window.torveDesktop;
+    setModelsRefreshing(force);
+    try {
+      if (force) {
+        const refreshed = await bridge?.torveModelsRefresh?.();
+        if (refreshed && !refreshed.ok) throw new Error(refreshed.error ?? 'Unable to refresh Torve models');
+      }
+      const [catalog, overrides, account] = await Promise.all([bridge?.torveModelsGet?.(), bridge?.torveOverridesGet?.(), bridge?.torveAccountGet?.()]);
+      setCloudModels(catalog?.models ?? []);
+      setModelOverrides(overrides ?? {});
+      setCloudConnected(account?.connected === true);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : String(err));
+    } finally {
+      setModelsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => { void refreshCloudModels(false); }, [refreshCloudModels]);
+
+  useEffect(() => {
+    const bridge = window.torveDesktop;
+    void bridge?.torveActivityGet?.().then((items) => setActivities(items ?? [])).catch(() => undefined);
+    return bridge?.onTorveActivity?.((item) => setActivities((current) => [item, ...current.filter((entry) => entry.id !== item.id)].slice(0, 100)));
+  }, []);
+
+  const setAppModel = useCallback(async (appId: string, modelId: string) => {
+    const result = await window.torveDesktop?.torveOverrideSet?.(appId, modelId ? { modelId, enabled: true } : null);
+    if (!result?.ok) {
+      setMessage(result?.error ?? 'Unable to save the model selection');
+      return;
+    }
+    setModelOverrides(result.overrides ?? {});
+  }, []);
+
+  // Direct Cloud profiles persist independently of the legacy P2P runtime.
+  // Restore their connected rows once the normal catalog is available.
+  useEffect(() => {
+    if (proxyState?.running || profiles.length === 0) return;
+    void window.torveDesktop?.torveDirectState?.().then((state) => {
+      if (state?.activeProfileNames?.length) systemProxyResource.setData({ profiles, state });
+    }).catch(() => undefined);
+  }, [profiles, proxyState?.running]);
+
   // Trust state shells out to the CLI (which queries the OS keychain), so it is
   // fetched on demand — mount, after adding an app, after trusting — never on
   // the 3s poll above.
@@ -245,9 +303,26 @@ export function VprToolsView() {
   // model overrides here anymore.
   const startProfiles = useCallback(async (names: string[]): Promise<boolean> => {
     const bridge = window.torveDesktop;
-    if (!bridge?.systemProxyStart || !defaultPeerId) return false;
     setBusy(names.join(','));
     setMessage(null);
+    // A connected Torve Cloud account takes the direct loopback path. The
+    // legacy P2P route stays available when no cloud account is connected.
+    const account = await bridge?.torveAccountGet?.();
+    if (account?.connected && bridge?.torveDirectStart) {
+      const result = await bridge.torveDirectStart(names);
+      setBusy(null);
+      if (!result.ok) {
+        setMessage(result.error ?? 'Unable to connect tool profile to Torve Cloud');
+        return false;
+      }
+      systemProxyResource.setData({ profiles, state: result.state ?? null });
+      return true;
+    }
+    if (!bridge?.systemProxyStart || !defaultPeerId) {
+      setBusy(null);
+      setMessage('Connect a Torve account or select a P2P route first.');
+      return false;
+    }
     const defaultRoute = { peerId: defaultPeerId, model: defaultModel };
     const routeOverrides = Object.fromEntries(
       names.map((name) => [name, resolveVprToolRouteForPeerOptions({}, name, defaultRoute, peerOptions)]),
@@ -274,14 +349,16 @@ export function VprToolsView() {
     const bridge = window.torveDesktop;
     recordUserAction('app_disconnect', 'apps', appName !== undefined ? normalizeTelemetryAppName(appName) : undefined);
     setBusy('stop');
-    const result = await bridge?.systemProxyStop?.();
+    const result = proxyState?.peerId === 'direct'
+      ? await bridge?.torveDirectStop?.()
+      : await bridge?.systemProxyStop?.();
     setBusy(null);
     if (result?.ok) {
       systemProxyResource.setData({ profiles, state: result.state ?? null });
     } else {
       setMessage(result?.error ?? 'Unable to disconnect tools');
     }
-  }, [profiles]);
+  }, [profiles, proxyState?.peerId]);
 
   const openUrl = useCallback(async (url: string) => {
     const result = await window.torveDesktop?.openExternalUrl?.(url);
@@ -566,9 +643,44 @@ export function VprToolsView() {
       <div className={styles.stack}>
         {message ? <p className={styles.note} role="status">{message}</p> : null}
 
+        {cloudModels.length > 0 ? (
+          <div className={styles.modelToolbar}>
+            <span>Torve Cloud models</span>
+            <button type="button" className={styles.activityButton} onClick={() => setActivityOpen((open) => !open)} aria-expanded={activityOpen}>
+              <span className={`${styles.activityRing}${activities[0] && activities[0].statusCode < 400 ? ` ${styles.activityRingOk}` : ''}`} aria-hidden="true" />
+              Activity {activities.length > 0 ? `(${activities.length})` : ''}
+            </button>
+            <button type="button" onClick={() => void refreshCloudModels(true)} disabled={modelsRefreshing}>
+              <HugeiconsIcon icon={ArrowReloadHorizontalIcon} size={14} strokeWidth={2} />
+              {modelsRefreshing ? 'Refreshing…' : 'Refresh'}
+            </button>
+          </div>
+        ) : null}
+
+        {activityOpen ? (
+          <section className={styles.activityDrawer} aria-label="Recent Torve Cloud activity">
+            <div className={styles.activityHead}>
+              <strong>Recent activity</strong>
+              <select value={activityFilter} onChange={(event) => setActivityFilter(event.target.value)} aria-label="Filter activity by app">
+                <option value="">All apps</option>
+                {[...new Set(activities.map((item) => item.appId).filter((value): value is string => Boolean(value)))].map((appId) => <option key={appId} value={appId}>{appId}</option>)}
+              </select>
+              <button type="button" onClick={() => void window.torveDesktop?.torveActivityClear?.().then(() => setActivities([]))}>Clear</button>
+            </div>
+            {activities.length === 0 ? <p>No requests yet.</p> : activities.filter((item) => !activityFilter || item.appId === activityFilter).map((item) => (
+              <div key={item.id} className={styles.activityRow}>
+                <span className={item.statusCode < 400 ? styles.activitySuccess : styles.activityError}>{item.statusCode}</span>
+                <span><strong>{item.appId ?? 'unscoped'}</strong><small>{item.protocol} · {item.resolvedModel ?? item.requestedModel ?? 'automatic'}</small></span>
+                <span><strong>{item.latencyMs} ms</strong><small>{new Date(item.timestamp).toLocaleTimeString()}</small></span>
+              </div>
+            ))}
+          </section>
+        ) : null}
+
         <div className={styles.appScroll}>
           <div className={styles.appList}>
             <TelegramBotCard />
+            <CursorAppCard appId="cline-roo" label="Cline / Roo Code" brand="generic" />
             {orderedProfiles.map((profile) => {
               const connected = activeProfiles?.has(profile.name) ?? false;
               const setupComplete = setupProfiles.has(profile.name);
@@ -647,7 +759,7 @@ export function VprToolsView() {
                         role="switch"
                         aria-checked={connected}
                         className={`${styles.connectedToggle}${connected ? '' : ` ${styles.connectedToggleOff}`}`}
-                        disabled={busy !== null || (!connected && !defaultPeerId)}
+                        disabled={busy !== null || (!connected && !cloudConnected && !defaultPeerId)}
                         onClick={() => {
                           if (connected) disconnectProfile(profile.name);
                           else void connectProfile(profile.name);
@@ -661,14 +773,26 @@ export function VprToolsView() {
                       <button
                         type="button"
                         className={styles.connectAction}
-                        disabled={busy !== null || !defaultPeerId}
+                        disabled={busy !== null || (!cloudConnected && !defaultPeerId)}
                         onClick={() => { void connectProfile(profile.name); }}
                       >
                         Connect
                       </button>
                     )}
                   </div>
-
+                  {cloudModels.length > 0 && profile.kind === 'config-patch' ? (
+                    <label className={styles.modelPicker}>
+                      <span>Model</span>
+                      <select
+                        value={modelOverrides[profile.name]?.modelId ?? ''}
+                        onChange={(event) => void setAppModel(profile.name, event.target.value)}
+                        aria-label={`${profile.displayName} Torve model`}
+                      >
+                        <option value="">Automatic</option>
+                        {cloudModels.map((model) => <option key={model.id} value={model.id}>{model.id}</option>)}
+                      </select>
+                    </label>
+                  ) : null}
                 </div>
               );
               return profile.name === 'claude-desktop'
