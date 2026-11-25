@@ -922,21 +922,15 @@ export function registerPiChatHandlers({
 
   ipcMain.handle(
     'chat:ai-send-stream',
-    async (_event, conversationId: string, userMessage: string, service?: string, _provider?: string, attachments?: PreparedChatAttachment[], peerId?: string, permissionMode?: unknown) => {
-      // `_provider` is accepted for IPC ABI compatibility with older
-      // renderers but ignored — the buyer proxy resolves the route plan
-      // from the pinned peer + the service ID without a provider hint.
-      return await runStreamingPrompt(conversationId, userMessage, service, attachments, peerId, permissionMode);
+    async (_event, conversationId: string, userMessage: string, service?: string, provider?: string, attachments?: PreparedChatAttachment[], peerId?: string, permissionMode?: unknown) => {
+      return await runStreamingPrompt(conversationId, userMessage, service, provider, attachments, peerId, permissionMode);
     },
   );
 
   ipcMain.handle(
     'chat:ai-send',
-    async (_event, conversationId: string, userMessage: string, service?: string, _provider?: string, attachments?: PreparedChatAttachment[], peerId?: string, permissionMode?: unknown) => {
-      // `_provider` is accepted for IPC ABI compatibility with older
-      // renderers but ignored — the buyer proxy resolves the route plan
-      // from the pinned peer + the service ID without a provider hint.
-      return await runStreamingPrompt(conversationId, userMessage, service, attachments, peerId, permissionMode);
+    async (_event, conversationId: string, userMessage: string, service?: string, provider?: string, attachments?: PreparedChatAttachment[], peerId?: string, permissionMode?: unknown) => {
+      return await runStreamingPrompt(conversationId, userMessage, service, provider, attachments, peerId, permissionMode);
     },
   );
 
@@ -1049,6 +1043,7 @@ export function registerPiChatHandlers({
       conversationId,
       userMessage,
       options?.service,
+      undefined,
       undefined,
       options?.peerId,
       options?.permissionMode,

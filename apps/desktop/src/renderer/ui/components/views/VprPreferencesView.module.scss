@@ -1,253 +1,245 @@
 .view {
   height: 100%;
+  min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: clip;
-  padding: 8px 16px 24px;
+  padding: 24px 28px 36px;
 }
 
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 100%;
-  max-width: 392px;
+.container {
+  max-width: 960px;
   margin: 0 auto;
-  min-width: 0;
-}
-
-.lede {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 20px;
-}
-
-/* Settings sit directly on the page background (Figma), not in a card. */
-.settings {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 0 8px;
-}
-
-.sliderGroup {
   display: grid;
-  gap: 4px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-light);
+  gap: 18px;
 }
 
-.sliderHead {
+.topBar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.sliderTitle {
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
 }
 
-.sliderReading {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.sliderReadingLabel {
-  color: var(--text-primary);
-  font-size: 12px;
-  line-height: 16px;
-}
-
-.sliderReadingValue {
-  color: var(--text-primary);
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 24px;
-}
-
-/* Single-piece reading like "$2.50/m tok" (Figma price preference). */
-.sliderReadingSmall {
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 16px;
-}
-
-.sliderHint {
+.subtitle {
+  font-size: 13px;
   color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 20px;
-}
-
-/* ---------- Pinned seller ---------- */
-
-.pinnedSection {
-  display: grid;
-  gap: 8px;
-}
-
-.pinnedLabel {
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 16px;
-}
-
-.pinnedRow {
-  width: 100%;
-  min-height: 54px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px 8px 8px;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  color: var(--text-primary);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.12s ease;
-}
-
-.pinnedRow:hover {
-  background: var(--bg-hover);
-  opacity: 1;
-}
-
-.pinnedRow:focus-visible {
-  outline: none;
-  box-shadow: inset 0 0 0 2px rgba(var(--brand-rgb), 0.4);
-}
-
-.pinnedCheck {
-  flex: 0 0 auto;
-  color: var(--accent-green);
-}
-
-.pinnedText {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: grid;
-  gap: 2px;
-}
-
-.pinnedName {
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pinnedMeta {
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 16px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.pinnedScore {
-  flex: 0 0 auto;
-  color: var(--text-primary);
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 24px;
-}
-
-/* ---------- Seller access ---------- */
-
-.accessManage {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
-  border: 1px solid var(--border-light);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 16px;
-  cursor: pointer;
-}
-
-.accessManage:hover {
-  background: var(--bg-hover);
-}
-
-/* ---------- Appearance ---------- */
-
-.appearanceSection {
-  display: grid;
-  gap: 8px;
-}
-
-.sectionLabel {
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 16px;
 }
 
 .card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.cardHead {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.telemetryDetails {
-  width: fit-content;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--accent-primary);
-  font: inherit;
-  font-size: 12px;
-  cursor: pointer;
+.cardTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-.telemetryDetails:hover {
-  text-decoration: underline;
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
-/* Light/Dark segmented control. */
-.themeSegment {
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
+.select,
+.input {
+  padding: 6px 10px;
   border-radius: 8px;
-  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card-alt);
+  color: var(--text-primary);
+  font-size: 12px;
 }
 
-.themeSegmentButton {
+.btn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-secondary);
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface);
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 500;
-  line-height: 16px;
   cursor: pointer;
 }
 
-.themeSegmentActive {
-  background: var(--bg-card);
+.btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.activityList {
+  display: grid;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.activityRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border);
+}
+
+.statusOk {
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(20, 255, 115, 0.14);
+  color: #14ff73;
+}
+
+.statusErr {
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(248, 113, 113, 0.16);
+  color: #f87171;
+}
+
+.activityMain {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.activityTop {
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-primary);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activitySub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activityRight {
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.settingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.settingRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.settingTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settingHint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.themeGroup {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.themeBtnActive {
+  border-color: var(--torve-lime, #d8ff0a);
+  color: var(--torve-lime, #d8ff0a);
+}
+
+.backupRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.backupMeta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.backupTitle {
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.backupPaths {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  word-break: break-all;
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.feedback {
+  font-size: 12px;
+  color: #14ff73;
 }

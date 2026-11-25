@@ -1,320 +1,314 @@
-import { useDeferredValue, useMemo, useState } from 'react';
-import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
-import {
-  AiBrain01Icon,
-  AlphabetGreekIcon,
-  ChartUpIcon,
-  CodeIcon,
-  Dollar01Icon,
-  EyeIcon,
-  Globe02Icon,
-  HeadphonesIcon,
-  HierarchyIcon,
-  Image01Icon,
-  PaintBrush01Icon,
-  Shield01Icon,
-  Sorting01Icon,
-  SourceCodeIcon,
-  Tag01Icon,
-  TextIcon,
-  TheaterIcon,
-  Video01Icon,
-  ZapIcon,
-} from '@hugeicons/core-free-icons';
-import type { VprModelCatalogEntry, VprModelKind } from '../../../core/state';
-import {
-  filterVprCatalog,
-  pinnedSellerLabels,
-  sortVprCatalog,
-  type VprCatalogSort,
-} from '../../../modules/catalog/view-models';
-import { findCatalogEntry, sortFreeModelsByPriority } from '../../../modules/catalog/model-catalog';
-import { availableModelFamilies } from '../../../modules/catalog/model-families';
-import { loadFavoriteModels } from '../../../modules/catalog/favorites';
-import { availableModelTags } from '../../../modules/catalog/model-metadata';
-import { setVprModelPageTarget } from '../../../modules/catalog/model-page-target';
-import { selectFavoriteVprCatalog } from '../../../modules/catalog/recommended';
-import { shallowEqual, useUiSelector } from '../../hooks/useUiSelector';
-import { useActions } from '../../hooks/useActions';
-import { useEverFunded } from '../../hooks/useEverFunded';
-import { useRetainedState } from '../../hooks/useRetainedState';
-import { projectTeeBrowseCatalog, teeBrowseCache } from '../../../modules/catalog/tee-browse';
-import { VprTeeFilter, VprTeeNotice } from '../vpr/VprTeeAvailability';
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { ArrowReloadHorizontalIcon, Copy01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
+import type { TorveUsageRange, TorveUsageResponse, TorveUsageScope } from '../../../types/bridge';
 import type { ViewName } from '../../types';
-import { BrandIcon } from '../brand/BrandIcon';
-import { VprFilterDropdown, VprMultiFilterDropdown, type VprFilterOption } from '../vpr/VprFilterDropdown';
-import { VprModelRowList } from '../vpr/VprModelRows';
-import { VprPage, VprSearch } from '../vpr/VprKit';
 import styles from './VprExploreView.module.scss';
 
 type Props = { onSelectView?: (view: ViewName) => void };
 
-/* Lead rows marked "Recommended" at the top of the list. */
-const RECOMMENDED_COUNT = 3;
+type CatalogModel = {
+  id: string;
+  name?: string;
+  display_name?: string;
+  tier?: string;
+  context_window?: number;
+  max_output_tokens?: number;
+  supports_tools?: boolean;
+  supports_reasoning?: boolean;
+};
 
-function FilterIconView({ icon }: { icon: IconSvgElement }) {
-  return <HugeiconsIcon icon={icon} size={16} strokeWidth={1.8} />;
+function formatCompact(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toLocaleString();
 }
 
-const TAG_ICONS: Readonly<Record<string, IconSvgElement>> = {
-  Anime: PaintBrush01Icon,
-  'Audio input': HeadphonesIcon,
-  Coding: CodeIcon,
-  Fast: ZapIcon,
-  'Open weights': SourceCodeIcon,
-  Reasoning: AiBrain01Icon,
-  Roleplay: TheaterIcon,
-  Uncensored: Shield01Icon,
-  Vision: EyeIcon,
-  'Web search': Globe02Icon,
-};
+function formatContextCount(n: number | undefined): string | null {
+  if (typeof n !== 'number' || !Number.isFinite(n) || n <= 0) return null;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+  return String(n);
+}
 
-// Renderer-lifetime cache: search/filter/sort survive drilling into a model
-// page and back (ViewHost unmounts inactive views).
-const exploreViewCache = {
-  search: '',
-  types: [] as string[],
-  families: [] as string[],
-  sort: 'Popular' as VprCatalogSort,
-};
+function formatTime(iso: string | null): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
 
-export function VprExploreView({ onSelectView }: Props) {
-  const actions = useActions();
-  const snap = useUiSelector((state) => ({
-    catalog: state.vprModelCatalog,
-    selection: state.vprRouteSelection,
-    modelPins: state.vprModelPins,
-    discoverRows: state.vprRoutableRows,
-    discoverRowsLoaded: state.chatDiscoverRowsLoaded,
-    preferences: state.vprRoutingPreferences,
-  }), shallowEqual);
-  const everFunded = useEverFunded();
-  const [search, setSearch] = useRetainedState(exploreViewCache, 'search');
-  const [types, setTypes] = useRetainedState(exploreViewCache, 'types');
-  const [families, setFamilies] = useRetainedState(exploreViewCache, 'families');
-  const [sort, setSort] = useRetainedState(exploreViewCache, 'sort');
-  const [teeFilter, setTeeFilter] = useRetainedState(teeBrowseCache, 'filter');
-  // Filter/search changes re-render the full model list — hundreds of rows.
-  // Deriving the list from deferred values keeps the tapped control
-  // responsive: the pill paints its new state in the urgent render and the
-  // list catches up in an interruptible background render.
-  const listInputs = useDeferredValue(useMemo(
-    () => ({ search, types, families, sort, teeFilter }),
-    [families, search, sort, types, teeFilter],
-  ));
-  // Starred on the model pages; fresh on every visit (the view remounts).
-  const [favorites] = useState(loadFavoriteModels);
+export function VprExploreView(_props: Props) {
+  const [range, setRange] = useState<TorveUsageRange>('7d');
+  const [scope, setScope] = useState<TorveUsageScope | 'local'>('account');
+  const [usage, setUsage] = useState<TorveUsageResponse | null>(null);
+  const [usageFallback, setUsageFallback] = useState<string | null>(null);
+  const [usageLoading, setUsageLoading] = useState(false);
 
-  const availableFamilies = useMemo(() => availableModelFamilies(snap.catalog), [snap.catalog]);
-  const tags = useMemo(
-    () => availableModelTags(snap.catalog.map((entry) => entry.serviceId)),
-    [snap.catalog],
-  );
-  const typeOptions = useMemo<readonly VprFilterOption<string>[]>(() => [
-    { value: 'kind:text', label: 'Text', description: 'Chat and language models', icon: <FilterIconView icon={TextIcon} /> },
-    { value: 'kind:image', label: 'Image', description: 'Image generation models', icon: <FilterIconView icon={Image01Icon} /> },
-    { value: 'kind:video', label: 'Video', description: 'Video generation models', icon: <FilterIconView icon={Video01Icon} /> },
-    { value: 'free', label: 'Free', description: 'Models with a free offer', icon: <FilterIconView icon={Dollar01Icon} /> },
-    ...tags.map((modelTag) => ({
-      value: `tag:${modelTag}`,
-      label: modelTag,
-      description: `Models tagged ${modelTag}`,
-      icon: <FilterIconView icon={TAG_ICONS[modelTag] ?? Tag01Icon} />,
-    })),
-  ], [tags]);
-  const familyOptions = useMemo<readonly VprFilterOption<string>[]>(() => [
-    ...availableFamilies.map((modelFamily) => ({
-      value: modelFamily,
-      label: modelFamily,
-      description: `${modelFamily} models`,
-      icon: <BrandIcon name={modelFamily} hints={[modelFamily]} size={16} />,
-    })),
-  ], [availableFamilies]);
-  const sortOptions = useMemo<readonly VprFilterOption<VprCatalogSort>[]>(() => [
-    { value: 'Popular', label: 'Popular', description: 'Most available sellers first', icon: <FilterIconView icon={Sorting01Icon} /> },
-    { value: 'Price', label: 'Price', description: 'Lowest price first', icon: <FilterIconView icon={Dollar01Icon} /> },
-    { value: 'Savings', label: 'Savings', description: 'Largest savings first', icon: <FilterIconView icon={ChartUpIcon} /> },
-    { value: 'Name', label: 'Name', description: 'Alphabetical order', icon: <FilterIconView icon={AlphabetGreekIcon} /> },
-  ], []);
-  const displayCatalog = useMemo(() => projectTeeBrowseCatalog(
-    snap.catalog, snap.discoverRows, snap.preferences, listInputs.teeFilter,
-  ), [snap.catalog, snap.discoverRows, snap.preferences, listInputs.teeFilter]);
-  const entries = useMemo(() => sortVprCatalog(
-    filterVprCatalog(displayCatalog, {
-      search: listInputs.search,
-      kinds: listInputs.types
-        .filter((value) => value.startsWith('kind:'))
-        .map((value) => value.slice(5) as VprModelKind),
-      tags: listInputs.types
-        .filter((value) => value.startsWith('tag:'))
-        .map((value) => value.slice(4)),
-      families: listInputs.families,
-      freeOnly: listInputs.types.includes('free'),
-    }),
-    listInputs.sort,
-  ), [listInputs, displayCatalog]);
+  const [models, setModels] = useState<CatalogModel[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
 
-  const selectedModel = snap.selection.model;
-  const selectedEntry = selectedModel
-    ? findCatalogEntry(snap.catalog, selectedModel.provider, selectedModel.serviceId)
-    : null;
-
-  // The default view leads with three framed rows. The moment the user has
-  // starred anything, the frame becomes their "Favorites"; otherwise it's
-  // "Recommended": the selected model first, then — until the first deposit
-  // ever lands — the most available free models (paid rows would just 402 for
-  // an unfunded user), or the popular lineup once funded. Searching or
-  // filtering drops the frame: the user is navigating the full list.
-  const filtersActive = listInputs.search.trim().length > 0
-    || listInputs.teeFilter === 'tee'
-    || listInputs.types.length > 0
-    || listInputs.families.length > 0;
-  const favoriteEntries = useMemo(
-    () => selectFavoriteVprCatalog(snap.catalog, favorites),
-    [favorites, snap.catalog],
-  );
-  const recommendedEntries = useMemo(() => {
-    if (filtersActive) return [];
-    // Favorites own the frame outright — no padding with other picks, so the
-    // label "Favorites" never covers a model the user didn't star.
-    const source = favoriteEntries.length > 0
-      ? favoriteEntries
-      : (everFunded
-          ? sortVprCatalog(snap.catalog, 'Popular')
-          // hasEligibleFreeSeller, not the price-based Free filter: entry
-          // prices fall back to untrusted rows when no seller passes the
-          // routing gate, so a $0 offer from a low-reputation seller must
-          // not put its model in the recommended frame.
-          : sortFreeModelsByPriority(
-              sortVprCatalog(snap.catalog.filter((entry) => entry.hasEligibleFreeSeller), 'Popular'),
-            ));
-    const picks = source.slice(0, RECOMMENDED_COUNT);
-    // The selected model leads the frame only when it's naturally one of the
-    // picks. An off-frame selection stays out — it leads the list below
-    // instead of displacing a real recommendation.
-    if (selectedEntry && picks.includes(selectedEntry) && picks[0] !== selectedEntry) {
-      return [selectedEntry, ...picks.filter((entry) => entry !== selectedEntry)];
+  const loadUsage = useCallback(async (nextRange: TorveUsageRange, nextScope: TorveUsageScope | 'local') => {
+    const bridge = window.torveDesktop;
+    if (!bridge?.torveUsageGet) return;
+    setUsageLoading(true);
+    try {
+      const res = await bridge.torveUsageGet({ range: nextRange, scope: nextScope });
+      if (res?.usage) setUsage(res.usage);
+      setUsageFallback(res?.fallback ? (res.error || 'Showing local device ledger (offline fallback).') : null);
+    } finally {
+      setUsageLoading(false);
     }
-    return picks;
-  }, [everFunded, favoriteEntries, filtersActive, selectedEntry, snap.catalog]);
+  }, []);
 
-  // One flat list, no duplicate rows: the framed picks lead, then the
-  // selected model when it isn't one of them, then the rest of the catalog in
-  // the current sort order.
-  const listEntries = useMemo(() => {
-    const rest = entries.filter((entry) => !recommendedEntries.includes(entry));
-    if (
-      recommendedEntries.length > 0
-      && selectedEntry
-      && !recommendedEntries.includes(selectedEntry)
-      && rest.includes(selectedEntry)
-    ) {
-      return [
-        ...recommendedEntries,
-        selectedEntry,
-        ...rest.filter((entry) => entry !== selectedEntry),
-      ];
+  const loadModels = useCallback(async (force = false) => {
+    const bridge = window.torveDesktop;
+    if (!bridge) return;
+    setModelsLoading(true);
+    setCatalogError(null);
+    try {
+      if (force && bridge.torveModelsRefresh) {
+        const res = await bridge.torveModelsRefresh();
+        if (res && !res.ok) setCatalogError(res.error || 'Failed to refresh models catalog.');
+      }
+      const catalog = await bridge.torveModelsGet?.();
+      setModels(catalog?.models ?? []);
+    } catch (err) {
+      setCatalogError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setModelsLoading(false);
     }
-    return [...recommendedEntries, ...rest];
-  }, [entries, recommendedEntries, selectedEntry]);
+  }, []);
 
-  // Any listed model that remembers a pin names its seller in place of the
-  // peer count — pins are per model and survive switching between them.
-  const listedPins = useMemo(
-    () => pinnedSellerLabels(snap.discoverRows, snap.modelPins, listEntries),
-    [listEntries, snap.discoverRows, snap.modelPins],
-  );
+  useEffect(() => {
+    void loadUsage(range, scope);
+  }, [range, scope, loadUsage]);
 
-  const openModelPage = (provider: string, serviceId: string): void => {
-    // Drilling into a model only browses it — the model page's "Use" button
-    // is what makes it the active route.
-    setVprModelPageTarget(provider, serviceId);
-    onSelectView?.('model');
+  useEffect(() => {
+    void loadModels(false);
+  }, [loadModels]);
+
+  const filteredModels = useMemo(() => {
+    const q = deferredSearch.trim().toLowerCase();
+    if (!q) return models;
+    return models.filter((m) => (
+      m.id.toLowerCase().includes(q)
+      || (m.name || '').toLowerCase().includes(q)
+      || (m.display_name || '').toLowerCase().includes(q)
+      || (m.tier || '').toLowerCase().includes(q)
+    ));
+  }, [models, deferredSearch]);
+
+  const copyModelId = (id: string) => {
+    void navigator.clipboard.writeText(id).then(() => {
+      setCopiedId(id);
+      window.setTimeout(() => setCopiedId((prev) => (prev === id ? null : prev)), 1500);
+    });
   };
 
   return (
-    <section className={`view view-vpr-explore view-pinned-header ${styles.view}`} role="tabpanel">
-      <VprPage
-        title="Models"
-        backFallback="home"
-        header={(
-          <VprSearch
-            value={search}
-            onChange={setSearch}
-            placeholder="Search models"
-          />
-        )}
-      >
-      <div className={styles.stack}>
-        <div className={styles.filterRow}>
-          <VprMultiFilterDropdown
-            label="Type"
-            values={types}
-            options={typeOptions}
-            onChange={setTypes}
-          />
-          <VprMultiFilterDropdown
-            label="Family"
-            values={families}
-            options={familyOptions}
-            onChange={setFamilies}
-            emptyIcon={<FilterIconView icon={HierarchyIcon} />}
-          />
-          <div className={styles.filterEnd}>
-            <VprFilterDropdown
-              label="Sort models"
-              value={sort}
-              options={sortOptions}
-              onChange={setSort}
-              align="end"
-            />
+    <section className={styles.view} role="tabpanel" aria-label="Models and Usage">
+      <div className={styles.container}>
+        <header className={styles.topBar}>
+          <div>
+            <h1 className={styles.title}>Models &amp; Usage</h1>
+            <p className={styles.subtitle}>Per-model usage metrics from Torve Cloud and the live /v1/models catalog</p>
           </div>
-          <div className={styles.sellerFilter}>
-            <VprTeeFilter value={teeFilter} onChange={setTeeFilter} />
+          <div className={styles.controls}>
+            <div className={styles.segmented} role="group" aria-label="Usage time range">
+              {(['24h', '7d', '30d'] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  className={`${styles.segBtn}${range === r ? ` ${styles.segBtnActive}` : ''}`}
+                  onClick={() => setRange(r)}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            <div className={styles.segmented} role="group" aria-label="Usage scope">
+              {([
+                { id: 'account', label: 'Account' },
+                { id: 'key', label: 'This Key' },
+                { id: 'local', label: 'This Device Local' },
+              ] as const).map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`${styles.segBtn}${scope === s.id ? ` ${styles.segBtnActive}` : ''}`}
+                  onClick={() => setScope(s.id)}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className={styles.refreshBtn}
+              disabled={usageLoading}
+              onClick={() => { void loadUsage(range, scope); }}
+            >
+              <HugeiconsIcon icon={ArrowReloadHorizontalIcon} size={14} strokeWidth={2} />
+              <span>{usageLoading ? 'Loading…' : 'Refresh Usage'}</span>
+            </button>
           </div>
-        </div>
+        </header>
 
-        {teeFilter === 'tee' && <VprTeeNotice onClear={() => setTeeFilter('all')} />}
+        <section className={styles.card} aria-label="Usage summary">
+          {usageFallback ? <div className={styles.noticeBanner}>{usageFallback}</div> : null}
 
-        {listEntries.length > 0 ? (
-          <VprModelRowList
-            entries={listEntries}
-            selectedProvider={selectedModel?.provider}
-            selectedServiceId={selectedModel?.serviceId}
-            favoriteKeys={favorites}
-            recommendedCount={recommendedEntries.length}
-            recommendedLabel={favoriteEntries.length > 0 ? 'Favorites' : 'Recommended'}
-            pinnedPeerLabels={listedPins}
-            onSelect={openModelPage}
-            emptyLabel="No matching models"
-          />
-        ) : (
-          snap.discoverRowsLoaded ? (
-            <div className={styles.empty} role="status">
-              <div>{teeFilter === 'tee' ? 'No sellers advertising TEE support match these filters.' : 'No models match the current filters.'}</div>
-              {teeFilter === 'tee' && (
-                <button type="button" onClick={() => {
-                  setTeeFilter('all');
-                  setSearch('');
-                  setTypes([]);
-                  setFamilies([]);
-                }}>Clear filters</button>
-              )}
-              <button type="button" onClick={() => { void actions.refreshAll(); }}>
-                Refresh models
-              </button>
+          <div className={styles.totalsGrid}>
+            <div className={styles.statBox}>
+              <span className={styles.statLabel}>Requests ({range})</span>
+              <span className={styles.statValue}>{(usage?.totals.requests ?? 0).toLocaleString()}</span>
+            </div>
+            <div className={styles.statBox}>
+              <span className={styles.statLabel}>Input Tokens</span>
+              <span className={styles.statValue}>{formatCompact(usage?.totals.inputTokens ?? 0)}</span>
+            </div>
+            <div className={styles.statBox}>
+              <span className={styles.statLabel}>Output Tokens</span>
+              <span className={styles.statValue}>{formatCompact(usage?.totals.outputTokens ?? 0)}</span>
+            </div>
+            <div className={styles.statBox}>
+              <span className={styles.statLabel}>Total Tokens</span>
+              <span className={styles.statValue}>{formatCompact(usage?.totals.totalTokens ?? 0)}</span>
+            </div>
+          </div>
+
+          <h2 className={styles.cardTitle}>By Model</h2>
+          {usage && usage.byModel.length > 0 ? (
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Model</th>
+                    <th>Requests</th>
+                    <th>Input</th>
+                    <th>Output</th>
+                    <th>Total</th>
+                    <th>Avg Latency</th>
+                    <th>Last Used</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usage.byModel.map((row) => (
+                    <tr key={row.modelId}>
+                      <td>{row.modelId}</td>
+                      <td>{row.requests.toLocaleString()}</td>
+                      <td>{formatCompact(row.inputTokens)}</td>
+                      <td>{formatCompact(row.outputTokens)}</td>
+                      <td>{formatCompact(row.totalTokens)}</td>
+                      <td>{row.avgLatencyMs !== null ? `${row.avgLatencyMs} ms` : '—'}</td>
+                      <td>{formatTime(row.lastUsedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
-            /* Discovery still fetching the first snapshot — a spinner, not a
-               dead-end empty state; rows stream in as soon as the poll lands. */
-            <div className={styles.empty} role="status" aria-live="polite" aria-label="Loading models">
-              <span className="route-loading-spinner" aria-hidden="true" />
-              <div>Loading models…</div>
+            <p className={styles.empty}>No model usage recorded in this window yet.</p>
+          )}
+
+          <h2 className={styles.cardTitle}>By App</h2>
+          {usage && usage.byApp.length > 0 ? (
+            <div className={styles.appBreakdownGrid}>
+              {usage.byApp.map((appRow) => (
+                <div key={appRow.appId} className={styles.appChip}>
+                  <span className={styles.appChipName}>{appRow.appId}</span>
+                  <span className={styles.appChipMeta}>
+                    {appRow.requests.toLocaleString()} req · {formatCompact(appRow.totalTokens)} tokens
+                  </span>
+                  <span className={styles.appChipMeta}>Last: {formatTime(appRow.lastUsedAt)}</span>
+                </div>
+              ))}
             </div>
-          )
-        )}
+          ) : (
+            <p className={styles.empty}>No per-app requests in this window yet.</p>
+          )}
+        </section>
+
+        <section className={styles.card} aria-label="Available models catalog">
+          <div className={styles.cardHead}>
+            <h2 className={styles.cardTitle}>Available Models ({filteredModels.length})</h2>
+            <button
+              type="button"
+              className={styles.refreshBtn}
+              disabled={modelsLoading}
+              onClick={() => { void loadModels(true); }}
+            >
+              <HugeiconsIcon icon={ArrowReloadHorizontalIcon} size={14} strokeWidth={2} />
+              <span>{modelsLoading ? 'Refreshing…' : 'Refresh Models'}</span>
+            </button>
+          </div>
+
+          <div className={styles.searchRow}>
+            <input
+              type="search"
+              className={styles.searchInput}
+              placeholder="Search models by name, id, or tier…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              aria-label="Search available Torve models"
+            />
+          </div>
+
+          {catalogError ? <div className={styles.noticeBanner}>{catalogError}</div> : null}
+
+          {filteredModels.length > 0 ? (
+            <div className={styles.catalogList}>
+              {filteredModels.map((model) => {
+                const displayName = model.name || model.display_name || model.id;
+                const ctx = formatContextCount(model.context_window);
+                const maxOut = formatContextCount(model.max_output_tokens);
+                const tier = typeof model.tier === 'string' && model.tier.trim() ? model.tier.trim().toLowerCase() : null;
+
+                return (
+                  <div key={model.id} className={styles.modelCard}>
+                    <div className={styles.modelMain}>
+                      <div className={styles.modelNameRow}>
+                        <span className={styles.modelName}>{displayName}</span>
+                        {tier ? (
+                          <span className={`${styles.pill} ${tier === 'free' ? styles.tierFree : styles.tierPro}`}>
+                            {tier}
+                          </span>
+                        ) : null}
+                      </div>
+                      <span className={styles.modelId}>{model.id}</span>
+                    </div>
+
+                    <div className={styles.pills}>
+                      {ctx ? <span className={styles.pill}>{ctx} ctx</span> : null}
+                      {maxOut ? <span className={styles.pill}>{maxOut} out</span> : null}
+                      {model.supports_tools ? <span className={styles.pill}>Tools</span> : null}
+                      {model.supports_reasoning ? <span className={styles.pill}>Reasoning</span> : null}
+                      <button
+                        type="button"
+                        className={styles.copyBtn}
+                        onClick={() => copyModelId(model.id)}
+                        title="Copy model ID"
+                      >
+                        <HugeiconsIcon icon={copiedId === model.id ? Tick02Icon : Copy01Icon} size={13} strokeWidth={2} />
+                        <span>{copiedId === model.id ? 'Copied' : 'Copy ID'}</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className={styles.empty}>
+              {models.length === 0 ? 'Sign in to load available models from Torve Cloud.' : 'No models match your search.'}
+            </p>
+          )}
+        </section>
       </div>
-      </VprPage>
     </section>
   );
 }

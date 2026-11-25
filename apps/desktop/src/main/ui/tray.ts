@@ -27,7 +27,7 @@ function rebuildMenu(): void {
 
 export function createDesktopTray(options: DesktopTrayOptions): void {
   const { appName, iconPath } = options;
-  if (process.platform !== 'darwin' || tray || !iconPath) {
+  if ((process.platform !== 'darwin' && process.platform !== 'win32') || tray || !iconPath) {
     return;
   }
 
@@ -36,16 +36,24 @@ export function createDesktopTray(options: DesktopTrayOptions): void {
     return;
   }
 
-  const image = sourceImage.resize({ width: 18, height: 18 });
-  image.setTemplateImage(true);
+  const size = process.platform === 'win32' ? 16 : 18;
+  const image = sourceImage.resize({ width: size, height: size });
+  if (process.platform === 'darwin') {
+    image.setTemplateImage(true);
+  }
 
   tray = new Tray(image);
   currentOptions = options;
   tray.setToolTip(appName);
   rebuildMenu();
-  tray.on('click', () => {
-    tray?.popUpContextMenu();
-  });
+  if (process.platform === 'win32') {
+    tray.on('click', () => options.onShow());
+    tray.on('double-click', () => options.onShow());
+  } else {
+    tray.on('click', () => {
+      tray?.popUpContextMenu();
+    });
+  }
 }
 
 export function updateDesktopTray(options: Partial<Omit<DesktopTrayOptions, 'iconPath'>> = {}): void {

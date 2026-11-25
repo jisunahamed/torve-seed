@@ -15,7 +15,7 @@
  * packages (e.g. @torveai/node).
  */
 
-import { readdirSync, lstatSync, readlinkSync, realpathSync, rmSync, cpSync, existsSync, mkdirSync, chmodSync, writeFileSync, readFileSync } from 'node:fs';
+import { readdirSync, lstatSync, readlinkSync, realpathSync, rmSync, rmdirSync, unlinkSync, cpSync, existsSync, mkdirSync, chmodSync, writeFileSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { builtinModules, createRequire } from 'node:module';
 import path from 'node:path';
@@ -49,20 +49,30 @@ function isWorkspaceSymlink(fullPath) {
   }
 }
 
+function removeLinkOrDir(targetPath) {
+  try {
+    const stat = lstatSync(targetPath);
+    if (stat.isSymbolicLink()) {
+      try { unlinkSync(targetPath); } catch { rmdirSync(targetPath); }
+      return;
+    }
+  } catch {
+    return;
+  }
+  rmSync(targetPath, { recursive: true, force: true });
+}
+
 function copyWorkspacePackage(linkPath, sourcePath, label) {
   console.log(`[prepare-dist] Copying workspace package: ${label} -> ${sourcePath}`);
-  // force: the link may not pre-exist — @torveai/api-adapter is not a direct
-  // desktop dependency, so a fresh CI install creates no node_modules entry
-  // for it; the copy below materializes it for the bundled-runtime walk.
-  rmSync(linkPath, { recursive: true, force: true });
-  cpSync(sourcePath, linkPath, { recursive: true });
-
-  // Remove inner node_modules — the copied package's deps are already
-  // hoisted into the desktop's own node_modules by pnpm.
-  const innerNm = path.join(linkPath, 'node_modules');
-  if (existsSync(innerNm)) {
-    rmSync(innerNm, { recursive: true });
-  }
+  removeLinkOrDir(linkPath);
+  const innerNm = path.join(sourcePath, 'node_modules');
+  // Skip nested node_modules during copy so Windows junctions inside
+  // dependencies are never copied or deleted by post-copy cleanup.
+  cpSync(sourcePath, linkPath, {
+    recursive: true,
+    dereference: true,
+    filter: (src) => src !== innerNm && path.basename(src) !== 'node_modules',
+  });
 }
 
 // --- 1. Replace workspace symlinks/stale copies with fresh copies from source ---

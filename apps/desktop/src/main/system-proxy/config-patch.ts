@@ -45,6 +45,11 @@ export type OpencodeConfigPatchDef = {
   readonly npm: string;
   readonly providerName: string;
   readonly baseURL: string;
+  /** Direct Cloud may expose the complete cached catalog. Generic/P2P
+      profiles omit this and retain the single routed alias. */
+  readonly models?: readonly OpencodeModelDefinition[];
+  readonly modelAlias?: string;
+  readonly apiKey?: string;
   /** When set, the patcher targets actual installations of the named tool —
       native only if install signals exist, plus every WSL distro carrying it
       (Windows) — and throws when the tool is found nowhere, instead of
@@ -54,12 +59,23 @@ export type OpencodeConfigPatchDef = {
   readonly installProbe?: 'opencode';
 };
 
+export type OpencodeModelDefinition = {
+  readonly id: string;
+  readonly name: string;
+  readonly context?: number;
+  readonly output?: number;
+  readonly vision?: boolean;
+};
+
 export type CodexConfigPatchDef = {
   readonly format: 'codex';
   readonly configPath: string;
   readonly providerKey: string;
   readonly providerName: string;
   readonly baseURL: string;
+  readonly model?: string;
+  readonly modelCatalogJson?: string;
+  readonly bearerToken?: string;
   readonly installProbe?: 'codex';
 };
 
@@ -137,6 +153,7 @@ export type ClaudeCodeConfigPatchDef = {
   readonly configPath: string;
   readonly providerKey: string;
   readonly baseURL: string;
+  readonly models?: readonly OpencodeModelDefinition[];
   readonly installProbe?: 'claude';
 };
 
@@ -157,8 +174,17 @@ export type GeminiConfigPatchDef = {
   readonly model?: string;
 };
 export type AiderConfigPatchDef = { readonly format: 'aider'; readonly configPath: string; readonly baseURL: string };
-export type ContinueConfigPatchDef = { readonly format: 'continue'; readonly configPath: string; readonly legacyConfigPath?: string; readonly baseURL: string };
-export type AntigravityConfigPatchDef = { readonly format: 'antigravity-mcp'; readonly configPath: string; readonly serverPath: string; readonly baseURL: string };
+export type ContinueConfigPatchDef = { readonly format: 'continue'; readonly configPath: string; readonly legacyConfigPath?: string; readonly baseURL: string; readonly models?: readonly OpencodeModelDefinition[] };
+export type AntigravityConfigPatchDef = {
+  readonly format: 'antigravity-ide';
+  /** VS Code user settings. `auto` is resolved per-platform by profiles.ts. */
+  readonly configPath: string;
+  readonly baseURL: string;
+  /** Optional standalone Antigravity 2.0 fallback. */
+  readonly mcpConfigPath?: string;
+  readonly serverPath?: string;
+  readonly mcpFallback?: boolean;
+};
 
 /**
  * Claude Desktop ships a native third-party inference mode: when the profile
@@ -255,7 +281,16 @@ export function readConfigPatch(value: unknown, profileName: string): ConfigPatc
   }
   if (format === 'aider') return { format: 'aider', configPath: readRequiredString(raw, 'configPath', profileName), baseURL: readRequiredString(raw, 'baseURL', profileName) };
   if (format === 'continue') return { format: 'continue', configPath: readRequiredString(raw, 'configPath', profileName), ...(readString(raw, 'legacyConfigPath') ? { legacyConfigPath: readString(raw, 'legacyConfigPath') } : {}), baseURL: readRequiredString(raw, 'baseURL', profileName) };
-  if (format === 'antigravity-mcp') return { format: 'antigravity-mcp', configPath: readRequiredString(raw, 'configPath', profileName), serverPath: readRequiredString(raw, 'serverPath', profileName), baseURL: readRequiredString(raw, 'baseURL', profileName) };
+  if (format === 'antigravity-ide') {
+    return {
+      format: 'antigravity-ide',
+      configPath: readRequiredString(raw, 'configPath', profileName),
+      baseURL: readRequiredString(raw, 'baseURL', profileName),
+      ...(readString(raw, 'mcpConfigPath') ? { mcpConfigPath: readString(raw, 'mcpConfigPath') } : {}),
+      ...(readString(raw, 'serverPath') ? { serverPath: readString(raw, 'serverPath') } : {}),
+      ...(raw['mcpFallback'] === true ? { mcpFallback: true } : {}),
+    };
+  }
   const configPath = readRequiredString(raw, 'configPath', profileName);
   const providerKey = readRequiredString(raw, 'providerKey', profileName);
   const baseURL = readRequiredString(raw, 'baseURL', profileName);
@@ -266,6 +301,9 @@ export function readConfigPatch(value: unknown, profileName: string): ConfigPatc
       providerKey,
       providerName: readRequiredString(raw, 'providerName', profileName),
       baseURL,
+      ...(readString(raw, 'model') ? { model: readString(raw, 'model') } : {}),
+      ...(readString(raw, 'modelCatalogJson') ? { modelCatalogJson: readString(raw, 'modelCatalogJson') } : {}),
+      ...(readString(raw, 'bearerToken') ? { bearerToken: readString(raw, 'bearerToken') } : {}),
       ...(raw['installProbe'] === 'codex' ? { installProbe: 'codex' as const } : {}),
     };
   }
@@ -370,6 +408,29 @@ function expandTilde(p: string): string {
   return p.startsWith('~/') ? path.join(homedir(), p.slice(2)) : p;
 }
 
+/** OpenCode CLI and Desktop share the XDG config on the installed Windows
+ * build. Older Desktop builds may instead place an explicit config under
+ * APPDATA, so patch it only when that config file actually exists. */
+export function opencodeConfigTargets(
+  patch: OpencodeConfigPatchDef,
+  platform: NodeJS.Platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env,
+  fileExists: (filePath: string) => boolean = existsSync,
+): string[] {
+  const configured = expandTilde(patch.configPath);
+  const configuredDir = path.dirname(configured);
+  const configuredName = path.basename(configured).toLowerCase();
+  const siblingName = configuredName === 'opencode.json' ? 'opencode.jsonc' : 'opencode.json';
+  const candidates = [configured, path.join(configuredDir, siblingName)];
+  if (platform === 'win32') {
+    const roaming = env['APPDATA'] || path.join(homedir(), 'AppData', 'Roaming');
+    for (const name of ['opencode.jsonc', 'opencode.json']) candidates.push(path.join(roaming, 'opencode', name));
+  }
+  const unique = [...new Set(candidates.map((candidate) => path.resolve(candidate)))];
+  const existing = unique.filter(fileExists);
+  return existing.length > 0 ? existing : [path.resolve(configured)];
+}
+
 function isBuyerProxyRoutablePeerId(peerId: string): boolean {
   const normalized = peerId.trim().toLowerCase().replace(/^0x/, '');
   return /^[0-9a-f]{40}$/.test(normalized);
@@ -460,7 +521,7 @@ export function stripJsoncTrailingCommas(raw: string): string {
 export function parseJsoncObject(raw: string, filePath: string): JsonObject {
   let parsed: unknown;
   try {
-    parsed = JSON.parse(stripJsoncTrailingCommas(stripJsoncComments(raw)));
+    parsed = JSON.parse(stripJsoncTrailingCommas(stripJsoncComments(raw.replace(/^\uFEFF/, ''))));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     throw new Error(`Unable to parse JSONC config at ${filePath}: ${message}`);
@@ -592,7 +653,7 @@ export function applyConfigPatch(patch: ConfigPatchDef, peerId: string, buyerPor
   }
   if (patch.format === 'aider') { applyAiderConfigPatch(patch, buyerPort); return; }
   if (patch.format === 'continue') { applyContinueConfigPatch(patch, buyerPort); return; }
-  if (patch.format === 'antigravity-mcp') { applyAntigravityPatch(patch, buyerPort); return; }
+  if (patch.format === 'antigravity-ide') { applyAntigravityPatch(patch, buyerPort); return; }
   if (patch.format === 'claude-desktop') {
     applyClaudeDesktopConfigPatch(patch);
     return;
@@ -613,6 +674,10 @@ export function substituteBaseUrlHost(baseURL: string, host: string): string {
     some tools only create the config dir once configured. */
 function nativeToolInstalled(tool: WslTool, configFilePath: string): boolean {
   if (existsSync(path.dirname(configFilePath))) return true;
+  if (tool === 'opencode' && process.platform === 'win32') {
+    const local = process.env['LOCALAPPDATA'] || path.join(homedir(), 'AppData', 'Local');
+    if (existsSync(path.join(local, 'Programs', '@opencode-aidesktop', 'OpenCode.exe'))) return true;
+  }
   const probe = WSL_TOOL_PROBES[tool];
   if (probe.signals.some((signal) => existsSync(path.join(homedir(), ...signal.split('/'))))) return true;
   try {
@@ -691,9 +756,10 @@ function removeWslInstalls(
 
 function applyOpencodeConfigPatch(patch: OpencodeConfigPatchDef, buyerPort: number, wslTargetsFile?: string): void {
   const filePath = expandTilde(patch.configPath);
+  const nativeTargets = opencodeConfigTargets(patch);
   const baseURL = patch.baseURL.replace('{buyerPort}', String(buyerPort));
   if (patch.installProbe !== 'opencode') {
-    applyOpencodeProviderToFile(filePath, patch, baseURL);
+    for (const target of nativeTargets) applyOpencodeProviderToFile(target, patch, baseURL);
     return;
   }
   applyWithInstallProbe({
@@ -702,7 +768,13 @@ function applyOpencodeConfigPatch(patch: OpencodeConfigPatchDef, buyerPort: numb
     posix: { configPath: patch.configPath },
     baseURL,
     wslTargetsFile,
-    write: (paths, url) => applyOpencodeProviderToFile(paths.configPath, patch, url),
+    write: (paths, url) => {
+      if (path.resolve(paths.configPath) === path.resolve(filePath)) {
+        for (const target of nativeTargets) applyOpencodeProviderToFile(target, patch, url);
+      } else {
+        applyOpencodeProviderToFile(paths.configPath, patch, url);
+      }
+    },
   });
 }
 
@@ -710,27 +782,76 @@ function applyOpencodeProviderToFile(filePath: string, patch: OpencodeConfigPatc
   backupConfigFile(filePath);
   const config = readConfigPatchFile(filePath);
 
-  const providers = (config['provider'] && typeof config['provider'] === 'object' && !Array.isArray(config['provider']))
+  // OpenCode CLI 1.x reads the legacy `provider`/`npm`/`options` schema,
+  // while OpenCode Desktop 2.x reads `providers`/`package`/`settings`.
+  // Both installations share this file on Windows, and both schemas may
+  // coexist: each release ignores the map it does not understand.
+  const legacyProviders = (config['provider'] && typeof config['provider'] === 'object' && !Array.isArray(config['provider']))
     ? config['provider'] as JsonObject
     : {};
-  providers[patch.providerKey] = {
+  const modernProviders = (config['providers'] && typeof config['providers'] === 'object' && !Array.isArray(config['providers']))
+    ? config['providers'] as JsonObject
+    : {};
+  const alias = patch.modelAlias?.trim() || ROUTED_MODEL_ALIAS;
+  const legacyModels: JsonObject = {
+    [alias]: {
+      name: ROUTED_MODEL_ALIAS_LABEL,
+      attachment: true,
+      modalities: { input: ['text', 'image'], output: ['text'] },
+      limit: { context: TORVE_MODEL_CONTEXT_WINDOW, output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
+    },
+  };
+  const modernModels: JsonObject = {
+    [alias]: {
+      modelID: alias,
+      name: ROUTED_MODEL_ALIAS_LABEL,
+      type: 'chat',
+      limit: { context: TORVE_MODEL_CONTEXT_WINDOW, output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
+    },
+  };
+  for (const model of patch.models ?? []) {
+    const id = model.id.trim();
+    if (!id || id === alias || id === ROUTED_MODEL_ALIAS || id === 'auto') continue;
+    const limit: JsonObject = {};
+    if (typeof model.context === 'number' && Number.isFinite(model.context) && model.context > 0) limit['context'] = model.context;
+    if (typeof model.output === 'number' && Number.isFinite(model.output) && model.output > 0) limit['output'] = model.output;
+    legacyModels[id] = {
+      name: model.name.trim() || id,
+      attachment: model.vision === true,
+      modalities: { input: model.vision === true ? ['text', 'image'] : ['text'], output: ['text'] },
+      ...(Object.keys(limit).length > 0 ? { limit } : {}),
+    };
+    modernModels[id] = {
+      modelID: id,
+      name: model.name.trim() || id,
+      type: 'chat',
+      ...(Object.keys(limit).length > 0 ? { limit } : {}),
+    };
+  }
+  legacyProviders[patch.providerKey] = {
     name: patch.providerName,
     npm: patch.npm,
     options: {
       baseURL,
-      apiKey: 'torve',
+      apiKey: patch.apiKey ?? 'torve',
     },
-    models: {
-      [ROUTED_MODEL_ALIAS]: {
-        name: ROUTED_MODEL_ALIAS_LABEL,
-        attachment: true,
-        modalities: { input: ['text', 'image'], output: ['text'] },
-        limit: { context: TORVE_MODEL_CONTEXT_WINDOW, output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
-      },
-    },
+    models: legacyModels,
   };
-  config['provider'] = providers;
-  config['model'] = `${patch.providerKey}/${ROUTED_MODEL_ALIAS}`;
+  modernProviders[patch.providerKey] = {
+    name: patch.providerName,
+    package: '@opencode/ai/providers/openai-compatible',
+    settings: {
+      baseURL,
+      apiKey: patch.apiKey ?? 'torve',
+      headerTimeout: 30_000,
+      chunkTimeout: 60_000,
+      timeout: 120_000,
+    },
+    models: modernModels,
+  };
+  config['provider'] = legacyProviders;
+  config['providers'] = modernProviders;
+  config['model'] = `${patch.providerKey}/${alias}`;
   removeFromStringArray(config, 'disabled_providers', patch.providerKey);
 
   writeJsonFile(filePath, config);
@@ -769,11 +890,12 @@ export function removeConfigPatch(patch: ConfigPatchDef, wslTargetsFile?: string
   }
   if (patch.format === 'aider') return removeAiderConfigPatch(patch);
   if (patch.format === 'continue') return removeContinueConfigPatch(patch);
-  if (patch.format === 'antigravity-mcp') return removeAntigravityPatch(patch);
+  if (patch.format === 'antigravity-ide') return removeAntigravityPatch(patch);
   if (patch.format === 'claude-desktop') {
     return removeClaudeDesktopConfigPatch(patch);
   }
-  let changed = removeOpencodeProviderFromFile(expandTilde(patch.configPath), patch);
+  let changed = false;
+  for (const target of opencodeConfigTargets(patch)) changed = removeOpencodeProviderFromFile(target, patch) || changed;
   if (patch.installProbe === 'opencode') {
     changed = removeWslInstalls('opencode', wslTargetsFile, (target) => removeOpencodeProviderFromFile(target.configPath, patch)) || changed;
   }
@@ -786,10 +908,12 @@ function removeOpencodeProviderFromFile(filePath: string, patch: OpencodeConfigP
   backupConfigFile(filePath);
 
   let changed = false;
-  const providers = config['provider'];
-  if (providers && typeof providers === 'object' && !Array.isArray(providers) && (patch.providerKey in (providers as JsonObject))) {
-    delete (providers as JsonObject)[patch.providerKey];
-    changed = true;
+  for (const key of ['provider', 'providers']) {
+    const providers = config[key];
+    if (providers && typeof providers === 'object' && !Array.isArray(providers) && (patch.providerKey in (providers as JsonObject))) {
+      delete (providers as JsonObject)[patch.providerKey];
+      changed = true;
+    }
   }
   if (typeof config['model'] === 'string' && config['model'].startsWith(`${patch.providerKey}/`)) {
     delete config['model'];
@@ -1119,7 +1243,8 @@ function applyCodexProviderToFile(filePath: string, patch: CodexConfigPatchDef, 
   let lines = raw.length > 0 ? raw.split('\n') : [];
   lines = removeCodexProviderTable(lines, patch.providerKey).lines;
   lines = setTomlTopLevelString(lines, 'model_provider', patch.providerKey);
-  lines = setTomlTopLevelString(lines, 'model', ROUTED_MODEL_ALIAS);
+  lines = setTomlTopLevelString(lines, 'model', patch.model || ROUTED_MODEL_ALIAS);
+  if (patch.modelCatalogJson) lines = setTomlTopLevelString(lines, 'model_catalog_json', expandTilde(patch.modelCatalogJson));
   lines = setTomlTopLevelValue(lines, 'model_context_window', String(TORVE_MODEL_CONTEXT_WINDOW));
   while (lines.length > 0 && lines[lines.length - 1]!.trim() === '') lines.pop();
   lines.push(
@@ -1130,6 +1255,7 @@ function applyCodexProviderToFile(filePath: string, patch: CodexConfigPatchDef, 
     // The only wire API Codex still supports; no env_key means Codex sends no
     // Authorization header, which the keyless buyer proxy expects.
     'wire_api = "responses"',
+    ...(patch.bearerToken ? [`experimental_bearer_token = ${tomlBasicString(patch.bearerToken)}`] : []),
   );
   writeTextFile(filePath, `${lines.join('\n')}\n`);
 }
@@ -1152,6 +1278,7 @@ function removeCodexProviderFromFile(filePath: string, patch: CodexConfigPatchDe
     lines = removeTomlTopLevelKey(lines, 'model_provider');
     lines = removeTomlTopLevelKey(lines, 'model');
     lines = removeTomlTopLevelKey(lines, 'model_context_window');
+    if (patch.modelCatalogJson) lines = removeTomlTopLevelKey(lines, 'model_catalog_json');
     changed = true;
   }
   if (!changed) return false;
@@ -1584,6 +1711,10 @@ const CLAUDE_CODE_MANAGED_ENV_KEYS = [
   'ANTHROPIC_AUTH_TOKEN',
   'ANTHROPIC_API_KEY',
   'ANTHROPIC_CUSTOM_HEADERS',
+  'ANTHROPIC_MODEL',
+  'ANTHROPIC_DEFAULT_SONNET_MODEL',
+  'ANTHROPIC_DEFAULT_OPUS_MODEL',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL',
 ] as const;
 
 type ClaudeCodeManagedEnvKey = typeof CLAUDE_CODE_MANAGED_ENV_KEYS[number];
@@ -1599,6 +1730,7 @@ type ClaudeCodePatchState = {
   readonly envPresent: boolean;
   readonly env: Readonly<Record<ClaudeCodeManagedEnvKey, ClaudeCodeSavedValue>>;
   readonly model: ClaudeCodeSavedValue;
+  readonly availableModels: ClaudeCodeSavedValue;
 };
 
 function claudeCodePatchStatePath(filePath: string): string {
@@ -1640,6 +1772,7 @@ function readClaudeCodePatchState(filePath: string): ClaudeCodePatchState | null
     envPresent: state['envPresent'],
     env: savedEnv,
     model: readSavedValue(state['model'], statePath, 'model'),
+    availableModels: state['availableModels'] ? readSavedValue(state['availableModels'], statePath, 'availableModels') : { present: false },
   };
 }
 
@@ -1694,24 +1827,31 @@ function applyClaudeCodeSettingsToFile(filePath: string, patch: ClaudeCodeConfig
       envPresent: existingEnv !== undefined,
       env: Object.fromEntries(CLAUDE_CODE_MANAGED_ENV_KEYS.map((key) => [key, savedValue(envSource, key)])) as Record<ClaudeCodeManagedEnvKey, ClaudeCodeSavedValue>,
       model: savedValue(config, 'model'),
+      availableModels: savedValue(config, 'availableModels'),
     });
   }
 
   const env = existingEnv ?? {};
   env['ANTHROPIC_BASE_URL'] = baseURL;
-  env['ANTHROPIC_AUTH_TOKEN'] = patch.providerKey;
-  env['ANTHROPIC_API_KEY'] = '';
+  env['ANTHROPIC_AUTH_TOKEN'] = 'torve-local-proxy';
+  env['ANTHROPIC_API_KEY'] = 'torve-local-proxy';
   env['ANTHROPIC_CUSTOM_HEADERS'] = CLAUDE_CODE_SOURCE_HEADER;
+  env['ANTHROPIC_MODEL'] = ROUTED_MODEL_ALIAS;
+  env['ANTHROPIC_DEFAULT_SONNET_MODEL'] = ROUTED_MODEL_ALIAS;
+  env['ANTHROPIC_DEFAULT_OPUS_MODEL'] = ROUTED_MODEL_ALIAS;
+  env['ANTHROPIC_DEFAULT_HAIKU_MODEL'] = ROUTED_MODEL_ALIAS;
   config['env'] = env;
   config['model'] = ROUTED_MODEL_ALIAS;
+  const native = ['sonnet', 'opus', 'haiku', 'claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5-20251001'];
+  config['availableModels'] = [...new Set([...native, ROUTED_MODEL_ALIAS, ...(patch.models ?? []).map((model) => model.id)])];
   writeJsonFile(filePath, config);
 }
 
 function removeClaudeCodeConfigPatch(patch: ClaudeCodeConfigPatchDef, wslTargetsFile?: string): boolean {
-  let changed = removeClaudeCodeSettingsFromFile(expandTilde(patch.configPath), patch);
+  let changed = removeClaudeCodeSettingsFromFile(expandTilde(patch.configPath));
   if (patch.installProbe === 'claude') {
     changed = removeWslInstalls('claude', wslTargetsFile, (target) => (
-      removeClaudeCodeSettingsFromFile(target.configPath, patch, [target.host])
+      removeClaudeCodeSettingsFromFile(target.configPath, [target.host])
     )) || changed;
   }
   return changed;
@@ -1724,7 +1864,6 @@ function restoreSavedValue(target: JsonObject, key: string, saved: ClaudeCodeSav
 
 function removeClaudeCodeSettingsFromFile(
   filePath: string,
-  patch: ClaudeCodeConfigPatchDef,
   extraHosts: readonly string[] = [],
 ): boolean {
   const state = readClaudeCodePatchState(filePath);
@@ -1741,9 +1880,13 @@ function removeClaudeCodeSettingsFromFile(
   if (env) {
     const managedValues: Record<ClaudeCodeManagedEnvKey, unknown> = {
       ANTHROPIC_BASE_URL: undefined,
-      ANTHROPIC_AUTH_TOKEN: patch.providerKey,
-      ANTHROPIC_API_KEY: '',
+      ANTHROPIC_AUTH_TOKEN: 'torve-local-proxy',
+      ANTHROPIC_API_KEY: 'torve-local-proxy',
       ANTHROPIC_CUSTOM_HEADERS: CLAUDE_CODE_SOURCE_HEADER,
+      ANTHROPIC_MODEL: ROUTED_MODEL_ALIAS,
+      ANTHROPIC_DEFAULT_SONNET_MODEL: ROUTED_MODEL_ALIAS,
+      ANTHROPIC_DEFAULT_OPUS_MODEL: ROUTED_MODEL_ALIAS,
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: ROUTED_MODEL_ALIAS,
     };
     for (const key of CLAUDE_CODE_MANAGED_ENV_KEYS) {
       const value = env[key];
@@ -1758,6 +1901,10 @@ function removeClaudeCodeSettingsFromFile(
   }
   if (config['model'] === ROUTED_MODEL_ALIAS) {
     restoreSavedValue(config, 'model', state.model);
+    changed = true;
+  }
+  if (Array.isArray(config['availableModels']) && config['availableModels'].includes(ROUTED_MODEL_ALIAS)) {
+    restoreSavedValue(config, 'availableModels', state.availableModels);
     changed = true;
   }
 
@@ -1872,19 +2019,22 @@ function applyContinueConfigPatch(patch: ContinueConfigPatchDef, buyerPort: numb
   const filePath = continuePath(patch);
   backupConfigFile(filePath);
   const base = patch.baseURL.replace('{buyerPort}', String(buyerPort));
-  const entry = { name: 'Torve', provider: 'openai', model: ROUTED_MODEL_ALIAS, apiBase: base, apiKey: 'torve-local-proxy' };
+  const entries = [{ name: 'Torve · Auto', provider: 'openai', model: ROUTED_MODEL_ALIAS, apiBase: base, apiKey: 'torve-local-proxy' },
+    ...(patch.models ?? []).filter((model) => model.id !== 'auto' && model.id !== ROUTED_MODEL_ALIAS).map((model) => ({ name: `Torve · ${model.name}`, provider: 'openai', model: model.id, apiBase: base, apiKey: 'torve-local-proxy' }))];
+  const isTorve = (item: unknown) => Boolean(item && typeof item === 'object' && !Array.isArray(item)
+    && typeof (item as JsonObject)['name'] === 'string' && ((item as JsonObject)['name'] as string).startsWith('Torve · '));
   if (filePath.endsWith('.json')) {
     const config = readConfigPatchFile(filePath);
-    const models = Array.isArray(config['models']) ? config['models'].filter((item) => !(item && typeof item === 'object' && (item as JsonObject)['name'] === 'Torve')) : [];
-    config['models'] = [...models, entry];
+    const models = Array.isArray(config['models']) ? config['models'].filter((item) => !isTorve(item)) : [];
+    config['models'] = [...models, ...entries];
     writeJsonFile(filePath, config);
     return;
   }
   const document = existsSync(filePath) ? parseDocument(readFileSync(filePath, 'utf8')) : new Document({});
   if (document.errors.length > 0) throw new Error(`Unable to parse Continue YAML config at ${filePath}`);
   const config = (document.toJS() ?? {}) as JsonObject;
-  const models = Array.isArray(config['models']) ? config['models'].filter((item) => !(item && typeof item === 'object' && (item as JsonObject)['name'] === 'Torve')) : [];
-  config['models'] = [...models, entry];
+  const models = Array.isArray(config['models']) ? config['models'].filter((item) => !isTorve(item)) : [];
+  config['models'] = [...models, ...entries];
   writeTextFileAtomically(filePath, new Document(config).toString());
 }
 
@@ -1894,24 +2044,29 @@ function removeContinueConfigPatch(patch: ContinueConfigPatchDef): boolean {
   if (filePath.endsWith('.json')) {
     const config = tryReadConfigPatchFile(filePath); if (!config) return false;
     const models = Array.isArray(config['models']) ? config['models'] : [];
-    const filtered = models.filter((item) => !(item && typeof item === 'object' && (item as JsonObject)['name'] === 'Torve'));
+    const filtered = models.filter((item) => !(item && typeof item === 'object' && typeof (item as JsonObject)['name'] === 'string' && ((item as JsonObject)['name'] as string).startsWith('Torve · ')));
     if (filtered.length === models.length) return false;
     config['models'] = filtered; writeJsonFile(filePath, config); return true;
   }
   const document = parseDocument(readFileSync(filePath, 'utf8'));
   const config = (document.toJS() ?? {}) as JsonObject;
   const models = Array.isArray(config['models']) ? config['models'] : [];
-  const filtered = models.filter((item) => !(item && typeof item === 'object' && (item as JsonObject)['name'] === 'Torve'));
+  const filtered = models.filter((item) => !(item && typeof item === 'object' && typeof (item as JsonObject)['name'] === 'string' && ((item as JsonObject)['name'] as string).startsWith('Torve · ')));
   if (filtered.length === models.length) return false;
   config['models'] = filtered; writeTextFileAtomically(filePath, new Document(config).toString()); return true;
 }
 
 function applyAntigravityPatch(patch: AntigravityConfigPatchDef, buyerPort: number): void {
-  const configPath = expandTilde(patch.configPath);
-  const serverPath = expandTilde(patch.serverPath);
-  backupConfigFile(configPath); backupConfigFile(serverPath);
   const baseURL = patch.baseURL.replace('{buyerPort}', String(buyerPort));
-  const script = `import readline from 'node:readline';\nconst base=${JSON.stringify(baseURL)};\nconst send=(x)=>process.stdout.write(JSON.stringify(x)+'\\n');\nconst rl=readline.createInterface({input:process.stdin});\nrl.on('line',async(line)=>{let r;try{r=JSON.parse(line)}catch{return}const out={jsonrpc:'2.0',id:r.id};try{if(r.method==='initialize')send({...out,result:{protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'torve-local',version:'1.0.0'}}});else if(r.method==='notifications/initialized'){}else if(r.method==='tools/list')send({...out,result:{tools:[{name:'torve_list_models',description:'List Torve Cloud models',inputSchema:{type:'object',properties:{}}},{name:'torve_chat',description:'Chat with a Torve model',inputSchema:{type:'object',properties:{prompt:{type:'string'},model:{type:'string'}},required:['prompt']}}]}});else if(r.method==='tools/call'){const a=r.params?.arguments||{};if(r.params?.name==='torve_list_models'){const j=await fetch(base+'/v1/models',{headers:{authorization:'Bearer torve-local-proxy'}}).then(x=>x.json());send({...out,result:{content:[{type:'text',text:JSON.stringify(j.data||j)}]}})}else{const j=await fetch(base+'/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer torve-local-proxy'},body:JSON.stringify({model:a.model||'torve',messages:[{role:'user',content:a.prompt}]})}).then(x=>x.json());send({...out,result:{content:[{type:'text',text:j.choices?.[0]?.message?.content||JSON.stringify(j)}]}})}}else send({...out,error:{code:-32601,message:'Method not found'}})}catch(e){send({...out,error:{code:-32000,message:String(e?.message||e)}})}});\n`;
+  const settingsPath = expandTilde(patch.configPath);
+  const settings = readConfigPatchFile(settingsPath);
+  settings['jetski.cloudCodeUrl'] = baseURL;
+  writeJsonFile(settingsPath, settings);
+
+  if (!patch.mcpFallback || !patch.mcpConfigPath || !patch.serverPath) return;
+  const configPath = expandTilde(patch.mcpConfigPath);
+  const serverPath = expandTilde(patch.serverPath);
+  const script = `import readline from 'node:readline';\nconst base=${JSON.stringify(baseURL)};\nconst send=(x)=>process.stdout.write(JSON.stringify(x)+'\\n');\nconst rl=readline.createInterface({input:process.stdin});\nrl.on('line',async(line)=>{let r;try{r=JSON.parse(line)}catch{return}const out={jsonrpc:'2.0',id:r.id};try{if(r.method==='initialize')send({...out,result:{protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'torve-local',version:'1.0.0'}}});else if(r.method==='notifications/initialized'){}else if(r.method==='tools/list')send({...out,result:{tools:[{name:'torve_list_models',description:'List models available from the connected Torve Cloud account. Use before torve_chat when the user asks for a Torve model.',inputSchema:{type:'object',properties:{}}},{name:'torve_chat',description:'Send a prompt through Direct Torve Cloud. Use when the user asks to use Torve or a Torve Cloud model.',inputSchema:{type:'object',properties:{prompt:{type:'string'},model:{type:'string'}},required:['prompt']}}]}});else if(r.method==='tools/call'){const a=r.params?.arguments||{};if(r.params?.name==='torve_list_models'){const j=await fetch(base+'/v1/models',{headers:{authorization:'Bearer torve-local-proxy'}}).then(x=>x.json());send({...out,result:{content:[{type:'text',text:JSON.stringify(j.data||j)}]}})}else{const j=await fetch(base+'/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer torve-local-proxy'},body:JSON.stringify({model:a.model||'torve',messages:[{role:'user',content:a.prompt}]})}).then(x=>x.json());send({...out,result:{content:[{type:'text',text:j.choices?.[0]?.message?.content||JSON.stringify(j)}]}})}}else send({...out,error:{code:-32601,message:'Method not found'}})}catch(e){send({...out,error:{code:-32000,message:String(e?.message||e)}})}});\n`;
   writeTextFileAtomically(serverPath, script);
   const config = readConfigPatchFile(configPath);
   const servers = asObject(config['mcpServers']);
@@ -1921,9 +2076,17 @@ function applyAntigravityPatch(patch: AntigravityConfigPatchDef, buyerPort: numb
 }
 
 function removeAntigravityPatch(patch: AntigravityConfigPatchDef): boolean {
-  const configPath = expandTilde(patch.configPath);
-  const config = tryReadConfigPatchFile(configPath);
   let changed = false;
+  const settingsPath = expandTilde(patch.configPath);
+  const settings = tryReadConfigPatchFile(settingsPath);
+  if (settings && typeof settings['jetski.cloudCodeUrl'] === 'string') {
+    delete settings['jetski.cloudCodeUrl'];
+    writeJsonFile(settingsPath, settings);
+    changed = true;
+  }
+  if (!patch.mcpFallback || !patch.mcpConfigPath || !patch.serverPath) return changed;
+  const configPath = expandTilde(patch.mcpConfigPath);
+  const config = tryReadConfigPatchFile(configPath);
   if (config) {
     const servers = asObject(config['mcpServers']);
     if (servers['torve']) { delete servers['torve']; changed = true; }
@@ -2064,23 +2227,48 @@ function isOwnClaudeDesktopMetaEntry(entry: unknown): boolean {
     && (entry as JsonObject)['id'] === CLAUDE_DESKTOP_PROFILE_ID;
 }
 
-function applyClaudeDesktopConfigPatch(patch: ClaudeDesktopConfigPatchDef): void {
-  const targets = claudeDesktopPatchTargets(patch);
-  const target = targets.find((candidate) => existsSync(path.dirname(candidate.configPath)));
-  if (!target) {
-    throw new Error(
-      'Claude Desktop was not found on this machine — nothing to connect. '
-      + `Looked for ${targets.map((candidate) => path.dirname(candidate.configPath)).join(', ')}. `
-      + 'Install Claude Desktop (or run it once), then reconnect.',
-    );
+export function matchingClaudeDesktopTargets(
+  patch: ClaudeDesktopConfigPatchDef,
+  platform: NodeJS.Platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env,
+  listDir: (dir: string) => string[] = claudeDesktopSafeListDir,
+  exists: (filePath: string) => boolean = existsSync,
+): ClaudeDesktopPatchTarget[] {
+  const explicitTarget = platform === 'win32' && path.isAbsolute(patch.configPath) && path.isAbsolute(patch.thirdPartyDir);
+  const targets = explicitTarget
+    ? [{ configPath: patch.configPath, thirdPartyDir: patch.thirdPartyDir }]
+    : claudeDesktopPatchTargets(patch, platform, env, listDir);
+  const matched = targets.filter(
+    (candidate) => exists(path.dirname(candidate.configPath)) || exists(candidate.thirdPartyDir),
+  );
+  if (matched.length === 0 || explicitTarget || platform !== 'win32') return matched;
+
+  // Modern Windows Claude Desktop (6.x+) always reads 3p mode & configLibrary
+  // from %LOCALAPPDATA%\Claude-3p even when its 1p userData sits in
+  // %APPDATA%\Claude or an MSIX LocalCache directory. Ensure that target is
+  // included whenever any non-Nest Claude Desktop installation is detected.
+  const local = env['LOCALAPPDATA'] || path.join(homedir(), 'AppData', 'Local');
+  const localClaudeRoot = path.join(local, 'Claude');
+  const hasPrimaryClaude = matched.some((candidate) => !path.dirname(candidate.configPath).endsWith('Claude Nest'));
+  const hasLocalClaude = matched.some(
+    (candidate) => path.dirname(candidate.configPath).toLowerCase() === localClaudeRoot.toLowerCase(),
+  );
+  if (hasPrimaryClaude && !hasLocalClaude) {
+    matched.push({
+      configPath: path.join(localClaudeRoot, 'claude_desktop_config.json'),
+      thirdPartyDir: `${localClaudeRoot}-3p`,
+    });
   }
+  return matched;
+}
+
+function applyClaudeDesktopTarget(target: ClaudeDesktopPatchTarget, gatewayBaseUrl: string): void {
   const normalConfigPath = target.configPath;
-  const gatewayBaseUrl = patch.baseURL.replace('{claudeGatewayPort}', String(CLAUDE_GATEWAY_DEFAULT_PORT));
   const paths = claudeDesktopPatchPaths(target);
 
-  // Claude reads deploymentMode from the normal profile at startup and, when
-  // it says '3p', boots against the third-party profile directory instead —
-  // the normal profile (login, chats, MCP config) is left as-is.
+  // Claude reads deploymentMode from the normal profile (or %LOCALAPPDATA%\Claude-3p
+  // on modern Windows builds) at startup and, when it says '3p', boots against
+  // the third-party profile directory instead — existing settings/MCP stay intact.
   backupConfigFile(normalConfigPath);
   const normalConfig = readConfigPatchFile(normalConfigPath);
   normalConfig['deploymentMode'] = '3p';
@@ -2124,11 +2312,30 @@ function applyClaudeDesktopConfigPatch(patch: ClaudeDesktopConfigPatchDef): void
   writeJsonFile(paths.meta, meta);
 }
 
+function applyClaudeDesktopConfigPatch(patch: ClaudeDesktopConfigPatchDef): void {
+  const matched = matchingClaudeDesktopTargets(patch);
+  if (matched.length === 0) {
+    const candidates = claudeDesktopPatchTargets(patch);
+    throw new Error(
+      'Claude Desktop was not found on this machine — nothing to connect. '
+      + `Looked for ${candidates.map((candidate) => path.dirname(candidate.configPath)).join(', ')}. `
+      + 'Install Claude Desktop (or run it once), then reconnect.',
+    );
+  }
+  const gatewayBaseUrl = patch.baseURL.replace('{claudeGatewayPort}', String(CLAUDE_GATEWAY_DEFAULT_PORT));
+  for (const target of matched) {
+    applyClaudeDesktopTarget(target, gatewayBaseUrl);
+  }
+}
+
 function removeClaudeDesktopConfigPatch(patch: ClaudeDesktopConfigPatchDef): boolean {
   // Every candidate root is checked: the install this patch configured may
   // not be the first candidate anymore (e.g. an MSIX Claude installed since).
   let changed = false;
-  for (const target of claudeDesktopPatchTargets(patch)) {
+  const targets = process.platform === 'win32' && path.isAbsolute(patch.configPath) && path.isAbsolute(patch.thirdPartyDir)
+    ? [{ configPath: patch.configPath, thirdPartyDir: patch.thirdPartyDir }]
+    : claudeDesktopPatchTargets(patch);
+  for (const target of targets) {
     if (removeClaudeDesktopTarget(target)) changed = true;
   }
   return changed;

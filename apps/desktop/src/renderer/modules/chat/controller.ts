@@ -172,6 +172,7 @@ export function initChatModule({
   // ---------------------------------------------------------------------------
 
   const fallbackChatServices: NormalizedChatServiceEntry[] = [];
+  const DIRECT_CLOUD_PROVIDER = 'torve-cloud';
   const PAYMENT_AUTO_RETRY_DELAY_MS = 7_000;
   const PAYMENT_AUTO_RETRY_MAX_ATTEMPTS = 2;
 
@@ -214,6 +215,8 @@ export function initChatModule({
   let serviceRefreshToken = 0;
   let serviceRefreshInProgress = false;
   let serviceSelectFocused = false;
+  let directCloudCatalog: VprModelCatalogEntry[] = [];
+  let directCloudServices: NormalizedChatServiceEntry[] = [];
   let workspaceSwitchToken = 0;
   let permissionRefreshToken = 0;
   let desiredWorkspacePath: string | null = uiState.chatWorkspacePath || null;
@@ -1442,6 +1445,7 @@ export function initChatModule({
     if (!defaultModel) return null;
     const entry = findCatalogEntry(uiState.vprModelCatalog, defaultModel.provider, defaultModel.serviceId);
     const freeBacked = entry !== null && freeEntryRouteReputation(entry) !== null;
+    const directCloudBacked = entry?.provider === DIRECT_CLOUD_PROVIDER && uiState.directCloudProxyOnline;
     const current = uiState.vprRouteSelection;
     const changed = !current.model
       || current.model.provider !== defaultModel.provider
@@ -1451,7 +1455,7 @@ export function initChatModule({
     if (changed) {
       uiState.vprRouteSelection = { model: defaultModel, mode: 'auto', peerId: null };
     }
-    if (freeBacked) {
+    if (freeBacked || directCloudBacked) {
       setProvisionalDefaultModel(null);
       saveVprRouteSelection(uiState.vprRouteSelection);
     } else {
@@ -1472,22 +1476,23 @@ export function initChatModule({
       uiState.discoverRows,
       uiState.vprRoutingPreferences,
     );
-    uiState.vprModelCatalog = applyOpenRouterBaselines(
+    uiState.vprModelCatalog = withDirectCloudCatalog(applyOpenRouterBaselines(
       projectRowsToVprModelCatalog(uiState.vprRoutableRows, isPricingRowEligible),
       getCachedOpenRouterPrices(),
-    );
+    ));
 
     // The selected model may only have been offered by a seller the new rules
     // exclude — leaving it selected would strand every send with no route.
     const selected = uiState.vprRouteSelection.model;
-    if (selected && routesForSelectedModel(uiState.vprRoutableRows, selected).length === 0) {
+    if (selected && selected.provider !== DIRECT_CLOUD_PROVIDER
+      && routesForSelectedModel(uiState.vprRoutableRows, selected).length === 0) {
       if (!adoptDefaultVprModel()) {
         uiState.vprRouteSelection = { model: null, mode: 'auto', peerId: null };
         saveVprRouteSelection(uiState.vprRouteSelection);
       }
     }
 
-    updateChatServiceOptions(projectRowsToChatServiceOptions(uiState.vprRoutableRows));
+    updateChatServiceOptions(withDirectCloudServices(projectRowsToChatServiceOptions(uiState.vprRoutableRows)));
     notifyUiStateChanged();
   }
 
@@ -1556,6 +1561,76 @@ export function initChatModule({
     discoverFailureLogAt = 0;
   }
 
+  function directCloudCatalogEntry(model: { id: string; display_name?: string; capabilities?: string[] }): VprModelCatalogEntry {
+    const capabilities = Array.isArray(model.capabilities) ? model.capabilities : [];
+    return {
+      provider: DIRECT_CLOUD_PROVIDER,
+      serviceId: model.id,
+      label: model.display_name?.trim() || model.id,
+      peerCount: 1,
+      categories: capabilities.includes('vision') ? ['multimodal'] : [],
+      kind: 'text',
+      protocols: ['openai-chat-completions'],
+      minInputUsdPerMillion: null,
+      maxInputUsdPerMillion: null,
+      minOutputUsdPerMillion: null,
+      maxOutputUsdPerMillion: null,
+      minCachedInputUsdPerMillion: null,
+      maxCachedInputUsdPerMillion: null,
+      minImageUsdPerImage: null,
+      maxImageUsdPerImage: null,
+      minVideoUsdPerSecond: null,
+      maxVideoUsdPerSecond: null,
+      minVideoUsdPerVideo: null,
+      maxVideoUsdPerVideo: null,
+      expectedSavingsPct: null,
+      hasEligibleFreeSeller: false,
+      bestPeerId: null,
+    };
+  }
+
+  async function refreshDirectCloudCatalog(): Promise<void> {
+    try {
+      const [account, proxy, catalog] = await Promise.all([
+        bridge?.torveAccountGet?.(),
+        bridge?.torveCloudProxyStatus?.(),
+        bridge?.torveModelsGet?.(),
+      ]);
+      const connected = Boolean(account?.connected);
+      uiState.directCloudConnected = connected;
+      uiState.directCloudProxyOnline = connected && Boolean(proxy?.running);
+      uiState.directCloudProxyPort = Number(proxy?.port) || 8378;
+      const models = connected && Array.isArray(catalog?.models) ? catalog.models : [];
+      directCloudCatalog = models
+        .filter((model) => typeof model?.id === 'string' && model.id.trim().length > 0)
+        .map(directCloudCatalogEntry);
+      directCloudServices = directCloudCatalog.map((entry) => ({
+        id: entry.serviceId,
+        label: entry.label,
+        provider: entry.provider,
+        protocol: 'openai-chat-completions',
+        count: 1,
+        peerId: '',
+        peerDisplayName: null,
+        peerLabel: 'Torve Cloud',
+        inputUsdPerMillion: null,
+        outputUsdPerMillion: null,
+        categories: [...entry.categories],
+        description: 'Direct Torve Cloud',
+      }));
+    } catch {
+      uiState.directCloudProxyOnline = false;
+    }
+  }
+
+  function withDirectCloudCatalog(entries: VprModelCatalogEntry[]): VprModelCatalogEntry[] {
+    return [...directCloudCatalog, ...entries.filter((entry) => entry.provider !== DIRECT_CLOUD_PROVIDER)];
+  }
+
+  function withDirectCloudServices(entries: NormalizedChatServiceEntry[]): NormalizedChatServiceEntry[] {
+    return [...directCloudServices, ...entries.filter((entry) => entry.provider !== DIRECT_CLOUD_PROVIDER)];
+  }
+
   async function refreshChatServiceOptions(): Promise<void> {
     // Skip if a fetch is already in-flight — the 30s timeout outlasts the 5s poll
     // cycle, so without this guard every result gets a stale token and is dropped.
@@ -1563,7 +1638,15 @@ export function initChatModule({
     serviceRefreshInProgress = true;
 
     const refreshToken = ++serviceRefreshToken;
-    const fallback = fallbackChatServices.map((entry) => ({ ...entry }));
+    await refreshDirectCloudCatalog();
+    uiState.vprModelCatalog = withDirectCloudCatalog(uiState.vprModelCatalog);
+    const currentModel = uiState.vprRouteSelection.model;
+    if (!currentModel || (currentModel.provider === DIRECT_CLOUD_PROVIDER && directCloudCatalog.length === 0)) {
+      if (!adoptDefaultVprModel()) {
+        uiState.vprRouteSelection = { model: null, mode: 'auto', peerId: null };
+      }
+    }
+    const fallback = withDirectCloudServices(fallbackChatServices.map((entry) => ({ ...entry })));
 
     if (!bridge?.chatAiListDiscoverRows) {
       uiState.chatDiscoverRowsLoaded = false;
@@ -1600,10 +1683,12 @@ export function initChatModule({
       // that excludes every discovered seller must empty the catalog, while a
       // transient empty discovery snapshot must leave the last one standing.
       if (rows.length > 0 || uiState.vprModelCatalog.length === 0) {
-        uiState.vprModelCatalog = applyOpenRouterBaselines(
+        uiState.vprModelCatalog = withDirectCloudCatalog(applyOpenRouterBaselines(
           projectRowsToVprModelCatalog(uiState.vprRoutableRows, isPricingRowEligible),
           getCachedOpenRouterPrices(),
-        );
+        ));
+      } else {
+        uiState.vprModelCatalog = withDirectCloudCatalog(uiState.vprModelCatalog);
       }
       // Warm the OpenRouter reference-price cache in the background; once it
       // resolves, re-stamp baselines onto the current catalog so the Home
@@ -1645,7 +1730,7 @@ export function initChatModule({
       // lands the route once the buyer proxy finishes starting.
       void syncBuyerDefaultRoute(bridge, uiState);
       const optionsToRender = rows.length > 0
-        ? projectRowsToChatServiceOptions(uiState.vprRoutableRows)
+        ? withDirectCloudServices(projectRowsToChatServiceOptions(uiState.vprRoutableRows))
         : fallback;
       updateChatServiceOptions(optionsToRender);
       setRuntimeActivity(

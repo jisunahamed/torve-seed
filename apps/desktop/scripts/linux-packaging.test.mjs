@@ -18,8 +18,8 @@ test('Linux config separates install identity from visible branding and other pl
   const base = await getConfig(desktopDir, path.join(desktopDir, 'electron-builder.yml'));
   const linux = await getConfig(desktopDir, path.join(desktopDir, 'electron-builder.linux.cjs'));
   await validateConfiguration(linux, { isEnabled: false });
-  assert.equal(base.productName, 'Torve AI VPN');
-  assert.equal(base.executableName, 'Torve VPR');
+  assert.equal(base.productName, 'Torve Desktop');
+  assert.equal(base.executableName, 'Torve Desktop');
   assert.equal(linux.productName, 'torve-ai-vpn');
   assert.equal(linux.linux.executableName, 'torve-ai-vpn');
   assert.equal(linux.deb.packageName, 'torve-ai-vpn');
@@ -45,7 +45,7 @@ test('Linux config separates install identity from visible branding and other pl
   assert.match(desktopEntry, /^StartupWMClass=Torve AI VPN$/m);
   assert.deepEqual(linux.deb.fpm, ['--before-install', path.join(desktopDir, 'scripts/linux/preinst.sh')]);
   for (const hook of [linux.deb.afterInstall, linux.deb.afterRemove, linux.deb.fpm[1]]) {
-    assert.ok((await readFile(hook, 'utf8')).startsWith('#!/bin/sh\n'));
+    assert.match(await readFile(hook, 'utf8'), /^#!\/bin\/sh\r?\n/);
   }
 });
 

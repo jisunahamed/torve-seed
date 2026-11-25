@@ -6,9 +6,8 @@ node_modules/
 dist/
 
 # Environment
-.env
-.env.local
-.env.*.local
+.env*
+!.env.example
 
 # Logs
 *.log
@@ -29,9 +28,17 @@ coverage/
 # Runtime native module markers
 .runtime-native-meta.json
 
-# Electron builder output
+# Electron builder & staged runtime output
 release/
+apps/desktop/release/
 cli-dist/
+bundled-runtime/
+
+# Personal keys, certs & backups
+*.enc
+*.pfx
+*.p12
+desktop-credentials.*
 
 # Claude worktrees
 .claude/worktrees/

@@ -504,28 +504,6 @@ function requireBridgeMethod<K extends keyof DesktopBridge>(
   return method as NonNullable<DesktopBridge[K]>;
 }
 
-async function ensureConnectRuntimeStarted(): Promise<void> {
-  if (!bridge?.start || isModeRunning('connect')) return;
-  // Don't start until plugin setup is resolved — starting without the router
-  // plugin causes the CLI to exit immediately with "plugin not found".
-  if (uiState.appSetupStatusKnown && uiState.appSetupNeeded && !uiState.appSetupComplete) return;
-
-  try {
-    setRuntimeActivity('warn', 'Starting buyer runtime...', 8_000);
-    await bridge.start({
-      mode: 'connect',
-      router: normalizeRouterRuntime(uiState.connectRouterValue),
-    });
-    appendSystemLog(UI_MESSAGES.buyerAutoStarted);
-    setRuntimeActivity('active', 'Buyer runtime auto-started.', 4_000);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.toLowerCase().includes('already running')) return;
-    appendSystemLog(`Buyer auto-start failed: ${message}`);
-    setRuntimeActivity('bad', `Buyer auto-start failed: ${message}`, 10_000);
-  }
-}
-
 async function actionStartConnect(): Promise<void> {
   const start = requireBridgeMethod('start', 'Runtime start is unavailable in this build');
   clearRouterPluginHint();
@@ -845,8 +823,6 @@ function initializeBridge(): void {
 
   void (async () => {
     await refreshAll('startup');
-    await ensureConnectRuntimeStarted();
-    await refreshAll('startup');
   })();
 
   void refreshPluginInventory().catch((err) => {
@@ -864,5 +840,5 @@ function initializeBridge(): void {
 /* ------------------------------------------------------------------ */
 
 renderPluginSetupState();
-setRuntimeActivity('idle', 'Initializing desktop runtime...', 6_000);
+setRuntimeActivity('idle', 'Torve Desktop ready', 4_000);
 initializeBridge();

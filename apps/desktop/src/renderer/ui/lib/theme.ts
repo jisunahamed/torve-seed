@@ -33,12 +33,10 @@ export function applyThemeMode(mode: ThemeMode): void {
   }
 }
 
-/** Paint the persisted mode and follow changes made from other windows. */
+/** Paint the persisted mode (defaulting to Torve dark) and follow changes across windows. */
 export function initThemeMode(): void {
-  const stored = getStoredThemeMode();
-  if (stored) {
-    document.body.classList.toggle('dark-theme', stored === 'dark');
-  }
+  const stored = getStoredThemeMode() ?? 'dark';
+  document.body.classList.toggle('dark-theme', stored === 'dark');
   window.addEventListener('storage', (event) => {
     if (event.key !== THEME_STORAGE_KEY) return;
     if (event.newValue === 'dark' || event.newValue === 'light') {

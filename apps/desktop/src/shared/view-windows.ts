@@ -18,6 +18,7 @@ export const VIEW_WINDOW_PRESETS = {
   deposit: 'compact',
   activity: 'compact',
   rewards: 'compact',
+  'torve-account': 'compact',
   help: 'compact',
   // Chat's base preset is the thin panel, but the view opens wide by default:
   // chatPanelExpanded starts true, and AppShell applies the standard preset

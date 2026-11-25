@@ -174,6 +174,7 @@ export function createStreamingRunner(ctx: StreamingRunContext) {
     conversationId: string,
     userMessage: string,
     serviceOverride?: string,
+    providerOverride?: string,
     attachments?: PreparedChatAttachment[],
     peerOverride?: string,
     permissionModeInput?: unknown,
@@ -199,11 +200,14 @@ export function createStreamingRunner(ctx: StreamingRunContext) {
       await abortAndClearActiveRun(existingRun);
     }
 
-    const proxyPort = await resolveProxyPort(configPath);
+    const directCloud = providerOverride?.trim().toLowerCase() === 'torve-cloud';
+    const proxyPort = directCloud
+      ? Number(process.env['TORVE_CLOUD_PROXY_PORT']) || 8378
+      : await resolveProxyPort(configPath);
     process.env['TORVE_PROXY_URL'] = `http://127.0.0.1:${String(proxyPort)}`;
     const runtimeRunning = isBuyerRuntimeRunning();
     let proxyAvailable = await isProxyAvailable(proxyPort);
-    if (!proxyAvailable && ensureBuyerRuntimeStarted) {
+    if (!directCloud && !proxyAvailable && ensureBuyerRuntimeStarted) {
       if (runtimeRunning) {
         appendSystemLog(`Buyer runtime is running. Waiting for proxy :${proxyPort}...`);
       } else {
@@ -224,7 +228,9 @@ export function createStreamingRunner(ctx: StreamingRunContext) {
     if (!proxyAvailable) {
       return {
         ok: false,
-        error: `Buyer proxy is not reachable on port ${proxyPort}. Start Buyer runtime or fix buyer.proxyPort in config.`,
+        error: directCloud
+          ? `Direct Torve Cloud proxy is not reachable on port ${proxyPort}. Reconnect your Torve Account.`
+          : `Buyer proxy is not reachable on port ${proxyPort}. Start Buyer runtime or fix buyer.proxyPort in config.`,
       };
     }
 
@@ -239,7 +245,7 @@ export function createStreamingRunner(ctx: StreamingRunContext) {
     const persistedPeer = extractPeerFromEntries(sessionManager);
     const peerOverrideId = normalizePeerId(peerOverride) ?? null;
     const persistedPinnedPeerId = isPersistedPeerBindingPinned(persistedPeer) ? persistedPeer.peerId : null;
-    const preferredPeerId = peerOverrideId
+    const preferredPeerId = directCloud ? null : peerOverrideId
       ?? preferredPeerByConversationId.get(conversationId)
       ?? persistedPeer?.peerId
       ?? null;
@@ -299,7 +305,9 @@ export function createStreamingRunner(ctx: StreamingRunContext) {
       };
     }
 
-    const protocol: ChatServiceProtocol = advertisedProtocol ?? await resolveProtocolForSend(serviceId);
+    const protocol: ChatServiceProtocol = directCloud
+      ? 'openai-chat-completions'
+      : advertisedProtocol ?? await resolveProtocolForSend(serviceId);
     const supportsMultimodal = catalogEntry?.categories?.includes('multimodal') ?? false;
     const droppedImageCount = supportsMultimodal ? 0 : attachmentImages.length;
     if (droppedImageCount > 0) {

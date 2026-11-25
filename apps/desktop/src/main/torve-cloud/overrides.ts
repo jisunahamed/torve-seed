@@ -49,10 +49,22 @@ export async function setDirectCloudOverride(appId: string, value: DirectCloudMo
 }
 
 export async function resolveDirectCloudModel(appId: string | null, requested: string | null, fallback: string | null): Promise<string | null> {
+  const override = appId ? (await getDirectCloudOverrides())[appId] : undefined;
+  return resolveDirectCloudModelChoice(appId, requested, fallback, override);
+}
+
+export function resolveDirectCloudModelChoice(
+  appId: string | null,
+  requested: string | null,
+  fallback: string | null,
+  override?: DirectCloudModelOverride,
+): string | null {
+  const aliasRequested = !requested || requested === 'torve' || requested === 'auto';
+  // Per-app defaults resolve only aliases. A concrete picker selection from
+  // any catalog-aware connector must always reach Torve Cloud unchanged.
+  if (!aliasRequested) return requested;
   if (appId) {
-    const override = (await getDirectCloudOverrides())[appId];
     if (override?.enabled && override.modelId) return override.modelId;
   }
-  if (requested && requested !== 'torve') return requested;
   return fallback;
 }

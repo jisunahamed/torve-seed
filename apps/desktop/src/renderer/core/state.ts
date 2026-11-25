@@ -199,6 +199,8 @@ export type TrustBreakdown = {
   power: { score: number; shareBps: number; epoch: number } | null;
   /** Verified-identity part; `null` when no verified identity has usable history. */
   identity: { score: number; kind: 'github' | 'domain'; claim: string } | null;
+  /** Free-model bonus, +5; `null` when the seller announces no free model. */
+  freeModels?: { score: number; service: string } | null;
   /** Wash-trading registry verdict; `null` when the registry is unavailable. */
   washFlagged: boolean | null;
 };
@@ -425,6 +427,10 @@ export type RendererUiState = {
   chatProxyPort: number;
   /** Buyer proxy port answered the last reachability probe. */
   chatProxyOnline: boolean;
+  /** Direct Torve Cloud account/proxy state. Independent of the P2P buyer. */
+  directCloudConnected: boolean;
+  directCloudProxyOnline: boolean;
+  directCloudProxyPort: number;
   /** Chat opens thin (compact window, no conversation list). The header
       toggle expands the window to the standard preset and shows the panel. */
   chatPanelExpanded: boolean;
@@ -605,6 +611,9 @@ export function createInitialUiState(): RendererUiState {
     chatConversationsLoaded: false,
     chatProxyPort: 0,
     chatProxyOnline: false,
+    directCloudConnected: false,
+    directCloudProxyOnline: false,
+    directCloudProxyPort: 8378,
     // Chat opens wide (standard preset) with the conversation list showing;
     // the in-view toggle collapses it to the thin panel.
     chatPanelExpanded: true,

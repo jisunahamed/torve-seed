@@ -23,6 +23,7 @@ const VIEW_SURFACES: Record<ViewName, TelemetryActionSurface> = {
   rewards: 'rewards',
   chat: 'chat',
   help: 'help',
+  'torve-account': 'home',
   peers: 'peers',
   connection: 'connection',
   desktop: 'desktop',

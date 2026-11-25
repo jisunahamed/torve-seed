@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { copyFile, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
@@ -50,6 +50,39 @@ export async function prepareDirectCloudBackup(appId: string, sourcePaths: reado
   await save({ version: 1, appId, patchedAt: null, entries });
 }
 
+/** Add newly managed files to an existing backup without replacing originals
+ * already captured by an older connector version. This is used when a live
+ * upgrade starts managing an additional file (for example Claude Code's
+ * settings.json alongside Claude Desktop's profile files). */
+export async function extendDirectCloudBackup(appId: string, sourcePaths: readonly string[]): Promise<void> {
+  const manifest = await load(appId);
+  if (!manifest) return prepareDirectCloudBackup(appId, sourcePaths);
+  const dir = backupDir(appId);
+  const key = (filePath: string) => process.platform === 'win32' ? path.resolve(filePath).toLowerCase() : path.resolve(filePath);
+  const known = new Set(manifest.entries.map((entry) => key(entry.originalPath)));
+  let changed = false;
+  for (const sourcePath of [...new Set(sourcePaths)]) {
+    if (known.has(key(sourcePath))) continue;
+    const original = await bytes(sourcePath);
+    const index = manifest.entries.length;
+    const originalFile = original ? `original.${index}.${path.basename(sourcePath)}` : null;
+    if (original && originalFile) {
+      await mkdir(dir, { recursive: true });
+      await writeFile(path.join(dir, originalFile), original, { mode: 0o600 });
+    }
+    manifest.entries.push({
+      originalPath: sourcePath,
+      existedBefore: original !== null,
+      originalFile,
+      sha256: original ? sha256(original) : null,
+      patchedSha256: null,
+    });
+    known.add(key(sourcePath));
+    changed = true;
+  }
+  if (changed) await save(manifest);
+}
+
 /** Record post-patch hashes so disconnect can detect user edits safely. */
 export async function sealDirectCloudBackup(appId: string): Promise<void> {
   const manifest = await load(appId);
@@ -62,17 +95,28 @@ export async function sealDirectCloudBackup(appId: string): Promise<void> {
   await save(manifest);
 }
 
-/** Restore exact originals only when files still match Torve's patched bytes.
- * Returns false when user edits are present so the caller can use semantic
- * unpatching instead of overwriting them. */
-export async function restoreDirectCloudBackup(appId: string): Promise<boolean> {
+/** Whether every current file still matches the last bytes written by Torve.
+ * Refresh callers use this before mutating a managed config: only an
+ * untouched patch may be resealed, otherwise disconnect must fall back to a
+ * semantic unpatch so user/app edits are not overwritten. */
+export async function directCloudBackupMatchesPatched(appId: string): Promise<boolean> {
   const manifest = await load(appId);
-  if (!manifest) return false;
+  if (!manifest || manifest.patchedAt === null) return false;
   for (const entry of manifest.entries) {
     const current = await bytes(entry.originalPath);
     const currentSha = current ? sha256(current) : null;
     if (entry.patchedSha256 !== currentSha) return false;
   }
+  return true;
+}
+
+/** Restore exact originals only when files still match Torve's patched bytes.
+ * Returns false when user edits are present so the caller can use semantic
+ * unpatching instead of overwriting them. */
+export async function restoreDirectCloudBackup(appId: string, options: { forceExact?: boolean } = {}): Promise<boolean> {
+  const manifest = await load(appId);
+  if (!manifest) return false;
+  if (!options.forceExact && !await directCloudBackupMatchesPatched(appId)) return false;
   const dir = backupDir(appId);
   for (const entry of manifest.entries) {
     if (entry.existedBefore && entry.originalFile) {
@@ -88,6 +132,39 @@ export async function restoreDirectCloudBackup(appId: string): Promise<boolean> 
 
 export async function discardDirectCloudBackup(appId: string): Promise<void> {
   await rm(backupDir(appId), { recursive: true, force: true });
+}
+
+export type DirectCloudBackupSummary = {
+  appId: string;
+  patchedAt: number | null;
+  matchesPatched: boolean;
+  files: Array<{ originalPath: string; existedBefore: boolean }>;
+};
+
+/** List all ~/.torve/backups/<appId> manifests for the Backup & Restore UI. */
+export async function listDirectCloudBackups(): Promise<DirectCloudBackupSummary[]> {
+  const root = path.join(homedir(), '.torve', 'backups');
+  let entries: string[];
+  try {
+    entries = await readdir(root);
+  } catch {
+    return [];
+  }
+  const results: DirectCloudBackupSummary[] = [];
+  for (const appId of entries.sort()) {
+    const manifest = await load(appId);
+    if (!manifest) continue;
+    results.push({
+      appId: manifest.appId || appId,
+      patchedAt: manifest.patchedAt,
+      matchesPatched: await directCloudBackupMatchesPatched(appId),
+      files: manifest.entries.map((entry) => ({
+        originalPath: entry.originalPath,
+        existedBefore: entry.existedBefore,
+      })),
+    });
+  }
+  return results;
 }
 
 /** Roll back an apply that failed before the backup was sealed. */

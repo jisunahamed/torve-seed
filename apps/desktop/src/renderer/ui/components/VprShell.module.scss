@@ -1,7 +1,7 @@
 .shell {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) 24px;
+  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) 26px;
   height: 100vh;
   min-width: 0;
   min-height: 0;
@@ -29,19 +29,35 @@
 
 .sidebar {
   grid-row: 1;
-  width: 88px;
-  min-width: 88px;
-  /* Top clearance for the macOS hidden-inset traffic lights (y:16). */
-  padding: 64px 8px 8px;
+  width: 96px;
+  min-width: 96px;
+  /* Top clearance for macOS traffic lights while staying compact on Windows. */
+  padding: 20px 8px 12px;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
+  gap: 10px;
   border-right: 1px solid var(--border);
   background: var(--bg-secondary);
-  /* The rail behind the nav buttons doubles as a window-drag handle;
-     the buttons themselves are no-drag via the global rule. */
   -webkit-app-region: drag;
+}
+
+.brandSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 0 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  user-select: none;
+}
+
+.brandText {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--torve-lime, #d8ff0a);
 }
 
 .navGroup {
@@ -179,10 +195,42 @@
 }
 
 .statusItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   flex: 0 0 auto;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.statusOk {
+  color: var(--accent-green);
+  font-weight: 500;
+}
+
+.statusMuted {
+  color: var(--text-muted);
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.statusDotOk {
+  background: var(--accent-green);
+  box-shadow: 0 0 6px rgba(20, 255, 115, 0.55);
+}
+
+.statusDotOff {
+  background: var(--text-faint);
+}
+
+.statusSpacer {
+  flex: 1 1 auto;
 }
 
 .statusItem:last-child {

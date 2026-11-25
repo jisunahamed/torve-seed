@@ -8,6 +8,7 @@
  */
 import { app } from 'electron';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { resolveConnectDataDir } from '../runtime/process-manager.js';
 import { loadAppLaunchSettings, normalizeToolSlugs } from '../connected-apps/launch-settings.js';
@@ -133,7 +134,10 @@ export function normalizeDesktopSystemProxyProfile(value: unknown, index: number
   const metadata = readProfileMetadata(raw['metadata']);
   const label = readString(raw, 'displayName') ?? readString(raw, 'label') ?? metadata?.displayLabel ?? `Tool ${index + 1}`;
   const kind = raw['kind'] === 'config-patch' ? 'config-patch' : 'proxy';
-  const configPatch = readConfigPatch(raw['configPatch'], name);
+  const parsedConfigPatch = readConfigPatch(raw['configPatch'], name);
+  const configPatch = parsedConfigPatch?.format === 'antigravity-ide' && parsedConfigPatch.configPath === 'auto'
+    ? { ...parsedConfigPatch, configPath: antigravityIdeSettingsPath() }
+    : parsedConfigPatch;
   const appAction = readAppAction(raw['appAction']) ?? metadata?.appAction;
   const openUrl = readString(raw, 'openUrl') ?? metadata?.openUrl;
   const toolName = readString(raw, 'toolName') ?? metadata?.toolName;
@@ -152,6 +156,18 @@ export function normalizeDesktopSystemProxyProfile(value: unknown, index: number
     ...(restartAppName ? { restartAppName } : {}),
     ...(configPatch ? { configPatch } : {}),
   };
+}
+
+/** Resolve the VS Code-based Antigravity IDE's user settings without touching
+ * the separate standalone Antigravity 2.0 MCP configuration. */
+export function antigravityIdeSettingsPath(
+  platform: NodeJS.Platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env,
+  home: string = homedir(),
+): string {
+  if (platform === 'win32') return path.join(env['APPDATA'] || path.join(home, 'AppData', 'Roaming'), 'Antigravity', 'User', 'settings.json');
+  if (platform === 'darwin') return path.join(home, 'Library', 'Application Support', 'Antigravity', 'User', 'settings.json');
+  return path.join(home, '.config', 'Antigravity', 'User', 'settings.json');
 }
 
 export function readProfileMetadata(value: unknown): DesktopSystemProxyProfileMetadata | undefined {

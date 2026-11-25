@@ -313,7 +313,8 @@ export function initVprFloatModule({
     const pinnedSellers = Object.fromEntries(
       pinnedSellerLabels(uiState.vprRoutableRows, uiState.vprModelPins, models),
     );
-    const runtimeOn = isBuyerReady(uiState.processes, uiState.chatProxyOnline);
+    const runtimeOn = isBuyerReady(uiState.processes, uiState.chatProxyOnline)
+      || uiState.directCloudProxyOnline;
 
     return {
       apps: connected.map((profile) => ({

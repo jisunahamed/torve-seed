@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, ArrowDown01Icon, ArrowLeft01Icon, ArrowReloadHorizontalIcon, ArrowRight01Icon, ArrowUpRight01Icon, Copy01Icon, Settings02Icon, SquareLock01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { Modal } from '@torveai/ui';
-import type { InstalledAppEntry, SystemProxyProfileSummary } from '../../../types/bridge';
+import type { AntigravityStandalonePatchStatus, InstalledAppEntry, SystemProxyProfileSummary } from '../../../types/bridge';
 import { chooseBestVprRoute, isPeerRoutable } from '../../../modules/routing/select';
 import { routesForSelectedModel } from '../../../modules/catalog/view-models';
 import { installedAppsResource, systemProxyResource } from '../../../modules/app/vpr-resources';
@@ -69,7 +69,7 @@ const BUILT_IN_APP_INFO: Readonly<Record<string, { description: string; websiteU
   'gemini-cli': { description: 'Google Gemini CLI configured persistently through its official environment and settings files.', websiteUrl: 'https://geminicli.com/' },
   aider: { description: 'A terminal pair-programming assistant using Torve through its OpenAI-compatible endpoint.', websiteUrl: 'https://aider.chat/' },
   continue: { description: 'The open-source coding assistant configured with a dedicated Torve model provider.', websiteUrl: 'https://continue.dev/' },
-  antigravity: { description: 'MCP Bridge (Antigravity does not support custom Base URL yet). Installs local torve_chat and torve_list_models tools.' },
+  antigravity: { description: 'MCP fallback for standalone Antigravity. Native Model Picker via jetski.cloudCodeUrl is available only in compatible VS Code-based editions; reload the IDE after enabling it.' },
   zed: {
     description: 'A high-performance collaborative code editor with built-in AI assistance.',
     websiteUrl: 'https://zed.dev/download',
@@ -137,6 +137,10 @@ export function VprToolsView() {
   const [modelOverrides, setModelOverrides] = useState<Record<string, { modelId: string; enabled: boolean }>>({});
   const [modelsRefreshing, setModelsRefreshing] = useState(false);
   const [cloudConnected, setCloudConnected] = useState(false);
+  const [antigravityPatch, setAntigravityPatch] = useState<AntigravityStandalonePatchStatus | null>(null);
+  const [antigravityPatchBusy, setAntigravityPatchBusy] = useState(false);
+  const [backupsByApp, setBackupsByApp] = useState<Record<string, { filesCount: number; updatedAt: number }>>({});
+  const [appsRefreshing, setAppsRefreshing] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
   const [activities, setActivities] = useState<CloudActivity[]>([]);
   const [activityFilter, setActivityFilter] = useState('');
@@ -212,10 +216,18 @@ export function VprToolsView() {
         const refreshed = await bridge?.torveModelsRefresh?.();
         if (refreshed && !refreshed.ok) throw new Error(refreshed.error ?? 'Unable to refresh Torve models');
       }
-      const [catalog, overrides, account] = await Promise.all([bridge?.torveModelsGet?.(), bridge?.torveOverridesGet?.(), bridge?.torveAccountGet?.()]);
+      const [catalog, overrides, account, backups] = await Promise.all([
+        bridge?.torveModelsGet?.(),
+        bridge?.torveOverridesGet?.(),
+        bridge?.torveAccountGet?.(),
+        bridge?.torveBackupsList?.(),
+      ]);
       setCloudModels(catalog?.models ?? []);
       setModelOverrides(overrides ?? {});
       setCloudConnected(account?.connected === true);
+      if (Array.isArray(backups)) {
+        setBackupsByApp(Object.fromEntries(backups.map((b) => [b.appId, { filesCount: b.filesCount, updatedAt: b.updatedAt }])));
+      }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : String(err));
     } finally {
@@ -224,6 +236,23 @@ export function VprToolsView() {
   }, []);
 
   useEffect(() => { void refreshCloudModels(false); }, [refreshCloudModels]);
+
+  const refreshAntigravityPatch = useCallback(async () => {
+    try { setAntigravityPatch(await window.torveDesktop?.antigravityStandaloneStatus?.() ?? null); }
+    catch { setAntigravityPatch(null); }
+  }, []);
+  useEffect(() => { void refreshAntigravityPatch(); }, [refreshAntigravityPatch]);
+
+  const toggleAntigravityPatch = useCallback(async () => {
+    if (!antigravityPatch || antigravityPatch.running) return;
+    setAntigravityPatchBusy(true); setMessage(null);
+    try {
+      const result = await window.torveDesktop?.antigravityStandaloneSet?.(!antigravityPatch.enabled);
+      if (!result?.ok) throw new Error(result?.error ?? 'Unable to update the Antigravity native picker patch.');
+      setAntigravityPatch(result.status ?? null);
+    } catch (err) { setMessage(err instanceof Error ? err.message : String(err)); await refreshAntigravityPatch(); }
+    finally { setAntigravityPatchBusy(false); }
+  }, [antigravityPatch, refreshAntigravityPatch]);
 
   useEffect(() => {
     const bridge = window.torveDesktop;
@@ -305,45 +334,22 @@ export function VprToolsView() {
     const bridge = window.torveDesktop;
     setBusy(names.join(','));
     setMessage(null);
-    // A connected Torve Cloud account takes the direct loopback path. The
-    // legacy P2P route stays available when no cloud account is connected.
     const account = await bridge?.torveAccountGet?.();
-    if (account?.connected && bridge?.torveDirectStart) {
-      const result = await bridge.torveDirectStart(names);
+    if (!account?.connected || !bridge?.torveDirectStart) {
       setBusy(null);
-      if (!result.ok) {
-        setMessage(result.error ?? 'Unable to connect tool profile to Torve Cloud');
-        return false;
-      }
-      systemProxyResource.setData({ profiles, state: result.state ?? null });
-      return true;
-    }
-    if (!bridge?.systemProxyStart || !defaultPeerId) {
-      setBusy(null);
-      setMessage('Connect a Torve account or select a P2P route first.');
+      setMessage('Sign in to Torve Desktop on Overview before connecting apps.');
       return false;
     }
-    const defaultRoute = { peerId: defaultPeerId, model: defaultModel };
-    const routeOverrides = Object.fromEntries(
-      names.map((name) => [name, resolveVprToolRouteForPeerOptions({}, name, defaultRoute, peerOptions)]),
-    );
-    const result = await bridge.systemProxyStart({
-      peerId: defaultPeerId,
-      port: DEFAULT_PORT,
-      profiles: names,
-      defaultModel: defaultModel || undefined,
-      servedModels: peerOptions.find((peer) => peer.peerId === defaultPeerId)?.services ?? [],
-      toolRoutes: routeOverrides,
-      profileSwitch: proxyState?.running === true || activeProfileNames.length > 0,
-    });
+    const result = await bridge.torveDirectStart(names);
     setBusy(null);
     if (!result.ok) {
-      setMessage(result.error ?? 'Unable to connect tool profile');
+      setMessage(result.error ?? 'Unable to connect tool profile to Torve Cloud');
       return false;
     }
     systemProxyResource.setData({ profiles, state: result.state ?? null });
+    void refreshCloudModels(false);
     return true;
-  }, [activeProfileNames.length, defaultModel, defaultPeerId, peerOptions, profiles, proxyState?.running]);
+  }, [profiles, refreshCloudModels]);
 
   const disconnect = useCallback(async (appName?: string) => {
     const bridge = window.torveDesktop;
@@ -376,14 +382,6 @@ export function VprToolsView() {
     setConnecting(profileName);
     try {
       if (!await startProfiles(names)) return;
-      // Surface the pill right away — it opens with the chat dropdown
-      // expanded, so the "start a new session" guidance is in view while
-      // the user switches to the tool.
-      void actions.openVprFloat?.(profileName);
-      // Bring the app itself forward too — same launch rules as the row's
-      // open arrow: a user-picked application wins over the packaged
-      // open-url action. Awaited, so the row stays busy until the app is
-      // actually up rather than until the launch request is accepted.
       const profile = profiles.find((entry) => entry.name === profileName);
       if (!profile) return;
       if (profile.appAction === 'open-url' && profile.openUrl && !profile.launchAppName) {
@@ -394,7 +392,7 @@ export function VprToolsView() {
     } finally {
       setConnecting(null);
     }
-  }, [actions, activeProfileNames, openTool, openUrl, profiles, startProfiles]);
+  }, [activeProfileNames, openTool, openUrl, profiles, startProfiles]);
 
   const disconnectProfile = useCallback((profileName: string) => {
     const remaining = activeProfileNames.filter((name) => name !== profileName);
@@ -643,43 +641,27 @@ export function VprToolsView() {
       <div className={styles.stack}>
         {message ? <p className={styles.note} role="status">{message}</p> : null}
 
-        {cloudModels.length > 0 ? (
-          <div className={styles.modelToolbar}>
-            <span>Torve Cloud models</span>
-            <button type="button" className={styles.activityButton} onClick={() => setActivityOpen((open) => !open)} aria-expanded={activityOpen}>
-              <span className={`${styles.activityRing}${activities[0] && activities[0].statusCode < 400 ? ` ${styles.activityRingOk}` : ''}`} aria-hidden="true" />
-              Activity {activities.length > 0 ? `(${activities.length})` : ''}
-            </button>
-            <button type="button" onClick={() => void refreshCloudModels(true)} disabled={modelsRefreshing}>
-              <HugeiconsIcon icon={ArrowReloadHorizontalIcon} size={14} strokeWidth={2} />
-              {modelsRefreshing ? 'Refreshing…' : 'Refresh'}
-            </button>
-          </div>
-        ) : null}
-
-        {activityOpen ? (
-          <section className={styles.activityDrawer} aria-label="Recent Torve Cloud activity">
-            <div className={styles.activityHead}>
-              <strong>Recent activity</strong>
-              <select value={activityFilter} onChange={(event) => setActivityFilter(event.target.value)} aria-label="Filter activity by app">
-                <option value="">All apps</option>
-                {[...new Set(activities.map((item) => item.appId).filter((value): value is string => Boolean(value)))].map((appId) => <option key={appId} value={appId}>{appId}</option>)}
-              </select>
-              <button type="button" onClick={() => void window.torveDesktop?.torveActivityClear?.().then(() => setActivities([]))}>Clear</button>
-            </div>
-            {activities.length === 0 ? <p>No requests yet.</p> : activities.filter((item) => !activityFilter || item.appId === activityFilter).map((item) => (
-              <div key={item.id} className={styles.activityRow}>
-                <span className={item.statusCode < 400 ? styles.activitySuccess : styles.activityError}>{item.statusCode}</span>
-                <span><strong>{item.appId ?? 'unscoped'}</strong><small>{item.protocol} · {item.resolvedModel ?? item.requestedModel ?? 'automatic'}</small></span>
-                <span><strong>{item.latencyMs} ms</strong><small>{new Date(item.timestamp).toLocaleTimeString()}</small></span>
-              </div>
-            ))}
-          </section>
-        ) : null}
+        <div className={styles.modelToolbar}>
+          <span>Auto-detected AI harnesses &amp; Direct Cloud ({cloudModels.length} models)</span>
+          <button
+            type="button"
+            disabled={appsRefreshing}
+            onClick={() => {
+              setAppsRefreshing(true);
+              void Promise.all([
+                refresh(),
+                refreshCloudModels(true),
+                refreshAntigravityPatch(),
+              ]).finally(() => setAppsRefreshing(false));
+            }}
+          >
+            <HugeiconsIcon icon={ArrowReloadHorizontalIcon} size={14} strokeWidth={2} />
+            {appsRefreshing ? 'Refreshing…' : 'Refresh Apps'}
+          </button>
+        </div>
 
         <div className={styles.appScroll}>
           <div className={styles.appList}>
-            <TelegramBotCard />
             <CursorAppCard appId="cline-roo" label="Cline / Roo Code" brand="generic" />
             {orderedProfiles.map((profile) => {
               const connected = activeProfiles?.has(profile.name) ?? false;
@@ -715,6 +697,8 @@ export function VprToolsView() {
                           ) : (
                             <span className={styles.appName}>{profile.displayName}</span>
                           )}
+                          {profile.name === 'claude-desktop' ? <span className={styles.claudeCodeBadge}>&lt;/&gt; Code</span> : null}
+                          {profile.name === 'antigravity' ? <span className={styles.torveBetaBadge}>Beta</span> : null}
                         </span>
                         {connected && (
                           <span className={`${styles.appMeta}${profile.needsRestart ? ` ${styles.appMetaWarning}` : ''}`}>
@@ -780,7 +764,29 @@ export function VprToolsView() {
                       </button>
                     )}
                   </div>
-                  {cloudModels.length > 0 && profile.kind === 'config-patch' ? (
+                  {profile.name === 'antigravity' ? (
+                    <div className={styles.antigravityNativePatch}>
+                      <div>
+                        <strong>Enable Native Model Picker (Standalone 2.34.0 Patch)<span className={styles.torveBetaBadge}>Beta</span></strong>
+                        <p className={styles.mcpModelNote}>{antigravityPatch?.message ?? 'Checking standalone installation…'} MCP Bridge remains available separately.</p>
+                      </div>
+                      <button
+                        type="button" role="switch" aria-checked={antigravityPatch?.enabled === true}
+                        className={`${styles.connectedToggle}${antigravityPatch?.enabled ? '' : ` ${styles.connectedToggleOff}`}`}
+                        disabled={!antigravityPatch?.installed || antigravityPatch.running || antigravityPatchBusy || antigravityPatch.state === 'error'}
+                        onClick={() => { void toggleAntigravityPatch(); }}
+                        aria-label="Enable Native Model Picker for standalone Antigravity"
+                        title={antigravityPatch?.message ?? 'Checking standalone installation'}
+                      ><span /></button>
+                    </div>
+                  ) : null}
+                  {profile.name === 'codex' ? (
+                    <p className={styles.codexRestartNote}>Restart Codex if it was open so it connects cleanly to 127.0.0.1:8378.</p>
+                  ) : null}
+                  {profile.name === 'claude-desktop' ? (
+                    <p className={styles.mcpModelNote}>Applies to Claude Desktop&apos;s Code (&lt;/&gt;) tab &amp; Claude Code CLI (claude.ai Chat tab uses Anthropic cloud directly).</p>
+                  ) : null}
+                  {cloudModels.length > 0 && profile.kind === 'config-patch' && profile.name !== 'antigravity' ? (
                     <label className={styles.modelPicker}>
                       <span>Model</span>
                       <select
@@ -792,6 +798,25 @@ export function VprToolsView() {
                         {cloudModels.map((model) => <option key={model.id} value={model.id}>{model.id}</option>)}
                       </select>
                     </label>
+                  ) : null}
+                  {backupsByApp[profile.name] ? (
+                    <div className={styles.backupStatusRow}>
+                      <span>Backup saved ({backupsByApp[profile.name].filesCount} {backupsByApp[profile.name].filesCount === 1 ? 'file' : 'files'})</span>
+                      <button
+                        type="button"
+                        className={styles.backupRestoreBtn}
+                        disabled={actionBusy === profile.name}
+                        onClick={() => {
+                          setActionBusy(profile.name);
+                          void window.torveDesktop?.torveBackupsRestore?.(profile.name).then(async () => {
+                            await refresh();
+                            await refreshCloudModels(false);
+                          }).finally(() => setActionBusy(null));
+                        }}
+                      >
+                        Restore
+                      </button>
+                    </div>
                   ) : null}
                 </div>
               );

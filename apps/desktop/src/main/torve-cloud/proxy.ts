@@ -4,6 +4,9 @@
  * using their documented connection path or show an unsupported status.
  */
 import { randomUUID } from 'node:crypto';
+import { appendFile, mkdir } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import pathModule from 'node:path';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import {
   createStreamingAdapter,
@@ -17,12 +20,17 @@ import {
 import { getTorveCloudApiKey } from '../ipc/torve-account.js';
 import { refreshTorveCloudModels, torveCloudModelsStatus, torveCloudUpstream } from './models.js';
 import { resolveDirectCloudModel } from './overrides.js';
+import { handleAntigravityV1Internal } from './antigravity-v1internal.js';
+import { modelsEndpointPayload } from './codex-catalog.js';
+import { buildTorveUpstreamHeaders, extractTokenUsageFromRecord, recordLocalUsage, sanitizeTorveClientApp, SseUsageTracker } from './usage.js';
 
 const DEFAULT_PORT = Number(process.env['TORVE_CLOUD_PROXY_PORT']) || 8378;
 const MAX_BODY_BYTES = 32 * 1024 * 1024;
+const UPSTREAM_REQUEST_TIMEOUT_MS = 120_000;
 const HOP_BY_HOP = new Set(['connection', 'host', 'content-length', 'transfer-encoding', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'upgrade']);
+const ANTIGRAVITY_DEBUG_PATH = pathModule.join(homedir(), '.torve', 'antigravity-proxy-debug.log');
 
-export type DirectCloudProtocol = 'openai-chat' | 'openai-responses' | 'anthropic' | 'gemini' | 'models' | 'unknown';
+export type DirectCloudProtocol = 'openai-chat' | 'openai-responses' | 'anthropic' | 'gemini' | 'antigravity-v1internal' | 'models' | 'unknown';
 export type TorveCloudActivity = {
   id: string;
   timestamp: number;
@@ -61,6 +69,7 @@ export async function startTorveCloudProxy(port = DEFAULT_PORT): Promise<void> {
     server?.listen(port, '127.0.0.1');
   });
   activePort = port;
+  await antigravityDebug({ event: 'proxy-start', port, timestamp: new Date().toISOString() });
 }
 
 export async function stopTorveCloudProxy(): Promise<void> {
@@ -79,9 +88,17 @@ function isLoopback(req: IncomingMessage): boolean {
 async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const started = Date.now();
   const requestId = randomUUID();
-  const rawPath = new URL(req.url ?? '/', 'http://127.0.0.1').pathname;
+  const requestUrl = new URL(req.url ?? '/', 'http://127.0.0.1');
+  let rawPath = requestUrl.pathname;
+  try { rawPath = decodeURIComponent(rawPath); } catch { /* malformed escapes fall through to the normal 404 */ }
   const scoped = scopedRequestPath(rawPath);
-  const path = scoped.path;
+  let path = scoped.path;
+  if (scoped.appId === 'claude-desktop') {
+    if (path === '/messages') path = '/v1/messages';
+    if (path === '/messages/count_tokens') path = '/v1/messages/count_tokens';
+    if (path === '/models') path = '/v1/models';
+  }
+  const pathAndQuery = `${path}${requestUrl.search}`;
   const appId = scoped.appId;
   let requestedModel: string | null = null;
   let resolvedModel: string | null = null;
@@ -89,16 +106,41 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
   let stream = false;
   let usage: TorveCloudActivity['usage'] = null;
   let errorSummary: string | null = null;
+  let antigravityInjectedModels = 0;
   let status = 500;
   try {
     if (!isLoopback(req)) { status = 403; errorSummary = 'Loopback connections only.'; return sendError(res, status, 'Direct Torve Cloud proxy only accepts loopback connections.'); }
+    if (appId === 'antigravity' && path.startsWith('/v1internal')) {
+      protocol = 'antigravity-v1internal';
+      const catalog = await torveCloudModelsStatus();
+      const outcome = await handleAntigravityV1Internal({
+        method: req.method ?? 'POST',
+        pathAndQuery,
+        headers: requestHeaders(req),
+        body: await readBody(req),
+      }, {
+        apiKey: await getTorveCloudApiKey(),
+        models: catalog.models,
+        torveUpstream: torveCloudUpstream(),
+        debug: antigravityDebug,
+      });
+      requestedModel = outcome.meta.requestedModel;
+      resolvedModel = outcome.meta.resolvedModel;
+      stream = outcome.meta.stream;
+      status = outcome.response.status;
+      await sendFetchResponse(res, outcome.response);
+      usage = outcome.meta.usage;
+      antigravityInjectedModels = outcome.meta.injectedModels;
+      if (!outcome.response.ok && outcome.meta.torveRouted) errorSummary = `Torve Cloud returned ${status}.`;
+      return;
+    }
     const apiKey = await getTorveCloudApiKey();
     if (!apiKey) { status = 401; errorSummary = 'Torve account is not connected.'; return sendError(res, status, 'Connect a Torve account in Torve Desktop first.'); }
     if (req.method === 'GET' && path === '/v1/models') {
       const catalog = await torveCloudModelsStatus();
       const models = catalog.models.length > 0 ? catalog.models : await refreshTorveCloudModels(apiKey);
       status = 200;
-      return sendJson(res, 200, { object: 'list', data: models });
+      return sendJson(res, 200, modelsEndpointPayload(models, requestUrl.searchParams.get('client_version')));
     }
     if (req.method !== 'POST') { status = 404; errorSummary = 'Unsupported endpoint.'; return sendError(res, status, 'Unsupported Torve Cloud endpoint.'); }
     if (isGeminiPath(path)) {
@@ -107,6 +149,7 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
       resolvedModel = outcome.resolvedModel;
       stream = outcome.stream;
       status = outcome.status;
+      usage = outcome.usage;
       return;
     }
     const body = await readBody(req);
@@ -126,13 +169,13 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     resolvedModel = routed.model;
     const upstream = await fetch(`${torveCloudUpstream()}${adapted.request.path}`, {
       method: 'POST',
-      headers: upstreamHeaders(adapted.request.headers, apiKey),
+      headers: upstreamHeaders(adapted.request.headers, apiKey, appId),
       body: routed.body,
-      signal: AbortSignal.timeout(10 * 60_000),
+      signal: AbortSignal.timeout(UPSTREAM_REQUEST_TIMEOUT_MS),
     });
     status = upstream.status;
     if (upstream.body && isSse(upstream.headers.get('content-type'))) {
-      await pipeStreaming(res, upstream, incoming.requestId, source, target, requestedModel);
+      usage = await pipeStreaming(res, upstream, incoming.requestId, source, target, requestedModel);
       return;
     }
     const upstreamBytes = new Uint8Array(await upstream.arrayBuffer());
@@ -143,41 +186,114 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     res.writeHead(outgoing.statusCode, outgoing.headers);
     res.end(outgoing.body);
   } catch (err) {
-    status = 502;
-    errorSummary = sanitizeError(err instanceof Error ? err.message : 'Torve Cloud request failed.');
-    sendError(res, 502, errorSummary);
+    const timedOut = isTimeoutError(err);
+    status = timedOut ? 504 : 502;
+    errorSummary = timedOut
+      ? `Torve Cloud upstream timed out after ${UPSTREAM_REQUEST_TIMEOUT_MS / 1000} seconds.`
+      : sanitizeError(err instanceof Error ? err.message : 'Torve Cloud request failed.');
+    sendError(res, status, errorSummary);
   } finally {
-    const activity: TorveCloudActivity = { id: requestId, timestamp: started, appId, protocol, requestedModel, resolvedModel, statusCode: status, latencyMs: Date.now() - started, stream, usage, errorSummary };
+    const latencyMs = Date.now() - started;
+    const activity: TorveCloudActivity = { id: requestId, timestamp: started, appId, protocol, requestedModel, resolvedModel, statusCode: status, latencyMs, stream, usage, errorSummary };
     recentActivity.unshift(activity);
     recentActivity.splice(100);
     activitySink?.(activity);
+    if (status >= 200 && status < 300 && protocol !== 'models' && protocol !== 'unknown') {
+      void recordLocalUsage({
+        modelId: resolvedModel ?? requestedModel ?? 'auto',
+        appId,
+        inputTokens: usage?.inputTokens ?? 0,
+        outputTokens: usage?.outputTokens ?? 0,
+        latencyMs,
+        timestampMs: started,
+      }).catch(() => {});
+    }
+    if (rawPath.startsWith('/app/antigravity')) void antigravityDebug({
+      event: 'request', method: req.method ?? null, url: `${rawPath}${requestUrl.search}`,
+      contentEncoding: req.headers['content-encoding'] ?? null, statusCode: status,
+      fetchAvailableModelsMatched: appId === 'antigravity' && path === '/v1internal:fetchAvailableModels',
+      injectedModels: antigravityInjectedModels,
+      timestamp: new Date().toISOString(),
+    });
   }
 }
 
-async function pipeStreaming(res: ServerResponse, upstream: Response, requestId: string, source: ServiceApiProtocol, target: ServiceApiProtocol, model: string | null): Promise<void> {
+async function antigravityDebug(record: Record<string, unknown>): Promise<void> {
+  try { await mkdir(pathModule.dirname(ANTIGRAVITY_DEBUG_PATH), { recursive: true }); await appendFile(ANTIGRAVITY_DEBUG_PATH, `${JSON.stringify(record)}\n`, { mode: 0o600 }); }
+  catch { /* diagnostics must never break the loopback proxy */ }
+}
+
+async function pipeStreaming(res: ServerResponse, upstream: Response, requestId: string, source: ServiceApiProtocol, target: ServiceApiProtocol, model: string | null): Promise<TorveCloudActivity['usage']> {
   const adapter = source === target ? null : createStreamingAdapter({ from: target, to: source, fallbackModel: model });
   const start: SerializedHttpResponse = { requestId, statusCode: upstream.status, headers: responseHeaders(upstream.headers), body: new Uint8Array() };
   const initial = adapter ? adapter.adaptStart(start) : start;
+  // OpenCode's AI SDK waits for either the OpenAI [DONE] sentinel or a clean
+  // socket close. Never inherit an upstream keep-alive header on this local
+  // one-request bridge, and always advertise the actual stream type.
+  if (source === 'openai-chat-completions' && target === source) {
+    initial.headers['content-type'] = 'text/event-stream; charset=utf-8';
+    initial.headers['cache-control'] = 'no-cache';
+    initial.headers['connection'] = 'close';
+    delete initial.headers['content-length'];
+  }
   res.writeHead(initial.statusCode, initial.headers);
-  if (!upstream.body) { res.end(); return; }
+  if (!upstream.body) { res.end(); return null; }
   const reader = upstream.body.getReader();
+  const directOpenAiStream = source === 'openai-chat-completions' && target === source;
+  const detector = new TextDecoder();
+  const usageTracker = new SseUsageTracker();
+  let tail = '';
+  let sawDone = false;
   try {
     for (;;) {
       const next = await reader.read();
       if (next.done) break;
+      usageTracker.push(next.value);
+      if (directOpenAiStream) {
+        tail = `${tail}${detector.decode(next.value, { stream: true })}`.slice(-256);
+        if (/data:\s*\[DONE\]/.test(tail)) sawDone = true;
+      }
       const chunks = adapter ? adapter.adaptChunk({ requestId, data: next.value, done: false }) : [{ requestId, data: next.value, done: false }];
       for (const chunk of chunks) res.write(chunk.data);
     }
     if (adapter) for (const chunk of adapter.adaptChunk({ requestId, data: new Uint8Array(), done: true })) res.write(chunk.data);
-  } finally { res.end(); }
+    if (directOpenAiStream && !sawDone) res.write('data: [DONE]\n\n');
+  } catch (err) {
+    if (directOpenAiStream && !res.writableEnded) {
+      const message = isTimeoutError(err) ? 'Torve Cloud stream timed out.' : 'Torve Cloud stream ended unexpectedly.';
+      res.write(`data: ${JSON.stringify({ error: { message, type: 'torve_cloud_stream_error' } })}\n\n`);
+      res.write('data: [DONE]\n\n');
+    }
+  } finally {
+    try { await reader.cancel(); } catch { /* already closed */ }
+    res.end();
+  }
+  return usageTracker.finish();
 }
 
 function requestHeaders(req: IncomingMessage): Record<string, string> { const result: Record<string, string> = {}; for (const [key, value] of Object.entries(req.headers)) if (typeof value === 'string') result[key] = value; return result; }
 function responseHeaders(headers: Headers): Record<string, string> { const result: Record<string, string> = {}; headers.forEach((value, key) => { if (!HOP_BY_HOP.has(key.toLowerCase())) result[key] = value; }); return result; }
-function upstreamHeaders(headers: Record<string, string>, apiKey: string): Record<string, string> { const result: Record<string, string> = { authorization: `Bearer ${apiKey}`, accept: 'application/json, text/event-stream' }; for (const [key, value] of Object.entries(headers)) if (!HOP_BY_HOP.has(key.toLowerCase()) && key.toLowerCase() !== 'authorization') result[key] = value; return result; }
+export function upstreamHeaders(headers: Record<string, string>, apiKey: string, appId: string | null = null): Record<string, string> {
+  return buildTorveUpstreamHeaders(headers, apiKey, appId, HOP_BY_HOP);
+}
 function isSse(contentType: string | null): boolean { return contentType?.toLowerCase().includes('text/event-stream') === true; }
 function sendJson(res: ServerResponse, status: number, body: unknown): void { const json = JSON.stringify(body); res.writeHead(status, { 'content-type': 'application/json', 'content-length': Buffer.byteLength(json).toString(), 'cache-control': 'no-store' }); res.end(json); }
 function sendError(res: ServerResponse, status: number, message: string): void { if (!res.headersSent) sendJson(res, status, { error: { message, type: 'torve_cloud_error' } }); else res.end(); }
+async function sendFetchResponse(res: ServerResponse, response: Response): Promise<void> {
+  const headers = responseHeaders(response.headers);
+  delete headers['content-encoding'];
+  delete headers['content-length'];
+  res.writeHead(response.status, headers);
+  if (!response.body) { res.end(); return; }
+  const reader = response.body.getReader();
+  try {
+    for (;;) {
+      const next = await reader.read();
+      if (next.done) break;
+      res.write(next.value);
+    }
+  } finally { res.end(); }
+}
 function readBody(req: IncomingMessage): Promise<Uint8Array> { return new Promise((resolve, reject) => { const parts: Buffer[] = []; let size = 0; req.on('data', (chunk: Buffer) => { size += chunk.length; if (size > MAX_BODY_BYTES) { reject(new Error('Request body exceeds the local proxy limit.')); req.destroy(); return; } parts.push(chunk); }); req.on('end', () => resolve(new Uint8Array(Buffer.concat(parts)))); req.on('error', reject); }); }
 
 function scopedRequestPath(pathname: string): { appId: string | null; path: string } {
@@ -204,7 +320,7 @@ function protocolForService(value: ServiceApiProtocol): DirectCloudProtocol {
 
 function isGeminiPath(path: string): boolean { return /^\/v1(?:beta)?\/models\/[^/]+:(?:generateContent|streamGenerateContent)$/.test(path); }
 
-async function handleGeminiRequest(req: IncomingMessage, res: ServerResponse, path: string, apiKey: string, appId: string | null): Promise<{ status: number; requestedModel: string | null; resolvedModel: string | null; stream: boolean }> {
+async function handleGeminiRequest(req: IncomingMessage, res: ServerResponse, path: string, apiKey: string, appId: string | null): Promise<{ status: number; requestedModel: string | null; resolvedModel: string | null; stream: boolean; usage: TorveCloudActivity['usage'] }> {
   const input = JSON.parse(new TextDecoder().decode(await readBody(req))) as Record<string, unknown>;
   const encodedModel = /^\/v1(?:beta)?\/models\/([^/:]+):/.exec(path)?.[1] ?? 'torve';
   const requestedModel = decodeURIComponent(encodedModel);
@@ -214,22 +330,30 @@ async function handleGeminiRequest(req: IncomingMessage, res: ServerResponse, pa
   const stream = path.includes(':streamGenerateContent');
   const upstream = await fetch(`${torveCloudUpstream()}/v1/chat/completions`, {
     method: 'POST',
-    headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json', accept: stream ? 'text/event-stream' : 'application/json' },
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      'content-type': 'application/json',
+      accept: stream ? 'text/event-stream' : 'application/json',
+      'x-torve-client-app': sanitizeTorveClientApp(appId),
+    },
     body: JSON.stringify({ model, messages, tools: geminiTools(input), stream }),
-    signal: AbortSignal.timeout(10 * 60_000),
+    signal: AbortSignal.timeout(UPSTREAM_REQUEST_TIMEOUT_MS),
   });
   if (!stream || !upstream.body || !isSse(upstream.headers.get('content-type'))) {
     const payload = await upstream.json() as Record<string, unknown>;
-    if (!upstream.ok) { sendJson(res, upstream.status, payload); return { status: upstream.status, requestedModel, resolvedModel: model, stream }; }
+    if (!upstream.ok) { sendJson(res, upstream.status, payload); return { status: upstream.status, requestedModel, resolvedModel: model, stream, usage: null }; }
+    const usage = extractTokenUsageFromRecord(payload);
     sendJson(res, upstream.status, openAiToGemini(payload));
-    return { status: upstream.status, requestedModel, resolvedModel: model, stream };
+    return { status: upstream.status, requestedModel, resolvedModel: model, stream, usage };
   }
   res.writeHead(upstream.status, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
   const decoder = new TextDecoder(); let pending = '';
+  const usageTracker = new SseUsageTracker();
   const reader = upstream.body.getReader();
   try {
     for (;;) {
       const next = await reader.read(); if (next.done) break;
+      usageTracker.push(next.value);
       pending += decoder.decode(next.value, { stream: true });
       const events = pending.split(/\n\n/); pending = events.pop() ?? '';
       for (const event of events) {
@@ -239,7 +363,7 @@ async function handleGeminiRequest(req: IncomingMessage, res: ServerResponse, pa
       }
     }
   } finally { res.end(); }
-  return { status: upstream.status, requestedModel, resolvedModel: model, stream };
+  return { status: upstream.status, requestedModel, resolvedModel: model, stream, usage: usageTracker.finish() };
 }
 
 function geminiMessages(input: Record<string, unknown>): Array<Record<string, unknown>> {
@@ -310,4 +434,9 @@ function usageFromJson(body: Uint8Array): TorveCloudActivity['usage'] {
 
 function sanitizeError(message: string): string {
   return message.replace(/(?:sk|torve)_[A-Za-z0-9_-]{8,}/g, '[redacted]').slice(0, 240);
+}
+
+function isTimeoutError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.name === 'TimeoutError' || error.name === 'AbortError' || /timed?\s*out|timeout/i.test(error.message);
 }

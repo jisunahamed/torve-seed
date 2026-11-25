@@ -946,15 +946,13 @@ export async function setTrayProfile(profileName: string, enabled: boolean): Pro
 
 export function buildSystemProxyTrayMenu(
   showMainWindow: () => void,
-  openFloatingWindow: () => void,
-  toggleMainConnection: () => void,
+  _openFloatingWindow?: () => void,
+  _toggleMainConnection?: () => void,
 ): MenuItemConstructorOptions[] {
-  const running = deps().processManager.getState().some((entry) => entry.mode === 'connect' && entry.running);
-
   return [
     { label: `Show ${deps().appName}`, click: showMainWindow },
-    { label: 'Show Floating Window', click: openFloatingWindow },
-    { label: running ? 'Disconnect' : 'Connect', click: toggleMainConnection },
+    { type: 'separator' },
+    { role: 'quit', label: `Quit ${deps().appName}` },
   ];
 }
 

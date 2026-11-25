@@ -33,6 +33,7 @@ export type RuntimeIpcDeps = {
   getCombinedProcessState: () => RuntimeProcessState[];
   killOrphanBuyerProxy: () => Promise<void>;
   requestBuyerPeerRefresh: () => Promise<void>;
+  ensureP2PRouterPlugin: () => Promise<void>;
 };
 
 const DASHBOARD_CONFIG_ALLOWED_KEYS = new Set([
@@ -102,6 +103,7 @@ import {
 export function registerRuntimeIpc(deps: RuntimeIpcDeps): void {
   const {
     appendLog,
+    ensureP2PRouterPlugin,
     getCombinedProcessState,
     killOrphanBuyerProxy,
     logBuffer,
@@ -153,6 +155,10 @@ export function registerRuntimeIpc(deps: RuntimeIpcDeps): void {
         };
       }
     }
+
+    // Direct Torve Cloud does not use the P2P router. Install or repair it
+    // only when the user explicitly starts the P2P buyer runtime.
+    if (options.mode === 'connect') await ensureP2PRouterPlugin();
 
     await ensureSecureIdentity();
 

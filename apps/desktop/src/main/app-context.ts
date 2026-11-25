@@ -17,7 +17,7 @@ export const rendererUrl = process.env['VITE_DEV_SERVER_URL'] ?? `file://${RENDE
 
 export const INTERNAL_APP_NAME = 'AntStation Desktop';
 const devInstanceName = isMultiInstanceDevelopment() ? desktopInstanceName() : '';
-export const APP_NAME = devInstanceName ? `Torve AI VPN [${devInstanceName}]` : 'Torve AI VPN';
+export const APP_NAME = devInstanceName ? `Torve Desktop [${devInstanceName}]` : 'Torve Desktop';
 export const DESKTOP_DEBUG_ENV = 'TORVE_DESKTOP_DEBUG';
 export const DESKTOP_DEBUG_FLAGS = new Set(['--debug-runtime', '--desktop-debug']);
 

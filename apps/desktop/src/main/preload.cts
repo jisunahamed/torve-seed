@@ -357,15 +357,47 @@ const api = {
   openExternalUrl(url: string): Promise<{ ok: boolean; error?: string }> {
     return ipcRenderer.invoke('desktop:open-external-url', url) as Promise<{ ok: boolean; error?: string }>;
   },
-  // Torve Cloud account — deliberately returns status only, never the key.
-  torveAccountGet(): Promise<{ connected: boolean; email: string | null; keyHint: string | null; updatedAt: number | null; secureStorage: boolean }> {
-    return ipcRenderer.invoke('torve:account-get') as Promise<{ connected: boolean; email: string | null; keyHint: string | null; updatedAt: number | null; secureStorage: boolean }>;
+  // Torve Cloud account — deliberately returns status/metadata only, never the key.
+  torveAccountGet() {
+    return ipcRenderer.invoke('torve:account-get');
   },
-  torveAccountSet(payload: { apiKey: string; email?: string | null }): Promise<{ ok: boolean; error?: string; status?: { email: string | null; keyHint: string | null } }> {
-    return ipcRenderer.invoke('torve:account-set', payload) as Promise<{ ok: boolean; error?: string; status?: { email: string | null; keyHint: string | null } }>;
+  torveAccountPkceStart(): Promise<{ ok: boolean; error?: string }> {
+    return ipcRenderer.invoke('torve:account-pkce-start') as Promise<{ ok: boolean; error?: string }>;
+  },
+  torveAccountPkceCancel(): Promise<{ ok: boolean }> {
+    return ipcRenderer.invoke('torve:account-pkce-cancel') as Promise<{ ok: boolean }>;
+  },
+  onTorveAuthEvent(handler: (event: unknown) => void): () => void {
+    const listener = (_event: unknown, payload: unknown) => handler(payload);
+    ipcRenderer.on('torve:auth-event', listener);
+    return () => ipcRenderer.off('torve:auth-event', listener);
+  },
+  torveAccountSet(payload: { apiKey: string; email?: string | null }) {
+    return ipcRenderer.invoke('torve:account-set', payload);
   },
   torveAccountClear(): Promise<{ ok: boolean; error?: string }> {
     return ipcRenderer.invoke('torve:account-clear') as Promise<{ ok: boolean; error?: string }>;
+  },
+  torveMeGet() {
+    return ipcRenderer.invoke('torve:me-get');
+  },
+  torveUsageGet(params?: { range?: '24h' | '7d' | '30d'; scope?: 'account' | 'key' | 'local' }) {
+    return ipcRenderer.invoke('torve:usage-get', params);
+  },
+  torveBackupsList() {
+    return ipcRenderer.invoke('torve:backups-list');
+  },
+  torveBackupsRestore(appId: string) {
+    return ipcRenderer.invoke('torve:backups-restore', appId);
+  },
+  torveBackupsDiscard(appId: string) {
+    return ipcRenderer.invoke('torve:backups-discard', appId);
+  },
+  loginItemGet(): Promise<{ ok: boolean; openAtLogin: boolean; error?: string }> {
+    return ipcRenderer.invoke('desktop:login-item-get') as Promise<{ ok: boolean; openAtLogin: boolean; error?: string }>;
+  },
+  loginItemSet(openAtLogin: boolean): Promise<{ ok: boolean; openAtLogin: boolean; error?: string }> {
+    return ipcRenderer.invoke('desktop:login-item-set', openAtLogin) as Promise<{ ok: boolean; openAtLogin: boolean; error?: string }>;
   },
   torveModelsGet() {
     return ipcRenderer.invoke('torve:models-get');
@@ -375,6 +407,12 @@ const api = {
   },
   torveCloudProxyStatus() {
     return ipcRenderer.invoke('torve:proxy-status');
+  },
+  antigravityStandaloneStatus() {
+    return ipcRenderer.invoke('torve:antigravity-standalone-status');
+  },
+  antigravityStandaloneSet(enabled: boolean) {
+    return ipcRenderer.invoke('torve:antigravity-standalone-set', enabled);
   },
   torveOverridesGet() {
     return ipcRenderer.invoke('torve:overrides-get');

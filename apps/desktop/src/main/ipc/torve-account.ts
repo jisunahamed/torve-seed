@@ -1,111 +1,482 @@
-/** Torve Cloud credentials never leave the Electron main process. */
-import { BrowserWindow, ipcMain, safeStorage } from 'electron';
-import { randomUUID } from 'node:crypto';
-import { existsSync } from 'node:fs';
-import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
-import path from 'node:path';
-import { clearDirectCloudActivity, getDirectCloudActivity, setDirectCloudActivitySink, startTorveCloudProxy, torveCloudProxyStatus } from '../torve-cloud/proxy.js';
+/** Torve Cloud credentials and PKCE state never leave the Electron main process. */
+import { BrowserWindow, ipcMain, safeStorage, shell } from 'electron';
+import { hostname } from 'node:os';
+import {
+  clearDirectCloudActivity,
+  getDirectCloudActivity,
+  setDirectCloudActivitySink,
+  startTorveCloudProxy,
+  torveCloudProxyStatus,
+} from '../torve-cloud/proxy.js';
 import { refreshTorveCloudModels, torveCloudModelsStatus } from '../torve-cloud/models.js';
-import { startTorveCloudProfiles, stopTorveCloudProfiles, torveCloudProfilesState } from '../torve-cloud/profiles.js';
+import {
+  refreshCatalogConfigsIfConnected,
+  refreshCodexCatalogIfConnected,
+  startTorveCloudProfiles,
+  stopTorveCloudProfiles,
+  torveCloudProfilesState,
+} from '../torve-cloud/profiles.js';
 import { getDirectCloudOverrides, setDirectCloudOverride } from '../torve-cloud/overrides.js';
+import {
+  antigravityStandaloneStatus,
+  disableAntigravityStandalonePatch,
+  enableAntigravityStandalonePatch,
+} from '../torve-cloud/antigravity-standalone-patch.js';
+import {
+  discardDirectCloudBackup,
+  listDirectCloudBackups,
+  restoreDirectCloudBackup,
+} from '../torve-cloud/backups.js';
+import {
+  clearStoredCredentials,
+  DEFAULT_CREDENTIALS_PATHS,
+  isSafeStorageAvailable,
+  readStoredCredentials,
+  toTorveAccountStatus,
+  writeStoredCredentials,
+  type StoredCredentials,
+  type TorveAccountStatus,
+} from '../torve-cloud/credentials-store.js';
+import {
+  buildDesktopAuthUrl,
+  DesktopApiError,
+  exchangeDesktopAuthCode,
+  fetchDesktopMe,
+  fetchDesktopUsage,
+  generatePkcePair,
+  revokeDesktopAuthKey,
+  startLoopbackPkceServer,
+  type DesktopAuthMode,
+  type DesktopKeyMeta,
+  type DesktopMeResponse,
+  type DesktopUsageRange,
+  type DesktopUsageResponse,
+  type DesktopUsageScope,
+  type DesktopUserMeta,
+  type LoopbackPkceHandle,
+} from '../torve-cloud/desktop-api.js';
+import { getLocalUsageSummary } from '../torve-cloud/usage.js';
 
-const CREDENTIALS_DIR = path.join(homedir(), '.torve');
-const CREDENTIALS_PATH = path.join(CREDENTIALS_DIR, 'desktop-credentials.enc');
-const LEGACY_CREDENTIALS_PATH = path.join(CREDENTIALS_DIR, 'desktop-credentials.json');
-type StoredCredentials = { apiKey: string; email: string | null; updatedAt: number };
-export type TorveAccountStatus = { connected: boolean; email: string | null; keyHint: string | null; updatedAt: number | null; secureStorage: boolean };
+export type { TorveAccountStatus };
 
-function safeStorageAvailable(): boolean { try { return safeStorage.isEncryptionAvailable(); } catch { return false; } }
-function keyHint(key: string): string { return key.length < 12 ? '••••••••' : `${key.slice(0, 8)}…${key.slice(-4)}`; }
+export type TorveAuthEvent = {
+  status: 'pending' | 'connected' | 'cancelled' | 'error';
+  error?: string;
+  code?: string;
+  statusCode?: number;
+  accountStatus?: TorveAccountStatus;
+  me?: DesktopMeResponse | null;
+};
 
-async function readStored(): Promise<StoredCredentials | null> {
-  if (!safeStorageAvailable()) return null;
-  try {
-    const parsed = JSON.parse(safeStorage.decryptString(await readFile(CREDENTIALS_PATH))) as Partial<StoredCredentials>;
-    if (typeof parsed.apiKey !== 'string' || !parsed.apiKey.trim()) return null;
-    return { apiKey: parsed.apiKey.trim(), email: typeof parsed.email === 'string' ? parsed.email.trim() || null : null, updatedAt: typeof parsed.updatedAt === 'number' ? parsed.updatedAt : Date.now() };
-  } catch {
-    // One-way migration from the short-lived v1 plaintext scaffold. Never
-    // continue using that file after safeStorage is available.
-    try {
-      const legacy = JSON.parse(await readFile(LEGACY_CREDENTIALS_PATH, 'utf8')) as Partial<StoredCredentials>;
-      if (typeof legacy.apiKey !== 'string' || !legacy.apiKey.trim()) return null;
-      const migrated: StoredCredentials = { apiKey: legacy.apiKey.trim(), email: typeof legacy.email === 'string' ? legacy.email.trim() || null : null, updatedAt: typeof legacy.updatedAt === 'number' ? legacy.updatedAt : Date.now() };
-      await writeStored(migrated.apiKey, migrated.email);
-      await unlink(LEGACY_CREDENTIALS_PATH);
-      return migrated;
-    } catch { return null; }
+type PendingPkceSession = {
+  state: string;
+  codeVerifier: string;
+  redirectUri: string;
+  deviceName: string;
+  handle: LoopbackPkceHandle;
+  errorReported: boolean;
+};
+
+// PKCE code_verifier and state stay strictly in main-process memory only.
+let pendingPkce: PendingPkceSession | null = null;
+let cachedMe: DesktopMeResponse | null = null;
+
+function broadcast(channel: string, payload: unknown): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send(channel, payload);
   }
 }
 
-async function writeStored(apiKey: string, email: string | null): Promise<void> {
-  if (!safeStorageAvailable()) throw new Error('Secure OS credential storage is unavailable. Torve will not save an API key unencrypted.');
-  const key = apiKey.trim();
-  if (!key || /\s/.test(key) || key.length < 16) throw new Error('The API key is invalid.');
-  await mkdir(CREDENTIALS_DIR, { recursive: true });
-  const temp = `${CREDENTIALS_PATH}.${randomUUID()}.tmp`;
-  await writeFile(temp, safeStorage.encryptString(JSON.stringify({ apiKey: key, email: email?.trim() || null, updatedAt: Date.now() })), { mode: 0o600 });
-  await rename(temp, CREDENTIALS_PATH);
+function emitAuthEvent(event: TorveAuthEvent): void {
+  broadcast('torve:auth-event', event);
+}
+
+function errorDetails(err: unknown): { message: string; code?: string; statusCode?: number } {
+  if (err instanceof DesktopApiError) {
+    return { message: err.message, code: err.code ?? undefined, statusCode: err.status };
+  }
+  return { message: err instanceof Error ? err.message : String(err) };
+}
+
+function cachedMeFromStored(stored: StoredCredentials): DesktopMeResponse | null {
+  if (!stored.userMeta && !stored.email && !stored.keyMeta) return null;
+  return {
+    user: stored.userMeta ?? { id: null, email: stored.email, name: null, plan: null, status: null },
+    key: stored.keyMeta ?? { id: null, name: null, prefix: null, createdAt: null },
+    quota: {
+      usedTokensToday: 0,
+      usedRequestsToday: 0,
+      dailyTokenLimit: null,
+      dailyRequestLimit: null,
+      rateLimitStatus: 'ok',
+      resetsAt: null,
+      monthlyUsedTokens: null,
+      monthlyAllowanceTokens: null,
+      monthlyUsedRequests: null,
+      monthlyAllowanceRequests: null,
+    },
+  };
+}
+
+async function finalizeAuthenticatedSession(params: {
+  apiKey: string;
+  authMode: DesktopAuthMode;
+  email: string | null;
+  keyMeta: DesktopKeyMeta | null;
+  userMeta: DesktopUserMeta | null;
+  preloadedMe?: DesktopMeResponse | null;
+  preloadedModels?: Awaited<ReturnType<typeof refreshTorveCloudModels>> | null;
+}): Promise<{ status: TorveAccountStatus; me: DesktopMeResponse | null }> {
+  await writeStoredCredentials(safeStorage, {
+    apiKey: params.apiKey,
+    authMode: params.authMode,
+    email: params.email,
+    keyMeta: params.keyMeta,
+    userMeta: params.userMeta,
+  });
+
+  const mePromise = params.preloadedMe
+    ? Promise.resolve(params.preloadedMe)
+    : fetchDesktopMe(params.apiKey).catch(() => null);
+  const modelsPromise = params.preloadedModels
+    ? Promise.resolve(params.preloadedModels)
+    : refreshTorveCloudModels(params.apiKey, { force: true }).catch(() => null);
+
+  const [me, models] = await Promise.all([mePromise, modelsPromise]);
+
+  if (me) {
+    cachedMe = me;
+    await writeStoredCredentials(safeStorage, {
+      apiKey: params.apiKey,
+      authMode: params.authMode,
+      email: me.user.email ?? params.email,
+      keyMeta: me.key,
+      userMeta: me.user,
+    });
+  } else {
+    cachedMe = {
+      user: params.userMeta ?? { id: null, email: params.email, name: null, plan: null, status: null },
+      key: params.keyMeta ?? { id: null, name: null, prefix: null, createdAt: null },
+      quota: {
+        usedTokensToday: 0,
+        usedRequestsToday: 0,
+        dailyTokenLimit: null,
+        dailyRequestLimit: null,
+        rateLimitStatus: 'ok',
+        resetsAt: null,
+        monthlyUsedTokens: null,
+        monthlyAllowanceTokens: null,
+        monthlyUsedRequests: null,
+        monthlyAllowanceRequests: null,
+      },
+    };
+  }
+
+  await startTorveCloudProxy();
+  if (models) {
+    await refreshCodexCatalogIfConnected(models);
+    await refreshCatalogConfigsIfConnected(models);
+  }
+
+  return {
+    status: await getTorveAccountStatus(),
+    me: cachedMe,
+  };
+}
+
+function cancelPendingPkce(silent = false): void {
+  const active = pendingPkce;
+  pendingPkce = null;
+  if (!active) return;
+  active.handle.cancel('Sign-in was cancelled.');
+  if (!silent) {
+    emitAuthEvent({ status: 'cancelled' });
+  }
 }
 
 /** Used exclusively by the direct-cloud loopback proxy. */
-export async function getTorveCloudApiKey(): Promise<string | null> { return (await readStored())?.apiKey ?? null; }
+export async function getTorveCloudApiKey(): Promise<string | null> {
+  return (await readStoredCredentials(safeStorage, DEFAULT_CREDENTIALS_PATHS))?.apiKey ?? null;
+}
+
 export async function getTorveAccountStatus(): Promise<TorveAccountStatus> {
-  const stored = await readStored();
-  return { connected: Boolean(stored), email: stored?.email ?? null, keyHint: stored ? keyHint(stored.apiKey) : null, updatedAt: stored?.updatedAt ?? null, secureStorage: safeStorageAvailable() };
+  const stored = await readStoredCredentials(safeStorage, DEFAULT_CREDENTIALS_PATHS);
+  return toTorveAccountStatus(stored, isSafeStorageAvailable(safeStorage));
 }
 
 /** Start an existing secure account after Electron's safeStorage is ready. */
 export async function resumeTorveCloudProxy(): Promise<void> {
-  if (await getTorveCloudApiKey()) await startTorveCloudProxy();
+  if (!await getTorveCloudApiKey()) return;
+  await startTorveCloudProxy();
+  const state = await torveCloudProfilesState();
+  if (state.activeProfileNames.length > 0) await startTorveCloudProfiles(state.activeProfileNames);
 }
 
 export function registerTorveAccountIpc(): void {
   setDirectCloudActivitySink((activity) => {
-    for (const window of BrowserWindow.getAllWindows()) window.webContents.send('direct-cloud:activity', activity);
+    broadcast('direct-cloud:activity', activity);
   });
+
   ipcMain.handle('torve:account-get', getTorveAccountStatus);
+
+  ipcMain.handle('torve:account-pkce-start', async (): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      cancelPendingPkce(true);
+      const pkce = generatePkcePair();
+      const deviceName = hostname() || 'Torve Desktop';
+      let session!: PendingPkceSession;
+
+      const handle = await startLoopbackPkceServer({
+        expectedState: pkce.state,
+        onCode: async (code, redirectUri) => {
+          if (pendingPkce !== session || session.state !== pkce.state) {
+            throw new Error('This login session is no longer active.');
+          }
+          try {
+            const exchanged = await exchangeDesktopAuthCode({
+              code,
+              codeVerifier: session.codeVerifier,
+              redirectUri,
+              deviceName: session.deviceName,
+            });
+            pendingPkce = null;
+            const finalized = await finalizeAuthenticatedSession({
+              apiKey: exchanged.apiKey,
+              authMode: 'oauth',
+              email: exchanged.user.email,
+              keyMeta: exchanged.key,
+              userMeta: exchanged.user,
+            });
+            emitAuthEvent({
+              status: 'connected',
+              accountStatus: finalized.status,
+              me: finalized.me,
+            });
+            const win = BrowserWindow.getAllWindows()[0];
+            if (win) {
+              if (win.isMinimized()) win.restore();
+              win.focus();
+            }
+          } catch (err) {
+            session.errorReported = true;
+            if (pendingPkce === session) pendingPkce = null;
+            const details = errorDetails(err);
+            emitAuthEvent({
+              status: 'error',
+              error: details.message,
+              code: details.code,
+              statusCode: details.statusCode,
+            });
+            throw err;
+          }
+        },
+        onError: (message) => {
+          if (pendingPkce === session) pendingPkce = null;
+          if (session.errorReported) return;
+          emitAuthEvent({ status: 'error', error: message });
+        },
+      });
+
+      session = {
+        state: pkce.state,
+        codeVerifier: pkce.codeVerifier,
+        redirectUri: handle.redirectUri,
+        deviceName,
+        handle,
+        errorReported: false,
+      };
+      pendingPkce = session;
+
+      const authUrl = buildDesktopAuthUrl({
+        redirectUri: handle.redirectUri,
+        state: pkce.state,
+        codeChallenge: pkce.codeChallenge,
+        deviceName,
+      });
+      emitAuthEvent({ status: 'pending' });
+      await shell.openExternal(authUrl);
+      return { ok: true };
+    } catch (err) {
+      cancelPendingPkce(true);
+      const details = errorDetails(err);
+      emitAuthEvent({
+        status: 'error',
+        error: details.message,
+        code: details.code,
+        statusCode: details.statusCode,
+      });
+      return { ok: false, error: details.message };
+    }
+  });
+
+  ipcMain.handle('torve:account-pkce-cancel', (): { ok: boolean } => {
+    cancelPendingPkce(false);
+    return { ok: true };
+  });
 
   ipcMain.handle(
     'torve:account-set',
-    async (_event, payload: unknown): Promise<{ ok: boolean; error?: string; status?: TorveAccountStatus }> => {
+    async (_event, payload: unknown): Promise<{
+      ok: boolean;
+      error?: string;
+      statusCode?: number;
+      status?: TorveAccountStatus;
+      me?: DesktopMeResponse | null;
+    }> => {
       try {
         const raw = payload as Partial<{ apiKey: unknown; email: unknown }>;
-        const apiKey = typeof raw.apiKey === 'string' ? raw.apiKey : '';
-        const email = typeof raw.email === 'string' ? raw.email : null;
-        if (!apiKey.trim()) return { ok: false, error: 'Paste your Torve API key.' };
-        // Do not overwrite a valid credential until the new one has been verified.
-        await refreshTorveCloudModels(apiKey.trim(), { force: true });
-        await writeStored(apiKey, email);
-        await startTorveCloudProxy();
-        return { ok: true, status: await getTorveAccountStatus() };
+        const apiKey = typeof raw.apiKey === 'string' ? raw.apiKey.trim() : '';
+        const email = typeof raw.email === 'string' ? raw.email.trim() || null : null;
+        if (!apiKey) return { ok: false, error: 'Paste your Torve API key.' };
+
+        // Validate manual key via both GET /api/desktop/me and GET /v1/models before persisting.
+        const [me, models] = await Promise.all([
+          fetchDesktopMe(apiKey),
+          refreshTorveCloudModels(apiKey, { force: true }),
+        ]);
+
+        const finalized = await finalizeAuthenticatedSession({
+          apiKey,
+          authMode: 'manual',
+          email: me.user.email ?? email,
+          keyMeta: me.key,
+          userMeta: me.user,
+          preloadedMe: me,
+          preloadedModels: models,
+        });
+        return { ok: true, status: finalized.status, me: finalized.me };
       } catch (err) {
-        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+        const details = errorDetails(err);
+        return { ok: false, error: details.message, statusCode: details.statusCode };
       }
     },
   );
 
   ipcMain.handle('torve:account-clear', async (): Promise<{ ok: boolean; error?: string }> => {
     try {
-      await stopTorveCloudProfiles();
-      if (existsSync(CREDENTIALS_PATH)) await unlink(CREDENTIALS_PATH);
-      if (existsSync(LEGACY_CREDENTIALS_PATH)) await unlink(LEGACY_CREDENTIALS_PATH);
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException)?.code;
-      if (code !== 'ENOENT') {
-        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      cancelPendingPkce(true);
+      const existing = await readStoredCredentials(safeStorage, DEFAULT_CREDENTIALS_PATHS);
+      if (existing?.apiKey && existing.authMode === 'oauth') {
+        await revokeDesktopAuthKey(existing.apiKey).catch(() => ({ revoked: false }));
       }
+      cachedMe = null;
+      await stopTorveCloudProfiles();
+      await clearStoredCredentials(DEFAULT_CREDENTIALS_PATHS);
+      emitAuthEvent({ status: 'cancelled' });
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }
-    return { ok: true };
   });
+
+  ipcMain.handle('torve:me-get', async (): Promise<{
+    ok: boolean;
+    connected: boolean;
+    cached?: boolean;
+    error?: string;
+    me: DesktopMeResponse | null;
+  }> => {
+    const stored = await readStoredCredentials(safeStorage, DEFAULT_CREDENTIALS_PATHS);
+    if (!stored) {
+      cachedMe = null;
+      return { ok: true, connected: false, me: null };
+    }
+    try {
+      const me = await fetchDesktopMe(stored.apiKey);
+      cachedMe = me;
+      await writeStoredCredentials(safeStorage, {
+        apiKey: stored.apiKey,
+        authMode: stored.authMode,
+        email: me.user.email ?? stored.email,
+        keyMeta: me.key,
+        userMeta: me.user,
+      }).catch(() => {});
+      return { ok: true, connected: true, me };
+    } catch (err) {
+      const fallbackMe = cachedMe ?? cachedMeFromStored(stored);
+      return {
+        ok: false,
+        connected: true,
+        cached: Boolean(fallbackMe),
+        error: err instanceof Error ? err.message : String(err),
+        me: fallbackMe,
+      };
+    }
+  });
+
+  ipcMain.handle(
+    'torve:usage-get',
+    async (
+      _event,
+      params?: { range?: unknown; scope?: unknown },
+    ): Promise<{ ok: boolean; usage: DesktopUsageResponse; fallback?: boolean; error?: string }> => {
+      const range: DesktopUsageRange = params?.range === '24h' || params?.range === '30d' ? params.range : '7d';
+      const scope: DesktopUsageScope | 'local' = params?.scope === 'key' || params?.scope === 'local' ? params.scope : 'account';
+
+      if (scope === 'local') {
+        return { ok: true, usage: await getLocalUsageSummary(range) };
+      }
+      const apiKey = await getTorveCloudApiKey();
+      if (!apiKey) {
+        return {
+          ok: true,
+          usage: await getLocalUsageSummary(range),
+          fallback: true,
+          error: 'Sign in to fetch cloud usage.',
+        };
+      }
+      try {
+        const usage = await fetchDesktopUsage(apiKey, { range, scope });
+        return { ok: true, usage };
+      } catch (err) {
+        return {
+          ok: true,
+          usage: await getLocalUsageSummary(range),
+          fallback: true,
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
+    },
+  );
 
   ipcMain.handle('torve:models-get', torveCloudModelsStatus);
   ipcMain.handle('torve:models-refresh', async (): Promise<{ ok: boolean; error?: string }> => {
-    try { const key = await getTorveCloudApiKey(); if (!key) throw new Error('Connect a Torve account first.'); await refreshTorveCloudModels(key, { force: true }); return { ok: true }; }
-    catch (err) { return { ok: false, error: err instanceof Error ? err.message : String(err) }; }
+    try {
+      const key = await getTorveCloudApiKey();
+      if (!key) throw new Error('Connect a Torve account first.');
+      const models = await refreshTorveCloudModels(key, { force: true });
+      await refreshCodexCatalogIfConnected(models);
+      await refreshCatalogConfigsIfConnected(models);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
   });
+
   ipcMain.handle('torve:proxy-status', torveCloudProxyStatus);
+  ipcMain.handle('torve:antigravity-standalone-status', () => antigravityStandaloneStatus());
+  ipcMain.handle('torve:antigravity-standalone-set', async (_event, enabled: unknown) => {
+    try {
+      if (enabled === true) {
+        if (!await getTorveCloudApiKey()) {
+          throw new Error('Connect a Torve account before enabling the Antigravity native picker.');
+        }
+        await startTorveCloudProxy();
+        return { ok: true, status: await enableAntigravityStandalonePatch() };
+      }
+      if (enabled === false) {
+        return { ok: true, status: await disableAntigravityStandalonePatch() };
+      }
+      throw new Error('Invalid Antigravity patch state.');
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+        status: await antigravityStandaloneStatus(),
+      };
+    }
+  });
+
   ipcMain.handle('torve:overrides-get', getDirectCloudOverrides);
   ipcMain.handle('torve:override-set', async (_event, appId: unknown, value: unknown) => {
     try {
@@ -115,17 +486,73 @@ export function registerTorveAccountIpc(): void {
         ? { modelId: record['modelId'], enabled: record['enabled'] !== false }
         : null;
       return { ok: true, overrides: await setDirectCloudOverride(appId, override) };
-    } catch (err) { return { ok: false, error: err instanceof Error ? err.message : String(err) }; }
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
   });
+
   ipcMain.handle('torve:activity-get', getDirectCloudActivity);
-  ipcMain.handle('torve:activity-clear', () => { clearDirectCloudActivity(); return { ok: true }; });
-  ipcMain.handle('torve:direct-state', torveCloudProfilesState);
-  ipcMain.handle('torve:direct-start', async (_event, profiles: unknown): Promise<{ ok: boolean; state?: Awaited<ReturnType<typeof torveCloudProfilesState>>; error?: string }> => {
-    try { return { ok: true, state: await startTorveCloudProfiles(Array.isArray(profiles) ? profiles.filter((name): name is string => typeof name === 'string') : []) }; }
-    catch (err) { return { ok: false, error: err instanceof Error ? err.message : String(err) }; }
+  ipcMain.handle('torve:activity-clear', () => {
+    clearDirectCloudActivity();
+    return { ok: true };
   });
-  ipcMain.handle('torve:direct-stop', async (): Promise<{ ok: boolean; state?: Awaited<ReturnType<typeof torveCloudProfilesState>>; error?: string }> => {
-    try { return { ok: true, state: await stopTorveCloudProfiles() }; }
-    catch (err) { return { ok: false, error: err instanceof Error ? err.message : String(err) }; }
+
+  ipcMain.handle('torve:direct-state', torveCloudProfilesState);
+  ipcMain.handle(
+    'torve:direct-start',
+    async (
+      _event,
+      profiles: unknown,
+    ): Promise<{ ok: boolean; state?: Awaited<ReturnType<typeof torveCloudProfilesState>>; error?: string }> => {
+      try {
+        return {
+          ok: true,
+          state: await startTorveCloudProfiles(
+            Array.isArray(profiles) ? profiles.filter((name): name is string => typeof name === 'string') : [],
+          ),
+        };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    },
+  );
+  ipcMain.handle(
+    'torve:direct-stop',
+    async (): Promise<{ ok: boolean; state?: Awaited<ReturnType<typeof torveCloudProfilesState>>; error?: string }> => {
+      try {
+        return { ok: true, state: await stopTorveCloudProfiles() };
+      } catch (err) {
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    },
+  );
+
+  ipcMain.handle('torve:backups-list', () => listDirectCloudBackups());
+  ipcMain.handle('torve:backups-restore', async (_event, appId: unknown): Promise<{ ok: boolean; restored: boolean; error?: string }> => {
+    try {
+      if (typeof appId !== 'string' || !appId.trim()) throw new Error('Invalid app identifier.');
+      const current = await torveCloudProfilesState();
+      if (current.activeProfileNames.includes(appId)) {
+        const remaining = current.activeProfileNames.filter((name) => name !== appId);
+        if (remaining.length > 0) {
+          await startTorveCloudProfiles(remaining);
+        } else {
+          await stopTorveCloudProfiles();
+        }
+      }
+      const restored = await restoreDirectCloudBackup(appId, { forceExact: true });
+      return { ok: true, restored };
+    } catch (err) {
+      return { ok: false, restored: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+  ipcMain.handle('torve:backups-discard', async (_event, appId: unknown): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      if (typeof appId !== 'string' || !appId.trim()) throw new Error('Invalid app identifier.');
+      await discardDirectCloudBackup(appId);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
   });
 }

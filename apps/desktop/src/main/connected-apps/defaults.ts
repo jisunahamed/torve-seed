@@ -71,8 +71,10 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
       format: 'codex',
       configPath: '~/.codex/config.toml',
       providerKey: 'torve',
-      providerName: 'Torve',
-      baseURL: 'http://localhost:{buyerPort}/v1',
+      providerName: 'Torve AI',
+      baseURL: 'http://127.0.0.1:{buyerPort}/v1',
+      modelCatalogJson: '~/.torve/codex-model-catalog.json',
+      bearerToken: 'torve-local-proxy',
       installProbe: 'codex',
     },
   },
@@ -118,9 +120,12 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
     configPatch: { format: 'continue', configPath: '~/.continue/config.yaml', legacyConfigPath: '~/.continue/config.json', baseURL: 'http://127.0.0.1:{buyerPort}/v1' },
   },
   {
-    name: 'antigravity', displayName: 'Google Antigravity', kind: 'config-patch', method: 'MCP Bridge (Antigravity does not support custom Base URL yet)',
+    name: 'antigravity', displayName: 'Google Antigravity', kind: 'config-patch', method: 'MCP fallback (native picker requires VS Code edition)',
     toolSlugs: ['antigravity'], domains: [], pathPrefixes: [],
-    configPatch: { format: 'antigravity-mcp', configPath: '~/.gemini/config/mcp_config.json', serverPath: '~/.torve/mcp/torve-local.mjs', baseURL: 'http://127.0.0.1:{buyerPort}' },
+    configPatch: {
+      format: 'antigravity-ide', configPath: 'auto', baseURL: 'http://127.0.0.1:{buyerPort}',
+      mcpFallback: true, mcpConfigPath: '~/.gemini/config/mcp_config.json', serverPath: '~/.torve/mcp/torve-local.mjs',
+    },
   },
   {
     name: 'claude-desktop',

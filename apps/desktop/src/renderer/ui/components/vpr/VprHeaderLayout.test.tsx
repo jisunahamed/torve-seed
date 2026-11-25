@@ -27,13 +27,14 @@ it.each([null, 'conversation-1'])('renders balance and navigation inside the cha
   expect(header).toContain('aria-label="Add credits, balance $69.13"');
 });
 
-it.each(['chat', 'home'] as const)('only floats the toolbar on home, not chat (%s)', (activeView) => {
+it.each(['chat', 'home'] as const)('omits the P2P credits pill from VprShell chrome (%s)', (activeView) => {
   const markup = renderToStaticMarkup(
     <VprShell activeView={activeView} onSelectView={vi.fn()} onNavigateBack={vi.fn()}>
       <div>View content</div>
     </VprShell>,
   );
-  expect(markup.includes('aria-label="Add credits, balance $69.13"')).toBe(activeView === 'home');
+  expect(markup).toContain('TORVE');
+  expect(markup).not.toContain('Add credits, balance');
 });
 
 it('keeps the complete long title available on hover alongside the balance', () => {

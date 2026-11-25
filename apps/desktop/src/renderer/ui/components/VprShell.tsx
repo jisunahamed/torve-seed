@@ -1,38 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import type { BadgeTone } from '../../core/state';
 import type { ViewName } from '../types';
-import { shallowEqual, useUiSelector } from '../hooks/useUiSelector';
-import { useTeeBackgroundVerification } from '../hooks/useTeeVerification';
-import { selectHeadlineBalanceUsdc } from '../../core/balance';
-import { shouldNotifyAppsOnboarding } from '../../modules/app/apps-onboarding';
+import type { TorveAccountStatus } from '../../types/bridge';
 import { navViews } from './viewRegistry';
-import { ChatListPanel } from './ChatListPanel';
-import { DepositProgressBanner } from './DepositProgressBanner';
-import { NetworkAlertBanner } from './NetworkAlertBanner';
+import { TorveMark } from './brand/TorveMark';
 import { UpdateBanner } from './UpdateBanner';
-import { PublicEndpointModalProvider } from './tunnels/PublicEndpointModal';
 import { VprNavContext } from './vpr/VprNavContext';
-import { VprHeaderActions } from './vpr/VprHeaderActions';
 import styles from './VprShell.module.scss';
-
-/* Views built on VprPage carry the credits pill inside their pinned header,
-   so the shell's floating pill would duplicate it. */
-const VIEWS_WITH_HEADER_CREDITS: ReadonlySet<ViewName> = new Set([
-  'chat',
-  'explore',
-  'model',
-  'tools',
-  'tunnels',
-  'chats',
-  'credits',
-  'deposit',
-  'activity',
-  'rewards',
-  'preferences',
-  'help',
-  'torve-account',
-]);
 
 declare const __APP_VERSION__: string;
 
@@ -46,57 +20,66 @@ type VprShellProps = {
 const mainNavEntries = navViews('main');
 const bottomNavEntries = navViews('bottom');
 
-function statusClassName(tone: BadgeTone): string {
-  if (tone === 'bad') return `${styles.statusItem} ${styles.statusBad}`;
-  if (tone === 'warn') return `${styles.statusItem} ${styles.statusWarn}`;
-  return styles.statusItem;
-}
-
-function networkStatusClassName(networkHealth: string): string {
-  if (networkHealth === 'Down') return `${styles.statusItem} ${styles.statusBad}`;
-  if (networkHealth === 'Limited') return `${styles.statusItem} ${styles.statusWarn}`;
-  return styles.statusItem;
-}
-
 export function VprShell({ activeView, onSelectView, onNavigateBack, children }: VprShellProps) {
-  useTeeBackgroundVerification();
-  const snap = useUiSelector((state) => ({
-    headlineBalanceUsdc: selectHeadlineBalanceUsdc(state),
-    connectBadgeLabel: state.connectBadge.label,
-    connectBadgeTone: state.connectBadge.tone,
-    networkHealth: state.ovDhtHealth,
-    proxyPort: state.ovProxyPort,
-    peers: state.ovPeers,
-    serviceCount: state.ovServiceCount,
-    chatNeedsAttention: state.chatPaymentApprovalVisible || state.chatSendingConversationIds.length > 0,
-    chatPanelExpanded: state.chatPanelExpanded,
-  }), shallowEqual);
-
   const [appVersion, setAppVersion] = useState<string>(
     typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '',
   );
+  const [proxyStatus, setProxyStatus] = useState<{ running: boolean; port: number } | null>(null);
+  const [connectedAppsCount, setConnectedAppsCount] = useState(0);
+  const [accountStatus, setAccountStatus] = useState<TorveAccountStatus | null>(null);
+
   useEffect(() => {
     window.torveDesktop?.getAppVersion?.().then(setAppVersion).catch(() => {});
   }, []);
 
-  // Chat opens thin — the conversation-list panel (and the wide window
-  // preset, see AppShell) only appear once the user expands the chat view.
-  const chatPanelVisible = activeView === 'chat' && snap.chatPanelExpanded;
+  useEffect(() => {
+    let cancelled = false;
+    const bridge = window.torveDesktop;
+    const poll = async () => {
+      try {
+        const [proxy, direct, account] = await Promise.all([
+          bridge?.torveCloudProxyStatus?.(),
+          bridge?.torveDirectState?.(),
+          bridge?.torveAccountGet?.(),
+        ]);
+        if (cancelled) return;
+        if (proxy) setProxyStatus({ running: Boolean(proxy.running), port: proxy.port || 8378 });
+        if (direct && Array.isArray(direct.activeProfileNames)) {
+          setConnectedAppsCount(direct.activeProfileNames.length);
+        }
+        if (account) setAccountStatus(account);
+      } catch {
+        // Keep last observed footer state on transient IPC errors.
+      }
+    };
+    void poll();
+    const unsubAuth = bridge?.onTorveAuthEvent?.(() => { void poll(); });
+    const timer = window.setInterval(() => { void poll(); }, 5_000);
+    return () => {
+      cancelled = true;
+      unsubAuth?.();
+      window.clearInterval(timer);
+    };
+  }, []);
 
   const navValue = useMemo(
     () => ({ navigate: onSelectView, back: onNavigateBack }),
     [onSelectView, onNavigateBack],
   );
 
+  const proxyActive = Boolean(proxyStatus?.running);
+  const planBadge = accountStatus?.userMeta?.plan
+    ? ` · ${accountStatus.userMeta.plan.toUpperCase()}`
+    : '';
+
   return (
-    <PublicEndpointModalProvider>
-      <div className={`${styles.shell}${chatPanelVisible ? ` ${styles.shellWithPanel}` : ''}`}>
-      {/* Window-drag handle: the hidden-inset title bar has no native drag
-          region, so this strip provides one. pointer-events: none keeps web
-          clicks working; interactive elements overlapping it opt out with
-          -webkit-app-region: no-drag. */}
+    <div className={styles.shell}>
       <div className={styles.dragStrip} aria-hidden="true" />
-      <nav className={styles.sidebar} aria-label="AI VPN navigation">
+      <nav className={styles.sidebar} aria-label="Torve Desktop navigation">
+        <div className={styles.brandSlot} title="Torve Desktop">
+          <TorveMark size={30} />
+          <span className={styles.brandText}>TORVE</span>
+        </div>
         <div className={styles.navGroup}>
           {mainNavEntries.map(({ view, nav }) => {
             const active = activeView === view;
@@ -108,79 +91,54 @@ export function VprShell({ activeView, onSelectView, onNavigateBack, children }:
                 aria-current={active ? 'page' : undefined}
                 onClick={() => onSelectView(view)}
               >
-                <HugeiconsIcon icon={nav.icon} size={24} strokeWidth={1.8} />
+                <HugeiconsIcon icon={nav.icon} size={22} strokeWidth={1.8} />
                 <span className={styles.navLabel}>{nav.label}</span>
-                {view === 'chat' && snap.chatNeedsAttention && activeView !== 'chat' && (
-                  <span className={styles.navDot} aria-label="Chat activity" />
-                )}
-                {/* One-shot onboarding nudge: the user hasn't opened Apps
-                    yet — opening it plays the connect-your-tools walkthrough
-                    and clears the dot for good. */}
-                {view === 'tools' && activeView !== 'tools' && shouldNotifyAppsOnboarding() && (
-                  <span className={styles.navDot} aria-label="Connect your apps" />
-                )}
               </button>
             );
           })}
         </div>
         <div className={styles.navBottom}>
-          {bottomNavEntries.map(({ view, nav }) => (
-            <button
-              key={view}
-              type="button"
-              className={`${styles.navButton}${activeView === view ? ` ${styles.navButtonActive}` : ''}`}
-              aria-current={activeView === view ? 'page' : undefined}
-              onClick={() => onSelectView(view)}
-            >
-              <HugeiconsIcon icon={nav.icon} size={24} strokeWidth={1.8} />
-              <span className={styles.navLabel}>{nav.label}</span>
-            </button>
-          ))}
+          {bottomNavEntries.map(({ view, nav }) => {
+            const active = activeView === view;
+            return (
+              <button
+                key={view}
+                type="button"
+                className={`${styles.navButton}${active ? ` ${styles.navButtonActive}` : ''}`}
+                aria-current={active ? 'page' : undefined}
+                onClick={() => onSelectView(view)}
+              >
+                <HugeiconsIcon icon={nav.icon} size={22} strokeWidth={1.8} />
+                <span className={styles.navLabel}>{nav.label}</span>
+              </button>
+            );
+          })}
         </div>
       </nav>
-      {chatPanelVisible && <ChatListPanel onSelectView={onSelectView} />}
       <main className={styles.mainPane}>
         <div className={styles.content}>
           <VprNavContext.Provider value={navValue}>{children}</VprNavContext.Provider>
         </div>
-        {/* The no-drag carve-out lives on this static wrapper: the pill
-            itself runs a compositor scroll-timeline animation, and animated
-            elements don't reliably register app-region rects. The slot must
-            also come AFTER the view content in the DOM — app-region rects
-            are collected in document order and later drag regions (e.g. the
-            home view's hero banner) would otherwise paint over the pill's
-            no-drag hole and swallow its clicks. */}
-        {!VIEWS_WITH_HEADER_CREDITS.has(activeView) && (
-          <div className={styles.creditsPillSlot}>
-            <VprHeaderActions
-              className={styles.creditsPill}
-              credits={snap.headlineBalanceUsdc}
-              onSelectView={onSelectView}
-            />
-          </div>
-        )}
-        <NetworkAlertBanner />
         <UpdateBanner />
-        <DepositProgressBanner />
       </main>
       <footer className={styles.statusStrip}>
-        <span className={networkStatusClassName(snap.networkHealth)}>
-          {snap.networkHealth}
+        <span className={`${styles.statusItem} ${proxyActive ? styles.statusOk : styles.statusMuted}`}>
+          <span className={`${styles.statusDot} ${proxyActive ? styles.statusDotOk : styles.statusDotOff}`} />
+          Proxy 127.0.0.1:{proxyStatus?.port ?? 8378} ({proxyActive ? 'Active' : 'Stopped'})
         </span>
         <span className={styles.statusSep} aria-hidden="true">|</span>
-        <span className={statusClassName(snap.connectBadgeTone)}>
-          {snap.connectBadgeLabel}
+        <span className={styles.statusItem}>
+          {connectedAppsCount} {connectedAppsCount === 1 ? 'App' : 'Apps'} Connected
         </span>
         <span className={styles.statusSep} aria-hidden="true">|</span>
-        <span className={styles.statusItem}>Port: {snap.proxyPort}</span>
-        <span className={styles.statusSep} aria-hidden="true">|</span>
-        <span className={styles.statusItem}>{snap.peers} Peers</span>
-        <span className={styles.statusSep} aria-hidden="true">|</span>
-        <span className={styles.statusItem}>{snap.serviceCount} Services</span>
-        <span className={styles.statusSep} aria-hidden="true">|</span>
-        <span className={styles.statusItem}>v{appVersion}</span>
+        <span className={styles.statusItem}>
+          {accountStatus?.connected
+            ? `${accountStatus.email ?? 'Signed in'}${planBadge}`
+            : 'Not signed in'}
+        </span>
+        <span className={styles.statusSpacer} />
+        <span className={styles.statusItem}>Torve Desktop v{appVersion}</span>
       </footer>
-      </div>
-    </PublicEndpointModalProvider>
+    </div>
   );
 }

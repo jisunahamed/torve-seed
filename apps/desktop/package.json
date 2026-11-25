@@ -1,11 +1,15 @@
 {
   "name": "@torveai/desktop",
-  "productName": "Torve AI VPN",
+  "productName": "Torve Desktop",
   "version": "0.2.57",
   "private": true,
-  "description": "Desktop app for Torve",
+  "description": "Torve Desktop — Direct Cloud AI Router & App Manager",
   "author": "Torve <hello@torveai.com>",
   "homepage": "https://torveai.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jisunahamed/torve-seed.git"
+  },
   "type": "module",
   "main": "dist/main/main.js",
   "scripts": {
@@ -20,7 +24,7 @@
     "build": "npm run build:main && npm run build:renderer",
     "build:main": "tsc -p tsconfig.main.json",
     "build:renderer": "vite build",
-    "test": "node --test scripts/*.test.mjs && pnpm run build:main && node --test $(find dist/main -name '*.test.js') && pnpm run test:renderer",
+    "test": "node ./scripts/run-tests.mjs",
     "test:renderer": "vitest run --dir src/renderer",
     "typecheck:renderer": "tsc -p tsconfig.renderer.json --noEmit",
     "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:main\" \"npm:dev:electron\"",
@@ -36,7 +40,7 @@
     "dist": "npm run build && npm run prepare-dist && node scripts/dist.mjs",
     "dist:mac": "npm run build && node scripts/release-mac.mjs --no-publish",
     "release:mac": "npm run build && node scripts/release-mac.mjs",
-    "dist:win": "npm run build && npm run prepare-dist && electron-builder --win",
+    "dist:win": "npm run build && npm run prepare-dist && node ./scripts/dist-win.mjs",
     "release:win": "npm run build && npm run prepare-dist && node scripts/release-win.mjs",
     "dist:linux": "npm run build && npm run prepare-dist && electron-builder --config electron-builder.linux.cjs --linux",
     "release:linux": "npm run build && npm run prepare-dist && electron-builder --config electron-builder.linux.cjs --linux --publish always"

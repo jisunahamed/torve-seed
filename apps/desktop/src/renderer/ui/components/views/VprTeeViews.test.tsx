@@ -8,7 +8,6 @@ import { normalizeDiscoverRow } from '../../../modules/catalog/discover-rows';
 import { projectRowsToVprModelCatalog } from '../../../modules/catalog/model-catalog';
 import { teeBrowseCache } from '../../../modules/catalog/tee-browse';
 import { VprModelRowList } from '../vpr/VprModelRows';
-import { PublicEndpointModalProvider } from '../tunnels/PublicEndpointModal';
 import { VprExploreView } from './VprExploreView';
 import { VprModelView } from './VprModelView';
 import { VprPreferencesView } from './VprPreferencesView';
@@ -54,27 +53,26 @@ test('TEE availability badges do not appear in Home/chat row lists', () => {
 
 });
 
-test('Models overview omits TEE availability badges with either seller filter', () => {
+test('Models & Usage omits P2P TEE availability badges and seller routing clutter', () => {
   const state = initialize();
   const selection = structuredClone(state.vprRouteSelection);
   for (const filter of ['all', 'tee'] as const) {
     teeBrowseCache.filter = filter;
     const markup = renderToStaticMarkup(<VprExploreView />);
-    assert.match(markup, /GPT Test/);
-    assert.doesNotMatch(markup, /TEE available/);
-    assert.match(markup, filter === 'tee' ? /automatic routing may use other sellers/ : /All sellers/);
+    assert.match(markup, /Models &amp; Usage/);
+    assert.doesNotMatch(markup, /TEE available|All sellers/);
   }
   assert.deepEqual(state.vprRouteSelection, selection);
   assert.equal(action.mock.calls.length, 0);
 });
 
-test('Preferences does not expose a TEE routing setting', () => {
+test('Settings does not expose P2P TEE or seller routing controls', () => {
   vi.stubGlobal('document', { body: { classList: { contains: () => false } } });
   const state = initialize();
   const selection = structuredClone(state.vprRouteSelection);
-  const markup = renderToStaticMarkup(<PublicEndpointModalProvider><VprPreferencesView /></PublicEndpointModalProvider>);
-  assert.match(markup, /Auto select seller/);
-  assert.doesNotMatch(markup, /Require.*verification|Seller-node verification|Reapply saved setting|routing is paused/);
+  const markup = renderToStaticMarkup(<VprPreferencesView />);
+  assert.match(markup, /Activity &amp; Settings/);
+  assert.doesNotMatch(markup, /Auto select seller|Require.*verification|Seller-node verification|Reapply saved setting|routing is paused/);
   assert.deepEqual(state.vprRouteSelection, selection);
   assert.equal(action.mock.calls.length, 0);
 });
@@ -143,18 +141,13 @@ test('TEE detail filtering hides standard sellers without clearing the active pi
   assert.match(renderToStaticMarkup(<VprModelView />), /Standard Seller/);
 });
 
-test('TEE empty states preserve loading and offer a way to clear the browse filter', () => {
+test('TEE empty states preserve loading and offer a way to clear the browse filter on VprModelView', () => {
   const state = initialize();
   state.vprRoutableRows = state.vprRoutableRows.filter((row) => row.peerId === 'standard');
   state.vprModelCatalog = projectRowsToVprModelCatalog(state.vprRoutableRows);
   teeBrowseCache.filter = 'tee';
-  assert.match(renderToStaticMarkup(<VprExploreView />), /No sellers advertising TEE support match these filters/);
-  assert.match(renderToStaticMarkup(<VprExploreView />), /Clear filters/);
   assert.match(renderToStaticMarkup(<VprModelView />), /No sellers advertising TEE support match these filters/);
   state.chatDiscoverRowsLoaded = false;
-  const loading = renderToStaticMarkup(<VprExploreView />);
-  assert.match(loading, /Loading models/);
-  assert.doesNotMatch(loading, /No sellers advertising TEE support/);
   assert.match(renderToStaticMarkup(<VprModelView />), /Loading sellers/);
   assert.equal(action.mock.calls.length, 0);
 });

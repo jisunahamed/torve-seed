@@ -15,6 +15,16 @@ export type RuntimeProcessState = {
     the OS-provided icon when one could be extracted. */
 export type InstalledAppEntry = { name: string; path: string; iconDataUri?: string };
 
+export type AntigravityStandalonePatchStatus = {
+  state: 'unavailable' | 'inactive' | 'active' | 'needs-reapply' | 'close-antigravity' | 'error';
+  installed: boolean;
+  enabled: boolean;
+  running: boolean;
+  version: string | null;
+  targetPath: string;
+  message: string;
+};
+
 export type SystemProxyProfileSummary = {
   name: string;
   displayName: string;
@@ -290,6 +300,96 @@ export type StartOptions = {
   dashboardPort?: number;
 };
 
+export type TorveAuthMode = 'oauth' | 'manual';
+export type TorveUsageRange = '24h' | '7d' | '30d';
+export type TorveUsageScope = 'account' | 'key';
+
+export type TorveKeyMeta = {
+  id: string | null;
+  name: string | null;
+  prefix: string | null;
+  createdAt: string | null;
+};
+
+export type TorveUserMeta = {
+  id: string | null;
+  email: string | null;
+  name: string | null;
+  plan: string | null;
+  status: string | null;
+};
+
+export type TorveQuotaSummary = {
+  usedTokensToday: number;
+  usedRequestsToday: number;
+  dailyTokenLimit: number | null;
+  dailyRequestLimit: number | null;
+  rateLimitStatus: 'ok' | 'limited' | string;
+  resetsAt: string | null;
+  monthlyUsedTokens: number | null;
+  monthlyAllowanceTokens: number | null;
+  monthlyUsedRequests: number | null;
+  monthlyAllowanceRequests: number | null;
+};
+
+export type TorveDesktopMeResponse = {
+  user: TorveUserMeta;
+  key: TorveKeyMeta;
+  quota: TorveQuotaSummary;
+};
+
+export type TorveModelUsageRow = {
+  modelId: string;
+  requests: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  avgLatencyMs: number | null;
+  lastUsedAt: string | null;
+};
+
+export type TorveAppUsageRow = {
+  appId: string;
+  requests: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  lastUsedAt: string | null;
+};
+
+export type TorveUsageResponse = {
+  range: TorveUsageRange;
+  scope: TorveUsageScope | 'local';
+  totals: {
+    requests: number;
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+  };
+  byModel: TorveModelUsageRow[];
+  byApp: TorveAppUsageRow[];
+};
+
+export type TorveAccountStatus = {
+  connected: boolean;
+  authMode: TorveAuthMode | null;
+  email: string | null;
+  keyHint: string | null;
+  keyMeta: TorveKeyMeta | null;
+  userMeta: TorveUserMeta | null;
+  updatedAt: number | null;
+  secureStorage: boolean;
+};
+
+export type TorveAuthEvent = {
+  status: 'pending' | 'connected' | 'cancelled' | 'error';
+  error?: string;
+  code?: string;
+  statusCode?: number;
+  accountStatus?: TorveAccountStatus;
+  me?: TorveDesktopMeResponse | null;
+};
+
 export type DesktopBridge = {
   /** `process.platform` from the preload (Node side). */
   platform?:
@@ -368,12 +468,62 @@ export type DesktopBridge = {
   pickDirectory?: () => Promise<{ ok: boolean; path: string | null }>;
   openExternalUrl?: (url: string) => Promise<{ ok: boolean; error?: string }>;
   /** Torve Cloud account status — the renderer never receives a raw API key. */
-  torveAccountGet?: () => Promise<{ connected: boolean; email: string | null; keyHint: string | null; updatedAt: number | null; secureStorage: boolean }>;
-  torveAccountSet?: (payload: { apiKey: string; email?: string | null }) => Promise<{ ok: boolean; error?: string; status?: { connected: boolean; email: string | null; keyHint: string | null; updatedAt: number | null; secureStorage: boolean } }>;
+  torveAccountGet?: () => Promise<TorveAccountStatus>;
+  torveAccountPkceStart?: () => Promise<{ ok: boolean; error?: string }>;
+  torveAccountPkceCancel?: () => Promise<{ ok: boolean }>;
+  onTorveAuthEvent?: (handler: (event: TorveAuthEvent) => void) => () => void;
+  torveAccountSet?: (payload: { apiKey: string; email?: string | null }) => Promise<{
+    ok: boolean;
+    error?: string;
+    statusCode?: number;
+    status?: TorveAccountStatus;
+    me?: TorveDesktopMeResponse | null;
+  }>;
   torveAccountClear?: () => Promise<{ ok: boolean; error?: string }>;
-  torveModelsGet?: () => Promise<{ models: Array<{ id: string }>; updatedAt: number | null; stale: boolean; upstream: string }>;
+  torveMeGet?: () => Promise<{
+    ok: boolean;
+    connected: boolean;
+    cached?: boolean;
+    error?: string;
+    me: TorveDesktopMeResponse | null;
+  }>;
+  torveUsageGet?: (params?: { range?: TorveUsageRange; scope?: TorveUsageScope | 'local' }) => Promise<{
+    ok: boolean;
+    usage: TorveUsageResponse;
+    fallback?: boolean;
+    error?: string;
+  }>;
+  torveBackupsList?: () => Promise<Array<{
+    appId: string;
+    createdAt: number;
+    updatedAt: number;
+    filesCount: number;
+    targetPaths: string[];
+  }>>;
+  torveBackupsRestore?: (appId: string) => Promise<{ ok: boolean; restored: boolean; error?: string }>;
+  torveBackupsDiscard?: (appId: string) => Promise<{ ok: boolean; error?: string }>;
+  loginItemGet?: () => Promise<{ ok: boolean; openAtLogin: boolean; error?: string }>;
+  loginItemSet?: (openAtLogin: boolean) => Promise<{ ok: boolean; openAtLogin: boolean; error?: string }>;
+  torveModelsGet?: () => Promise<{
+    models: Array<{
+      id: string;
+      name?: string;
+      display_name?: string;
+      tier?: string;
+      context_window?: number;
+      max_output_tokens?: number;
+      supports_tools?: boolean;
+      supports_reasoning?: boolean;
+      capabilities?: string[];
+    }>;
+    updatedAt: number | null;
+    stale: boolean;
+    upstream: string;
+  }>;
   torveModelsRefresh?: () => Promise<{ ok: boolean; error?: string }>;
   torveCloudProxyStatus?: () => Promise<{ running: boolean; port: number; upstream: string }>;
+  antigravityStandaloneStatus?: () => Promise<AntigravityStandalonePatchStatus>;
+  antigravityStandaloneSet?: (enabled: boolean) => Promise<{ ok: boolean; status?: AntigravityStandalonePatchStatus; error?: string }>;
   torveOverridesGet?: () => Promise<Record<string, { modelId: string; enabled: boolean }>>;
   torveOverrideSet?: (appId: string, value: { modelId: string; enabled: boolean } | null) => Promise<{ ok: boolean; overrides?: Record<string, { modelId: string; enabled: boolean }>; error?: string }>;
   torveActivityGet?: () => Promise<Array<{ id: string; timestamp: number; appId: string | null; protocol: string; requestedModel: string | null; resolvedModel: string | null; statusCode: number; latencyMs: number; stream: boolean; usage: { inputTokens: number; outputTokens: number } | null; errorSummary: string | null }>>;

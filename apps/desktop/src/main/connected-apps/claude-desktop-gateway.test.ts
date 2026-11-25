@@ -417,3 +417,55 @@ test('rewriteModel keeps explicit peer pins and the alias, and tolerates non-JSO
   const invalid = Buffer.from('not json');
   assert.equal(rewriteModel(invalid, slots), invalid);
 });
+
+test('direct catalog exposes Torve Auto plus every concrete model under its real ID and routes each one', async () => {
+  const buyer = await startStubBuyer();
+  const directModels = [
+    { id: 'auto', display_name: 'Auto' },
+    { id: 'nemotron-3-ultra', display_name: 'nemotron-3-ultra', max_input_tokens: 262144 },
+    { id: 'deepseek-v4-1-flash', display_name: 'deepseek-v4-1-flash', max_input_tokens: 1048576 },
+    { id: 'gemma-4', display_name: 'gemma-4', max_input_tokens: 262144 },
+    { id: 'qwen-3-8-27b', display_name: 'qwen-3-8-27b', max_input_tokens: 262144 },
+  ];
+  const gateway = new ClaudeDesktopGateway({
+    port: 0,
+    buyerPort: buyer.port,
+    upstreamPrefix: '/app/claude-desktop',
+    listDirectModels: () => directModels,
+  });
+  await gateway.start();
+  try {
+    const res = await gatewayFetch(gateway, '/v1/models');
+    assert.equal(res.status, 200);
+    const body = await res.json() as { data: Record<string, unknown>[] };
+    assert.deepEqual(
+      body.data.map((m) => [m['id'], m['display_name'], m['anthropic_family_tier'], m['is_family_default']]),
+      [
+        ['torve-anthropic-00', 'Torve Auto', 'fable', true],
+        ['torve-anthropic-01', 'nemotron-3-ultra', 'opus', true],
+        ['torve-anthropic-02', 'deepseek-v4-1-flash', 'sonnet', true],
+        ['torve-anthropic-03', 'gemma-4', 'haiku', true],
+        ['torve-anthropic-04', 'qwen-3-8-27b', 'sonnet', false],
+      ],
+    );
+
+    await gatewayFetch(gateway, '/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'torve-anthropic-04', messages: [{ role: 'user', content: 'hi' }] }),
+    });
+    const concreteReq = JSON.parse(buyer.requests[buyer.requests.length - 1]!.body) as Record<string, unknown>;
+    assert.equal(concreteReq['model'], 'qwen-3-8-27b');
+
+    await gatewayFetch(gateway, '/v1/messages', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'torve-anthropic-00', messages: [{ role: 'user', content: 'hi' }] }),
+    });
+    const autoReq = JSON.parse(buyer.requests[buyer.requests.length - 1]!.body) as Record<string, unknown>;
+    assert.equal(autoReq['model'], ROUTED_MODEL_ALIAS);
+  } finally {
+    await gateway.stop();
+    await buyer.close();
+  }
+});

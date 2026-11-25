@@ -1,0 +1,112 @@
+name: Release Windows (Torve Desktop)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows Installer (x64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace packages
+        run: pnpm --filter @torveai/desktop ensure:cli-dist
+
+      - name: Typecheck & run desktop unit tests
+        shell: bash
+        run: |
+          pnpm --filter @torveai/desktop typecheck:renderer
+          pnpm --filter @torveai/desktop test
+
+      - name: Build Windows NSIS installer
+        run: pnpm --filter @torveai/desktop dist:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Locate installer metadata
+        id: installer
+        shell: bash
+        run: |
+          VERSION=$(node -e "console.log(require('./apps/desktop/package.json').version)")
+          EXE_PATH=$(ls apps/desktop/release/Torve-Desktop-Setup-*.exe | head -n 1)
+          if [ -z "$EXE_PATH" ]; then
+            echo "No Torve-Desktop-Setup-*.exe found in apps/desktop/release" >&2
+            ls -la apps/desktop/release || true
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "exe_path=$EXE_PATH" >> "$GITHUB_OUTPUT"
+          echo "exe_name=$(basename "$EXE_PATH")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload installer workflow artifact
+        id: upload-unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: torve-desktop-win-installer
+          path: ${{ steps.installer.outputs.exe_path }}
+
+      - name: Sign installer with SignPath Foundation
+        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: torve-desktop
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: apps/desktop/release/signed
+
+      - name: Upload signed installer workflow artifact
+        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: torve-desktop-win-installer-signed
+          path: apps/desktop/release/signed/${{ steps.installer.outputs.exe_name }}
+
+      - name: Publish signed installer to GitHub Releases
+        if: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.installer.outputs.version) }}
+          name: Torve Desktop v${{ steps.installer.outputs.version }}
+          files: apps/desktop/release/signed/${{ steps.installer.outputs.exe_name }}
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish unsigned installer to GitHub Releases
+        if: ${{ secrets.SIGNPATH_API_TOKEN == '' || vars.SIGNPATH_ORGANIZATION_ID == '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.installer.outputs.version) }}
+          name: Torve Desktop v${{ steps.installer.outputs.version }} (Unsigned)
+          files: ${{ steps.installer.outputs.exe_path }}
+          prerelease: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

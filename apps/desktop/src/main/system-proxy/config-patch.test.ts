@@ -12,6 +12,8 @@ import {
   CLAUDE_GATEWAY_DEFAULT_PORT,
   applyConfigPatch,
   claudeDesktopPatchTargets,
+  matchingClaudeDesktopTargets,
+  opencodeConfigTargets,
   parseJsoncObject,
   readConfigPatch,
   removeConfigPatch,
@@ -107,6 +109,12 @@ test('applyConfigPatch patches JSONC configs and writes a backup before normaliz
           limit: { context: number; output: number };
         }>;
       }>;
+      providers: Record<string, {
+        name?: string;
+        package?: string;
+        settings?: { baseURL?: string; apiKey?: string; headerTimeout?: number; chunkTimeout?: number; timeout?: number };
+        models?: Record<string, Record<string, unknown>>;
+      }>;
       model: string;
       disabled_providers?: string[];
       notes: string;
@@ -125,6 +133,19 @@ test('applyConfigPatch patches JSONC configs and writes a backup before normaliz
         limit: { context: TORVE_MODEL_CONTEXT_WINDOW, output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
       },
     });
+    assert.equal(config.providers.torve?.name, 'Torve');
+    assert.equal(config.providers.torve?.package, '@opencode/ai/providers/openai-compatible');
+    assert.deepEqual(config.providers.torve?.settings, {
+      baseURL: 'http://127.0.0.1:9456/v1',
+      apiKey: 'torve',
+      headerTimeout: 30_000,
+      chunkTimeout: 60_000,
+      timeout: 120_000,
+    });
+    assert.deepEqual(config.providers.torve?.models?.['torve'], {
+      modelID: 'torve', name: 'Torve Auto', type: 'chat',
+      limit: { context: TORVE_MODEL_CONTEXT_WINDOW, output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
+    });
     assert.equal(config.model, 'torve/torve');
     assert.deepEqual(config.disabled_providers, ['other']);
     assert.equal(config.notes, 'keep // literal text');
@@ -139,12 +160,66 @@ test('applyConfigPatch creates a new config file when one does not exist', async
 
     const config = JSON.parse(await readFile(configPath, 'utf8')) as {
       provider?: Record<string, unknown>;
+      providers?: Record<string, unknown>;
       model?: string;
     };
     assert.ok(config.provider?.torve);
+    assert.ok(config.providers?.torve);
     assert.equal(config.model, 'torve/torve');
     assert.equal(existsSync(`${configPath}.torve.bak`), false);
   });
+});
+
+test('OpenCode Direct Cloud patch writes auto plus every concrete catalog model', async () => {
+  await withTempConfig(async (_dir, configPath) => {
+    const patch: OpencodeConfigPatchDef = {
+      ...(makePatch(configPath) as OpencodeConfigPatchDef),
+      baseURL: 'http://127.0.0.1:{buyerPort}/app/opencode/v1',
+      apiKey: 'torve-local-proxy',
+      modelAlias: 'auto',
+      models: [
+        { id: 'auto', name: 'Auto', context: 8192, output: 1024 },
+        { id: 'deepseek-v4-1-flash', name: 'DeepSeek V4.1 Flash', context: 1_048_576, output: 1024 },
+        { id: 'gemma-4', name: 'Gemma 4', context: 262_144, output: 8192, vision: true },
+      ],
+    };
+
+    applyConfigPatch(patch, 'direct', 8378);
+    const config = JSON.parse(await readFile(configPath, 'utf8')) as {
+      model: string;
+      provider: Record<string, { options: { baseURL: string; apiKey: string }; models: Record<string, Record<string, unknown>> }>;
+      providers: Record<string, { package: string; settings: Record<string, unknown>; models: Record<string, Record<string, unknown>> }>;
+    };
+    const torve = config.provider['torve']!;
+    assert.equal(config.model, 'torve/auto');
+    assert.equal(torve.options.baseURL, 'http://127.0.0.1:8378/app/opencode/v1');
+    assert.equal(torve.options.apiKey, 'torve-local-proxy');
+    assert.deepEqual(Object.keys(torve.models), ['auto', 'deepseek-v4-1-flash', 'gemma-4']);
+    assert.deepEqual(torve.models['deepseek-v4-1-flash']?.['limit'], { context: 1_048_576, output: 1024 });
+    assert.deepEqual(torve.models['gemma-4']?.['modalities'], { input: ['text', 'image'], output: ['text'] });
+    const modern = config.providers['torve']!;
+    assert.equal(modern.package, '@opencode/ai/providers/openai-compatible');
+    assert.equal(modern.settings['baseURL'], 'http://127.0.0.1:8378/app/opencode/v1');
+    assert.equal(modern.settings['apiKey'], 'torve-local-proxy');
+    assert.equal(modern.settings['timeout'], 120_000);
+    assert.deepEqual(Object.keys(modern.models), ['auto', 'deepseek-v4-1-flash', 'gemma-4']);
+    assert.deepEqual(modern.models['deepseek-v4-1-flash'], {
+      modelID: 'deepseek-v4-1-flash', name: 'DeepSeek V4.1 Flash', type: 'chat',
+      limit: { context: 1_048_576, output: 1024 },
+    });
+  });
+});
+
+test('opencodeConfigTargets detects json/jsonc and an explicit Windows APPDATA config', () => {
+  const patch = makePatch('C:\\Users\\test\\.config\\opencode\\opencode.jsonc') as OpencodeConfigPatchDef;
+  const existing = new Set([
+    path.resolve('C:\\Users\\test\\.config\\opencode\\opencode.json'),
+    path.resolve('C:\\Users\\test\\AppData\\Roaming\\opencode\\opencode.jsonc'),
+  ]);
+  assert.deepEqual(
+    opencodeConfigTargets(patch, 'win32', { APPDATA: 'C:\\Users\\test\\AppData\\Roaming' }, (candidate) => existing.has(candidate)),
+    [...existing],
+  );
 });
 
 test('Gemini CLI patch preserves unrelated env and settings values', async () => {
@@ -178,6 +253,25 @@ test('Aider and Continue write only local placeholder credentials', async () => 
     assert.match(continueText, /torve-local-proxy/);
     assert.match(aiderText, /app\/aider\/v1/);
     assert.match(continueText, /app\/continue\/v1/);
+  });
+});
+
+test('Continue appends every Torve model without replacing existing models', async () => {
+  await withTempConfig(async (dir) => {
+    const configPath = path.join(dir, 'continue.json');
+    const existing = { name: 'User GPT', provider: 'openai', model: 'gpt-user', apiBase: 'https://example.test/v1' };
+    await writeFile(configPath, JSON.stringify({ models: [existing], tabAutocompleteModel: { title: 'keep' } }));
+    applyConfigPatch({
+      format: 'continue', configPath, baseURL: 'http://127.0.0.1:{buyerPort}/app/continue/v1',
+      models: [{ id: 'model-one', name: 'Model One' }, { id: 'model-two', name: 'Model Two' }],
+    }, 'direct', 8378);
+    const config = JSON.parse(await readFile(configPath, 'utf8')) as Record<string, any>;
+    assert.deepEqual(config.models[0], existing);
+    assert.deepEqual(config.models.slice(1).map((model: Record<string, unknown>) => model['model']), ['torve', 'model-one', 'model-two']);
+    assert.deepEqual(config.tabAutocompleteModel, { title: 'keep' });
+    assert.equal(removeConfigPatch({ format: 'continue', configPath, baseURL: 'http://127.0.0.1:{buyerPort}/app/continue/v1' }), true);
+    const cleaned = JSON.parse(await readFile(configPath, 'utf8')) as Record<string, any>;
+    assert.deepEqual(cleaned.models, [existing]);
   });
 });
 
@@ -221,10 +315,12 @@ test('removeConfigPatch removes only the configured provider and matching model 
 
     const config = JSON.parse(await readFile(configPath, 'utf8')) as {
       provider: Record<string, unknown>;
+      providers: Record<string, unknown>;
       model?: string;
     };
     assert.ok(config.provider.existing);
     assert.equal(config.provider.torve, undefined);
+    assert.equal(config.providers.torve, undefined);
     assert.equal(config.model, undefined);
   });
 });
@@ -418,6 +514,9 @@ function makeCodexPatch(configPath: string): ConfigPatchDef {
     providerKey: 'torve',
     providerName: 'Torve',
     baseURL: 'http://127.0.0.1:{buyerPort}/v1',
+    model: 'torve-alpha',
+    modelCatalogJson: path.join(path.dirname(configPath), 'codex-model-catalog.json'),
+    bearerToken: 'torve-local-proxy',
   };
 }
 
@@ -440,7 +539,8 @@ test('applyConfigPatch (codex) sets top-level keys before tables and appends a m
     const lines = raw.split('\n');
     const firstTable = lines.findIndex((line) => line.startsWith('['));
     assert.ok(lines.indexOf('model_provider = "torve"') < firstTable);
-    assert.ok(lines.indexOf('model = "torve"') < firstTable);
+    assert.ok(lines.indexOf('model = "torve-alpha"') < firstTable);
+    assert.ok(lines.some((line) => line.startsWith('model_catalog_json = ')));
     assert.ok(lines.indexOf(`model_context_window = ${TORVE_MODEL_CONTEXT_WINDOW}`) < firstTable);
     assert.equal(lines[0], '# user comment');
     assert.equal(lines.filter((line) => /^\s*model\s*=/.test(line)).length, 1);
@@ -449,6 +549,7 @@ test('applyConfigPatch (codex) sets top-level keys before tables and appends a m
     assert.ok(raw.includes('name = "Torve"'));
     assert.ok(raw.includes('base_url = "http://127.0.0.1:9456/v1"'));
     assert.ok(raw.includes('wire_api = "responses"'));
+    assert.ok(raw.includes('experimental_bearer_token = "torve-local-proxy"'));
     assert.equal(await readFile(`${configPath}.torve.bak`, 'utf8'), original);
   });
 });
@@ -461,7 +562,7 @@ test('applyConfigPatch (codex) creates the config file and replaces a previous m
 
     const raw = await readFile(configPath, 'utf8');
     assert.equal(raw.split('[model_providers.torve]').length, 2);
-    assert.ok(raw.includes('model = "torve"'));
+    assert.ok(raw.includes('model = "torve-alpha"'));
     assert.ok(raw.includes('base_url = "http://127.0.0.1:8378/v1"'));
     assert.ok(!raw.includes('8377'));
   });
@@ -479,7 +580,8 @@ test('removeConfigPatch (codex) removes the managed table and model selection bu
     const raw = await readFile(configPath, 'utf8');
     assert.ok(raw.includes('[mcp_servers.docs]'));
     assert.ok(!raw.includes('model_provider'));
-    assert.ok(!raw.includes('model = "torve"'));
+    assert.ok(!raw.includes('model = "torve-alpha"'));
+    assert.ok(!raw.includes('model_catalog_json'));
     assert.ok(!raw.includes('model_context_window'));
     assert.ok(!raw.includes('[model_providers.torve]'));
 
@@ -565,7 +667,7 @@ test('applyConfigPatch writes only the routed-model alias across formats', async
     const codexPath = path.join(dir, 'config.toml');
     applyConfigPatch(makeCodexPatch(codexPath), PEER_ID, 8377);
     const codexRaw = await readFile(codexPath, 'utf8');
-    assert.ok(codexRaw.includes('model = "torve"'));
+    assert.ok(codexRaw.includes('model = "torve-alpha"'));
     assert.ok(!codexRaw.includes(`${PEER_ID}@`));
 
     const modelsPath = path.join(dir, 'models.json');
@@ -725,6 +827,7 @@ test('Claude Code patch routes through the AI VPN alias and restores managed set
         DISABLE_AUTO_COMPACT: '1',
         ANTHROPIC_API_KEY: 'user-key',
       },
+      availableModels: ['sonnet'],
       hooks: { Stop: [] },
     }), 'utf8');
 
@@ -736,11 +839,18 @@ test('Claude Code patch routes through the AI VPN alias and restores managed set
     assert.deepEqual(config['hooks'], { Stop: [] });
     assert.deepEqual(config['env'], {
       DISABLE_AUTO_COMPACT: '1',
-      ANTHROPIC_API_KEY: '',
+      ANTHROPIC_API_KEY: 'torve-local-proxy',
       ANTHROPIC_BASE_URL: 'http://localhost:9456',
-      ANTHROPIC_AUTH_TOKEN: 'torve',
+      ANTHROPIC_AUTH_TOKEN: 'torve-local-proxy',
       ANTHROPIC_CUSTOM_HEADERS: 'x-torve-system-proxy-source: claude-code',
+      ANTHROPIC_MODEL: 'torve',
+      ANTHROPIC_DEFAULT_SONNET_MODEL: 'torve',
+      ANTHROPIC_DEFAULT_OPUS_MODEL: 'torve',
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'torve',
     });
+    assert.ok(config['availableModels'].includes('sonnet'));
+    assert.ok(config['availableModels'].includes('opus'));
+    assert.ok(config['availableModels'].includes('torve'));
     assert.ok(existsSync(`${configPath}.torve.bak`));
     assert.ok(existsSync(`${configPath}.torve.state.json`));
 
@@ -753,6 +863,7 @@ test('Claude Code patch routes through the AI VPN alias and restores managed set
         DISABLE_AUTO_COMPACT: '1',
         ANTHROPIC_API_KEY: 'user-key',
       },
+      availableModels: ['sonnet'],
       hooks: { Stop: [] },
     });
     assert.equal(existsSync(`${configPath}.torve.state.json`), false);
@@ -1204,4 +1315,61 @@ test('claudeDesktopPatchTargets: a missing Packages directory just skips the MSI
   const targets = claudeDesktopPatchTargets(patch, 'win32', { APPDATA: '/r', LOCALAPPDATA: '/l' }, () => []);
   assert.equal(targets.length, 4);
   assert.equal(targets[0]!.configPath, path.join('/r', 'Claude', 'claude_desktop_config.json'));
+});
+
+test('matchingClaudeDesktopTargets: windows includes both Roaming and Local Claude-3p when classic exists', () => {
+  const patch: ClaudeDesktopConfigPatchDef = {
+    format: 'claude-desktop',
+    configPath: '~/Library/Application Support/Claude/claude_desktop_config.json',
+    thirdPartyDir: '~/Library/Application Support/Claude-3p',
+    baseURL: 'http://127.0.0.1:{claudeGatewayPort}',
+  };
+  const env = { APPDATA: '/win/Roaming', LOCALAPPDATA: '/win/Local' };
+  const existing = new Set([path.join('/win/Roaming', 'Claude')]);
+  const matched = matchingClaudeDesktopTargets(patch, 'win32', env, () => [], (p) => existing.has(p));
+  assert.deepEqual(matched.map((t) => t.thirdPartyDir), [
+    path.join('/win/Roaming', 'Claude-3p'),
+    path.join('/win/Local', 'Claude-3p'),
+  ]);
+});
+
+test('applyConfigPatch merges existing Claude-3p configLibrary entries and preserves 3p preferences', async () => {
+  await withTempConfig(async (dir) => {
+    const patch = makeClaudeDesktopPatch(dir);
+    await mkdir(path.dirname(patch.configPath), { recursive: true });
+    await mkdir(path.join(patch.thirdPartyDir, 'configLibrary'), { recursive: true });
+    await writeFile(
+      path.join(patch.thirdPartyDir, 'claude_desktop_config.json'),
+      JSON.stringify({ deploymentMode: '1p', coworkUserFilesPath: 'C:\\Users\\User\\Claude', preferences: { sidebarMode: 'epitaxy' } }),
+      'utf8',
+    );
+    await writeFile(
+      path.join(patch.thirdPartyDir, 'configLibrary', '_meta.json'),
+      JSON.stringify({
+        appliedId: 'existing-id',
+        entries: [{ id: 'existing-id', name: 'Existing' }],
+      }),
+      'utf8',
+    );
+
+    applyConfigPatch(patch, PEER_ID, 9456);
+
+    const thirdParty = parseJsoncObject(
+      await readFile(path.join(patch.thirdPartyDir, 'claude_desktop_config.json'), 'utf8'),
+      'claude_desktop_config.json',
+    );
+    assert.equal(thirdParty['deploymentMode'], '3p');
+    assert.equal(thirdParty['coworkUserFilesPath'], 'C:\\Users\\User\\Claude');
+    assert.deepEqual(thirdParty['preferences'], { sidebarMode: 'epitaxy' });
+
+    const meta = parseJsoncObject(
+      await readFile(path.join(patch.thirdPartyDir, 'configLibrary', '_meta.json'), 'utf8'),
+      '_meta.json',
+    );
+    assert.equal(meta['appliedId'], CLAUDE_DESKTOP_PROFILE_ID);
+    assert.deepEqual(meta['entries'], [
+      { id: 'existing-id', name: 'Existing' },
+      { id: CLAUDE_DESKTOP_PROFILE_ID, name: 'Torve' },
+    ]);
+  });
 });

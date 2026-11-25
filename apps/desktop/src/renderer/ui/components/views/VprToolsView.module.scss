@@ -4,7 +4,6 @@
   min-height: 0;
   overflow: hidden;
 }
-
 .stack {
   height: 100%;
   min-height: 0;
@@ -123,6 +122,18 @@
   border-radius: 8px;
   background: var(--bg-card);
   color: var(--text-primary);
+  font: inherit;
+}
+
+.mcpModelNote {
+  margin: 6px 0 0 30px;
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.mcpModelNote code {
+  color: var(--accent-strong);
   font: inherit;
 }
 
@@ -1052,3 +1063,71 @@
 .activityRow small { overflow: hidden; color: var(--text-muted); text-overflow: ellipsis; white-space: nowrap; }
 .activitySuccess { color: #35b779; }
 .activityError { color: var(--danger, #e05c5c); }
+.antigravityNativePatch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--vpr-border-subtle);
+
+  > div { min-width: 0; }
+  strong { font-size: 12px; font-weight: 600; }
+}
+.torveBetaBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(216, 255, 10, 0.14);
+  color: #d8ff0a;
+  border: 1px solid rgba(216, 255, 10, 0.45);
+}
+.claudeCodeBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  background: rgba(20, 255, 115, 0.12);
+  color: #14ff73;
+  border: 1px solid rgba(20, 255, 115, 0.35);
+}
+.codexRestartNote {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--accent-yellow, #d8ff0a);
+}
+.backupStatusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vpr-border-subtle);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.backupRestoreBtn {
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 11px;
+  cursor: pointer;
+}
+.backupRestoreBtn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+/* End connected-app styles. */

@@ -45,12 +45,10 @@ import {
   TRAY_ICON_PATH,
   errorDetails,
   errorMessage,
-  getAppSetupStatus,
   getMacUpdateInstallHint,
   isDesktopDebugEnabled,
   isDev,
   rendererUrl,
-  setAppSetupStatus,
   type InstallUpdateResult,
   type UpdateStatus,
 } from './app-context.js';
@@ -263,6 +261,29 @@ function appendLog(mode: RuntimeMode, stream: 'stdout' | 'stderr' | 'system', li
   }
 }
 
+let p2pRouterPluginInstall: Promise<void> | null = null;
+
+/** P2P is optional. Keep its plugin bootstrap out of the Direct Cloud launch
+ * path, while still repairing/installing it before an explicit P2P start. */
+function ensureP2PRouterPlugin(): Promise<void> {
+  if (p2pRouterPluginInstall) return p2pRouterPluginInstall;
+
+  p2pRouterPluginInstall = ensureDefaultPlugin('@torveai/router-local', {
+    getAppSetupNeeded: () => false,
+    setAppSetupNeeded: () => {},
+    getAppSetupComplete: () => false,
+    setAppSetupComplete: () => {},
+    // P2P setup errors belong to the action that requested P2P; they must not
+    // replace the already-open Direct Cloud UI with the first-run splash.
+    getMainWindow: () => null,
+    appendLog,
+  }).finally(() => {
+    p2pRouterPluginInstall = null;
+  });
+
+  return p2pRouterPluginInstall;
+}
+
 // Wire up callbacks for extracted modules
 setPluginAppendLog(appendLog);
 
@@ -311,6 +332,7 @@ registerRuntimeIpc({
   getCombinedProcessState,
   killOrphanBuyerProxy,
   requestBuyerPeerRefresh,
+  ensureP2PRouterPlugin,
 });
 
 // Allowlisted top-level keys that the renderer is permitted to update via IPC.
@@ -347,6 +369,13 @@ const piChatEngine = registerPiChatHandlers({
     const connectState = getCombinedProcessState().find((state) => state.mode === 'connect');
     if (connectState?.running) {
       return true;
+    }
+
+    try {
+      await ensureP2PRouterPlugin();
+    } catch (error) {
+      appendLog('connect', 'system', `P2P router plugin is unavailable: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
     }
 
     await ensureSecureIdentity();
@@ -558,19 +587,6 @@ app.whenReady().then(async () => {
   });
 
   // Payments portal starts lazily on first open (via payments:open-portal IPC)
-
-  void ensureDefaultPlugin('@torveai/router-local', {
-    getAppSetupNeeded: () => getAppSetupStatus().needed,
-    setAppSetupNeeded: (v) => { setAppSetupStatus({ needed: v }); },
-    getAppSetupComplete: () => getAppSetupStatus().complete,
-    setAppSetupComplete: (v) => { setAppSetupStatus({ complete: v }); },
-    onAppSetupStarted: () => { void telemetryReady.then((telemetry) => telemetry?.recordSetupStarted()); },
-    onAppSetupCompleted: () => { void telemetryReady.then((telemetry) => telemetry?.recordSetupCompleted()); },
-    getMainWindow,
-    appendLog,
-  }).catch(() => {
-    // Failure is already logged via appendLog inside ensureDefaultPlugin.
-  });
 
   // Auto-update: check for updates silently on launch and every 30 minutes.
   // If an in-flight download stops emitting progress events for a couple of
@@ -827,7 +843,7 @@ app.whenReady().then(async () => {
       // padding the user-visible gap before the relaunch.
       'i=0; while kill -0 "$APP_PID" 2>/dev/null && [ "$i" -lt 180 ]; do sleep 1; i=$((i+1)); done',
       // The install gap has no UI at all — reassure via a system notification.
-      'osascript -e \'display notification "Installing the update — the app will reopen shortly." with title "Torve AI VPN"\' >/dev/null 2>&1 || true',
+      'osascript -e \'display notification "Installing the update — the app will reopen shortly." with title "Torve Desktop"\' >/dev/null 2>&1 || true',
       'j=0; while [ "$j" -lt 3 ]; do',
       '  sleep 2',
       '  launchctl print "gui/$(id -u)/$LABEL" 2>/dev/null | grep -q "state = running" && exit 0',
@@ -889,9 +905,9 @@ app.on('before-quit', (event) => {
     stakingSessions.pauseWrites();
   } catch {
     dialog.showMessageBoxSync({
-      type: 'info', title: 'Staking action in progress',
-      message: 'Wait for your staking action to finish before quitting VPR.',
-      detail: 'You can follow its progress in the staking dashboard.',
+      type: 'info', title: 'Action in progress',
+      message: 'Wait for the active background task to finish before quitting Torve Desktop.',
+      detail: 'Torve Desktop will exit cleanly as soon as it finishes.',
     });
     return;
   }

@@ -53,6 +53,24 @@ const CLAUDE_GATEWAY_MODEL_LABEL = 'Torve Auto';
     proxy should route when Claude picks it. */
 export type ClaudeGatewayModel = { label: string; model: string };
 
+/** Full catalog model entry used by Direct Torve Cloud so Claude Desktop renders
+    each Torve model under its own ID/display name instead of Claude slot names. */
+export type ClaudeDirectCatalogModel = {
+  readonly id: string;
+  readonly display_name?: unknown;
+  readonly name?: unknown;
+  readonly created_at?: unknown;
+  readonly max_input_tokens?: unknown;
+  readonly max_tokens?: unknown;
+};
+
+const TORVE_AUTO_GATEWAY_ID = 'torve-anthropic-00';
+const DIRECT_TIER_CYCLE = ['opus', 'sonnet', 'haiku'] as const;
+
+function directGatewayId(index: number): string {
+  return `torve-anthropic-${String(index + 1).padStart(2, '0')}`;
+}
+
 /**
  * Curated models for the picker slots, injected by main.ts from the chat
  * engine's model-picker snapshot (the renderer's favorites-then-recommended
@@ -61,9 +79,16 @@ export type ClaudeGatewayModel = { label: string; model: string };
  * system-proxy runtime that starts this gateway.
  */
 let sharedModelSource: (() => readonly ClaudeGatewayModel[]) | null = null;
+let sharedDirectCatalogSource: (() => readonly ClaudeDirectCatalogModel[]) | null = null;
 
 export function setClaudeDesktopGatewayModelSource(source: () => readonly ClaudeGatewayModel[]): void {
   sharedModelSource = source;
+}
+
+export function setClaudeDesktopGatewayDirectCatalogSource(
+  source: (() => readonly ClaudeDirectCatalogModel[]) | null,
+): void {
+  sharedDirectCatalogSource = source;
 }
 
 /**
@@ -91,6 +116,10 @@ export type ClaudeDesktopGatewayOptions = {
   /** Curated picker models for the catalog slots; defaults to the shared
       source injected via setClaudeDesktopGatewayModelSource. */
   readonly listModels?: () => readonly ClaudeGatewayModel[];
+  /** Direct Torve Cloud catalog models. When non-empty, `/v1/models` exposes
+      Torve Auto plus every concrete Torve model directly instead of borrowing
+      five Claude slot IDs. */
+  readonly listDirectModels?: () => readonly ClaudeDirectCatalogModel[];
   /** Where slot bindings persist. Claude caches the catalog across Torve
       restarts, so a fresh gateway must keep meaning the same models for the
       ids Claude already knows — without this file every app restart would
@@ -308,8 +337,65 @@ export class ClaudeDesktopGateway {
     return currentAssignments();
   }
 
+  private directCatalogEntries(): Record<string, unknown>[] | null {
+    const source = this.options.listDirectModels
+      ?? (this.options.upstreamPrefix ? sharedDirectCatalogSource : null);
+    const listed = source?.() ?? [];
+    if (listed.length === 0) return null;
+
+    const seen = new Set<string>();
+    const entries: Record<string, unknown>[] = [{
+      id: TORVE_AUTO_GATEWAY_ID,
+      type: 'model',
+      display_name: CLAUDE_GATEWAY_MODEL_LABEL,
+      created_at: '2026-06-09T00:00:00Z',
+      max_tokens: TORVE_MODEL_MAX_OUTPUT_TOKENS,
+      anthropic_family_tier: 'fable',
+      is_family_default: true,
+    }];
+    this.slotModels.set(TORVE_AUTO_GATEWAY_ID, ROUTED_MODEL_ALIAS);
+
+    let concreteIndex = 0;
+    for (const model of listed) {
+      const id = typeof model.id === 'string' ? model.id.trim() : '';
+      if (!id || id === 'auto' || id === ROUTED_MODEL_ALIAS || id === TORVE_AUTO_GATEWAY_ID || seen.has(id)) continue;
+      seen.add(id);
+      const rawName = typeof model.display_name === 'string'
+        ? model.display_name.trim()
+        : typeof model.name === 'string' ? model.name.trim() : '';
+      const createdAt = typeof model.created_at === 'string' && model.created_at.trim()
+        ? model.created_at.trim()
+        : '2026-06-09T00:00:00Z';
+      const maxInputTokens = typeof model.max_input_tokens === 'number' && Number.isFinite(model.max_input_tokens) && model.max_input_tokens > 0
+        ? model.max_input_tokens
+        : undefined;
+      const tier = concreteIndex < DIRECT_TIER_CYCLE.length ? DIRECT_TIER_CYCLE[concreteIndex]! : 'sonnet';
+      // Claude Desktop's 3p gateway validator (app.asar) drops any model id
+      // containing a third-party model family name (deepseek, gemma, qwen,
+      // nemotron, etc.) and requires "anthropic"/"claude"/tier in the id. Using
+      // `torve-anthropic-NN` passes that check while avoiding built-in Claude
+      // id collisions that would overwrite display_name with "Sonnet 5" etc.
+      const gatewayId = directGatewayId(concreteIndex);
+      entries.push({
+        id: gatewayId,
+        type: 'model',
+        display_name: rawName || id,
+        created_at: createdAt,
+        max_tokens: TORVE_MODEL_MAX_OUTPUT_TOKENS,
+        ...(maxInputTokens !== undefined ? { max_input_tokens: maxInputTokens } : {}),
+        anthropic_family_tier: tier,
+        is_family_default: concreteIndex < DIRECT_TIER_CYCLE.length,
+      });
+      this.slotModels.set(gatewayId, id);
+      this.slotModels.set(id, id);
+      concreteIndex++;
+    }
+    return entries;
+  }
+
   private serveModels(res: http.ServerResponse): void {
-    const data = this.assignSlots().map(({ slot, label }) => ({
+    const directData = this.directCatalogEntries();
+    const data = directData ?? this.assignSlots().map(({ slot, label }) => ({
       id: slot.id,
       type: 'model',
       display_name: label,
@@ -321,8 +407,8 @@ export class ClaudeDesktopGateway {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({
       data,
-      first_id: data[0]?.id ?? null,
-      last_id: data[data.length - 1]?.id ?? null,
+      first_id: data[0]?.['id'] ?? null,
+      last_id: data[data.length - 1]?.['id'] ?? null,
       has_more: false,
     }));
   }
@@ -351,7 +437,7 @@ export class ClaudeDesktopGateway {
       }
       // Claude may send a slot id from a catalog served before this process
       // started; make sure the slot map exists before resolving against it.
-      if (this.slotModels.size === 0) this.assignSlots();
+      if (!this.directCatalogEntries() && this.slotModels.size === 0) this.assignSlots();
       // The routing note goes only on real message turns — count_tokens
       // never reaches a model.
       const payload = rewriteModel(body, this.slotModels, { routingNote: url === '/v1/messages' });

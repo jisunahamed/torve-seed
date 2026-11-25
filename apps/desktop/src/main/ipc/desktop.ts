@@ -2,7 +2,7 @@
  * IPC surface for desktop shell actions: opening tools and external URLs,
  * window presets, directory pickers, and attachment downloads.
  */
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
 import {
   toolDesktopAppNames,
   toolResumeCommand,
@@ -249,4 +249,22 @@ export function registerDesktopIpc(): void {
   });
 
   ipcMain.handle('desktop:list-installed-apps', () => listInstalledAppsWithIcons());
+
+  ipcMain.handle('desktop:login-item-get', () => {
+    try {
+      return { ok: true, openAtLogin: Boolean(app.getLoginItemSettings().openAtLogin) };
+    } catch (err) {
+      return { ok: false, openAtLogin: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  ipcMain.handle('desktop:login-item-set', (_event, openAtLogin: unknown) => {
+    try {
+      const enabled = Boolean(openAtLogin);
+      app.setLoginItemSettings({ openAtLogin: enabled });
+      return { ok: true, openAtLogin: Boolean(app.getLoginItemSettings().openAtLogin) };
+    } catch (err) {
+      return { ok: false, openAtLogin: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
 }
