@@ -1,9 +1,14 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
+const PROBE_TIMEOUT_MS = 1_500;
+const STATUS_CACHE_TTL_MS = 15_000;
 
 const ORIGINAL_ENDPOINT = 'https://daily-cloudcode-pa.googleapis.com';
 // Same byte length as ORIGINAL_ENDPOINT. Percent-decoding produces exactly
@@ -13,7 +18,9 @@ const DEFAULT_INSTALL_DIR = path.join(process.env['LOCALAPPDATA'] || path.join(h
 const DEFAULT_BACKUP_ROOT = path.join(homedir(), '.torve', 'backups', 'antigravity-standalone');
 const STATE_FILE = 'state.json';
 
-if (Buffer.byteLength(ORIGINAL_ENDPOINT) !== Buffer.byteLength(PATCHED_ENDPOINT)) throw new Error('Antigravity endpoint patch must preserve the ASAR byte length.');
+if (Buffer.byteLength(ORIGINAL_ENDPOINT) !== Buffer.byteLength(PATCHED_ENDPOINT)) {
+  throw new Error('Antigravity endpoint patch must preserve the ASAR byte length.');
+}
 
 type PatchFile = { originalPath: string; backupPath: string; originalSha256: string; patchedSha256: string };
 export type AntigravityStandaloneManifest = { version: 1; antigravityVersion: string; createdAt: string; files: PatchFile[] };
@@ -33,39 +40,98 @@ export type AntigravityStandalonePatchOptions = {
   backupRoot?: string;
   version?: string;
   isRunning?: () => boolean;
+  bypassCache?: boolean;
 };
 
-function sha256(bytes: Uint8Array): string { return createHash('sha256').update(bytes).digest('hex'); }
+const versionCache = new Map<string, { sig: string; version: string }>();
+let defaultStatusCache: { at: number; sig: string; status: AntigravityStandaloneStatus } | null = null;
+let defaultStatusInFlight: Promise<AntigravityStandaloneStatus> | null = null;
+
+export function invalidateAntigravityStandaloneCache(): void {
+  defaultStatusCache = null;
+}
+
+function sha256(bytes: Uint8Array): string {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
 function occurrences(bytes: Buffer, needle: string): number {
-  const target = Buffer.from(needle); let count = 0; let offset = 0;
-  while ((offset = bytes.indexOf(target, offset)) !== -1) { count++; offset += target.length; }
+  const target = Buffer.from(needle);
+  let count = 0;
+  let offset = 0;
+  while ((offset = bytes.indexOf(target, offset)) !== -1) {
+    count++;
+    offset += target.length;
+  }
   return count;
 }
+
 function replaceExactlyOnce(bytes: Buffer, from: string, to: string): Buffer {
-  if (occurrences(bytes, from) !== 1 || occurrences(bytes, to) !== 0) throw new Error('Expected a single clean Antigravity Cloud Code endpoint pattern. Refusing to patch.');
+  if (occurrences(bytes, from) !== 1 || occurrences(bytes, to) !== 0) {
+    throw new Error('Expected a single clean Antigravity Cloud Code endpoint pattern. Refusing to patch.');
+  }
   const result = Buffer.from(bytes);
   Buffer.from(to).copy(result, result.indexOf(Buffer.from(from)));
   return result;
 }
+
 function paths(options: AntigravityStandalonePatchOptions) {
   const installDir = options.installDir ?? DEFAULT_INSTALL_DIR;
   const backupRoot = options.backupRoot ?? DEFAULT_BACKUP_ROOT;
-  return { installDir, backupRoot, exe: path.join(installDir, 'Antigravity.exe'), target: path.join(installDir, 'resources', 'app.asar'), state: path.join(backupRoot, STATE_FILE) };
+  return {
+    installDir,
+    backupRoot,
+    exe: path.join(installDir, 'Antigravity.exe'),
+    target: path.join(installDir, 'resources', 'app.asar'),
+    state: path.join(backupRoot, STATE_FILE),
+  };
 }
-function runningDefault(): boolean {
+
+async function runningDefaultAsync(): Promise<boolean> {
   if (process.platform !== 'win32') return false;
-  try { return !execFileSync('tasklist.exe', ['/FI', 'IMAGENAME eq Antigravity.exe', '/NH'], { encoding: 'utf8', windowsHide: true }).includes('No tasks are running'); }
-  catch { return false; }
+  try {
+    const { stdout } = await execFileAsync('tasklist.exe', ['/FI', 'IMAGENAME eq Antigravity.exe', '/NH'], {
+      encoding: 'utf8',
+      windowsHide: true,
+      timeout: PROBE_TIMEOUT_MS,
+    });
+    return !stdout.includes('No tasks are running');
+  } catch {
+    return false;
+  }
 }
-function installedVersion(exe: string, explicit?: string): string {
+
+async function installedVersionAsync(exe: string, explicit?: string): Promise<string> {
   if (explicit) return explicit;
   if (process.platform !== 'win32') return 'unknown';
-  const escaped = exe.replace(/'/g, "''");
   try {
-    return execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', `(Get-Item -LiteralPath '${escaped}').VersionInfo.ProductVersion`], { encoding: 'utf8', windowsHide: true }).trim() || 'unknown';
-  } catch { return 'unknown'; }
+    const exeStat = await stat(exe);
+    const sig = `${exeStat.mtimeMs}:${exeStat.size}`;
+    const cached = versionCache.get(exe);
+    if (cached && cached.sig === sig) return cached.version;
+
+    const escaped = exe.replace(/'/g, "''");
+    const { stdout } = await execFileAsync(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', `(Get-Item -LiteralPath '${escaped}').VersionInfo.ProductVersion`],
+      { encoding: 'utf8', windowsHide: true, timeout: PROBE_TIMEOUT_MS },
+    );
+    const version = stdout.trim() || 'unknown';
+    versionCache.set(exe, { sig, version });
+    return version;
+  } catch {
+    return 'unknown';
+  }
 }
-async function readJson<T>(filePath: string): Promise<T | null> { try { return JSON.parse(await readFile(filePath, 'utf8')) as T; } catch { return null; } }
+
+async function readJson<T>(filePath: string): Promise<T | null> {
+  try {
+    return JSON.parse(await readFile(filePath, 'utf8')) as T;
+  } catch {
+    return null;
+  }
+}
+
 async function atomicWrite(filePath: string, bytes: Uint8Array): Promise<void> {
   await mkdir(path.dirname(filePath), { recursive: true });
   const temp = `${filePath}.${process.pid}.${randomUUID()}.tmp`;
@@ -73,30 +139,138 @@ async function atomicWrite(filePath: string, bytes: Uint8Array): Promise<void> {
   await rename(temp, filePath);
 }
 
-export async function antigravityStandaloneStatus(options: AntigravityStandalonePatchOptions = {}): Promise<AntigravityStandaloneStatus> {
-  const p = paths(options); const running = (options.isRunning ?? runningDefault)();
-  if (!existsSync(p.exe) || !existsSync(p.target)) return { state: 'unavailable', installed: false, enabled: false, running, version: null, targetPath: p.target, message: 'Standalone Antigravity installation was not found.' };
-  const version = installedVersion(p.exe, options.version);
+async function computeStatus(options: AntigravityStandalonePatchOptions): Promise<AntigravityStandaloneStatus> {
+  const p = paths(options);
+  const runningPromise = options.isRunning ? Promise.resolve(options.isRunning()) : runningDefaultAsync();
+  const exeExists = existsSync(p.exe);
+  const targetExists = existsSync(p.target);
+  if (!exeExists || !targetExists) {
+    const running = await runningPromise;
+    return {
+      state: 'unavailable',
+      installed: false,
+      enabled: false,
+      running,
+      version: null,
+      targetPath: p.target,
+      message: 'Standalone Antigravity installation was not found.',
+    };
+  }
+
+  const [running, version] = await Promise.all([
+    runningPromise,
+    installedVersionAsync(p.exe, options.version),
+  ]);
+
   try {
-    const bytes = await readFile(p.target); const hash = sha256(bytes);
+    const bytes = await readFile(p.target);
+    const hash = sha256(bytes);
     const state = await readJson<PatchState>(p.state);
     const manifest = state ? await readJson<AntigravityStandaloneManifest>(state.manifestPath) : null;
     const file = manifest?.files.find((entry) => path.resolve(entry.originalPath) === path.resolve(p.target));
-    if (file && hash === file.patchedSha256) return { state: running ? 'close-antigravity' : 'active', installed: true, enabled: true, running, version, targetPath: p.target, message: running ? 'Close Antigravity before toggling.' : 'Active' };
-    if (state?.enabled && (!file || hash !== file.originalSha256)) return { state: running ? 'close-antigravity' : 'needs-reapply', installed: true, enabled: false, running, version, targetPath: p.target, message: running ? 'Close Antigravity before toggling.' : 'Needs Re-apply (Antigravity updated)' };
-    if (occurrences(bytes, ORIGINAL_ENDPOINT) === 1 && occurrences(bytes, PATCHED_ENDPOINT) === 0) return { state: running ? 'close-antigravity' : 'inactive', installed: true, enabled: false, running, version, targetPath: p.target, message: running ? 'Close Antigravity before toggling.' : 'Native picker patch is off.' };
-    return { state: 'error', installed: true, enabled: false, running, version, targetPath: p.target, message: 'Antigravity endpoint pattern is not in a recognized clean state.' };
-  } catch (err) { return { state: 'error', installed: true, enabled: false, running, version, targetPath: p.target, message: err instanceof Error ? err.message : String(err) }; }
+    if (file && hash === file.patchedSha256) {
+      return {
+        state: running ? 'close-antigravity' : 'active',
+        installed: true,
+        enabled: true,
+        running,
+        version,
+        targetPath: p.target,
+        message: running ? 'Close Antigravity before toggling.' : 'Active',
+      };
+    }
+    if (state?.enabled && (!file || hash !== file.originalSha256)) {
+      return {
+        state: running ? 'close-antigravity' : 'needs-reapply',
+        installed: true,
+        enabled: false,
+        running,
+        version,
+        targetPath: p.target,
+        message: running ? 'Close Antigravity before toggling.' : 'Needs Re-apply (Antigravity updated)',
+      };
+    }
+    if (occurrences(bytes, ORIGINAL_ENDPOINT) === 1 && occurrences(bytes, PATCHED_ENDPOINT) === 0) {
+      return {
+        state: running ? 'close-antigravity' : 'inactive',
+        installed: true,
+        enabled: false,
+        running,
+        version,
+        targetPath: p.target,
+        message: running ? 'Close Antigravity before toggling.' : 'Native picker patch is off.',
+      };
+    }
+    return {
+      state: 'error',
+      installed: true,
+      enabled: false,
+      running,
+      version,
+      targetPath: p.target,
+      message: 'Antigravity endpoint pattern is not in a recognized clean state.',
+    };
+  } catch (err) {
+    return {
+      state: 'error',
+      installed: true,
+      enabled: false,
+      running,
+      version,
+      targetPath: p.target,
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+async function targetSignature(p: ReturnType<typeof paths>): Promise<string> {
+  try {
+    const [targetStat, stateStat] = await Promise.all([
+      stat(p.target).catch(() => null),
+      stat(p.state).catch(() => null),
+    ]);
+    return `${targetStat?.mtimeMs ?? 0}:${targetStat?.size ?? 0}:${stateStat?.mtimeMs ?? 0}`;
+  } catch {
+    return 'none';
+  }
+}
+
+export async function antigravityStandaloneStatus(options: AntigravityStandalonePatchOptions = {}): Promise<AntigravityStandaloneStatus> {
+  const isDefaultCall = !options.installDir && !options.backupRoot && !options.version && !options.isRunning;
+  if (!isDefaultCall) {
+    return computeStatus(options);
+  }
+
+  const p = paths(options);
+  const sig = await targetSignature(p);
+  if (!options.bypassCache && defaultStatusCache && defaultStatusCache.sig === sig && Date.now() - defaultStatusCache.at < STATUS_CACHE_TTL_MS) {
+    const running = await runningDefaultAsync();
+    if (running === defaultStatusCache.status.running) {
+      return defaultStatusCache.status;
+    }
+  }
+
+  if (!defaultStatusInFlight) {
+    defaultStatusInFlight = computeStatus(options).then((status) => {
+      defaultStatusCache = { at: Date.now(), sig, status };
+      return status;
+    }).finally(() => {
+      defaultStatusInFlight = null;
+    });
+  }
+  return defaultStatusInFlight;
 }
 
 export async function enableAntigravityStandalonePatch(options: AntigravityStandalonePatchOptions = {}): Promise<AntigravityStandaloneStatus> {
-  const p = paths(options); const isRunning = options.isRunning ?? runningDefault;
-  if (isRunning()) throw new Error('Close Antigravity before enabling the native model picker patch.');
+  invalidateAntigravityStandaloneCache();
+  const p = paths(options);
+  const running = options.isRunning ? options.isRunning() : await runningDefaultAsync();
+  if (running) throw new Error('Close Antigravity before enabling the native model picker patch.');
   if (!existsSync(p.exe) || !existsSync(p.target)) throw new Error('Standalone Antigravity installation was not found.');
-  const version = installedVersion(p.exe, options.version);
+  const version = await installedVersionAsync(p.exe, options.version);
   const original = await readFile(p.target);
   if (occurrences(original, PATCHED_ENDPOINT) === 1 && occurrences(original, ORIGINAL_ENDPOINT) === 0) {
-    const status = await antigravityStandaloneStatus(options);
+    const status = await antigravityStandaloneStatus({ ...options, bypassCache: true });
     if (status.state === 'active') return status;
     throw new Error('Antigravity is patched but its verified Torve backup manifest is missing. Refusing to overwrite it.');
   }
@@ -105,22 +279,33 @@ export async function enableAntigravityStandalonePatch(options: AntigravityStand
   const backupPath = path.join(versionDir, 'app.asar.original');
   const manifestPath = path.join(versionDir, 'manifest.json');
   const prior = await readJson<AntigravityStandaloneManifest>(manifestPath);
-  if (prior && prior.files[0]?.originalSha256 !== sha256(original)) throw new Error('A different build with the same Antigravity version is already backed up. Refusing to overwrite the verified backup.');
+  if (prior && prior.files[0]?.originalSha256 !== sha256(original)) {
+    throw new Error('A different build with the same Antigravity version is already backed up. Refusing to overwrite the verified backup.');
+  }
   await mkdir(versionDir, { recursive: true });
   if (!existsSync(backupPath)) await atomicWrite(backupPath, original);
   const backup = await readFile(backupPath);
   if (sha256(backup) !== sha256(original)) throw new Error('Antigravity backup SHA-256 verification failed. Nothing was patched.');
-  const manifest: AntigravityStandaloneManifest = { version: 1, antigravityVersion: version, createdAt: new Date().toISOString(), files: [{ originalPath: p.target, backupPath, originalSha256: sha256(original), patchedSha256: sha256(patched) }] };
+  const manifest: AntigravityStandaloneManifest = {
+    version: 1,
+    antigravityVersion: version,
+    createdAt: new Date().toISOString(),
+    files: [{ originalPath: p.target, backupPath, originalSha256: sha256(original), patchedSha256: sha256(patched) }],
+  };
   await atomicWrite(manifestPath, Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`));
   await atomicWrite(p.target, patched);
-  if (sha256(await readFile(p.target)) !== manifest.files[0]!.patchedSha256) throw new Error('Antigravity patched-file verification failed. Restore from the verified backup before launching Antigravity.');
+  if (sha256(await readFile(p.target)) !== manifest.files[0]!.patchedSha256) {
+    throw new Error('Antigravity patched-file verification failed. Restore from the verified backup before launching Antigravity.');
+  }
   await atomicWrite(p.state, Buffer.from(`${JSON.stringify({ enabled: true, antigravityVersion: version, manifestPath, updatedAt: new Date().toISOString() } satisfies PatchState, null, 2)}\n`));
-  return antigravityStandaloneStatus(options);
+  return antigravityStandaloneStatus({ ...options, bypassCache: true });
 }
 
 export async function disableAntigravityStandalonePatch(options: AntigravityStandalonePatchOptions = {}): Promise<AntigravityStandaloneStatus> {
-  const p = paths(options); const isRunning = options.isRunning ?? runningDefault;
-  if (isRunning()) throw new Error('Close Antigravity before disabling the native model picker patch.');
+  invalidateAntigravityStandaloneCache();
+  const p = paths(options);
+  const running = options.isRunning ? options.isRunning() : await runningDefaultAsync();
+  if (running) throw new Error('Close Antigravity before disabling the native model picker patch.');
   const state = await readJson<PatchState>(p.state);
   if (!state) throw new Error('No Torve standalone Antigravity patch state was found.');
   const manifest = await readJson<AntigravityStandaloneManifest>(state.manifestPath);
@@ -133,7 +318,7 @@ export async function disableAntigravityStandalonePatch(options: AntigravityStan
   await atomicWrite(p.target, original);
   if (sha256(await readFile(p.target)) !== file.originalSha256) throw new Error('Antigravity restore verification failed.');
   await atomicWrite(p.state, Buffer.from(`${JSON.stringify({ ...state, enabled: false, updatedAt: new Date().toISOString() }, null, 2)}\n`));
-  return antigravityStandaloneStatus(options);
+  return antigravityStandaloneStatus({ ...options, bypassCache: true });
 }
 
 export const ANTIGRAVITY_STANDALONE_PATCH_INTERNALS = { ORIGINAL_ENDPOINT, PATCHED_ENDPOINT };

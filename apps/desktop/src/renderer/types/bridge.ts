@@ -495,10 +495,13 @@ export type DesktopBridge = {
   }>;
   torveBackupsList?: () => Promise<Array<{
     appId: string;
-    createdAt: number;
-    updatedAt: number;
-    filesCount: number;
-    targetPaths: string[];
+    patchedAt?: number | null;
+    createdAt?: number;
+    updatedAt?: number;
+    filesCount?: number;
+    targetPaths?: string[];
+    matchesPatched?: boolean;
+    files?: Array<{ originalPath: string; existedBefore: boolean }>;
   }>>;
   torveBackupsRestore?: (appId: string) => Promise<{ ok: boolean; restored: boolean; error?: string }>;
   torveBackupsDiscard?: (appId: string) => Promise<{ ok: boolean; error?: string }>;
@@ -521,8 +524,24 @@ export type DesktopBridge = {
     upstream: string;
   }>;
   torveModelsRefresh?: () => Promise<{ ok: boolean; error?: string }>;
+  onTorveModelsUpdated?: (handler: (catalog: {
+    models: Array<{
+      id: string;
+      name?: string;
+      display_name?: string;
+      tier?: string;
+      context_window?: number;
+      max_output_tokens?: number;
+      supports_tools?: boolean;
+      supports_reasoning?: boolean;
+      capabilities?: string[];
+    }>;
+    updatedAt: number | null;
+    stale: boolean;
+    upstream: string;
+  }) => void) => () => void;
   torveCloudProxyStatus?: () => Promise<{ running: boolean; port: number; upstream: string }>;
-  antigravityStandaloneStatus?: () => Promise<AntigravityStandalonePatchStatus>;
+  antigravityStandaloneStatus?: (opts?: { bypassCache?: boolean }) => Promise<AntigravityStandalonePatchStatus>;
   antigravityStandaloneSet?: (enabled: boolean) => Promise<{ ok: boolean; status?: AntigravityStandalonePatchStatus; error?: string }>;
   torveOverridesGet?: () => Promise<Record<string, { modelId: string; enabled: boolean }>>;
   torveOverrideSet?: (appId: string, value: { modelId: string; enabled: boolean } | null) => Promise<{ ok: boolean; overrides?: Record<string, { modelId: string; enabled: boolean }>; error?: string }>;
@@ -627,7 +646,7 @@ export type DesktopBridge = {
   onDepositsWatchStatus?: (handler: (data: DepositWatchStatus) => void) => () => void;
 
   systemProxyStart?: (opts: { peerId: string; port?: number; profiles?: string[]; defaultModel?: string; servedModels?: string[]; toolRoutes?: Record<string, { peerId: string; model: string }>; profileSwitch?: boolean }) => Promise<{ ok: boolean; state?: RuntimeProcessState; error?: string }>;
-  systemProxyListProfiles?: () => Promise<SystemProxyProfileSummary[]>;
+  systemProxyListProfiles?: (opts?: { refresh?: boolean }) => Promise<SystemProxyProfileSummary[]>;
   /** Installed applications for the "Open with" picker (macOS .app bundles,
       Windows Start Menu shortcuts). */
   listInstalledApps?: () => Promise<{ ok: boolean; apps: InstalledAppEntry[]; error?: string }>;

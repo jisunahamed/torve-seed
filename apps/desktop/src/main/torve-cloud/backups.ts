@@ -137,6 +137,10 @@ export async function discardDirectCloudBackup(appId: string): Promise<void> {
 export type DirectCloudBackupSummary = {
   appId: string;
   patchedAt: number | null;
+  createdAt: number;
+  updatedAt: number;
+  filesCount: number;
+  targetPaths: string[];
   matchesPatched: boolean;
   files: Array<{ originalPath: string; existedBefore: boolean }>;
 };
@@ -154,11 +158,17 @@ export async function listDirectCloudBackups(): Promise<DirectCloudBackupSummary
   for (const appId of entries.sort()) {
     const manifest = await load(appId);
     if (!manifest) continue;
+    const files = Array.isArray(manifest.entries) ? manifest.entries : [];
+    const ts = typeof manifest.patchedAt === 'number' && Number.isFinite(manifest.patchedAt) ? manifest.patchedAt : 0;
     results.push({
       appId: manifest.appId || appId,
-      patchedAt: manifest.patchedAt,
+      patchedAt: manifest.patchedAt ?? null,
+      createdAt: ts,
+      updatedAt: ts,
+      filesCount: files.length,
+      targetPaths: files.map((entry) => entry.originalPath).filter((p): p is string => typeof p === 'string'),
       matchesPatched: await directCloudBackupMatchesPatched(appId),
-      files: manifest.entries.map((entry) => ({
+      files: files.map((entry) => ({
         originalPath: entry.originalPath,
         existedBefore: entry.existedBefore,
       })),

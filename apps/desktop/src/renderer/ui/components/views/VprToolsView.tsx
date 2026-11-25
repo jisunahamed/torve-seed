@@ -5,7 +5,7 @@ import { Modal } from '@torveai/ui';
 import type { AntigravityStandalonePatchStatus, InstalledAppEntry, SystemProxyProfileSummary } from '../../../types/bridge';
 import { chooseBestVprRoute, isPeerRoutable } from '../../../modules/routing/select';
 import { routesForSelectedModel } from '../../../modules/catalog/view-models';
-import { installedAppsResource, systemProxyResource } from '../../../modules/app/vpr-resources';
+import { installedAppsResource, refreshSystemProxyProfilesForce, systemProxyResource } from '../../../modules/app/vpr-resources';
 import { useCachedResource } from '../../../modules/app/cached-resource';
 import {
   activeProfilesFromRuntimeState,
@@ -107,6 +107,8 @@ type GuiTestResult = {
 
 type CloudActivity = { id: string; timestamp: number; appId: string | null; protocol: string; requestedModel: string | null; resolvedModel: string | null; statusCode: number; latencyMs: number; stream: boolean; usage: { inputTokens: number; outputTokens: number } | null; errorSummary: string | null };
 
+let cachedCloudModelsSnapshot: Array<{ id: string }> = [];
+
 export function VprToolsView() {
   const actions = useActions();
   const snap = useUiSelector((state) => ({
@@ -133,7 +135,7 @@ export function VprToolsView() {
   const [guiTest, setGuiTest] = useState<GuiTestResult | null>(null);
   const [trustBusy, setTrustBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [cloudModels, setCloudModels] = useState<Array<{ id: string }>>([]);
+  const [cloudModels, setCloudModels] = useState<Array<{ id: string }>>(() => cachedCloudModelsSnapshot);
   const [modelOverrides, setModelOverrides] = useState<Record<string, { modelId: string; enabled: boolean }>>({});
   const [modelsRefreshing, setModelsRefreshing] = useState(false);
   const [cloudConnected, setCloudConnected] = useState(false);
@@ -216,18 +218,26 @@ export function VprToolsView() {
         const refreshed = await bridge?.torveModelsRefresh?.();
         if (refreshed && !refreshed.ok) throw new Error(refreshed.error ?? 'Unable to refresh Torve models');
       }
-      const [catalog, overrides, account, backups] = await Promise.all([
-        bridge?.torveModelsGet?.(),
-        bridge?.torveOverridesGet?.(),
-        bridge?.torveAccountGet?.(),
-        bridge?.torveBackupsList?.(),
-      ]);
-      setCloudModels(catalog?.models ?? []);
-      setModelOverrides(overrides ?? {});
-      setCloudConnected(account?.connected === true);
-      if (Array.isArray(backups)) {
-        setBackupsByApp(Object.fromEntries(backups.map((b) => [b.appId, { filesCount: b.filesCount, updatedAt: b.updatedAt }])));
-      }
+      void bridge?.torveModelsGet?.().then((catalog) => {
+        if (Array.isArray(catalog?.models)) {
+          cachedCloudModelsSnapshot = catalog.models;
+          setCloudModels(catalog.models);
+        }
+      });
+      void bridge?.torveAccountGet?.().then((account) => {
+        setCloudConnected(account?.connected === true);
+      });
+      void bridge?.torveOverridesGet?.().then((overrides) => {
+        if (overrides) setModelOverrides(overrides);
+      });
+      void bridge?.torveBackupsList?.().then((backups) => {
+        if (Array.isArray(backups)) {
+          setBackupsByApp(Object.fromEntries(backups.map((b) => [
+            b.appId,
+            { filesCount: b.filesCount ?? b.files?.length ?? 0, updatedAt: b.updatedAt ?? b.patchedAt ?? 0 },
+          ])));
+        }
+      });
     } catch (err) {
       setMessage(err instanceof Error ? err.message : String(err));
     } finally {
@@ -235,13 +245,34 @@ export function VprToolsView() {
     }
   }, []);
 
-  useEffect(() => { void refreshCloudModels(false); }, [refreshCloudModels]);
+  useEffect(() => {
+    void refreshCloudModels(false);
+    const bridge = window.torveDesktop;
+    const unsubModels = bridge?.onTorveModelsUpdated?.((catalog) => {
+      if (Array.isArray(catalog?.models)) {
+        cachedCloudModelsSnapshot = catalog.models;
+        setCloudModels(catalog.models);
+      }
+    });
+    const unsubAuth = bridge?.onTorveAuthEvent?.((event) => {
+      if (event.status === 'connected') {
+        setCloudConnected(true);
+        void refreshCloudModels(false);
+      } else if (event.status === 'cancelled') {
+        setCloudConnected(false);
+      }
+    });
+    return () => {
+      unsubModels?.();
+      unsubAuth?.();
+    };
+  }, [refreshCloudModels]);
 
-  const refreshAntigravityPatch = useCallback(async () => {
-    try { setAntigravityPatch(await window.torveDesktop?.antigravityStandaloneStatus?.() ?? null); }
+  const refreshAntigravityPatch = useCallback(async (bypassCache = false) => {
+    try { setAntigravityPatch(await window.torveDesktop?.antigravityStandaloneStatus?.(bypassCache ? { bypassCache: true } : undefined) ?? null); }
     catch { setAntigravityPatch(null); }
   }, []);
-  useEffect(() => { void refreshAntigravityPatch(); }, [refreshAntigravityPatch]);
+  useEffect(() => { void refreshAntigravityPatch(false); }, [refreshAntigravityPatch]);
 
   const toggleAntigravityPatch = useCallback(async () => {
     if (!antigravityPatch || antigravityPatch.running) return;
@@ -649,9 +680,9 @@ export function VprToolsView() {
             onClick={() => {
               setAppsRefreshing(true);
               void Promise.all([
-                refresh(),
+                refreshSystemProxyProfilesForce(),
                 refreshCloudModels(true),
-                refreshAntigravityPatch(),
+                refreshAntigravityPatch(true),
               ]).finally(() => setAppsRefreshing(false));
             }}
           >

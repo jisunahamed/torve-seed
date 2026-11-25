@@ -405,11 +405,16 @@ const api = {
   torveModelsRefresh(): Promise<{ ok: boolean; error?: string }> {
     return ipcRenderer.invoke('torve:models-refresh') as Promise<{ ok: boolean; error?: string }>;
   },
+  onTorveModelsUpdated(handler: (catalog: unknown) => void): () => void {
+    const listener = (_event: unknown, payload: unknown) => handler(payload);
+    ipcRenderer.on('torve:models-updated', listener);
+    return () => ipcRenderer.off('torve:models-updated', listener);
+  },
   torveCloudProxyStatus() {
     return ipcRenderer.invoke('torve:proxy-status');
   },
-  antigravityStandaloneStatus() {
-    return ipcRenderer.invoke('torve:antigravity-standalone-status');
+  antigravityStandaloneStatus(opts?: { bypassCache?: boolean }) {
+    return ipcRenderer.invoke('torve:antigravity-standalone-status', opts);
   },
   antigravityStandaloneSet(enabled: boolean) {
     return ipcRenderer.invoke('torve:antigravity-standalone-set', enabled);
@@ -671,8 +676,8 @@ const api = {
   systemProxyStart(opts: { peerId: string; port?: number; profiles?: string[]; defaultModel?: string; servedModels?: string[]; toolRoutes?: Record<string, { peerId: string; model: string }>; profileSwitch?: boolean }): Promise<{ ok: boolean; state?: RuntimeProcessState; error?: string }> {
     return ipcRenderer.invoke('system-proxy:start', opts) as Promise<{ ok: boolean; state?: RuntimeProcessState; error?: string }>;
   },
-  systemProxyListProfiles() {
-    return ipcRenderer.invoke('system-proxy:list-profiles');
+  systemProxyListProfiles(opts?: { refresh?: boolean }) {
+    return ipcRenderer.invoke('system-proxy:list-profiles', opts);
   },
   systemProxyAddCustomApp(opts: { apiUrl: string; app?: { name: string; path: string } | null; force?: boolean }): Promise<{ ok: boolean; name?: string; unverified?: boolean; error?: string }> {
     return ipcRenderer.invoke('system-proxy:add-custom-app', opts) as Promise<{ ok: boolean; name?: string; unverified?: boolean; error?: string }>;

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ViewErrorBoundary } from './components/ViewErrorBoundary';
 import { ViewHost } from './components/ViewHost';
 import { preloadViews, viewsForPreload } from './components/viewRegistry';
 import { VIEW_NAMES, type ViewName } from './types';
@@ -72,7 +73,9 @@ export function AppShell() {
 
   return (
     <VprShell activeView={activeView} onSelectView={handleSelectView} onNavigateBack={handleNavigateBack}>
-      <ViewHost activeView={activeView} onSelectView={handleSelectView} />
+      <ViewErrorBoundary resetKey={activeView} onGoHome={() => handleSelectView('home')}>
+        <ViewHost activeView={activeView} onSelectView={handleSelectView} />
+      </ViewErrorBoundary>
     </VprShell>
   );
 }

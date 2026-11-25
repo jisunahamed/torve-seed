@@ -7,6 +7,7 @@ import type {
 import { createCachedResource } from './cached-resource';
 
 const POLL_MS = 3_000;
+const PROFILES_POLL_MS = 30_000;
 
 export const buyerConversationsResource = createCachedResource<BuyerConversationSummary[]>({
   pollMs: POLL_MS,
@@ -23,7 +24,7 @@ export type SystemProxySnapshot = {
 };
 
 export const systemProxyResource = createCachedResource<SystemProxySnapshot>({
-  pollMs: POLL_MS,
+  pollMs: PROFILES_POLL_MS,
   async load() {
     const bridge = window.torveDesktop;
     const [profiles, state] = await Promise.all([
@@ -33,6 +34,16 @@ export const systemProxyResource = createCachedResource<SystemProxySnapshot>({
     return { profiles, state };
   },
 });
+
+export async function refreshSystemProxyProfilesForce(): Promise<void> {
+  const bridge = window.torveDesktop;
+  if (!bridge) return;
+  const [profiles, state] = await Promise.all([
+    bridge.systemProxyListProfiles?.({ refresh: true }) ?? Promise.resolve([]),
+    bridge.systemProxyGetState?.() ?? Promise.resolve(null),
+  ]);
+  systemProxyResource.setData({ profiles, state });
+}
 
 export const installedAppsResource = createCachedResource<InstalledAppEntry[]>({
   async load() {

@@ -26,10 +26,12 @@ type CloudActivity = {
 
 type BackupSummary = {
   appId: string;
-  createdAt: number;
-  updatedAt: number;
-  filesCount: number;
-  targetPaths: string[];
+  createdAt?: number;
+  updatedAt?: number;
+  patchedAt?: number | null;
+  filesCount?: number;
+  targetPaths?: string[];
+  files?: Array<{ originalPath: string; existedBefore: boolean }>;
 };
 
 declare const __APP_VERSION__: string;
@@ -294,22 +296,30 @@ export function VprPreferencesView(_props: Props) {
           {backupNotice ? <div className={styles.feedback}>{backupNotice}</div> : null}
 
           {backups.length > 0 ? (
-            backups.map((b) => (
-              <div key={b.appId} className={styles.backupRow}>
-                <div className={styles.backupMeta}>
-                  <span className={styles.backupTitle}>{b.appId} ({b.filesCount} {b.filesCount === 1 ? 'file' : 'files'})</span>
-                  <span className={styles.backupPaths}>{b.targetPaths.join(', ')}</span>
+            backups.map((b) => {
+              const pathsList = Array.isArray(b.targetPaths)
+                ? b.targetPaths
+                : Array.isArray(b.files)
+                  ? b.files.map((f) => f.originalPath).filter(Boolean)
+                  : [];
+              const count = typeof b.filesCount === 'number' ? b.filesCount : pathsList.length;
+              return (
+                <div key={b.appId} className={styles.backupRow}>
+                  <div className={styles.backupMeta}>
+                    <span className={styles.backupTitle}>{b.appId} ({count} {count === 1 ? 'file' : 'files'})</span>
+                    <span className={styles.backupPaths}>{pathsList.join(', ') || 'Original config backup'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.btn}
+                    disabled={backupBusy === b.appId}
+                    onClick={() => { void restoreBackup(b.appId); }}
+                  >
+                    {backupBusy === b.appId ? 'Restoring…' : 'Restore Original'}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className={styles.btn}
-                  disabled={backupBusy === b.appId}
-                  onClick={() => { void restoreBackup(b.appId); }}
-                >
-                  {backupBusy === b.appId ? 'Restoring…' : 'Restore Original'}
-                </button>
-              </div>
-            ))
+              );
+            })
           ) : (
             <p className={styles.empty}>No active harness backups found right now.</p>
           )}

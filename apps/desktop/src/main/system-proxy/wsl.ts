@@ -57,9 +57,10 @@ export type WslConfigTarget = {
 /** Utility distros that never carry user tooling — not worth cold-starting. */
 const IGNORED_DISTROS = /^(docker-desktop|docker-desktop-data|rancher-desktop|rancher-desktop-data|podman-machine)/i;
 
-const WSL_EXEC_TIMEOUT_MS = 30_000;
+const WSL_EXEC_TIMEOUT_MS = 1_500;
 
 function runWsl(args: readonly string[]): Buffer | null {
+  if (process.platform !== 'win32') return null;
   try {
     return execFileSync('wsl.exe', [...args], {
       timeout: WSL_EXEC_TIMEOUT_MS,

@@ -14,6 +14,7 @@ import {
   saveCustomApps,
 } from '../connected-apps/custom.js';
 import {
+  invalidateInstalledAppsCache,
   installedAppIcon,
 } from '../connected-apps/installed.js';
 import {
@@ -28,7 +29,7 @@ import {
   restartAppTarget,
 } from '../connected-apps/launcher.js';
 import {
-  effectiveLaunchTarget,
+  effectiveLaunchTargetAsync,
   effectiveToolSlugs,
   launchTargetIcon,
   readInstalledAppTarget,
@@ -74,53 +75,127 @@ import {
 } from 'node:fs';
 import path from 'node:path';
 
+const PROFILES_CACHE_TTL_MS = 30_000;
+const PROFILE_PROBE_TIMEOUT_MS = 1_500;
+
+type ProfileRow = Record<string, unknown>;
+let cachedProfiles: { at: number; data: ProfileRow[] } | null = null;
+let profilesInFlight: Promise<ProfileRow[]> | null = null;
+
+export function invalidateSystemProxyProfilesCache(): void {
+  cachedProfiles = null;
+}
+
+export function prewarmSystemProxyProfiles(): void {
+  if (cachedProfiles || profilesInFlight) return;
+  const run = buildProfilesSnapshot(false).catch(() => []).finally(() => {
+    if (profilesInFlight === run) profilesInFlight = null;
+  });
+  profilesInFlight = run;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(fallback);
+      },
+    );
+  });
+}
+
+async function buildProfilesSnapshot(refresh: boolean): Promise<ProfileRow[]> {
+  if (refresh) invalidateInstalledAppsCache();
+
+  const buildBuiltIn = Promise.allSettled(SYSTEM_PROXY_PROFILES.map(async (profile) => {
+    const launchTarget = await withTimeout(
+      effectiveLaunchTargetAsync(profile.name, { refresh }),
+      PROFILE_PROBE_TIMEOUT_MS,
+      null,
+    );
+    const [iconDataUri, needsRestart] = launchTarget
+      ? await Promise.all([
+          withTimeout(launchTargetIcon(launchTarget.path), PROFILE_PROBE_TIMEOUT_MS, null),
+          withTimeout(appTargetNeedsRestart(launchTarget, getLastSystemProxySetupAt()), PROFILE_PROBE_TIMEOUT_MS, false),
+        ])
+      : [null, false];
+    return {
+      name: profile.name,
+      displayName: profile.label,
+      kind: profile.kind,
+      method: profile.method,
+      domains: profile.domains,
+      appAction: profile.appAction,
+      openUrl: profile.openUrl,
+      toolName: profile.toolName,
+      canRestart: Boolean(launchTarget),
+      needsRestart,
+      toolSlugs: effectiveToolSlugs(profile.name, profile.toolSlugs, profile.label),
+      ...(iconDataUri ? { iconDataUri } : {}),
+      ...(launchTarget ? { launchAppName: launchTarget.name } : {}),
+    };
+  }));
+
+  const buildCustom = Promise.allSettled(loadCustomAppRecords().map(async (record) => {
+    const launchTarget = await withTimeout(
+      effectiveLaunchTargetAsync(record.name, { refresh }),
+      PROFILE_PROBE_TIMEOUT_MS,
+      null,
+    );
+    const displayName = launchTarget?.name ?? record.displayName;
+    const [targetIcon, needsRestart] = launchTarget
+      ? await Promise.all([
+          withTimeout(launchTargetIcon(launchTarget.path), PROFILE_PROBE_TIMEOUT_MS, null),
+          withTimeout(appTargetNeedsRestart(launchTarget, getLastSystemProxySetupAt()), PROFILE_PROBE_TIMEOUT_MS, false),
+        ])
+      : [null, false];
+    const iconDataUri = targetIcon ?? record.iconDataUri;
+    return {
+      name: record.name,
+      displayName,
+      kind: 'proxy' as const,
+      method: 'HTTPS proxy',
+      domains: [record.host],
+      canRestart: Boolean(launchTarget),
+      needsRestart,
+      custom: true,
+      toolSlugs: effectiveToolSlugs(record.name, undefined, displayName),
+      ...(iconDataUri ? { iconDataUri } : {}),
+      ...(launchTarget ? { launchAppName: launchTarget.name } : {}),
+    };
+  }));
+
+  const [baseSettled, customSettled] = await Promise.all([buildBuiltIn, buildCustom]);
+  const rows: ProfileRow[] = [];
+  for (const res of [...baseSettled, ...customSettled]) {
+    if (res.status === 'fulfilled') rows.push(res.value);
+  }
+  cachedProfiles = { at: Date.now(), data: rows };
+  return rows;
+}
+
 export function registerSystemProxyIpc(deps: { processManager: ProcessManager }): void {
   const { processManager } = deps;
 
-  ipcMain.handle('system-proxy:list-profiles', async () => {
-    const base = await Promise.all(SYSTEM_PROXY_PROFILES.map(async (profile) => {
-      const launchTarget = effectiveLaunchTarget(profile.name);
-      // The associated application's real icon represents the row; the
-      // renderer falls back to a drawn brand mark without one.
-      const iconDataUri = launchTarget ? await launchTargetIcon(launchTarget.path) : null;
-      return {
-        name: profile.name,
-        displayName: profile.label,
-        kind: profile.kind,
-        method: profile.method,
-        domains: profile.domains,
-        appAction: profile.appAction,
-        openUrl: profile.openUrl,
-        toolName: profile.toolName,
-        canRestart: Boolean(launchTarget),
-        needsRestart: launchTarget ? await appTargetNeedsRestart(launchTarget, getLastSystemProxySetupAt()) : false,
-        toolSlugs: effectiveToolSlugs(profile.name, profile.toolSlugs, profile.label),
-        ...(iconDataUri ? { iconDataUri } : {}),
-        ...(launchTarget ? { launchAppName: launchTarget.name } : {}),
-      };
-    }));
-    const custom = await Promise.all(loadCustomAppRecords().map(async (record) => {
-      const launchTarget = effectiveLaunchTarget(record.name);
-      // The picked application's name and icon identify a custom app, ahead of
-      // whatever the record captured (site favicon/title) when it was added.
-      const displayName = launchTarget?.name ?? record.displayName;
-      const iconDataUri = (launchTarget ? await launchTargetIcon(launchTarget.path) : null)
-        ?? record.iconDataUri;
-      return {
-        name: record.name,
-        displayName,
-        kind: 'proxy' as const,
-        method: 'HTTPS proxy',
-        domains: [record.host],
-        canRestart: Boolean(launchTarget),
-        needsRestart: launchTarget ? await appTargetNeedsRestart(launchTarget, getLastSystemProxySetupAt()) : false,
-        custom: true,
-        toolSlugs: effectiveToolSlugs(record.name, undefined, displayName),
-        ...(iconDataUri ? { iconDataUri } : {}),
-        ...(launchTarget ? { launchAppName: launchTarget.name } : {}),
-      };
-    }));
-    return [...base, ...custom];
+  ipcMain.handle('system-proxy:list-profiles', async (_event, opts?: { refresh?: boolean }) => {
+    const forceRefresh = opts?.refresh === true;
+    if (!forceRefresh && cachedProfiles && Date.now() - cachedProfiles.at < PROFILES_CACHE_TTL_MS) {
+      return cachedProfiles.data;
+    }
+    if (!forceRefresh && profilesInFlight) {
+      return profilesInFlight;
+    }
+    const run = buildProfilesSnapshot(forceRefresh).finally(() => {
+      if (profilesInFlight === run) profilesInFlight = null;
+    });
+    profilesInFlight = run;
+    return run;
   });
 
   ipcMain.handle('system-proxy:set-app-launch', async (_event, opts: { name?: string; app?: { name?: string; path?: string } | null }) => {
@@ -136,6 +211,7 @@ export function registerSystemProxyIpc(deps: { processManager: ProcessManager })
     }
     setAppLaunchSetting(resolveConnectDataDir(), name, target);
     await syncCustomAppDisplay(name, target);
+    invalidateSystemProxyProfilesCache();
     refreshTrayMenu();
     return { ok: true };
   });
@@ -198,6 +274,7 @@ export function registerSystemProxyIpc(deps: { processManager: ProcessManager })
       saveCustomApps(dataDir, [...loadCustomApps(dataDir), record]);
       // The picked application also becomes the profile's "Open with" target.
       if (launchTarget) setAppLaunchSetting(dataDir, record.name, launchTarget);
+      invalidateSystemProxyProfilesCache();
       refreshTrayMenu();
       return { ok: true, name: record.name };
     } catch (err) {
@@ -218,6 +295,7 @@ export function registerSystemProxyIpc(deps: { processManager: ProcessManager })
       // doesn't inherit them.
       setAppLaunchSetting(dataDir, name, null);
       setAppIdentitySetting(dataDir, name, null);
+      invalidateSystemProxyProfilesCache();
       refreshTrayMenu();
       return { ok: true };
     } catch (err) {
@@ -329,7 +407,7 @@ export function registerSystemProxyIpc(deps: { processManager: ProcessManager })
   ipcMain.handle('system-proxy:restart-app', async (_event, opts: { app: string }) => {
     const profileName = typeof opts?.app === 'string' ? opts.app : '';
     const profile = allSystemProxyProfiles().find((item) => item.name === profileName);
-    const target = effectiveLaunchTarget(profileName);
+    const target = await effectiveLaunchTargetAsync(profileName);
     if (!profile || !target) {
       return { ok: false, error: `No restart target configured for ${profileName || 'this profile'}.` };
     }

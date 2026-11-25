@@ -1,10 +1,7 @@
-import { useContext } from 'react';
 import type { CSSProperties, JSX, ReactNode } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowLeft01Icon, Search01Icon } from '@hugeicons/core-free-icons';
-import { useUiSelector } from '../../hooks/useUiSelector';
-import { VprNavContext, useVprNavBack } from './VprNavContext';
-import { VprHeaderActions } from './VprHeaderActions';
+import { useVprNavBack } from './VprNavContext';
 import type { ViewName } from '../../types';
 import styles from './VprKit.module.scss';
 
@@ -51,15 +48,12 @@ export function VprPage({ title, onBack, backFallback, header, children }: {
   header?: ReactNode;
   children: ReactNode;
 }): JSX.Element {
-  const nav = useContext(VprNavContext);
-  const credits = useUiSelector((state) => state.creditsTotalOwnedUsdc);
   return (
     <>
       <div className={styles.pageTop}>
         <div className={styles.pageTopInner}>
           <div className={styles.pageHeaderRow}>
             <VprBackTitle title={title} onBack={onBack} fallback={backFallback} />
-            <VprHeaderActions credits={credits} onSelectView={nav?.navigate} />
           </div>
           {header}
         </div>

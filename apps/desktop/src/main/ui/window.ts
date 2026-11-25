@@ -76,12 +76,9 @@ const WINDOW_SIZE_PRESETS: Record<WindowSizePresetName, WindowSizePreset> = {
     minHeight: 700,
   },
   compact: {
-    // 88px nav rail + 424px pane: the pane shows the 392px content stack
-    // with 16px view padding, so the 408px-wide banner asset renders at its
-    // native size with the design's 8px side gutters.
-    width: 512,
-    height: 656,
-    minWidth: 480,
+    width: 820,
+    height: 720,
+    minWidth: 540,
     minHeight: 560,
   },
 };

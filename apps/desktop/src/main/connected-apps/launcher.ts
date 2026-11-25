@@ -26,22 +26,28 @@ export type AppProcessInfo = { running: boolean; pid?: number; startedAt?: numbe
 type ManagedAppProcess = { launchedAt: number; pid?: number; startedAt?: number };
 
 const managedAppProcesses = new Map<string, ManagedAppProcess>();
-const windowsPackagedExecutables = new Map<string, string>();
+const windowsPackagedExecutables = new Map<string, string | null>();
+const windowsPackagedInFlight = new Map<string, Promise<string | null>>();
 
 const execFileAsync = promisify(execFile);
 
 /** How long a cached process check may serve the renderer's status polls.
     Restart flows always query fresh — see `appTargetProcessInfo`. */
-const PROCESS_INFO_TTL_MS = 2_000;
+const PROCESS_INFO_TTL_MS = 15_000;
+const SUBPROCESS_TIMEOUT_MS = 1_500;
 const processInfoCache = new Map<string, { at: number; info: AppProcessInfo }>();
 
 async function runCommand(
   command: string,
   args: string[],
-  opts: { windowsHide?: boolean } = {},
+  opts: { windowsHide?: boolean; timeout?: number } = {},
 ): Promise<string | null> {
   try {
-    const { stdout } = await execFileAsync(command, args, { encoding: 'utf8', ...opts });
+    const { stdout } = await execFileAsync(command, args, {
+      encoding: 'utf8',
+      timeout: opts.timeout ?? SUBPROCESS_TIMEOUT_MS,
+      ...opts,
+    });
     return stdout;
   } catch {
     return null;
@@ -79,7 +85,7 @@ export function windowsExecutablePath(targetPath: string): string | null {
   if (path.extname(targetPath).toLowerCase() === '.exe') return targetPath;
   if (isAppsFolderTarget(targetPath)) {
     const cached = windowsPackagedExecutables.get(targetPath);
-    if (cached) return cached;
+    if (cached !== undefined) return cached;
     const appId = targetPath.slice(APPS_FOLDER_PREFIX.length);
     try {
       const executable = execFileSync(
@@ -90,12 +96,13 @@ export function windowsExecutablePath(targetPath: string): string | null {
           '-Command',
           `$id = '${appId.replace(/'/g, "''")}'; $app = Get-AppxPackage | ForEach-Object { $package = $_; try { Get-AppxPackageManifest -Package $package | ForEach-Object { $manifest = $_; $manifest.Package.Applications.Application | Where-Object { ($package.PackageFamilyName + '!' + $_.Id) -eq $id } | ForEach-Object { Join-Path $package.InstallLocation $_.Executable } } } catch {} } | Select-Object -First 1; if ($app) { $app }`,
         ],
-        { encoding: 'utf8', windowsHide: true, timeout: 10_000 },
+        { encoding: 'utf8', windowsHide: true, timeout: SUBPROCESS_TIMEOUT_MS },
       ).trim();
-      if (!executable || path.extname(executable).toLowerCase() !== '.exe') return null;
-      windowsPackagedExecutables.set(targetPath, executable);
-      return executable;
+      const resolved = executable && path.extname(executable).toLowerCase() === '.exe' ? executable : null;
+      windowsPackagedExecutables.set(targetPath, resolved);
+      return resolved;
     } catch {
+      windowsPackagedExecutables.set(targetPath, null);
       return null;
     }
   }
@@ -110,14 +117,57 @@ export function windowsExecutablePath(targetPath: string): string | null {
   }
 }
 
+export async function windowsExecutablePathAsync(targetPath: string): Promise<string | null> {
+  if (process.platform !== 'win32') return null;
+  if (path.extname(targetPath).toLowerCase() === '.exe') return targetPath;
+  if (!isAppsFolderTarget(targetPath)) return windowsExecutablePath(targetPath);
+
+  const cached = windowsPackagedExecutables.get(targetPath);
+  if (cached !== undefined) return cached;
+
+  const existing = windowsPackagedInFlight.get(targetPath);
+  if (existing) return existing;
+
+  const appId = targetPath.slice(APPS_FOLDER_PREFIX.length);
+  const promise = execFileAsync(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-NonInteractive',
+      '-Command',
+      `$id = '${appId.replace(/'/g, "''")}'; $app = Get-AppxPackage | ForEach-Object { $package = $_; try { Get-AppxPackageManifest -Package $package | ForEach-Object { $manifest = $_; $manifest.Package.Applications.Application | Where-Object { ($package.PackageFamilyName + '!' + $_.Id) -eq $id } | ForEach-Object { Join-Path $package.InstallLocation $_.Executable } } } catch {} } | Select-Object -First 1; if ($app) { $app }`,
+    ],
+    { encoding: 'utf8', windowsHide: true, timeout: SUBPROCESS_TIMEOUT_MS },
+  ).then(({ stdout }) => {
+    const executable = stdout.trim();
+    const resolved = executable && path.extname(executable).toLowerCase() === '.exe' ? executable : null;
+    windowsPackagedExecutables.set(targetPath, resolved);
+    return resolved;
+  }).catch(() => {
+    windowsPackagedExecutables.set(targetPath, null);
+    return null;
+  }).finally(() => {
+    windowsPackagedInFlight.delete(targetPath);
+  });
+
+  windowsPackagedInFlight.set(targetPath, promise);
+  return promise;
+}
+
 async function queryAppTargetProcessInfo(target: AppLaunchTarget): Promise<AppProcessInfo> {
   if (process.platform === 'darwin') {
     if (!target.path.endsWith('.app')) return getMacAppProcessInfo(target.name);
     return macProcessInfoByPgrep(['-f', escapeRegExpLiteral(`${target.path}/Contents/MacOS/`)]);
   }
   if (process.platform === 'win32') {
-    const executable = windowsExecutablePath(target.path);
+    const executable = await windowsExecutablePathAsync(target.path);
     if (!executable) return { running: false };
+    const imageName = path.basename(executable);
+    // Fast pre-check via tasklist (~25ms) avoids spawning PowerShell for apps that aren't running.
+    const taskOut = await runCommand('tasklist.exe', ['/FI', `IMAGENAME eq ${imageName}`, '/NH', '/FO', 'CSV'], { windowsHide: true });
+    if (!taskOut || !taskOut.toLowerCase().includes(imageName.toLowerCase())) {
+      return { running: false };
+    }
     const out = await runCommand(
       'powershell.exe',
       ['-NoProfile', '-NonInteractive', '-Command', `$p = Get-Process -Name '${path.basename(executable, '.exe').replace(/'/g, "''")}' -ErrorAction SilentlyContinue | Select-Object -First 1; if ($p) { $p.Id.ToString() + '|' + $p.StartTime.ToUniversalTime().ToString('o') }`],
@@ -128,7 +178,7 @@ async function queryAppTargetProcessInfo(target: AppLaunchTarget): Promise<AppPr
     const startedAt = startedText ? Date.parse(startedText) : NaN;
     return Number.isFinite(pid) && pid > 0
       ? { running: true, pid, ...(Number.isFinite(startedAt) ? { startedAt } : {}) }
-      : { running: false };
+      : { running: true };
   }
   return { running: false };
 }

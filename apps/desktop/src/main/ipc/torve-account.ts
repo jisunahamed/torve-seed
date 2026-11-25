@@ -8,7 +8,8 @@ import {
   startTorveCloudProxy,
   torveCloudProxyStatus,
 } from '../torve-cloud/proxy.js';
-import { refreshTorveCloudModels, torveCloudModelsStatus } from '../torve-cloud/models.js';
+import { refreshTorveCloudModels, setTorveModelsUpdatedSink, torveCloudModelsStatus } from '../torve-cloud/models.js';
+import { invalidateSystemProxyProfilesCache, prewarmSystemProxyProfiles } from './system-proxy.js';
 import {
   refreshCatalogConfigsIfConnected,
   refreshCodexCatalogIfConnected,
@@ -206,8 +207,19 @@ export async function getTorveAccountStatus(): Promise<TorveAccountStatus> {
 
 /** Start an existing secure account after Electron's safeStorage is ready. */
 export async function resumeTorveCloudProxy(): Promise<void> {
-  if (!await getTorveCloudApiKey()) return;
+  // Pre-warm app profile & Antigravity standalone status off the UI critical path
+  // so opening the Apps tab renders immediately from cache.
+  prewarmSystemProxyProfiles();
+  void antigravityStandaloneStatus().catch(() => {});
+
+  const apiKey = await getTorveCloudApiKey();
+  if (!apiKey) return;
   await startTorveCloudProxy();
+  // Pre-warm the model catalog on startup so Connected Apps and Models & Usage never show (0 models).
+  void refreshTorveCloudModels(apiKey).then(async (models) => {
+    await refreshCodexCatalogIfConnected(models);
+    await refreshCatalogConfigsIfConnected(models);
+  }).catch(() => {});
   const state = await torveCloudProfilesState();
   if (state.activeProfileNames.length > 0) await startTorveCloudProfiles(state.activeProfileNames);
 }
@@ -215,6 +227,9 @@ export async function resumeTorveCloudProxy(): Promise<void> {
 export function registerTorveAccountIpc(): void {
   setDirectCloudActivitySink((activity) => {
     broadcast('direct-cloud:activity', activity);
+  });
+  setTorveModelsUpdatedSink((status) => {
+    broadcast('torve:models-updated', status);
   });
 
   ipcMain.handle('torve:account-get', getTorveAccountStatus);
@@ -439,7 +454,21 @@ export function registerTorveAccountIpc(): void {
     },
   );
 
-  ipcMain.handle('torve:models-get', torveCloudModelsStatus);
+  ipcMain.handle('torve:models-get', async () => {
+    const current = await torveCloudModelsStatus();
+    if (current.models.length === 0) {
+      const key = await getTorveCloudApiKey();
+      if (key) {
+        try {
+          await refreshTorveCloudModels(key);
+        } catch {
+          // Keep empty cached payload if upstream is unreachable.
+        }
+        return torveCloudModelsStatus();
+      }
+    }
+    return current;
+  });
   ipcMain.handle('torve:models-refresh', async (): Promise<{ ok: boolean; error?: string }> => {
     try {
       const key = await getTorveCloudApiKey();
@@ -454,7 +483,9 @@ export function registerTorveAccountIpc(): void {
   });
 
   ipcMain.handle('torve:proxy-status', torveCloudProxyStatus);
-  ipcMain.handle('torve:antigravity-standalone-status', () => antigravityStandaloneStatus());
+  ipcMain.handle('torve:antigravity-standalone-status', (_event, opts?: { bypassCache?: boolean }) => (
+    antigravityStandaloneStatus({ bypassCache: opts?.bypassCache === true })
+  ));
   ipcMain.handle('torve:antigravity-standalone-set', async (_event, enabled: unknown) => {
     try {
       if (enabled === true) {
@@ -462,10 +493,14 @@ export function registerTorveAccountIpc(): void {
           throw new Error('Connect a Torve account before enabling the Antigravity native picker.');
         }
         await startTorveCloudProxy();
-        return { ok: true, status: await enableAntigravityStandalonePatch() };
+        const status = await enableAntigravityStandalonePatch();
+        invalidateSystemProxyProfilesCache();
+        return { ok: true, status };
       }
       if (enabled === false) {
-        return { ok: true, status: await disableAntigravityStandalonePatch() };
+        const status = await disableAntigravityStandalonePatch();
+        invalidateSystemProxyProfilesCache();
+        return { ok: true, status };
       }
       throw new Error('Invalid Antigravity patch state.');
     } catch (err) {
@@ -505,12 +540,11 @@ export function registerTorveAccountIpc(): void {
       profiles: unknown,
     ): Promise<{ ok: boolean; state?: Awaited<ReturnType<typeof torveCloudProfilesState>>; error?: string }> => {
       try {
-        return {
-          ok: true,
-          state: await startTorveCloudProfiles(
-            Array.isArray(profiles) ? profiles.filter((name): name is string => typeof name === 'string') : [],
-          ),
-        };
+        const state = await startTorveCloudProfiles(
+          Array.isArray(profiles) ? profiles.filter((name): name is string => typeof name === 'string') : [],
+        );
+        invalidateSystemProxyProfilesCache();
+        return { ok: true, state };
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
       }
@@ -520,7 +554,9 @@ export function registerTorveAccountIpc(): void {
     'torve:direct-stop',
     async (): Promise<{ ok: boolean; state?: Awaited<ReturnType<typeof torveCloudProfilesState>>; error?: string }> => {
       try {
-        return { ok: true, state: await stopTorveCloudProfiles() };
+        const state = await stopTorveCloudProfiles();
+        invalidateSystemProxyProfilesCache();
+        return { ok: true, state };
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
       }

@@ -7,23 +7,43 @@
  * only the Start menu enumeration sees.
  */
 import { app, nativeImage, shell } from 'electron';
-import { execFileSync, spawn } from 'node:child_process';
+import { execFile, execFileSync, spawn } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
+import { readdir } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import type { AppLaunchTarget } from './launch-settings.js';
 import { appsFolderPath, isAppsFolderTarget, parseStartApps } from './windows-start-menu.js';
 
-// Installed applications the user can associate with an app profile ("Open
-// with"). macOS: .app bundles in the standard application folders. Windows:
-// Start Menu shortcuts (per-machine and per-user).
-/**
- * Apps as the Start menu lists them, which is the only enumeration that
- * includes Store / MSIX packages. Best-effort: on any failure the filesystem
- * scans still stand on their own, so the picker degrades to what it showed
- * before rather than coming back empty.
- */
+const execFileAsync = promisify(execFile);
+const START_APPS_TIMEOUT_MS = 1_500;
+let startAppsCache: ReturnType<typeof parseStartApps> | null = null;
+let startAppsInFlight: Promise<ReturnType<typeof parseStartApps>> | null = null;
+
+export async function listWindowsStartAppsAsync(): Promise<ReturnType<typeof parseStartApps>> {
+  if (startAppsCache) return startAppsCache;
+  if (process.platform !== 'win32') return [];
+  if (!startAppsInFlight) {
+    startAppsInFlight = execFileAsync('powershell.exe', [
+      '-NoProfile', '-NonInteractive', '-Command',
+      'Get-StartApps | Select-Object Name,AppID | ConvertTo-Json -Compress',
+    ], {
+      encoding: 'utf8',
+      timeout: START_APPS_TIMEOUT_MS,
+      windowsHide: true,
+    }).then(({ stdout }) => {
+      startAppsCache = parseStartApps(stdout);
+      return startAppsCache;
+    }).catch(() => [] as ReturnType<typeof parseStartApps>).finally(() => {
+      startAppsInFlight = null;
+    });
+  }
+  return startAppsInFlight;
+}
+
 export function listWindowsStartApps(): ReturnType<typeof parseStartApps> {
+  if (startAppsCache) return startAppsCache;
   try {
     const stdout = execFileSync('powershell.exe', [
       '-NoProfile', '-NonInteractive', '-Command',
@@ -31,14 +51,11 @@ export function listWindowsStartApps(): ReturnType<typeof parseStartApps> {
     ], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
-      // Runs on the main process, so it blocks the UI: bounded well below the
-      // point a user would call the app hung. Overshooting just costs the
-      // packaged apps this run, and the scan is cached for the rest of it.
-      timeout: 8_000,
-      // Without this the PowerShell console flashes up over the app.
+      timeout: START_APPS_TIMEOUT_MS,
       windowsHide: true,
     });
-    return parseStartApps(stdout);
+    startAppsCache = parseStartApps(stdout);
+    return startAppsCache;
   } catch {
     return [];
   }
@@ -207,11 +224,141 @@ export function launchAppTarget(
  * shells out per entry, so this is memoized rather than recomputed on every
  * open of the picker.
  */
+let installedAppsListCache: AppLaunchTarget[] | null = null;
+let installedAppsListInFlight: Promise<{ ok: boolean; apps: AppLaunchTarget[]; error?: string }> | null = null;
+
+export function invalidateInstalledAppsCache(): void {
+  installedAppsListCache = null;
+  installedAppsPromise = null;
+  startAppsCache = null;
+}
+
+export async function listInstalledApplicationsAsync(
+  opts: { refresh?: boolean } = {},
+): Promise<{ ok: boolean; apps: AppLaunchTarget[]; error?: string }> {
+  if (!opts.refresh && installedAppsListCache) {
+    return { ok: true, apps: installedAppsListCache };
+  }
+  if (!opts.refresh && installedAppsListInFlight) {
+    return installedAppsListInFlight;
+  }
+
+  installedAppsListInFlight = (async () => {
+    const apps = new Map<string, AppLaunchTarget>();
+    if (process.platform === 'darwin') {
+      const dirs = ['/Applications', path.join(homedir(), 'Applications'), '/System/Applications'];
+      const results = await Promise.allSettled(dirs.map(async (dir) => ({ dir, entries: await readdir(dir) })));
+      for (const res of results) {
+        if (res.status !== 'fulfilled') continue;
+        for (const entry of res.value.entries) {
+          if (!entry.endsWith('.app') || entry.startsWith('.')) continue;
+          const name = entry.slice(0, -'.app'.length);
+          if (!apps.has(name)) apps.set(name, { name, path: path.join(res.value.dir, entry) });
+        }
+      }
+    } else if (process.platform === 'win32') {
+      const programData = process.env['ProgramData'];
+      const appData = process.env['APPDATA'];
+      const shortcutRoots = [
+        programData ? path.join(programData, 'Microsoft', 'Windows', 'Start Menu', 'Programs') : null,
+        appData ? path.join(appData, 'Microsoft', 'Windows', 'Start Menu', 'Programs') : null,
+      ].filter((root): root is string => root !== null);
+
+      const walkAsync = async (dir: string, depth: number): Promise<AppLaunchTarget[]> => {
+        if (depth > 3) return [];
+        let entries;
+        try {
+          entries = await readdir(dir, { withFileTypes: true });
+        } catch {
+          return [];
+        }
+        const nested: Array<Promise<AppLaunchTarget[]>> = [];
+        const local: AppLaunchTarget[] = [];
+        for (const entry of entries) {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            nested.push(walkAsync(full, depth + 1));
+          } else if (entry.name.toLowerCase().endsWith('.lnk')) {
+            local.push({ name: entry.name.slice(0, -'.lnk'.length), path: full });
+          }
+        }
+        const childResults = await Promise.allSettled(nested);
+        for (const child of childResults) {
+          if (child.status === 'fulfilled') local.push(...child.value);
+        }
+        return local;
+      };
+
+      const localAppData = process.env['LOCALAPPDATA'];
+      const exeRoots = [
+        localAppData ? path.join(localAppData, 'Programs') : null,
+        process.env['ProgramFiles'] ?? null,
+        process.env['ProgramFiles(x86)'] ?? null,
+      ].filter((root): root is string => root !== null);
+      const noiseNamePattern = /^(unins|uninstall|setup|update|updater|crashpad|vc_redist)/i;
+
+      const scanExeRootAsync = async (root: string): Promise<AppLaunchTarget[]> => {
+        let appDirs;
+        try {
+          appDirs = await readdir(root, { withFileTypes: true });
+        } catch {
+          return [];
+        }
+        const dirResults = await Promise.allSettled(
+          appDirs.filter((d) => d.isDirectory()).map(async (appDir) => {
+            const subDir = path.join(root, appDir.name);
+            const files = await readdir(subDir, { withFileTypes: true }).catch(() => []);
+            const found: AppLaunchTarget[] = [];
+            for (const file of files) {
+              if (file.isDirectory() || !file.name.toLowerCase().endsWith('.exe')) continue;
+              const name = file.name.slice(0, -'.exe'.length);
+              if (noiseNamePattern.test(name)) continue;
+              found.push({ name, path: path.join(subDir, file.name) });
+            }
+            return found;
+          }),
+        );
+        const all: AppLaunchTarget[] = [];
+        for (const res of dirResults) {
+          if (res.status === 'fulfilled') all.push(...res.value);
+        }
+        return all;
+      };
+
+      const [shortcutLists, exeLists, startApps] = await Promise.all([
+        Promise.allSettled(shortcutRoots.map((r) => walkAsync(r, 0))),
+        Promise.allSettled(exeRoots.map((r) => scanExeRootAsync(r))),
+        listWindowsStartAppsAsync(),
+      ]);
+
+      for (const res of [...shortcutLists, ...exeLists]) {
+        if (res.status !== 'fulfilled') continue;
+        for (const entry of res.value) {
+          if (!apps.has(entry.name)) apps.set(entry.name, entry);
+        }
+      }
+      for (const entry of startApps) {
+        if (!apps.has(entry.name)) apps.set(entry.name, { name: entry.name, path: appsFolderPath(entry.appId) });
+      }
+    } else {
+      return { ok: false, apps: [], error: 'Listing installed apps is not supported on this platform.' };
+    }
+
+    const sorted = [...apps.values()].sort((a, b) => a.name.localeCompare(b.name));
+    installedAppsListCache = sorted;
+    return { ok: true, apps: sorted };
+  })().finally(() => {
+    installedAppsListInFlight = null;
+  });
+
+  return installedAppsListInFlight;
+}
+
 let installedAppsPromise: Promise<{ ok: boolean; apps: Array<AppLaunchTarget & { iconDataUri?: string }>; error?: string }> | null = null;
 
 export function listInstalledAppsWithIcons(): Promise<{ ok: boolean; apps: Array<AppLaunchTarget & { iconDataUri?: string }>; error?: string }> {
   installedAppsPromise ??= (async () => {
-    const listed = listInstalledApplications();
+    const listed = await listInstalledApplicationsAsync();
     if (!listed.ok) return listed;
     const apps = await Promise.all(listed.apps.map(async (entry) => {
       const iconDataUri = await installedAppIcon(entry.path);

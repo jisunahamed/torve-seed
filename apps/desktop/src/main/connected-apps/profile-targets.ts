@@ -17,7 +17,7 @@ import {
   normalizeToolSlugs,
   type AppLaunchTarget,
 } from './launch-settings.js';
-import { installedAppIcon, listInstalledApplications } from './installed.js';
+import { installedAppIcon, listInstalledApplications, listInstalledApplicationsAsync } from './installed.js';
 import { cachedInstalledApplications } from './launcher.js';
 import { isAppsFolderTarget } from './windows-start-menu.js';
 import { fetchCustomAppSiteMetadata, loadCustomApps, saveCustomApps } from './custom.js';
@@ -51,11 +51,44 @@ export function defaultLaunchTargetForProfile(profileName: string): AppLaunchTar
   return null;
 }
 
+export async function defaultLaunchTargetForProfileAsync(
+  profileName: string,
+  opts: { refresh?: boolean } = {},
+): Promise<AppLaunchTarget | null> {
+  const appNames = toolDesktopAppNames(profileName);
+  if (appNames.length === 0) return null;
+  if (process.platform === 'darwin') {
+    return defaultLaunchTargetForProfile(profileName);
+  }
+  if (process.platform === 'win32') {
+    const listed = await listInstalledApplicationsAsync(opts);
+    if (!listed.ok) return null;
+    for (const appName of appNames) {
+      const found = listed.apps.find((entry) => entry.name.toLowerCase() === appName.toLowerCase());
+      if (found) return found;
+    }
+    return null;
+  }
+  return null;
+}
+
 export function effectiveLaunchTarget(profileName: string): AppLaunchTarget | null {
   const override = loadAppLaunchSettings(resolveConnectDataDir())[profileName];
   if (override) return override;
   if (!defaultLaunchTargetCache.has(profileName)) {
     defaultLaunchTargetCache.set(profileName, defaultLaunchTargetForProfile(profileName));
+  }
+  return defaultLaunchTargetCache.get(profileName) ?? null;
+}
+
+export async function effectiveLaunchTargetAsync(
+  profileName: string,
+  opts: { refresh?: boolean } = {},
+): Promise<AppLaunchTarget | null> {
+  const override = loadAppLaunchSettings(resolveConnectDataDir())[profileName];
+  if (override) return override;
+  if (opts.refresh || !defaultLaunchTargetCache.has(profileName)) {
+    defaultLaunchTargetCache.set(profileName, await defaultLaunchTargetForProfileAsync(profileName, opts));
   }
   return defaultLaunchTargetCache.get(profileName) ?? null;
 }

@@ -14,9 +14,18 @@ export function CursorAppCard({ appId = 'cursor', label = 'Cursor', brand = 'cur
   const [models, setModels] = useState<Array<{ id: string }>>([]);
   const [model, setModel] = useState('');
   const baseURL = `http://127.0.0.1:8378/app/${appId}/v1`;
-  useEffect(() => { void Promise.all([window.torveDesktop?.torveAccountGet?.(), window.torveDesktop?.torveModelsGet?.(), window.torveDesktop?.torveOverridesGet?.()]).then(([account, catalog, overrides]) => {
-    setConnected(account?.connected === true); setModels(catalog?.models ?? []); setModel(overrides?.[appId]?.modelId ?? '');
-  }); }, [appId]);
+  useEffect(() => {
+    const bridge = window.torveDesktop;
+    void Promise.all([bridge?.torveAccountGet?.(), bridge?.torveModelsGet?.(), bridge?.torveOverridesGet?.()]).then(([account, catalog, overrides]) => {
+      setConnected(account?.connected === true);
+      setModels(catalog?.models ?? []);
+      setModel(overrides?.[appId]?.modelId ?? '');
+    });
+    const unsubModels = bridge?.onTorveModelsUpdated?.((catalog) => {
+      if (Array.isArray(catalog?.models)) setModels(catalog.models);
+    });
+    return () => { unsubModels?.(); };
+  }, [appId]);
   const copy = () => { void navigator.clipboard.writeText(`Base URL: ${baseURL}\nToken: torve-local-proxy\nModel: ${model || 'torve'}`).then(() => { setCopied(true); window.setTimeout(() => setCopied(false), 1500); }); };
   const choose = async (value: string) => { setModel(value); await window.torveDesktop?.torveOverrideSet?.(appId, value ? { modelId: value, enabled: true } : null); };
   return <div className={`${styles.appPill}${connected ? ` ${styles.appPillConnected}` : ''}`}>

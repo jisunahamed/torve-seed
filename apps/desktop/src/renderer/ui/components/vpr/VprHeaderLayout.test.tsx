@@ -37,9 +37,9 @@ it.each(['chat', 'home'] as const)('omits the P2P credits pill from VprShell chr
   expect(markup).not.toContain('Add credits, balance');
 });
 
-it('keeps the complete long title available on hover alongside the balance', () => {
+it('keeps the complete long title available on hover without legacy credits badge', () => {
   const title = '# Files mentioned by the user: Torve GTM Plan - Draft.pptx.pdf';
   const markup = renderToStaticMarkup(<VprPage title={title}>Content</VprPage>);
   expect(markup).toContain(`<span title="${title}">${title}</span>`);
-  expect(markup).toContain('aria-label="Add credits, balance $69.13"');
+  expect(markup).not.toContain('Add credits, balance');
 });

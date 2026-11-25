@@ -91,6 +91,10 @@ export function VprExploreView(_props: Props) {
 
   useEffect(() => {
     void loadModels(false);
+    const unsubModels = window.torveDesktop?.onTorveModelsUpdated?.((catalog) => {
+      if (Array.isArray(catalog?.models)) setModels(catalog.models);
+    });
+    return () => { unsubModels?.(); };
   }, [loadModels]);
 
   const filteredModels = useMemo(() => {
