@@ -1,7 +1,7 @@
 {
   "name": "@torveai/desktop",
   "productName": "Torve Desktop",
-  "version": "0.2.57",
+  "version": "0.2.58",
   "private": true,
   "description": "Torve Desktop — Direct Cloud AI Router & App Manager",
   "author": "Torve <hello@torveai.com>",

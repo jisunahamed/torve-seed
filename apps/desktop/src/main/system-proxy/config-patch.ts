@@ -782,18 +782,17 @@ function applyOpencodeProviderToFile(filePath: string, patch: OpencodeConfigPatc
   backupConfigFile(filePath);
   const config = readConfigPatchFile(filePath);
 
-  // OpenCode CLI 1.x reads the legacy `provider`/`npm`/`options` schema,
-  // while OpenCode Desktop 2.x reads `providers`/`package`/`settings`.
-  // Both installations share this file on Windows, and both schemas may
-  // coexist: each release ignores the map it does not understand.
-  const legacyProviders = (config['provider'] && typeof config['provider'] === 'object' && !Array.isArray(config['provider']))
+  const existingProviders = (config['provider'] && typeof config['provider'] === 'object' && !Array.isArray(config['provider']))
     ? config['provider'] as JsonObject
     : {};
-  const modernProviders = (config['providers'] && typeof config['providers'] === 'object' && !Array.isArray(config['providers']))
+  const existingModernProviders = (config['providers'] && typeof config['providers'] === 'object' && !Array.isArray(config['providers']))
     ? config['providers'] as JsonObject
     : {};
   const alias = patch.modelAlias?.trim() || ROUTED_MODEL_ALIAS;
-  const legacyModels: JsonObject = {
+  const apiKey = patch.apiKey ?? ROUTED_MODEL_ALIAS;
+
+  // Build legacy `provider` entry (npm-based, OpenCode <=0.3)
+  const models: JsonObject = {
     [alias]: {
       name: ROUTED_MODEL_ALIAS_LABEL,
       attachment: true,
@@ -801,6 +800,7 @@ function applyOpencodeProviderToFile(filePath: string, patch: OpencodeConfigPatc
       limit: { context: TORVE_MODEL_CONTEXT_WINDOW, output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
     },
   };
+  // Build modern `providers` entry (openai-compatible, OpenCode >=0.4)
   const modernModels: JsonObject = {
     [alias]: {
       modelID: alias,
@@ -813,9 +813,9 @@ function applyOpencodeProviderToFile(filePath: string, patch: OpencodeConfigPatc
     const id = model.id.trim();
     if (!id || id === alias || id === ROUTED_MODEL_ALIAS || id === 'auto') continue;
     const limit: JsonObject = {};
-    if (typeof model.context === 'number' && Number.isFinite(model.context) && model.context > 0) limit['context'] = model.context;
+    if (typeof model.context === 'number' && Number.isFinite(model.context) && model.context > 0) limit['context'] = Math.max(model.context, 128_000);
     if (typeof model.output === 'number' && Number.isFinite(model.output) && model.output > 0) limit['output'] = model.output;
-    legacyModels[id] = {
+    models[id] = {
       name: model.name.trim() || id,
       attachment: model.vision === true,
       modalities: { input: model.vision === true ? ['text', 'image'] : ['text'], output: ['text'] },
@@ -828,29 +828,29 @@ function applyOpencodeProviderToFile(filePath: string, patch: OpencodeConfigPatc
       ...(Object.keys(limit).length > 0 ? { limit } : {}),
     };
   }
-  legacyProviders[patch.providerKey] = {
+  existingProviders[patch.providerKey] = {
     name: patch.providerName,
     npm: patch.npm,
     options: {
       baseURL,
-      apiKey: patch.apiKey ?? 'torve',
+      apiKey,
     },
-    models: legacyModels,
+    models,
   };
-  modernProviders[patch.providerKey] = {
+  existingModernProviders[patch.providerKey] = {
     name: patch.providerName,
     package: '@opencode/ai/providers/openai-compatible',
     settings: {
       baseURL,
-      apiKey: patch.apiKey ?? 'torve',
+      apiKey,
       headerTimeout: 30_000,
       chunkTimeout: 60_000,
       timeout: 120_000,
     },
     models: modernModels,
   };
-  config['provider'] = legacyProviders;
-  config['providers'] = modernProviders;
+  config['provider'] = existingProviders;
+  config['providers'] = existingModernProviders;
   config['model'] = `${patch.providerKey}/${alias}`;
   removeFromStringArray(config, 'disabled_providers', patch.providerKey);
 

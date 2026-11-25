@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import * as nodeFs from 'node:fs';
 import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
@@ -55,6 +55,7 @@ export type AntigravityStandalonePatchOptions = {
   backupRoot?: string;
   version?: string;
   isRunning?: () => boolean;
+  runningExePath?: () => string | null | Promise<string | null>;
   bypassCache?: boolean;
   env?: NodeJS.ProcessEnv;
 };
@@ -145,6 +146,34 @@ async function queryUninstallRegistryAntigravity(): Promise<string | null> {
   return foundDir;
 }
 
+async function queryRunningAntigravityExePath(): Promise<string | null> {
+  if (process.platform !== 'win32') return null;
+  try {
+    const { stdout } = await execFileAsync(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', '(Get-Process -Name Antigravity -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Path)'],
+      { encoding: 'utf8', windowsHide: true, timeout: PROBE_TIMEOUT_MS },
+    );
+    const psPath = stdout.trim();
+    if (psPath) return psPath;
+  } catch {
+    // Fall back to wmic below.
+  }
+  try {
+    const { stdout } = await execFileAsync(
+      'wmic.exe',
+      ['process', 'where', "name='Antigravity.exe'", 'get', 'ExecutablePath', '/value'],
+      { encoding: 'utf8', windowsHide: true, timeout: PROBE_TIMEOUT_MS },
+    );
+    const match = /^\s*ExecutablePath=(.+)$/im.exec(stdout);
+    const wmicPath = match?.[1]?.trim();
+    if (wmicPath) return wmicPath;
+  } catch {
+    // Process not running or wmic unavailable.
+  }
+  return null;
+}
+
 export async function discoverAntigravityInstallDir(options: AntigravityStandalonePatchOptions = {}): Promise<string> {
   if (options.installDir) return options.installDir;
 
@@ -167,6 +196,16 @@ export async function discoverAntigravityInstallDir(options: AntigravityStandalo
   if (!options.env) {
     const regDir = await queryUninstallRegistryAntigravity();
     if (regDir) return regDir;
+  }
+
+  const runningExe = options.runningExePath
+    ? await options.runningExePath()
+    : (!options.env ? await queryRunningAntigravityExePath() : null);
+  if (runningExe) {
+    const runningDir = runningExe.toLowerCase().endsWith('.exe') ? path.dirname(runningExe) : runningExe;
+    if (rawFs.existsSync(path.join(runningDir, 'Antigravity.exe')) || rawFs.existsSync(path.join(runningDir, 'resources'))) {
+      return runningDir;
+    }
   }
 
   return candidates[0]!;
@@ -462,6 +501,84 @@ export async function disableAntigravityStandalonePatch(options: AntigravityStan
   if (sha256(await rawPromises.readFile(p.target)) !== file.originalSha256) throw new Error('Antigravity restore verification failed.');
   await atomicWrite(p.state, Buffer.from(`${JSON.stringify({ ...state, enabled: false, updatedAt: new Date().toISOString() }, null, 2)}\n`));
   return antigravityStandaloneStatus({ ...options, bypassCache: true });
+}
+
+async function waitForAntigravityExit(timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!(await runningDefaultAsync())) return true;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  return !(await runningDefaultAsync());
+}
+
+/**
+ * Cleanly closes a running Antigravity instance (graceful exit first, then force-kill
+ * fallback) and applies the standalone Native Model Picker patch.
+ */
+export async function closeAntigravityAndEnablePatch(
+  options: AntigravityStandalonePatchOptions & { killProcess?: () => Promise<void> } = {},
+): Promise<AntigravityStandaloneStatus> {
+  invalidateAntigravityStandaloneCache();
+  const running = options.isRunning ? options.isRunning() : await runningDefaultAsync();
+  if (running) {
+    if (options.killProcess) {
+      await options.killProcess();
+    } else if (process.platform === 'win32') {
+      await execFileAsync('taskkill.exe', ['/IM', 'Antigravity.exe'], {
+        encoding: 'utf8',
+        windowsHide: true,
+        timeout: PROBE_TIMEOUT_MS,
+      }).catch(() => undefined);
+      const exitedGracefully = await waitForAntigravityExit(2_000);
+      if (!exitedGracefully) {
+        await execFileAsync('taskkill.exe', ['/F', '/IM', 'Antigravity.exe'], {
+          encoding: 'utf8',
+          windowsHide: true,
+          timeout: PROBE_TIMEOUT_MS,
+        }).catch(() => undefined);
+        await waitForAntigravityExit(3_000);
+      }
+    } else if (process.platform === 'darwin') {
+      await execFileAsync('pkill', ['-x', 'Antigravity'], {
+        encoding: 'utf8',
+        timeout: PROBE_TIMEOUT_MS,
+      }).catch(() => undefined);
+      await new Promise((resolve) => setTimeout(resolve, 1_000));
+    }
+
+    const stillRunning = options.isRunning ? options.isRunning() : await runningDefaultAsync();
+    if (stillRunning) {
+      throw new Error('Antigravity is still running. Close Antigravity manually and try again.');
+    }
+  }
+
+  return enableAntigravityStandalonePatch({ ...options, bypassCache: true });
+}
+
+/**
+ * Launches the discovered standalone Antigravity installation in a detached process.
+ */
+export async function launchAntigravity(
+  options: AntigravityStandalonePatchOptions = {},
+): Promise<{ ok: boolean; targetPath: string; error?: string }> {
+  const p = await resolvePaths(options);
+  if (process.platform === 'darwin') {
+    const appBundle = p.installDir.replace(/\/Contents\/?$/, '');
+    if (!rawFs.existsSync(appBundle)) {
+      return { ok: false, targetPath: appBundle, error: 'Antigravity.app was not found.' };
+    }
+    const child = spawn('open', ['-a', appBundle], { detached: true, stdio: 'ignore' });
+    child.unref();
+    return { ok: true, targetPath: appBundle };
+  }
+
+  if (!rawFs.existsSync(p.exe)) {
+    return { ok: false, targetPath: p.exe, error: 'Antigravity.exe was not found.' };
+  }
+  const child = spawn(p.exe, [], { detached: true, stdio: 'ignore', windowsHide: false });
+  child.unref();
+  return { ok: true, targetPath: p.exe };
 }
 
 export const ANTIGRAVITY_STANDALONE_PATCH_INTERNALS = { ORIGINAL_ENDPOINT, PATCHED_ENDPOINT };

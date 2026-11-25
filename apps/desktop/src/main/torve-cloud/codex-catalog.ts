@@ -146,10 +146,18 @@ export function codexCatalogPayload(models: readonly TorveModel[], base = instal
         if (level && typeof level['effort'] === 'string') entry['default_reasoning_level'] = level['effort'];
       }
     }
-    const context = numberValue(model['max_input_tokens'], model['context_window'], model['context_length']);
-    if (context !== undefined) {
-      entry['context_window'] = context;
-      entry['max_context_window'] = context;
+    const rawContext = numberValue(model['max_input_tokens'], model['context_window'], model['context_length']);
+    // Raise the floor so 100K+ token Codex sessions never get "no model" / context limit errors.
+    // 1M-capable models keep their full window; all others get at least 200K.
+    const context = rawContext !== undefined
+      ? (rawContext >= 500_000 ? rawContext : Math.max(rawContext, 200_000))
+      : 200_000;
+    entry['context_window'] = context;
+    entry['max_context_window'] = context;
+    // Allow sessions that fill up to 95% of the window (Codex default is already 95%,
+    // but some older templates hard-code lower values).
+    if (typeof entry['effective_context_window_percent'] === 'number' && (entry['effective_context_window_percent'] as number) < 90) {
+      entry['effective_context_window_percent'] = 95;
     }
     return entry;
   });

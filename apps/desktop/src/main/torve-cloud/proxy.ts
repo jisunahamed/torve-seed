@@ -25,7 +25,7 @@ import { modelsEndpointPayload } from './codex-catalog.js';
 import { buildTorveUpstreamHeaders, extractTokenUsageFromRecord, recordLocalUsage, sanitizeTorveClientApp, SseUsageTracker } from './usage.js';
 
 const DEFAULT_PORT = Number(process.env['TORVE_CLOUD_PROXY_PORT']) || 8378;
-const MAX_BODY_BYTES = 32 * 1024 * 1024;
+const MAX_BODY_BYTES = 64 * 1024 * 1024;
 const UPSTREAM_REQUEST_TIMEOUT_MS = 120_000;
 const HOP_BY_HOP = new Set(['connection', 'host', 'content-length', 'transfer-encoding', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'upgrade']);
 const ANTIGRAVITY_DEBUG_PATH = pathModule.join(homedir(), '.torve', 'antigravity-proxy-debug.log');
@@ -139,8 +139,16 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (req.method === 'GET' && path === '/v1/models') {
       const catalog = await torveCloudModelsStatus();
       const models = catalog.models.length > 0 ? catalog.models : await refreshTorveCloudModels(apiKey);
+      // Raise context window floor so clients (OpenCode, Codex, etc.) never
+      // block 100K+ token requests. 1M-capable models keep their full window.
+      const modelsWithFloor = models.map((m) => {
+        const raw = typeof m['context_window'] === 'number' ? m['context_window'] as number : 0;
+        const floored = raw >= 500_000 ? raw : Math.max(raw, 200_000);
+        if (floored === raw) return m;
+        return { ...m, context_window: floored, max_input_tokens: floored };
+      });
       status = 200;
-      return sendJson(res, 200, modelsEndpointPayload(models, requestUrl.searchParams.get('client_version')));
+      return sendJson(res, 200, modelsEndpointPayload(modelsWithFloor, requestUrl.searchParams.get('client_version')));
     }
     if (req.method !== 'POST') { status = 404; errorSummary = 'Unsupported endpoint.'; return sendError(res, status, 'Unsupported Torve Cloud endpoint.'); }
     if (isGeminiPath(path)) {
@@ -231,6 +239,14 @@ async function pipeStreaming(res: ServerResponse, upstream: Response, requestId:
   // socket close. Never inherit an upstream keep-alive header on this local
   // one-request bridge, and always advertise the actual stream type.
   if (source === 'openai-chat-completions' && target === source) {
+    initial.headers['content-type'] = 'text/event-stream; charset=utf-8';
+    initial.headers['cache-control'] = 'no-cache';
+    initial.headers['connection'] = 'close';
+    delete initial.headers['content-length'];
+  }
+  // For the Responses API (Codex): always flush chunks immediately so tool calls
+  // are never buffered — Codex expects low-latency function_call events.
+  if (source === 'openai-responses') {
     initial.headers['content-type'] = 'text/event-stream; charset=utf-8';
     initial.headers['cache-control'] = 'no-cache';
     initial.headers['connection'] = 'close';
