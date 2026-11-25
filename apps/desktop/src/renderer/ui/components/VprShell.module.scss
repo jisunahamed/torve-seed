@@ -123,6 +123,8 @@
 
 .mainPane {
   position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -132,6 +134,134 @@
      transition has two views mounted, the duplicate names make the timeline
      inactive and the pill holds its base position — exactly what we want. */
   timeline-scope: --active-view-scroll;
+}
+
+.updateBanner {
+  grid-row: 1;
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  -webkit-app-region: no-drag;
+}
+
+.updateBannerDanger {
+  border-bottom-color: rgba(var(--danger-rgb), 0.35);
+}
+
+.updateBannerIcon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  color: var(--accent-green);
+}
+
+.updateBannerDanger .updateBannerIcon,
+.updateBannerDanger .updateBannerTitle {
+  color: var(--danger);
+}
+
+.updateBannerText {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.updateBannerTitle {
+  color: var(--accent-green);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.updateBannerBody {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.updateBannerProgressTrack {
+  display: block;
+  margin-top: 4px;
+  height: 4px;
+  width: 100%;
+  max-width: 320px;
+  border-radius: 999px;
+  background: rgba(var(--accent-green-rgb), 0.16);
+  overflow: hidden;
+}
+
+.updateBannerProgressFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-green);
+  transition: width 0.25s ease;
+}
+
+.updateBannerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.updateBannerBtn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(var(--accent-green-rgb), 0.14);
+  color: var(--accent-green);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.updateBannerBtn:hover {
+  background: rgba(var(--accent-green-rgb), 0.22);
+}
+
+.updateBannerDanger .updateBannerBtn {
+  background: rgba(var(--danger-rgb), 0.14);
+  color: var(--danger);
+}
+
+.updateBannerDanger .updateBannerBtn:hover {
+  background: rgba(var(--danger-rgb), 0.22);
+}
+
+.updateBannerDismiss {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-faint);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.updateBannerDismiss:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
 }
 
 .creditsPillSlot {
@@ -170,6 +300,7 @@
 }
 
 .content {
+  grid-row: 2;
   height: 100%;
   min-width: 0;
   min-height: 0;

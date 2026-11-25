@@ -1065,16 +1065,75 @@
 .activitySuccess { color: #35b779; }
 .activityError { color: var(--danger, #e05c5c); }
 .antigravityNativePatch {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vpr-border-subtle);
+}
+.antigravityStatusRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--vpr-border-subtle);
-
-  > div { min-width: 0; }
-  strong { font-size: 12px; font-weight: 600; }
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.antigravityStatusText {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+.antigravityStatusOk {
+  color: var(--accent-green, #4ade80);
+}
+.antigravityStatusWarn {
+  color: #f59e0b;
+}
+.antigravityStatusError {
+  color: var(--danger, #e05c5c);
+}
+.antigravityInlineActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.antigravityInlineBtn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.antigravityInlineBtn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+.antigravityInlineBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.antigravityInlinePrimaryBtn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
+  background: var(--brand);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+.antigravityInlinePrimaryBtn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.antigravityInlinePrimaryBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 .torveBetaBadge {
   display: inline-flex;

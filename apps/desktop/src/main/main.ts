@@ -1,14 +1,10 @@
 import {
   app,
-  autoUpdater as nativeAutoUpdater,
   BrowserWindow,
   ipcMain,
   dialog,
 } from 'electron';
-import { execFileSync, spawn } from 'node:child_process';
-import path from 'node:path';
-import electronUpdater from 'electron-updater';
-const { autoUpdater } = electronUpdater;
+import { execFileSync } from 'node:child_process';
 import {
   ProcessManager,
   type RuntimeMode,
@@ -45,13 +41,19 @@ import {
   TRAY_ICON_PATH,
   errorDetails,
   errorMessage,
-  getMacUpdateInstallHint,
   isDesktopDebugEnabled,
   isDev,
   rendererUrl,
   type InstallUpdateResult,
-  type UpdateStatus,
 } from './app-context.js';
+import {
+  checkForUpdates,
+  downloadUpdate,
+  getTorveUpdater,
+  installDownloadedUpdate,
+  onUpdaterStateChange,
+  type TorveUpdaterState,
+} from './torve-cloud/updater.js';
 import {
   buildSystemProxyTrayMenu,
   clearSystemProxySettings,
@@ -588,299 +590,160 @@ app.whenReady().then(async () => {
 
   // Payments portal starts lazily on first open (via payments:open-portal IPC)
 
-  // Auto-update: check for updates silently on launch and every 30 minutes.
-  // If an in-flight download stops emitting progress events for a couple of
-  // minutes (network drop, stuck CDN connection, etc.) we re-trigger the
-  // update check so electron-updater resumes/restarts the download instead
-  // of sitting idle forever.
-  // Downloads are opt-in: detection only surfaces an "Update available"
-  // banner, and the (hundreds of MB) download starts when the user clicks it.
-  autoUpdater.autoDownload = false;
-  autoUpdater.autoInstallOnAppQuit = true;
+  // Auto-update: check GitHub Releases via TorveUpdater 5 seconds after launch
+  // and every 30 minutes thereafter. Downloads are opt-in: detection surfaces an
+  // "Update available" banner and Settings action; the installer is verified via
+  // PE (MZ) header + optional SHA-256 before spawning detached.
+  type RendererUpdateStatusMeta = {
+    phase?: TorveUpdaterState['phase'];
+    currentVersion?: string;
+    latestVersion?: string | null;
+    lastCheckedAt?: number | null;
+    releaseUrl?: string | null;
+    assetName?: string | null;
+    downloadPercent?: number;
+    downloadedBytes?: number;
+    totalBytes?: number;
+    error?: string | null;
+  };
 
+  type RendererUpdateStatus = RendererUpdateStatusMeta & (
+    | { status: 'idle'; version: string | null }
+    | { status: 'checking'; version: string | null }
+    | { status: 'up-to-date'; version: string | null }
+    | { status: 'available'; version: string }
+    | { status: 'downloading'; version: string; percent: number }
+    | { status: 'ready'; version: string }
+    | { status: 'installing'; version: string | null }
+    | { status: 'error'; version: string | null; message: string; details: string; hint?: string }
+  );
+
+  const mapUpdaterState = (state: TorveUpdaterState): RendererUpdateStatus => {
+    const meta: RendererUpdateStatusMeta = {
+      phase: state.phase,
+      currentVersion: state.currentVersion,
+      latestVersion: state.latestVersion,
+      lastCheckedAt: state.lastCheckedAt,
+      releaseUrl: state.releaseUrl,
+      assetName: state.assetName,
+      downloadPercent: state.downloadPercent,
+      downloadedBytes: state.downloadedBytes,
+      totalBytes: state.totalBytes,
+      error: state.error,
+    };
+
+    switch (state.phase) {
+      case 'available':
+        return { ...meta, status: 'available', version: state.latestVersion ?? state.currentVersion };
+      case 'downloading':
+        return {
+          ...meta,
+          status: 'downloading',
+          version: state.latestVersion ?? state.currentVersion,
+          percent: state.downloadPercent,
+        };
+      case 'ready':
+        return { ...meta, status: 'ready', version: state.latestVersion ?? state.currentVersion };
+      case 'installing':
+        return { ...meta, status: 'installing', version: state.latestVersion };
+      case 'error': {
+        const message = state.error ?? 'Update failed.';
+        return { ...meta, status: 'error', version: state.latestVersion, message, details: message };
+      }
+      case 'checking':
+        return { ...meta, status: 'checking', version: state.latestVersion ?? state.currentVersion };
+      case 'up-to-date':
+        return { ...meta, status: 'up-to-date', version: state.latestVersion ?? state.currentVersion };
+      case 'idle':
+      default:
+        return { ...meta, status: 'idle', version: state.latestVersion ?? state.currentVersion };
+    }
+  };
+
+  const UPDATE_CHECK_INITIAL_DELAY_MS = 5_000;
   const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
-  const DOWNLOAD_STALL_TIMEOUT_MS = 2 * 60 * 1000;
-  const DOWNLOAD_STALL_POLL_MS = 30 * 1000;
+
+  const torveUpdater = getTorveUpdater({
+    currentVersion: app.getVersion(),
+    onQuit: () => {
+      isInstallingUpdate = true;
+      isQuitting = true;
+      app.quit();
+    },
+  });
 
   let updateCheckInterval: ReturnType<typeof setInterval> | null = null;
-  let downloadStallInterval: ReturnType<typeof setInterval> | null = null;
-  let lastDownloadProgressAt: number | null = null;
-  let lastDownloadPercent = 0;
-  let updateVersion: string | null = null;
 
-  // Kept for replay: the renderer can mount after update-downloaded fired
-  // (window reopened, dev reload), and electron-updater never re-emits it.
-  let lastUpdateStatus: UpdateStatus | null = null;
-
-  const sendUpdateStatus = (status: UpdateStatus) => {
-    lastUpdateStatus = status;
-    getMainWindow()?.webContents.send('app:update-status', status);
-  };
-
-  ipcMain.handle('app:get-update-status', () => lastUpdateStatus);
-
-  const clearStallWatchdog = () => {
-    if (downloadStallInterval) {
-      clearInterval(downloadStallInterval);
-      downloadStallInterval = null;
-    }
-    lastDownloadProgressAt = null;
-    lastDownloadPercent = 0;
-  };
-
-  const reportUpdateError = (error: unknown, context: string): InstallUpdateResult => {
-    const message = errorMessage(error);
-    const details = errorDetails(error);
-    const hint = getMacUpdateInstallHint();
-    console.error(`[auto-update] ${context}:`, details);
-    appendLog('connect', 'system', `Auto-update ${context}: ${message}`);
-    clearStallWatchdog();
-    if (isInstallingUpdate) {
-      isQuitting = false;
-    }
-    isInstallingUpdate = false;
-    sendUpdateStatus({ status: 'error', version: updateVersion, message, details, hint });
-    updateVersion = null;
-    return { ok: false, error: message, details, hint };
-  };
-
-  const startStallWatchdog = () => {
-    clearStallWatchdog();
-    lastDownloadProgressAt = Date.now();
-    downloadStallInterval = setInterval(() => {
-      if (!updateVersion || lastDownloadProgressAt === null) return;
-      // Once bytes are done electron-updater still spends time verifying the
-      // file (sha512 / code-sign) and emits no progress — don't treat that as
-      // a stall, just wait for update-downloaded.
-      if (lastDownloadPercent >= 100) return;
-      const idleMs = Date.now() - lastDownloadProgressAt;
-      if (idleMs < DOWNLOAD_STALL_TIMEOUT_MS) return;
-      console.warn(`[auto-update] download stalled (${Math.round(idleMs / 1000)}s with no progress) — retrying`);
-      startStallWatchdog();
-      void autoUpdater.downloadUpdate().catch((err) => {
-        reportUpdateError(err, 'stall-retry failed');
-      });
-    }, DOWNLOAD_STALL_POLL_MS);
-  };
-
-  // idle → available → downloading → ready; periodic re-checks re-announce
-  // "available" but must not regress an in-flight or finished download.
-  let updatePhase: 'idle' | 'available' | 'downloading' | 'ready' = 'idle';
-
-  const TRANSIENT_UPDATE_ERROR = /net::ERR_|ETIMEDOUT|ESOCKETTIMEDOUT|ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|socket hang up/i;
-  const MAX_DOWNLOAD_RETRIES = 5;
-  let downloadRetries = 0;
-  let downloadRetryTimer: ReturnType<typeof setTimeout> | null = null;
-
-  const clearDownloadRetry = () => {
-    if (downloadRetryTimer) {
-      clearTimeout(downloadRetryTimer);
-      downloadRetryTimer = null;
-    }
-    downloadRetries = 0;
-  };
-
-  autoUpdater.on('update-available', (info) => {
-    if (updatePhase === 'downloading' || updatePhase === 'ready') return;
-    updatePhase = 'available';
-    updateVersion = info.version;
-    sendUpdateStatus({ status: 'available', version: info.version });
-  });
-
-  ipcMain.handle('app:download-update', async (): Promise<InstallUpdateResult> => {
-    if (updatePhase === 'downloading' || updatePhase === 'ready') {
-      return { ok: true };
-    }
-    updatePhase = 'downloading';
-    clearDownloadRetry();
-    startStallWatchdog();
-    sendUpdateStatus({ status: 'downloading', version: updateVersion ?? '', percent: 0 });
-    void autoUpdater.downloadUpdate().catch(() => {
-      // Failures surface through the 'error' event, where transient network
-      // errors are retried before anything is shown.
-    });
-    return { ok: true };
-  });
-  autoUpdater.on('download-progress', (progress) => {
-    if (!updateVersion) return;
-    // Bytes are flowing again — a past interruption no longer counts.
-    downloadRetries = 0;
-    lastDownloadProgressAt = Date.now();
-    const percent = Math.max(0, Math.min(100, Math.round(progress.percent ?? 0)));
-    lastDownloadPercent = percent;
-    sendUpdateStatus({
-      status: 'downloading',
-      version: updateVersion,
-      percent,
-    });
-  });
-  // macOS: electron-updater's update-downloaded fires when ITS download
-  // completes, but Squirrel still has to unpack the zip and deep-verify the
-  // bundle's code signature — tens of seconds for an app this size. A
-  // Restart & update click during that window silently stalls until Squirrel
-  // catches up. Hold the "ready" banner until the native side confirms, so
-  // the click goes straight to the final bundle swap.
-  let nativeSquirrelReady = process.platform !== 'darwin';
-  let pendingReadyVersion: string | null = null;
-  let nativeReadyFallbackTimer: ReturnType<typeof setTimeout> | null = null;
-
-  const announceReady = (version: string) => {
-    if (nativeReadyFallbackTimer) {
-      clearTimeout(nativeReadyFallbackTimer);
-      nativeReadyFallbackTimer = null;
-    }
-    pendingReadyVersion = null;
-    sendUpdateStatus({ status: 'ready', version });
-  };
-
-  if (process.platform === 'darwin') {
-    nativeAutoUpdater.on('update-downloaded', () => {
-      nativeSquirrelReady = true;
-      if (pendingReadyVersion) {
-        announceReady(pendingReadyVersion);
-      }
-    });
-  }
-
-  autoUpdater.on('update-downloaded', (info) => {
-    updatePhase = 'ready';
-    updateVersion = info.version;
-    clearStallWatchdog();
-    clearDownloadRetry();
-    if (updateCheckInterval) {
+  onUpdaterStateChange((state) => {
+    const mapped = mapUpdaterState(state);
+    if (state.phase === 'error' && state.error) {
+      appendLog('connect', 'system', `Auto-update error: ${state.error}`);
+    } else if (state.phase === 'ready' && updateCheckInterval) {
       clearInterval(updateCheckInterval);
       updateCheckInterval = null;
     }
-    if (nativeSquirrelReady) {
-      announceReady(info.version);
-      return;
-    }
-    // Never strand the banner if the native confirmation doesn't arrive —
-    // the install path still works, it just stalls like before.
-    pendingReadyVersion = info.version;
-    nativeReadyFallbackTimer = setTimeout(() => {
-      if (pendingReadyVersion) announceReady(pendingReadyVersion);
-    }, 3 * 60_000);
-  });
-  autoUpdater.on('error', (err) => {
-    const message = errorMessage(err);
-
-    // Background check failures (no download in flight, nothing being
-    // installed) are routine on network changes — a VPN toggling or WiFi
-    // switching mid-check must not raise an "Update failed" banner. The
-    // periodic re-check retries on its own.
-    if (!isInstallingUpdate && updatePhase !== 'downloading') {
-      appendLog('connect', 'system', `Auto-update check failed (will retry): ${message}`);
-      return;
-    }
-
-    // A download interrupted by a transient network error rides it out:
-    // retry quietly a few times before surfacing a failure.
-    if (
-      !isInstallingUpdate
-      && updatePhase === 'downloading'
-      && TRANSIENT_UPDATE_ERROR.test(message)
-      && downloadRetries < MAX_DOWNLOAD_RETRIES
-    ) {
-      if (downloadRetryTimer) return; // a retry is already scheduled
-      downloadRetries += 1;
-      appendLog('connect', 'system', `Auto-update download interrupted (${message}) — retry ${downloadRetries}/${MAX_DOWNLOAD_RETRIES} in 15s`);
-      downloadRetryTimer = setTimeout(() => {
-        downloadRetryTimer = null;
-        startStallWatchdog();
-        void autoUpdater.downloadUpdate().catch(() => {
-          // Failure re-enters through the 'error' event.
-        });
-      }, 15_000);
-      return;
-    }
-
-    if (!isInstallingUpdate && updatePhase === 'downloading') {
-      // Let the next periodic check re-announce the update after the banner.
-      updatePhase = 'available';
-    }
-    reportUpdateError(err, 'error');
+    getMainWindow()?.webContents.send('app:update-status', mapped);
   });
 
-  void autoUpdater.checkForUpdates().catch(() => {});
+  ipcMain.handle('app:get-update-status', () => mapUpdaterState(torveUpdater.getState()));
 
-  updateCheckInterval = setInterval(() => {
-    void autoUpdater.checkForUpdates().catch(() => {});
-  }, UPDATE_CHECK_INTERVAL_MS);
+  ipcMain.handle('app:check-for-updates', async (): Promise<RendererUpdateStatus> => {
+    const state = await checkForUpdates({ silent: false });
+    return mapUpdaterState(state);
+  });
 
-  // Squirrel installs updates by registering its ShipIt helper as a launchd
-  // job and quitting; it treats "submitted" as "done". On this machine's
-  // macOS, Background Task Management declines to auto-start the helper
-  // (registration accepted but the job never runs, or the fresh submission
-  // is rejected outright), so the app quits and the update silently never
-  // installs. Running the very same helper manually works every time, so:
-  // spawn a detached watchdog before quitting that waits for the app to
-  // exit and starts ShipIt itself if launchd didn't.
-  const SHIPIT_LABEL = 'com.torveai.desktop.ShipIt';
-  const clearStaleMacUpdateJob = (): void => {
-    if (process.platform !== 'darwin') return;
-    const uid = process.getuid?.();
-    if (uid === undefined) return;
-    try {
-      execFileSync('launchctl', ['bootout', `gui/${uid}/${SHIPIT_LABEL}`], {
-        stdio: 'ignore',
-      });
-    } catch {
-      // No job registered — the common case.
+  ipcMain.handle('app:download-update', async (): Promise<InstallUpdateResult> => {
+    const current = torveUpdater.getState();
+    if (current.phase === 'downloading' || current.phase === 'ready') {
+      return { ok: true };
     }
-  };
-  const spawnMacUpdateWatchdog = (): void => {
-    if (process.platform !== 'darwin') return;
-    const contentsDir = path.resolve(path.dirname(process.execPath), '..');
-    const shipIt = path.join(contentsDir, 'Frameworks', 'Squirrel.framework', 'Resources', 'ShipIt');
-    const statePath = path.join(app.getPath('home'), 'Library', 'Caches', SHIPIT_LABEL, 'ShipItState.plist');
-    const appProcessName = path.basename(process.execPath);
-    const script = [
-      'APP_PID="$1"; SHIPIT="$2"; LABEL="$3"; STATE="$4"; APP_NAME="$5"',
-      // Wait for the app process to exit (Squirrel quits it), then give a
-      // launchd-started ShipIt a short window to appear — checking every 2s
-      // so a healthy native install ends the watchdog immediately instead of
-      // padding the user-visible gap before the relaunch.
-      'i=0; while kill -0 "$APP_PID" 2>/dev/null && [ "$i" -lt 180 ]; do sleep 1; i=$((i+1)); done',
-      // The install gap has no UI at all — reassure via a system notification.
-      'osascript -e \'display notification "Installing the update — the app will reopen shortly." with title "Torve Desktop"\' >/dev/null 2>&1 || true',
-      'j=0; while [ "$j" -lt 3 ]; do',
-      '  sleep 2',
-      '  launchctl print "gui/$(id -u)/$LABEL" 2>/dev/null | grep -q "state = running" && exit 0',
-      '  pgrep -x "$APP_NAME" >/dev/null 2>&1 && exit 0',
-      '  j=$((j+1))',
-      'done',
-      '[ -f "$STATE" ] || exit 0',
-      'if launchctl kickstart "gui/$(id -u)/$LABEL" 2>/dev/null; then exit 0; fi',
-      'exec "$SHIPIT" "$LABEL" "$STATE"',
-    ].join('\n');
-    const child = spawn('/bin/sh', ['-c', script, 'torve-update-watchdog', String(process.pid), shipIt, SHIPIT_LABEL, statePath, appProcessName], {
-      detached: true,
-      stdio: 'ignore',
-    });
-    child.unref();
-  };
+    const result = await downloadUpdate();
+    if (!result.ok) {
+      const msg = result.error ?? 'Failed to download update.';
+      appendLog('connect', 'system', `Auto-update download failed: ${msg}`);
+      return { ok: false, error: msg, details: msg };
+    }
+    return { ok: true };
+  });
 
   ipcMain.handle('app:install-update', async (): Promise<InstallUpdateResult> => {
     if (isInstallingUpdate) {
       return { ok: true };
     }
-
     isInstallingUpdate = true;
-    sendUpdateStatus({ status: 'installing', version: updateVersion });
-
     try {
-      clearStaleMacUpdateJob();
-      spawnMacUpdateWatchdog();
       await Promise.allSettled([stopDesktopServices(), recordTelemetryCleanShutdown()]);
+      restoreOsSystemProxySync();
       isQuitting = true;
-      autoUpdater.quitAndInstall(false, true);
+      const result = await installDownloadedUpdate();
+      if (!result.ok) {
+        isInstallingUpdate = false;
+        isQuitting = false;
+        const msg = result.error ?? 'Failed to install downloaded update.';
+        return { ok: false, error: msg, details: msg };
+      }
       return { ok: true };
     } catch (err) {
+      isInstallingUpdate = false;
       isQuitting = false;
-      return reportUpdateError(err, 'install failed');
+      const msg = errorMessage(err);
+      return { ok: false, error: msg, details: errorDetails(err) };
     }
   });
+
+  const initialUpdateCheckTimer = setTimeout(() => {
+    void checkForUpdates({ silent: true }).catch(() => {});
+  }, UPDATE_CHECK_INITIAL_DELAY_MS);
+  initialUpdateCheckTimer.unref?.();
+
+  updateCheckInterval = setInterval(() => {
+    const phase = torveUpdater.getState().phase;
+    if (phase === 'ready' || phase === 'downloading' || phase === 'installing') {
+      return;
+    }
+    void checkForUpdates({ silent: true }).catch(() => {});
+  }, UPDATE_CHECK_INTERVAL_MS);
+  updateCheckInterval.unref?.();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

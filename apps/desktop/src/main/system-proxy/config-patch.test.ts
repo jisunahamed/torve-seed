@@ -109,12 +109,7 @@ test('applyConfigPatch patches JSONC configs and writes a backup before normaliz
           limit: { context: number; output: number };
         }>;
       }>;
-      providers: Record<string, {
-        name?: string;
-        package?: string;
-        settings?: { baseURL?: string; apiKey?: string; headerTimeout?: number; chunkTimeout?: number; timeout?: number };
-        models?: Record<string, Record<string, unknown>>;
-      }>;
+      providers?: unknown;
       model: string;
       disabled_providers?: string[];
       notes: string;
@@ -130,22 +125,11 @@ test('applyConfigPatch patches JSONC configs and writes a backup before normaliz
         name: 'Torve Auto',
         attachment: true,
         modalities: { input: ['text', 'image'], output: ['text'] },
-        limit: { context: TORVE_MODEL_CONTEXT_WINDOW, output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
+        limit: { context: Math.max(TORVE_MODEL_CONTEXT_WINDOW, 1_000_000), output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
       },
     });
-    assert.equal(config.providers.torve?.name, 'Torve');
-    assert.equal(config.providers.torve?.package, '@opencode/ai/providers/openai-compatible');
-    assert.deepEqual(config.providers.torve?.settings, {
-      baseURL: 'http://127.0.0.1:9456/v1',
-      apiKey: 'torve',
-      headerTimeout: 30_000,
-      chunkTimeout: 60_000,
-      timeout: 120_000,
-    });
-    assert.deepEqual(config.providers.torve?.models?.['torve'], {
-      modelID: 'torve', name: 'Torve Auto', type: 'chat',
-      limit: { context: TORVE_MODEL_CONTEXT_WINDOW, output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
-    });
+    assert.ok((config.provider.torve?.models?.['torve']?.limit.context ?? 0) >= 1_000_000);
+    assert.equal(config.providers, undefined);
     assert.equal(config.model, 'torve/torve');
     assert.deepEqual(config.disabled_providers, ['other']);
     assert.equal(config.notes, 'keep // literal text');
@@ -160,11 +144,11 @@ test('applyConfigPatch creates a new config file when one does not exist', async
 
     const config = JSON.parse(await readFile(configPath, 'utf8')) as {
       provider?: Record<string, unknown>;
-      providers?: Record<string, unknown>;
+      providers?: unknown;
       model?: string;
     };
     assert.ok(config.provider?.torve);
-    assert.ok(config.providers?.torve);
+    assert.equal(config.providers, undefined);
     assert.equal(config.model, 'torve/torve');
     assert.equal(existsSync(`${configPath}.torve.bak`), false);
   });
@@ -181,32 +165,70 @@ test('OpenCode Direct Cloud patch writes auto plus every concrete catalog model'
         { id: 'auto', name: 'Auto', context: 8192, output: 1024 },
         { id: 'deepseek-v4-1-flash', name: 'DeepSeek V4.1 Flash', context: 1_048_576, output: 1024 },
         { id: 'gemma-4', name: 'Gemma 4', context: 262_144, output: 8192, vision: true },
+        { id: 'no-ctx-model', name: 'No Context Model' },
       ],
     };
 
     applyConfigPatch(patch, 'direct', 8378);
     const config = JSON.parse(await readFile(configPath, 'utf8')) as {
       model: string;
-      provider: Record<string, { options: { baseURL: string; apiKey: string }; models: Record<string, Record<string, unknown>> }>;
-      providers: Record<string, { package: string; settings: Record<string, unknown>; models: Record<string, Record<string, unknown>> }>;
+      provider: Record<string, {
+        name?: string;
+        npm?: string;
+        options: { baseURL: string; apiKey: string };
+        models: Record<string, { limit?: { context?: number; output?: number }; modalities?: Record<string, unknown> }>;
+      }>;
+      providers?: unknown;
     };
     const torve = config.provider['torve']!;
+    assert.equal(config.providers, undefined);
     assert.equal(config.model, 'torve/auto');
+    assert.equal(torve.name, 'Torve');
+    assert.equal(torve.npm, '@torveai/tool-provider');
     assert.equal(torve.options.baseURL, 'http://127.0.0.1:8378/app/opencode/v1');
     assert.equal(torve.options.apiKey, 'torve-local-proxy');
-    assert.deepEqual(Object.keys(torve.models), ['auto', 'deepseek-v4-1-flash', 'gemma-4']);
-    assert.deepEqual(torve.models['deepseek-v4-1-flash']?.['limit'], { context: 1_048_576, output: 1024 });
-    assert.deepEqual(torve.models['gemma-4']?.['modalities'], { input: ['text', 'image'], output: ['text'] });
-    const modern = config.providers['torve']!;
-    assert.equal(modern.package, '@opencode/ai/providers/openai-compatible');
-    assert.equal(modern.settings['baseURL'], 'http://127.0.0.1:8378/app/opencode/v1');
-    assert.equal(modern.settings['apiKey'], 'torve-local-proxy');
-    assert.equal(modern.settings['timeout'], 120_000);
-    assert.deepEqual(Object.keys(modern.models), ['auto', 'deepseek-v4-1-flash', 'gemma-4']);
-    assert.deepEqual(modern.models['deepseek-v4-1-flash'], {
-      modelID: 'deepseek-v4-1-flash', name: 'DeepSeek V4.1 Flash', type: 'chat',
-      limit: { context: 1_048_576, output: 1024 },
-    });
+    assert.deepEqual(Object.keys(torve.models), ['auto', 'deepseek-v4-1-flash', 'gemma-4', 'no-ctx-model']);
+    assert.equal(torve.models['auto']?.limit?.context, 1_000_000);
+    assert.deepEqual(torve.models['deepseek-v4-1-flash']?.limit, { context: 1_048_576, output: 1024 });
+    assert.deepEqual(torve.models['gemma-4']?.limit, { context: 1_000_000, output: 8192 });
+    assert.deepEqual(torve.models['no-ctx-model']?.limit, { context: 1_000_000 });
+    for (const model of Object.values(torve.models)) {
+      assert.ok((model.limit?.context ?? 0) >= 1_000_000);
+    }
+    assert.deepEqual(torve.models['gemma-4']?.modalities, { input: ['text', 'image'], output: ['text'] });
+  });
+});
+
+test('applyConfigPatch deletes stray providers key from legacy OpenCode configs after backing up', async () => {
+  await withTempConfig(async (_dir, configPath) => {
+    const original = `{
+      // legacy config from older Torve Desktop
+      "provider": {
+        "existing": { "name": "Existing" },
+      },
+      "providers": {
+        "torve": { "package": "@opencode/ai/providers/openai-compatible" },
+      },
+    }\n`;
+    await writeFile(configPath, original, 'utf8');
+
+    applyConfigPatch(makePatch(configPath), PEER_ID, 9456);
+
+    const config = JSON.parse(await readFile(configPath, 'utf8')) as {
+      provider: Record<string, {
+        name?: string;
+        npm?: string;
+        options?: { baseURL?: string; apiKey?: string };
+        models?: Record<string, { limit: { context: number; output?: number } }>;
+      }>;
+      providers?: unknown;
+    };
+    assert.equal(config.providers, undefined);
+    assert.equal('providers' in config, false);
+    assert.equal(config.provider.existing?.name, 'Existing');
+    assert.equal(config.provider.torve?.name, 'Torve');
+    assert.ok((config.provider.torve?.models?.['torve']?.limit.context ?? 0) >= 1_000_000);
+    assert.equal(await readFile(`${configPath}.torve.bak`, 'utf8'), original);
   });
 });
 
@@ -315,13 +337,29 @@ test('removeConfigPatch removes only the configured provider and matching model 
 
     const config = JSON.parse(await readFile(configPath, 'utf8')) as {
       provider: Record<string, unknown>;
-      providers: Record<string, unknown>;
+      providers?: Record<string, unknown>;
       model?: string;
     };
     assert.ok(config.provider.existing);
     assert.equal(config.provider.torve, undefined);
-    assert.equal(config.providers.torve, undefined);
+    assert.equal(config.providers, undefined);
     assert.equal(config.model, undefined);
+
+    // Also cleans any legacy plural `providers.torve` entry if present.
+    await writeFile(configPath, JSON.stringify({
+      provider: { existing: { name: 'Existing' } },
+      providers: { torve: { package: '@opencode/ai/providers/openai-compatible' } },
+      model: 'torve/torve',
+    }), 'utf8');
+    assert.equal(removeConfigPatch(patch), true);
+    const cleaned = JSON.parse(await readFile(configPath, 'utf8')) as {
+      provider: Record<string, unknown>;
+      providers?: Record<string, unknown>;
+      model?: string;
+    };
+    assert.ok(cleaned.provider.existing);
+    assert.equal(cleaned.providers?.torve, undefined);
+    assert.equal(cleaned.model, undefined);
   });
 });
 

@@ -127,16 +127,21 @@ async function queryUninstallRegistryAntigravity(): Promise<string | null> {
         ['query', key, '/s', '/f', 'Antigravity', '/d'],
         { encoding: 'utf8', windowsHide: true, timeout: PROBE_TIMEOUT_MS },
       );
-      const installMatch = /^\s*InstallLocation\s+REG_\w+\s+(.+)$/im.exec(stdout);
-      const iconMatch = /^\s*DisplayIcon\s+REG_\w+\s+(.+)$/im.exec(stdout);
-      const rawPath = installMatch?.[1]?.trim() || iconMatch?.[1]?.trim().replace(/,\d+$/, '');
-      if (!rawPath) continue;
-      const clean = rawPath.replace(/^"|"$/g, '');
-      const candidate = clean.toLowerCase().endsWith('.exe') ? path.dirname(clean) : clean;
-      if (rawFs.existsSync(path.join(candidate, 'Antigravity.exe'))) {
-        foundDir = candidate;
-        break;
+      const matches = [
+        ...stdout.matchAll(/^\s*InstallLocation\s+REG_\w+\s+(.+)$/gim),
+        ...stdout.matchAll(/^\s*DisplayIcon\s+REG_\w+\s+(.+)$/gim),
+      ];
+      for (const match of matches) {
+        const rawPath = match[1]?.trim().replace(/,\d+$/, '');
+        if (!rawPath) continue;
+        const clean = rawPath.replace(/^"|"$/g, '');
+        const candidate = clean.toLowerCase().endsWith('.exe') ? path.dirname(clean) : clean;
+        if (rawFs.existsSync(path.join(candidate, 'Antigravity.exe'))) {
+          foundDir = candidate;
+          break;
+        }
       }
+      if (foundDir) break;
     } catch {
       // Continue trying remaining uninstall hives.
     }
@@ -188,7 +193,16 @@ export async function discoverAntigravityInstallDir(options: AntigravityStandalo
 
   const candidates = defaultWindowsCandidates(env);
   for (const dir of candidates) {
-    if (rawFs.existsSync(path.join(dir, 'Antigravity.exe')) || rawFs.existsSync(path.join(dir, 'resources'))) {
+    if (
+      rawFs.existsSync(path.join(dir, 'Antigravity.exe')) ||
+      rawFs.existsSync(path.join(dir, 'resources', 'app.asar')) ||
+      rawFs.existsSync(path.join(dir, 'resources', 'app'))
+    ) {
+      return dir;
+    }
+  }
+  for (const dir of candidates) {
+    if (rawFs.existsSync(path.join(dir, 'resources'))) {
       return dir;
     }
   }
@@ -215,22 +229,49 @@ const UNPACKED_RESOURCE_CANDIDATES = [
   'out/main.js',
   'out/vs/code/electron-main/main.js',
   'out/main/index.js',
+  'out/index.js',
+  'dist/main.js',
+  'build/main.js',
+  'main.js',
 ];
+
+async function hasPatchableEndpoint(filePath: string): Promise<boolean> {
+  try {
+    const bytes = await rawPromises.readFile(filePath);
+    return occurrences(bytes, ORIGINAL_ENDPOINT) === 1 || occurrences(bytes, PATCHED_ENDPOINT) === 1;
+  } catch {
+    return false;
+  }
+}
+
+async function scanDirectoryForEndpoint(dir: string, depth = 0): Promise<string | null> {
+  if (depth > 5 || !rawFs.existsSync(dir)) return null;
+  let entries: nodeFs.Dirent[];
+  try {
+    entries = await rawPromises.readdir(dir, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  for (const entry of entries) {
+    if (entry.name === 'node_modules' || entry.name.startsWith('.')) continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isFile() && /\.(?:js|mjs|cjs)$/i.test(entry.name)) {
+      if (await hasPatchableEndpoint(full)) return full;
+    } else if (entry.isDirectory()) {
+      const nested = await scanDirectoryForEndpoint(full, depth + 1);
+      if (nested) return nested;
+    }
+  }
+  return null;
+}
 
 async function findEndpointInUnpackedApp(appDir: string): Promise<string | null> {
   for (const rel of UNPACKED_RESOURCE_CANDIDATES) {
     const full = path.join(appDir, rel);
     if (!rawFs.existsSync(full)) continue;
-    try {
-      const bytes = await rawPromises.readFile(full);
-      if (occurrences(bytes, ORIGINAL_ENDPOINT) === 1 || occurrences(bytes, PATCHED_ENDPOINT) === 1) {
-        return full;
-      }
-    } catch {
-      // Skip unreadable file.
-    }
+    if (await hasPatchableEndpoint(full)) return full;
   }
-  return null;
+  return scanDirectoryForEndpoint(path.join(appDir, 'out'));
 }
 
 async function resolvePaths(options: AntigravityStandalonePatchOptions) {
@@ -457,22 +498,29 @@ export async function enableAntigravityStandalonePatch(options: AntigravityStand
     throw new Error('Antigravity is patched but its verified Torve backup manifest is missing. Refusing to overwrite it.');
   }
   const patched = replaceExactlyOnce(original, ORIGINAL_ENDPOINT, PATCHED_ENDPOINT);
-  const versionDir = path.join(p.backupRoot, version);
+  const originalHash = sha256(original);
+  const baseVersionDir = path.join(p.backupRoot, version);
+  const basePrior = await readJson<AntigravityStandaloneManifest>(path.join(baseVersionDir, 'manifest.json'));
+  const versionDir = basePrior && basePrior.files[0]?.originalSha256 !== originalHash
+    ? path.join(p.backupRoot, `${version}-${originalHash.slice(0, 8)}`)
+    : baseVersionDir;
   const backupPath = path.join(versionDir, `${path.basename(p.target)}.original`);
   const manifestPath = path.join(versionDir, 'manifest.json');
-  const prior = await readJson<AntigravityStandaloneManifest>(manifestPath);
-  if (prior && prior.files[0]?.originalSha256 !== sha256(original)) {
+  const prior = versionDir === baseVersionDir
+    ? basePrior
+    : await readJson<AntigravityStandaloneManifest>(manifestPath);
+  if (prior && prior.files[0]?.originalSha256 !== originalHash) {
     throw new Error('A different build with the same Antigravity version is already backed up. Refusing to overwrite the verified backup.');
   }
   await rawPromises.mkdir(versionDir, { recursive: true });
   if (!rawFs.existsSync(backupPath)) await atomicWrite(backupPath, original);
   const backup = await rawPromises.readFile(backupPath);
-  if (sha256(backup) !== sha256(original)) throw new Error('Antigravity backup SHA-256 verification failed. Nothing was patched.');
+  if (sha256(backup) !== originalHash) throw new Error('Antigravity backup SHA-256 verification failed. Nothing was patched.');
   const manifest: AntigravityStandaloneManifest = {
     version: 1,
     antigravityVersion: version,
     createdAt: new Date().toISOString(),
-    files: [{ originalPath: p.target, backupPath, originalSha256: sha256(original), patchedSha256: sha256(patched) }],
+    files: [{ originalPath: p.target, backupPath, originalSha256: originalHash, patchedSha256: sha256(patched) }],
   };
   await atomicWrite(manifestPath, Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`));
   await atomicWrite(p.target, patched);
@@ -494,7 +542,15 @@ export async function disableAntigravityStandalonePatch(options: AntigravityStan
   const file = manifest?.files.find((entry) => path.resolve(entry.originalPath) === path.resolve(p.target));
   if (!manifest || !file) throw new Error('The verified Antigravity backup manifest is missing.');
   const current = await rawPromises.readFile(p.target);
-  if (sha256(current) !== file.patchedSha256) throw new Error('Antigravity changed after Torve patched it (possibly an update). Refusing to overwrite the new file.');
+  const currentHash = sha256(current);
+  if (
+    currentHash === file.originalSha256 ||
+    (!state.enabled && occurrences(current, ORIGINAL_ENDPOINT) === 1 && occurrences(current, PATCHED_ENDPOINT) === 0)
+  ) {
+    await atomicWrite(p.state, Buffer.from(`${JSON.stringify({ ...state, enabled: false, updatedAt: new Date().toISOString() }, null, 2)}\n`));
+    return antigravityStandaloneStatus({ ...options, bypassCache: true });
+  }
+  if (currentHash !== file.patchedSha256) throw new Error('Antigravity changed after Torve patched it (possibly an update). Refusing to overwrite the new file.');
   const original = await rawPromises.readFile(file.backupPath);
   if (sha256(original) !== file.originalSha256) throw new Error('Antigravity backup SHA-256 verification failed. Restore was cancelled.');
   await atomicWrite(p.target, original);

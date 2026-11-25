@@ -219,6 +219,8 @@ export class TorveUpdater {
   private customTempDir?: string;
   private downloadUrl: string | null = null;
   private hasExplicitVersion: boolean;
+  private inFlightCheck: Promise<TorveUpdaterState> | null = null;
+  private activeCheckSilent = false;
 
   constructor(options: TorveUpdaterOptions = {}) {
     this.hasExplicitVersion = Boolean(options.currentVersion);
@@ -290,13 +292,50 @@ export class TorveUpdater {
     return electronTemp || tmpdir();
   }
 
-  async checkForUpdates(): Promise<TorveUpdaterState> {
+  async checkForUpdates(options: { silent?: boolean } = {}): Promise<TorveUpdaterState> {
     if (this.state.phase === 'downloading' || this.state.phase === 'installing') {
       return this.getState();
     }
+    if (this.state.phase === 'ready' && this.state.downloadedFilePath && options.silent) {
+      return this.getState();
+    }
 
+    if (!options.silent) {
+      this.activeCheckSilent = false;
+    }
+    if (this.inFlightCheck) {
+      return this.inFlightCheck;
+    }
+
+    this.activeCheckSilent = Boolean(options.silent);
+    this.inFlightCheck = this.performCheckForUpdates().finally(() => {
+      this.inFlightCheck = null;
+      this.activeCheckSilent = false;
+    });
+    return this.inFlightCheck;
+  }
+
+  private handleCheckFailure(
+    previousPhase: UpdaterPhase,
+    errorMsg: string,
+    extra: Partial<TorveUpdaterState> = {},
+  ): TorveUpdaterState {
+    const fallbackPhase: UpdaterPhase =
+      previousPhase === 'checking' || previousPhase === 'error' ? 'idle' : previousPhase;
+    return this.setState({
+      ...extra,
+      phase: this.activeCheckSilent ? fallbackPhase : 'error',
+      lastCheckedAt: Date.now(),
+      error: errorMsg,
+    });
+  }
+
+  private async performCheckForUpdates(): Promise<TorveUpdaterState> {
+    const previousPhase = this.state.phase;
     const currentVersion = await this.ensureCurrentVersion();
-    this.setState({ phase: 'checking', error: null });
+    if (!(this.activeCheckSilent && (previousPhase === 'available' || previousPhase === 'ready'))) {
+      this.setState({ phase: 'checking', error: null });
+    }
 
     try {
       const response = await this.fetchFn(this.releaseUrl, {
@@ -307,20 +346,31 @@ export class TorveUpdater {
       });
 
       if (!response.ok) {
-        return this.setState({
-          phase: 'error',
-          lastCheckedAt: Date.now(),
-          error: `GitHub Releases check failed (${response.status} ${response.statusText}).`,
-        });
+        return this.handleCheckFailure(
+          previousPhase,
+          `GitHub Releases check failed (${response.status} ${response.statusText}).`,
+        );
       }
 
       const release = (await response.json()) as GitHubReleaseResponse;
       const latestVersion = (release.tag_name ?? '').trim().replace(/^v/i, '');
       if (!latestVersion) {
+        return this.handleCheckFailure(
+          previousPhase,
+          'Latest GitHub release is missing a tag_name.',
+        );
+      }
+
+      if (
+        previousPhase === 'ready'
+        && this.state.downloadedFilePath
+        && this.state.latestVersion
+        && compareSemver(latestVersion, this.state.latestVersion) <= 0
+      ) {
         return this.setState({
-          phase: 'error',
+          phase: 'ready',
           lastCheckedAt: Date.now(),
-          error: 'Latest GitHub release is missing a tag_name.',
+          error: null,
         });
       }
 
@@ -344,15 +394,16 @@ export class TorveUpdater {
       const asset = selectWindowsExeAsset(release.assets);
       if (!asset) {
         this.downloadUrl = null;
-        return this.setState({
-          phase: 'error',
-          latestVersion,
-          releaseName: release.name ?? null,
-          releaseUrl: release.html_url ?? null,
-          releaseNotes: release.body ?? null,
-          lastCheckedAt: Date.now(),
-          error: `Release v${latestVersion} does not contain a Windows Torve-Desktop-Setup-*.exe asset.`,
-        });
+        return this.handleCheckFailure(
+          previousPhase,
+          `Release v${latestVersion} does not contain a Windows Torve-Desktop-Setup-*.exe asset.`,
+          {
+            latestVersion,
+            releaseName: release.name ?? null,
+            releaseUrl: release.html_url ?? null,
+            releaseNotes: release.body ?? null,
+          },
+        );
       }
 
       this.downloadUrl = asset.browser_download_url;
@@ -373,11 +424,10 @@ export class TorveUpdater {
         error: null,
       });
     } catch (err) {
-      return this.setState({
-        phase: 'error',
-        lastCheckedAt: Date.now(),
-        error: err instanceof Error ? err.message : String(err),
-      });
+      return this.handleCheckFailure(
+        previousPhase,
+        err instanceof Error ? err.message : String(err),
+      );
     }
   }
 
@@ -549,8 +599,8 @@ export function onUpdaterStateChange(listener: (state: TorveUpdaterState) => voi
   return getTorveUpdater().onStateChange(listener);
 }
 
-export function checkForUpdates(): Promise<TorveUpdaterState> {
-  return getTorveUpdater().checkForUpdates();
+export function checkForUpdates(options?: { silent?: boolean }): Promise<TorveUpdaterState> {
+  return getTorveUpdater().checkForUpdates(options);
 }
 
 export function downloadUpdate(): Promise<{ ok: boolean; filePath?: string; error?: string }> {

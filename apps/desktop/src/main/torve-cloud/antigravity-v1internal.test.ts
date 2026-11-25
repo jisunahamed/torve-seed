@@ -6,8 +6,21 @@ import path from 'node:path';
 import { handleAntigravityV1Internal } from './antigravity-v1internal.js';
 import type { TorveModel } from './models.js';
 
-const models: TorveModel[] = [{ id: 'torve-reasoner', display_name: 'Torve Reasoner', capabilities: ['reasoning', 'tools'], max_input_tokens: 131_072, max_output_tokens: 8_192 }];
-const catalog = { models: { 'gemini-native': { displayName: 'Gemini Native', model: 'MODEL_GEMINI' } }, defaultAgentModelId: 'gemini-native', cascadeModelConfigs: [{ id: 'cascade-native' }], clientModelConfigs: [{ id: 'client-native' }], agentModelSorts: [{ displayName: 'Recommended', groups: [{ displayName: 'Google', modelIds: ['gemini-native'] }] }] };
+const models: TorveModel[] = [
+  { id: 'torve-reasoner', display_name: 'Torve Reasoner', capabilities: ['reasoning', 'tools'], max_input_tokens: 131_072, max_output_tokens: 8_192 },
+  { id: 'torve-long', display_name: 'Torve Long', capabilities: ['tools'], context_window: 2_000_000, max_output_tokens: 16_384 },
+];
+const catalog = {
+  models: {
+    'gemini-native': { displayName: 'Gemini Native', model: 'MODEL_GEMINI' },
+    'gemini-flash': { displayName: 'Gemini Flash', model: 'MODEL_GEMINI_FLASH' },
+  },
+  defaultAgentModelId: 'gemini-native',
+  groupedModels: [{ groupName: 'Google', modelIds: ['gemini-native', 'gemini-flash'] }],
+  cascadeModelConfigs: [{ id: 'cascade-native' }],
+  clientModelConfigs: [{ id: 'client-native' }],
+  agentModelSorts: [{ displayName: 'Recommended', groups: [{ displayName: 'Google', modelIds: ['gemini-native', 'gemini-flash'] }] }],
+};
 
 function request(pathAndQuery: string, body: unknown = {}): { method: string; pathAndQuery: string; headers: Record<string, string>; body: Uint8Array } {
   return { method: 'POST', pathAndQuery, headers: { authorization: 'Bearer google-user-token', 'content-type': 'application/json' }, body: new TextEncoder().encode(JSON.stringify(body)) };
@@ -20,17 +33,30 @@ test('fetchAvailableModels injects Torve models and stable placeholder identitie
   const fetchImpl = (async (url: string | URL | Request) => { calls.push(String(url)); return new Response(JSON.stringify(catalog), { status: 200, headers: { 'content-type': 'application/json' } }); }) as typeof fetch;
   try {
     const result = await handleAntigravityV1Internal(request('/v1internal:fetchAvailableModels'), { apiKey: 'torve-key', models, fetchImpl, googleUpstream: 'https://google.example', torveUpstream: 'https://torve.example', identityPath });
-    const body = await result.response.json() as typeof catalog;
-    const torveId = Object.keys(body.models).find((id) => id.startsWith('MODEL_PLACEHOLDER_'));
-    assert.ok(torveId);
-    assert.equal((body.models as Record<string, { model?: string }>)[torveId]!.model, 'MODEL_PLACEHOLDER_M1650');
-    assert.deepEqual(body.agentModelSorts[0]!.groups, [{ displayName: 'Google', modelIds: ['gemini-native', torveId] }]);
+    const body = await result.response.json() as Omit<typeof catalog, 'models'> & {
+      models: Record<string, { displayName?: string; model?: string; maxTokens?: number }>;
+    };
+    const torveIds = Object.keys(body.models).filter((id) => id.startsWith('MODEL_PLACEHOLDER_'));
+    assert.equal(torveIds.length, 2);
+    const reasonerEntry = Object.values(body.models).find((entry) => entry.displayName === 'Torve Reasoner');
+    const longEntry = Object.values(body.models).find((entry) => entry.displayName === 'Torve Long');
+    assert.ok(reasonerEntry);
+    assert.ok(longEntry);
+    assert.equal(reasonerEntry.model, 'MODEL_PLACEHOLDER_M1649');
+    assert.ok((reasonerEntry.maxTokens ?? 0) >= 1_000_000);
+    assert.equal(longEntry.model, 'MODEL_PLACEHOLDER_M1650');
+    assert.equal(longEntry.maxTokens, 2_000_000);
+    assert.deepEqual(body.models['gemini-native'], { displayName: 'Gemini Native', model: 'MODEL_GEMINI' });
+    assert.deepEqual(body.models['gemini-flash'], { displayName: 'Gemini Flash', model: 'MODEL_GEMINI_FLASH' });
+    assert.deepEqual(body.groupedModels, [{ groupName: 'Google', modelIds: ['gemini-native', 'gemini-flash'] }]);
+    assert.deepEqual(body.agentModelSorts[0]!.groups, [{ displayName: 'Google', modelIds: ['gemini-native', 'gemini-flash', ...torveIds] }]);
     assert.equal(body.defaultAgentModelId, 'gemini-native');
     assert.deepEqual(body.cascadeModelConfigs, [{ id: 'cascade-native' }]);
     assert.deepEqual(body.clientModelConfigs, [{ id: 'client-native' }]);
     assert.equal(calls[0], 'https://google.example/v1internal:fetchAvailableModels');
     const saved = JSON.parse(await readFile(identityPath, 'utf8')) as { assignments: Record<string, { pickerId: string; placeholderId: string }> };
-    assert.equal(saved.assignments['torve-reasoner']?.placeholderId, 'MODEL_PLACEHOLDER_M1650');
+    assert.equal(saved.assignments['torve-reasoner']?.placeholderId, 'MODEL_PLACEHOLDER_M1649');
+    assert.equal(saved.assignments['torve-long']?.placeholderId, 'MODEL_PLACEHOLDER_M1650');
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
@@ -46,7 +72,7 @@ test('fetchAvailableModels preserves a native placeholder collision and assigns 
   };
   const fetchImpl = (async () => new Response(JSON.stringify(collisionCatalog), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch;
   try {
-    const result = await handleAntigravityV1Internal(request('/v1internal:fetchAvailableModels'), { apiKey: 'torve-key', models, fetchImpl, googleUpstream: 'https://google.example', torveUpstream: 'https://torve.example', identityPath });
+    const result = await handleAntigravityV1Internal(request('/v1internal:fetchAvailableModels'), { apiKey: 'torve-key', models: [models[0]!], fetchImpl, googleUpstream: 'https://google.example', torveUpstream: 'https://torve.example', identityPath });
     const body = await result.response.json() as { models: Record<string, { displayName?: string; model?: string }> };
     assert.deepEqual(body.models.MODEL_PLACEHOLDER_M1650, { displayName: 'Google Reserved', model: 'MODEL_PLACEHOLDER_M1650' });
     const torveEntry = Object.entries(body.models).find(([, value]) => value.displayName === 'Torve Reasoner');
@@ -77,8 +103,8 @@ test('streamGenerateContent routes Torve IDs locally and native Google IDs upstr
   }) as typeof fetch;
   try {
     const catalogResult = await handleAntigravityV1Internal(request('/v1internal:fetchAvailableModels'), { apiKey: 'torve-key', models, fetchImpl, googleUpstream: 'https://google.example', torveUpstream: 'https://torve.example', identityPath });
-    const catalogBody = await catalogResult.response.json() as { models: Record<string, unknown> };
-    const torveId = Object.keys(catalogBody.models).find((id) => id.startsWith('MODEL_PLACEHOLDER_'))!;
+    const catalogBody = await catalogResult.response.json() as { models: Record<string, { displayName?: string }> };
+    const torveId = Object.entries(catalogBody.models).find(([, value]) => value.displayName === 'Torve Reasoner')![0];
     calls.length = 0;
 
     const routed = await handleAntigravityV1Internal(request('/v1internal:streamGenerateContent?alt=sse', { model: torveId, request: { contents: [{ role: 'user', parts: [{ text: 'hello' }] }] } }), { apiKey: 'torve-key', models, fetchImpl, googleUpstream: 'https://google.example', torveUpstream: 'https://torve.example', identityPath });
@@ -125,4 +151,71 @@ test('slash-form v1internal endpoints pass through unchanged', async () => {
   const result = await handleAntigravityV1Internal({ ...request('/v1internal/cascadeNuxes?page_size=1000'), method: 'GET' }, { apiKey: 'torve-key', models, fetchImpl, googleUpstream: 'https://google.example', torveUpstream: 'https://torve.example' });
   assert.equal(result.response.status, 200);
   assert.equal(seen, 'https://google.example/v1internal/cascadeNuxes?page_size=1000');
+});
+
+test('streamGenerateContent flushes thought, text, and functionCall chunks immediately without stream-wide buffering', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'torve-antigravity-unbuffered-'));
+  const identityPath = path.join(dir, 'ids.json');
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  let streamController!: ReadableStreamDefaultController<Uint8Array>;
+
+  const fetchImpl = (async (url: string | URL | Request) => {
+    if (String(url).includes('fetchAvailableModels')) {
+      return new Response(JSON.stringify(catalog), { status: 200, headers: { 'content-type': 'application/json' } });
+    }
+    const upstreamStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        streamController = controller;
+      },
+    });
+    return new Response(upstreamStream, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+  }) as typeof fetch;
+
+  try {
+    const catalogResult = await handleAntigravityV1Internal(
+      request('/v1internal:fetchAvailableModels'),
+      { apiKey: 'torve-key', models, fetchImpl, googleUpstream: 'https://google.example', torveUpstream: 'https://torve.example', identityPath },
+    );
+    const catalogBody = await catalogResult.response.json() as { models: Record<string, { displayName?: string }> };
+    const torveId = Object.entries(catalogBody.models).find(([, value]) => value.displayName === 'Torve Reasoner')![0];
+
+    const streamed = await handleAntigravityV1Internal(
+      request('/v1internal:streamGenerateContent?alt=sse', { model: torveId, request: { contents: [{ role: 'user', parts: [{ text: 'hi' }] }] } }),
+      { apiKey: 'torve-key', models, fetchImpl, googleUpstream: 'https://google.example', torveUpstream: 'https://torve.example', identityPath },
+    );
+    const reader = streamed.response.body!.getReader();
+
+    // 1. Push thought chunk only — must flush immediately before text/EOF arrives.
+    streamController.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { reasoning: 'step 1' } }] })}\n`));
+    const chunk1 = decoder.decode((await reader.read()).value);
+    assert.match(chunk1, /"thought":true/);
+    assert.match(chunk1, /"text":"step 1"/);
+
+    // 2. Push text chunk — must flush immediately.
+    streamController.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: 'hello' } }] })}\n`));
+    const chunk2 = decoder.decode((await reader.read()).value);
+    assert.match(chunk2, /"text":"hello"/);
+
+    // 3. Push split functionCall arguments across two chunks — must flush immediately once JSON completes, before [DONE]/close.
+    streamController.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [{ index: 0, function: { name: 'read_file', arguments: '{"path":' } }] } }] })}\n`));
+    streamController.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { tool_calls: [{ index: 0, function: { arguments: '"b.ts"}' } }] } }] })}\n`));
+    const chunk3 = decoder.decode((await reader.read()).value);
+    assert.match(chunk3, /"functionCall":\{"name":"read_file","args":\{"path":"b\.ts"\}\}/);
+
+    // 4. Close upstream and read final finish frame.
+    streamController.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: 'tool_calls' }], usage: { prompt_tokens: 10, completion_tokens: 4 } })}\ndata: [DONE]\n`));
+    streamController.close();
+    const rest: string[] = [];
+    for (;;) {
+      const next = await reader.read();
+      if (next.done) break;
+      rest.push(decoder.decode(next.value));
+    }
+    const tail = rest.join('');
+    assert.match(tail, /"finishReason":"STOP"/);
+    assert.match(tail, /"promptTokenCount":10/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });

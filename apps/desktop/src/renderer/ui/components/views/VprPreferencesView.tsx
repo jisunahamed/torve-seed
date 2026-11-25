@@ -2,13 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowReloadHorizontalIcon, Moon02Icon, Sun02Icon } from '@hugeicons/core-free-icons';
 import { activeThemeMode, applyThemeMode, type ThemeMode } from '../../lib/theme';
-import type { TorveAccountStatus, TorveDesktopMeResponse } from '../../../types/bridge';
+import type { TorveAccountStatus, TorveDesktopMeResponse, UpdateStatus } from '../../../types/bridge';
 import type { ViewName } from '../../types';
 import { VprToggle } from '../vpr/VprKit';
 import { TorveAuthCard } from '../torve/TorveAuthCard';
 import styles from './VprPreferencesView.module.scss';
 
-type Props = { onSelectView?: (view: ViewName) => void };
+type Props = {
+  onSelectView?: (view: ViewName) => void;
+  initialUpdateStatus?: UpdateStatus | null;
+};
 
 type CloudActivity = {
   id: string;
@@ -36,7 +39,34 @@ type BackupSummary = {
 
 declare const __APP_VERSION__: string;
 
-export function VprPreferencesView(_props: Props) {
+function getUpdateStatusLabel(status: UpdateStatus | null, checking: boolean): string {
+  if (checking || status?.status === 'checking') {
+    return 'Checking…';
+  }
+  if (!status) {
+    return 'Up to date';
+  }
+  switch (status.status) {
+    case 'up-to-date':
+      return 'Up to date';
+    case 'idle':
+      return status.error ? `Check failed: ${status.error}` : 'Up to date';
+    case 'available':
+      return `Torve Desktop v${status.version} is available`;
+    case 'downloading': {
+      const pct = Math.max(0, Math.min(100, Math.round(status.downloadPercent ?? status.percent ?? 0)));
+      return `Downloading ${pct}%`;
+    }
+    case 'ready':
+      return `Ready to install v${status.version}`;
+    case 'installing':
+      return 'Installing update…';
+    case 'error':
+      return status.message || status.error || 'Update check failed.';
+  }
+}
+
+export function VprPreferencesView({ initialUpdateStatus = null }: Props) {
   const [activities, setActivities] = useState<CloudActivity[]>([]);
   const [appFilter, setAppFilter] = useState('');
   const [modelFilter, setModelFilter] = useState('');
@@ -51,7 +81,9 @@ export function VprPreferencesView(_props: Props) {
   const [backups, setBackups] = useState<BackupSummary[]>([]);
   const [backupBusy, setBackupBusy] = useState<string | null>(null);
   const [backupNotice, setBackupNotice] = useState<string | null>(null);
-  const [appVersion, setAppVersion] = useState<string>(typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.2.57');
+  const [appVersion, setAppVersion] = useState<string>(typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.2.58');
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(initialUpdateStatus);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   const refreshBackups = useCallback(async () => {
     const list = await window.torveDesktop?.torveBackupsList?.();
@@ -73,12 +105,19 @@ export function VprPreferencesView(_props: Props) {
     const bridge = window.torveDesktop;
     void refreshAccount();
     void refreshBackups();
-    void bridge?.torveActivityGet?.().then((items) => setActivities(items ?? [])).catch(() => {});
-    void bridge?.loginItemGet?.().then((res) => setOpenAtLogin(Boolean(res?.openAtLogin))).catch(() => {});
-    void bridge?.getAppVersion?.().then((v) => { if (v) setAppVersion(v); }).catch(() => {});
+    void bridge?.torveActivityGet?.()?.then?.((items) => setActivities(items ?? []))?.catch?.(() => {});
+    void bridge?.loginItemGet?.()?.then?.((res) => setOpenAtLogin(Boolean(res?.openAtLogin)))?.catch?.(() => {});
+    void bridge?.getAppVersion?.()?.then?.((v) => { if (v) setAppVersion(v); })?.catch?.(() => {});
+    void bridge?.getUpdateStatus?.()?.then?.((status) => { if (status) setUpdateStatus(status); })?.catch?.(() => {});
 
     const unsubActivity = bridge?.onTorveActivity?.((item) => {
       setActivities((current) => [item, ...current.filter((entry) => entry.id !== item.id)].slice(0, 150));
+    });
+    const unsubUpdate = bridge?.onUpdateStatus?.((status) => {
+      setUpdateStatus(status);
+      if (status.status !== 'checking') {
+        setCheckingUpdate(false);
+      }
     });
     const unsubAuth = bridge?.onTorveAuthEvent?.((event) => {
       if (event.status === 'pending') {
@@ -99,6 +138,7 @@ export function VprPreferencesView(_props: Props) {
 
     return () => {
       unsubActivity?.();
+      unsubUpdate?.();
       unsubAuth?.();
     };
   }, [refreshAccount, refreshBackups]);
@@ -142,6 +182,49 @@ export function VprPreferencesView(_props: Props) {
       setBackupBusy(null);
     }
   };
+
+  const handleCheckForUpdates = async () => {
+    const checkFn = window.torveDesktop?.checkForUpdates;
+    if (!checkFn) return;
+    setCheckingUpdate(true);
+    try {
+      const next = await checkFn();
+      if (next) setUpdateStatus(next);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to check for updates.';
+      setUpdateStatus({
+        status: 'error',
+        version: null,
+        message: msg,
+        details: err instanceof Error ? (err.stack || err.message) : String(err),
+      });
+    } finally {
+      setCheckingUpdate(false);
+    }
+  };
+
+  const handleDownloadUpdate = async () => {
+    await window.torveDesktop?.downloadUpdate?.();
+  };
+
+  const handleInstallUpdate = async () => {
+    await window.torveDesktop?.installUpdate?.();
+  };
+
+  const displayVersion = updateStatus?.currentVersion || appVersion;
+  const lastCheckedLabel = updateStatus?.lastCheckedAt
+    ? new Date(updateStatus.lastCheckedAt).toLocaleString()
+    : 'Never';
+  const updateStatusLabel = getUpdateStatusLabel(updateStatus, checkingUpdate);
+  const downloadPercent = updateStatus?.status === 'downloading'
+    ? Math.max(0, Math.min(100, Math.round(updateStatus.downloadPercent ?? updateStatus.percent ?? 0)))
+    : 0;
+  const isUpdateError = updateStatus?.status === 'error' || (updateStatus?.status === 'idle' && Boolean(updateStatus.error));
+  const isCheckDisabled =
+    checkingUpdate
+    || updateStatus?.status === 'checking'
+    || updateStatus?.status === 'downloading'
+    || updateStatus?.status === 'installing';
 
   return (
     <section className={styles.view} role="tabpanel" aria-label="Activity and Settings">
@@ -326,12 +409,61 @@ export function VprPreferencesView(_props: Props) {
         </section>
 
         <section className={styles.card} aria-label="About Torve Desktop">
-          <div className={styles.settingRow}>
+          <div className={styles.cardHead}>
             <div>
-              <div className={styles.settingTitle}>Torve Desktop</div>
+              <h2 className={styles.cardTitle}>About Torve Desktop</h2>
               <div className={styles.settingHint}>Direct Cloud Proxy: http://127.0.0.1:8378</div>
             </div>
-            <span className={styles.backupTitle}>v{appVersion}</span>
+            <span className={styles.backupTitle}>v{displayVersion}</span>
+          </div>
+
+          <div className={styles.settingRow}>
+            <div className={styles.updateMeta}>
+              <div className={`${styles.settingTitle}${isUpdateError ? ` ${styles.updateErrorText}` : ''}`}>
+                {updateStatusLabel}
+              </div>
+              <div className={styles.settingHint}>Last checked: {lastCheckedLabel}</div>
+              {updateStatus?.status === 'downloading' ? (
+                <div
+                  className={styles.updateProgressTrack}
+                  role="progressbar"
+                  aria-valuenow={downloadPercent}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div className={styles.updateProgressFill} style={{ width: `${downloadPercent}%` }} />
+                </div>
+              ) : null}
+            </div>
+            <div className={styles.updateActions}>
+              {updateStatus?.status === 'available' ? (
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={() => { void handleDownloadUpdate(); }}
+                >
+                  Download &amp; Update
+                </button>
+              ) : null}
+              {updateStatus?.status === 'ready' ? (
+                <button
+                  type="button"
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                  onClick={() => { void handleInstallUpdate(); }}
+                >
+                  Restart &amp; Install
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className={styles.btn}
+                disabled={isCheckDisabled}
+                onClick={() => { void handleCheckForUpdates(); }}
+              >
+                <HugeiconsIcon icon={ArrowReloadHorizontalIcon} size={14} strokeWidth={2} />
+                <span>{checkingUpdate || updateStatus?.status === 'checking' ? 'Checking…' : 'Check for Updates'}</span>
+              </button>
+            </div>
           </div>
         </section>
       </div>

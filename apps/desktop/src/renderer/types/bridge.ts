@@ -200,12 +200,29 @@ export type PluginInstallResult = {
   error: string | null;
 };
 
-export type UpdateStatus =
+export type UpdateStatusMeta = {
+  phase?: 'idle' | 'checking' | 'up-to-date' | 'available' | 'downloading' | 'ready' | 'installing' | 'error';
+  currentVersion?: string;
+  latestVersion?: string | null;
+  lastCheckedAt?: number | null;
+  releaseUrl?: string | null;
+  assetName?: string | null;
+  downloadPercent?: number;
+  downloadedBytes?: number;
+  totalBytes?: number;
+  error?: string | null;
+};
+
+export type UpdateStatus = UpdateStatusMeta & (
+  | { status: 'idle'; version: string | null }
+  | { status: 'checking'; version: string | null }
+  | { status: 'up-to-date'; version: string | null }
   | { status: 'available'; version: string }
   | { status: 'downloading'; version: string; percent: number }
   | { status: 'ready'; version: string }
   | { status: 'installing'; version: string | null }
-  | { status: 'error'; version: string | null; message: string; details: string; hint?: string };
+  | { status: 'error'; version: string | null; message: string; details: string; hint?: string }
+);
 
 export type InstallUpdateResult =
   | { ok: true }
@@ -543,6 +560,8 @@ export type DesktopBridge = {
   torveCloudProxyStatus?: () => Promise<{ running: boolean; port: number; upstream: string }>;
   antigravityStandaloneStatus?: (opts?: { bypassCache?: boolean }) => Promise<AntigravityStandalonePatchStatus>;
   antigravityStandaloneSet?: (enabled: boolean) => Promise<{ ok: boolean; status?: AntigravityStandalonePatchStatus; error?: string }>;
+  antigravityStandaloneCloseAndEnable?: () => Promise<{ ok: boolean; error?: string; status?: AntigravityStandalonePatchStatus }>;
+  antigravityLaunch?: () => Promise<{ ok: boolean; targetPath?: string; error?: string }>;
   torveOverridesGet?: () => Promise<Record<string, { modelId: string; enabled: boolean }>>;
   torveOverrideSet?: (appId: string, value: { modelId: string; enabled: boolean } | null) => Promise<{ ok: boolean; overrides?: Record<string, { modelId: string; enabled: boolean }>; error?: string }>;
   torveActivityGet?: () => Promise<Array<{ id: string; timestamp: number; appId: string | null; protocol: string; requestedModel: string | null; resolvedModel: string | null; statusCode: number; latencyMs: number; stream: boolean; usage: { inputTokens: number; outputTokens: number } | null; errorSummary: string | null }>>;
@@ -593,6 +612,7 @@ export type DesktopBridge = {
   onUpdateStatus?: (handler: (data: UpdateStatus) => void) => () => void;
   installUpdate?: () => Promise<InstallUpdateResult>;
   downloadUpdate?: () => Promise<InstallUpdateResult>;
+  checkForUpdates?: () => Promise<UpdateStatus>;
   getUpdateStatus?: () => Promise<UpdateStatus | null>;
   setDebugLogs?: (enabled: boolean) => Promise<{ ok: true }>;
   creditsGetInfo?: (opts?: { fresh?: boolean }) => Promise<{ ok: boolean; data: { evmAddress: string | null; operatorAddress: string | null; balanceUsdc: string; reservedUsdc: string; availableUsdc: string; pendingUsdc: string; spendableUsdc: string; walletUsdc: string; totalOwnedUsdc: string; creditLimitUsdc: string } | null; error: string | null }>;

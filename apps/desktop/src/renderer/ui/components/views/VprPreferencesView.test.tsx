@@ -53,4 +53,94 @@ describe('VprPreferencesView safety and rendering', () => {
     expect(fallbackMarkup).toContain('Retry');
     expect(fallbackMarkup).toContain('Back to Overview');
   });
+
+  it('renders About & Updates card with Check for Updates and all update states', () => {
+    vi.stubGlobal('document', { body: { classList: { contains: () => true } } });
+
+    const defaultMarkup = renderToStaticMarkup(<VprPreferencesView />);
+    expect(defaultMarkup).toContain('About Torve Desktop');
+    expect(defaultMarkup).toContain('Check for Updates');
+    expect(defaultMarkup).toContain('Last checked: Never');
+    expect(defaultMarkup).toContain('Up to date');
+
+    const checkingMarkup = renderToStaticMarkup(
+      <VprPreferencesView
+        initialUpdateStatus={{
+          status: 'checking',
+          version: '0.2.58',
+          currentVersion: '0.2.58',
+        }}
+      />,
+    );
+    expect(checkingMarkup).toContain('Checking…');
+    expect(checkingMarkup).toContain('v0.2.58');
+
+    const ts = new Date('2026-11-25T20:00:00Z').getTime();
+    const upToDateMarkup = renderToStaticMarkup(
+      <VprPreferencesView
+        initialUpdateStatus={{
+          status: 'up-to-date',
+          version: '0.2.58',
+          currentVersion: '0.2.58',
+          latestVersion: '0.2.58',
+          lastCheckedAt: ts,
+        }}
+      />,
+    );
+    expect(upToDateMarkup).toContain('Up to date');
+    expect(upToDateMarkup).not.toContain('Last checked: Never');
+
+    const availableMarkup = renderToStaticMarkup(
+      <VprPreferencesView
+        initialUpdateStatus={{
+          status: 'available',
+          version: '0.2.59',
+          currentVersion: '0.2.58',
+          latestVersion: '0.2.59',
+          lastCheckedAt: ts,
+        }}
+      />,
+    );
+    expect(availableMarkup).toContain('Torve Desktop v0.2.59 is available');
+    expect(availableMarkup).toContain('Download &amp; Update');
+
+    const downloadingMarkup = renderToStaticMarkup(
+      <VprPreferencesView
+        initialUpdateStatus={{
+          status: 'downloading',
+          version: '0.2.59',
+          percent: 42,
+          downloadPercent: 42,
+          currentVersion: '0.2.58',
+        }}
+      />,
+    );
+    expect(downloadingMarkup).toContain('Downloading 42%');
+    expect(downloadingMarkup).toContain('role="progressbar"');
+
+    const readyMarkup = renderToStaticMarkup(
+      <VprPreferencesView
+        initialUpdateStatus={{
+          status: 'ready',
+          version: '0.2.59',
+          currentVersion: '0.2.58',
+        }}
+      />,
+    );
+    expect(readyMarkup).toContain('Ready to install v0.2.59');
+    expect(readyMarkup).toContain('Restart &amp; Install');
+
+    const errorMarkup = renderToStaticMarkup(
+      <VprPreferencesView
+        initialUpdateStatus={{
+          status: 'error',
+          version: null,
+          message: 'Network offline',
+          details: 'ENOTFOUND api.github.com',
+          lastCheckedAt: ts,
+        }}
+      />,
+    );
+    expect(errorMarkup).toContain('Network offline');
+  });
 });

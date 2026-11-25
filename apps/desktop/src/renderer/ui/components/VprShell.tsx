@@ -116,10 +116,10 @@ export function VprShell({ activeView, onSelectView, onNavigateBack, children }:
         </div>
       </nav>
       <main className={styles.mainPane}>
+        <UpdateBanner />
         <div className={styles.content}>
           <VprNavContext.Provider value={navValue}>{children}</VprNavContext.Provider>
         </div>
-        <UpdateBanner />
       </main>
       <footer className={styles.statusStrip}>
         <span className={`${styles.statusItem} ${proxyActive ? styles.statusOk : styles.statusMuted}`}>

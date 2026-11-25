@@ -241,7 +241,7 @@ export function injectTorveCatalog(catalog: JsonObject, models: readonly TorveMo
 function catalogModel(model: TorveModel, placeholderId: string): JsonObject {
   const capabilities = Array.isArray(model['capabilities']) ? model['capabilities'].filter((item): item is string => typeof item === 'string') : [];
   const supportsImages = capabilities.some((item) => /image|vision/i.test(item));
-  const supportsThinking = capabilities.some((item) => /reason|think/i.test(item));
+  const supportsThinking = model['supports_reasoning'] === true || capabilities.some((item) => /reason|think/i.test(item));
   const mime: Record<string, boolean> = { 'text/plain': true, 'text/markdown': true, 'application/json': true, 'application/pdf': true };
   if (supportsImages) for (const type of ['image/png', 'image/jpeg', 'image/webp', 'image/gif']) mime[type] = true;
   return {
@@ -249,7 +249,7 @@ function catalogModel(model: TorveModel, placeholderId: string): JsonObject {
     supportsImages,
     supportsThinking,
     recommended: false,
-    maxTokens: numberValue(model['max_input_tokens'], model['max_tokens'], 131_072),
+    maxTokens: Math.max(numberValue(model['max_input_tokens'], model['context_window'], model['max_tokens'], 1_000_000), 1_000_000),
     maxOutputTokens: numberValue(model['max_output_tokens'], model['max_tokens'], 8_192),
     model: placeholderId,
     apiProvider: 'API_PROVIDER_GOOGLE_GEMINI',
@@ -349,50 +349,94 @@ async function openAiAsCloudCode(upstream: Response, meta: AntigravityV1Internal
   return jsonResponse(response, 200);
 }
 
+function tryParseCompleteJson(raw: string): { ok: true; value: unknown } | { ok: false } {
+  const trimmed = raw.trim();
+  if (!trimmed || (!trimmed.startsWith('{') && !trimmed.startsWith('['))) {
+    return { ok: false };
+  }
+  try {
+    return { ok: true, value: JSON.parse(trimmed) };
+  } catch {
+    return { ok: false };
+  }
+}
+
 function streamOpenAiAsCloudCode(upstream: Response, meta: AntigravityV1InternalMeta): Response {
   const traceId = randomUUID().slice(0, 16);
   const encoder = new TextEncoder();
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const calls = new Map<number, { name: string; args: string }>();
+      const calls = new Map<number, { name: string; args: string; flushed: boolean }>();
       const decoder = new TextDecoder();
       let pending = '';
       let finishReason = 'STOP';
       const frame = (candidates: unknown[], usage?: JsonObject) => controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: { candidates, ...(usage ? { usageMetadata: usage } : {}) }, traceId, metadata: {} })}\n\n`));
+      const flushCalls = (beforeIndex = Number.POSITIVE_INFINITY) => {
+        const parts: JsonObject[] = [];
+        for (const [index, call] of [...calls.entries()].sort((a, b) => a[0] - b[0])) {
+          if (index >= beforeIndex || call.flushed || !call.name) continue;
+          call.flushed = true;
+          parts.push({ functionCall: { name: call.name, args: parseArgs(call.args) } });
+        }
+        if (parts.length > 0) frame([{ content: { role: 'model', parts } }]);
+      };
+      const processLine = (line: string) => {
+        if (!line.startsWith('data:')) return;
+        const raw = line.slice(5).trim();
+        if (!raw) return;
+        if (raw === '[DONE]') {
+          flushCalls();
+          return;
+        }
+        let chunk: JsonObject;
+        try { chunk = JSON.parse(raw) as JsonObject; } catch { return; }
+        const usage = usageFrom(chunk['usage']); if (usage) meta.usage = usage;
+        const choice = objectValue(arrayValue(chunk['choices'])[0]);
+        const delta = objectValue(choice['delta']);
+        const reasoning = stringValue(delta['reasoning'], delta['reasoning_content']);
+        if (reasoning) frame([{ content: { role: 'model', parts: [{ thought: true, text: reasoning }] } }]);
+        const text = contentText(delta['content']);
+        if (text) frame([{ content: { role: 'model', parts: [{ text }] } }]);
+        for (const rawCall of arrayValue(delta['tool_calls'])) {
+          const call = objectValue(rawCall);
+          const index = typeof call['index'] === 'number' ? call['index'] : calls.size;
+          flushCalls(index);
+          const current = calls.get(index) ?? { name: '', args: '', flushed: false };
+          const fn = objectValue(call['function']);
+          if (typeof fn['name'] === 'string' && fn['name']) current.name = fn['name'];
+          if (typeof fn['arguments'] === 'string') current.args += fn['arguments'];
+          calls.set(index, current);
+          if (!current.flushed && current.name) {
+            const parsed = tryParseCompleteJson(current.args);
+            if (parsed.ok) {
+              current.flushed = true;
+              frame([{ content: { role: 'model', parts: [{ functionCall: { name: current.name, args: parsed.value } }] } }]);
+            }
+          }
+        }
+        if (typeof choice['finish_reason'] === 'string' && choice['finish_reason'].length > 0) {
+          if (choice['finish_reason'] === 'length') finishReason = 'MAX_TOKENS';
+          flushCalls();
+        }
+      };
       try {
         const reader = upstream.body?.getReader();
         if (reader) for (;;) {
           const next = await reader.read();
-          if (next.done) break;
-          pending += decoder.decode(next.value, { stream: true });
-          const events = pending.split(/\r?\n\r?\n/); pending = events.pop() ?? '';
-          for (const event of events) {
-            for (const line of event.split(/\r?\n/)) {
-              if (!line.startsWith('data:')) continue;
-              const raw = line.slice(5).trim();
-              if (!raw || raw === '[DONE]') continue;
-              let chunk: JsonObject;
-              try { chunk = JSON.parse(raw) as JsonObject; } catch { continue; }
-              const usage = usageFrom(chunk['usage']); if (usage) meta.usage = usage;
-              const choice = objectValue(arrayValue(chunk['choices'])[0]);
-              const delta = objectValue(choice['delta']);
-              const reasoning = stringValue(delta['reasoning'], delta['reasoning_content']);
-              if (reasoning) frame([{ content: { role: 'model', parts: [{ thought: true, text: reasoning }] } }]);
-              const text = contentText(delta['content']);
-              if (text) frame([{ content: { role: 'model', parts: [{ text }] } }]);
-              for (const rawCall of arrayValue(delta['tool_calls'])) {
-                const call = objectValue(rawCall); const index = typeof call['index'] === 'number' ? call['index'] : calls.size;
-                const current = calls.get(index) ?? { name: '', args: '' }; const fn = objectValue(call['function']);
-                if (typeof fn['name'] === 'string') current.name = fn['name'];
-                if (typeof fn['arguments'] === 'string') current.args += fn['arguments'];
-                calls.set(index, current);
-              }
-              if (choice['finish_reason'] === 'length') finishReason = 'MAX_TOKENS';
+          if (next.done) {
+            pending += decoder.decode(undefined, { stream: false });
+            if (pending.trim()) {
+              for (const line of pending.split(/\r?\n/)) processLine(line);
+              pending = '';
             }
+            break;
           }
+          pending += decoder.decode(next.value, { stream: true });
+          const lines = pending.split(/\r?\n/);
+          pending = lines.pop() ?? '';
+          for (const line of lines) processLine(line);
         }
-        const toolParts = [...calls.values()].filter((call) => call.name).map((call) => ({ functionCall: { name: call.name, args: parseArgs(call.args) } }));
-        if (toolParts.length) frame([{ content: { role: 'model', parts: toolParts } }]);
+        flushCalls();
         frame([{ content: { role: 'model', parts: [{ text: '' }] }, finishReason }], meta.usage ? cloudCodeUsage(meta.usage) : undefined);
         controller.close();
       } catch (error) { controller.error(error); }
@@ -405,7 +449,7 @@ function textParts(value: unknown): string { return arrayValue(value).map((part)
 function contentText(value: unknown): string { if (typeof value === 'string') return value; return arrayValue(value).map((item) => objectValue(item)['text']).filter((item): item is string => typeof item === 'string').join(''); }
 function objectValue(value: unknown): JsonObject { return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : {}; }
 function arrayValue(value: unknown): unknown[] { return Array.isArray(value) ? value : []; }
-function stringValue(...values: unknown[]): string { return values.find((value): value is string => typeof value === 'string') ?? ''; }
+function stringValue(...values: unknown[]): string { return values.find((value): value is string => typeof value === 'string' && value.length > 0) ?? ''; }
 function parseArgs(value: unknown): unknown { if (typeof value !== 'string' || !value.trim()) return {}; try { return JSON.parse(value); } catch { return { _raw: value }; } }
 function usageFrom(value: unknown): AntigravityV1InternalMeta['usage'] { const raw = objectValue(value); if (Object.keys(raw).length === 0) return null; return { inputTokens: Number(raw['prompt_tokens'] ?? raw['input_tokens'] ?? 0) || 0, outputTokens: Number(raw['completion_tokens'] ?? raw['output_tokens'] ?? 0) || 0 }; }
 function cloudCodeUsage(usage: NonNullable<AntigravityV1InternalMeta['usage']>): JsonObject { return { promptTokenCount: usage.inputTokens, candidatesTokenCount: usage.outputTokens, totalTokenCount: usage.inputTokens + usage.outputTokens }; }

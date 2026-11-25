@@ -192,3 +192,92 @@ test('TorveUpdater checks, stream-downloads with progress, verifies PE/sha256, a
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('TorveUpdater handles silent vs manual checks and unsigned exe PE validation', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'torve-updater-silent-'));
+  try {
+    // 1. Offline silent check must not transition phase to 'error', while updating lastCheckedAt
+    const offlineUpdater = new TorveUpdater({
+      currentVersion: '0.2.57',
+      tempDir: dir,
+      fetchFn: async () => {
+        throw new Error('ENOTFOUND api.github.com');
+      },
+    });
+    const silentRes = await offlineUpdater.checkForUpdates({ silent: true });
+    assert.equal(silentRes.phase, 'idle');
+    assert.ok(typeof silentRes.lastCheckedAt === 'number');
+    assert.match(silentRes.error ?? '', /ENOTFOUND/);
+
+    // Manual check on offline network DOES surface phase: 'error'
+    const manualRes = await offlineUpdater.checkForUpdates({ silent: false });
+    assert.equal(manualRes.phase, 'error');
+    assert.ok(typeof manualRes.lastCheckedAt === 'number');
+    assert.match(manualRes.error ?? '', /ENOTFOUND/);
+
+    // 2. Up-to-date check
+    const upToDateUpdater = new TorveUpdater({
+      currentVersion: '0.2.58',
+      tempDir: dir,
+      fetchFn: async () =>
+        new Response(
+          JSON.stringify({
+            tag_name: 'v0.2.58',
+            html_url: 'https://github.com/jisunahamed/torve-seed/releases/tag/v0.2.58',
+            assets: [
+              {
+                name: 'Torve-Desktop-Setup-0.2.58.exe',
+                browser_download_url: 'https://downloads.example.com/Torve-Desktop-Setup-0.2.58.exe',
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+    });
+    const upToDateState = await upToDateUpdater.checkForUpdates();
+    assert.equal(upToDateState.phase, 'up-to-date');
+    assert.equal(upToDateState.latestVersion, '0.2.58');
+    assert.ok(typeof upToDateState.lastCheckedAt === 'number');
+
+    // 3. Unsigned .exe (no digest) succeeds if valid MZ PE, and rejects corrupt non-MZ payload
+    const exeBytes = Buffer.from([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00]);
+    let returnCorrupt = true;
+    const unsignedUpdater = new TorveUpdater({
+      currentVersion: '0.2.57',
+      tempDir: dir,
+      fetchFn: async (input) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        if (url.endsWith('/releases/latest')) {
+          return new Response(
+            JSON.stringify({
+              tag_name: 'v0.2.59',
+              assets: [
+                {
+                  name: 'Torve-Desktop-Setup-0.2.59.exe',
+                  browser_download_url: 'https://downloads.example.com/Torve-Desktop-Setup-0.2.59.exe',
+                },
+              ],
+            }),
+            { status: 200 },
+          );
+        }
+        return new Response(returnCorrupt ? '<html>bad gateway</html>' : exeBytes, { status: 200 });
+      },
+      spawnFn: () => ({ unref: () => {} }),
+      onQuit: () => {},
+    });
+
+    await unsignedUpdater.checkForUpdates();
+    const corruptDl = await unsignedUpdater.downloadUpdate();
+    assert.equal(corruptDl.ok, false);
+    assert.match(corruptDl.error ?? '', /PE \(MZ\)/);
+    assert.equal(unsignedUpdater.getState().phase, 'error');
+
+    returnCorrupt = false;
+    const validDl = await unsignedUpdater.downloadUpdate();
+    assert.equal(validDl.ok, true);
+    assert.equal(unsignedUpdater.getState().phase, 'ready');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

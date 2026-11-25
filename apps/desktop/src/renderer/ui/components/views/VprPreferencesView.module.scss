@@ -243,3 +243,49 @@
   font-size: 12px;
   color: #14ff73;
 }
+
+.btnPrimary {
+  border-color: rgba(var(--accent-green-rgb), 0.45);
+  background: rgba(var(--accent-green-rgb), 0.14);
+  color: var(--accent-green);
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: rgba(var(--accent-green-rgb), 0.22);
+}
+
+.updateMeta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  flex: 1 1 auto;
+}
+
+.updateActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+
+.updateErrorText {
+  color: var(--danger, #f87171);
+}
+
+.updateProgressTrack {
+  margin-top: 6px;
+  height: 4px;
+  width: 100%;
+  max-width: 260px;
+  border-radius: 999px;
+  background: rgba(var(--accent-green-rgb), 0.16);
+  overflow: hidden;
+}
+
+.updateProgressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent-green);
+  transition: width 0.25s ease;
+}

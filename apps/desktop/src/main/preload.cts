@@ -117,12 +117,39 @@ type PluginInstallResult = {
   error: string | null;
 };
 
-type UpdateStatus =
+type UpdateStatusMeta = {
+  phase?: 'idle' | 'checking' | 'up-to-date' | 'available' | 'downloading' | 'ready' | 'installing' | 'error';
+  currentVersion?: string;
+  latestVersion?: string | null;
+  lastCheckedAt?: number | null;
+  releaseUrl?: string | null;
+  assetName?: string | null;
+  downloadPercent?: number;
+  downloadedBytes?: number;
+  totalBytes?: number;
+  error?: string | null;
+};
+
+type UpdateStatus = UpdateStatusMeta & (
+  | { status: 'idle'; version: string | null }
+  | { status: 'checking'; version: string | null }
+  | { status: 'up-to-date'; version: string | null }
   | { status: 'available'; version: string }
   | { status: 'downloading'; version: string; percent: number }
   | { status: 'ready'; version: string }
   | { status: 'installing'; version: string | null }
-  | { status: 'error'; version: string | null; message: string; details: string; hint?: string };
+  | { status: 'error'; version: string | null; message: string; details: string; hint?: string }
+);
+
+type AntigravityStandalonePatchStatus = {
+  state: 'unavailable' | 'inactive' | 'active' | 'needs-reapply' | 'close-antigravity' | 'error';
+  installed: boolean;
+  enabled: boolean;
+  running: boolean;
+  version: string | null;
+  targetPath: string;
+  message: string;
+};
 
 type InstallUpdateResult =
   | { ok: true }
@@ -419,6 +446,20 @@ const api = {
   antigravityStandaloneSet(enabled: boolean) {
     return ipcRenderer.invoke('torve:antigravity-standalone-set', enabled);
   },
+  antigravityStandaloneCloseAndEnable(): Promise<{ ok: boolean; error?: string; status?: AntigravityStandalonePatchStatus }> {
+    return ipcRenderer.invoke('torve:antigravity-standalone-close-and-enable') as Promise<{
+      ok: boolean;
+      error?: string;
+      status?: AntigravityStandalonePatchStatus;
+    }>;
+  },
+  antigravityLaunch(): Promise<{ ok: boolean; targetPath?: string; error?: string }> {
+    return ipcRenderer.invoke('torve:antigravity-launch') as Promise<{
+      ok: boolean;
+      targetPath?: string;
+      error?: string;
+    }>;
+  },
   torveOverridesGet() {
     return ipcRenderer.invoke('torve:overrides-get');
   },
@@ -636,6 +677,9 @@ const api = {
   },
   downloadUpdate(): Promise<InstallUpdateResult> {
     return ipcRenderer.invoke('app:download-update') as Promise<InstallUpdateResult>;
+  },
+  checkForUpdates(): Promise<UpdateStatus> {
+    return ipcRenderer.invoke('app:check-for-updates') as Promise<UpdateStatus>;
   },
   getUpdateStatus(): Promise<UpdateStatus | null> {
     return ipcRenderer.invoke('app:get-update-status') as Promise<UpdateStatus | null>;

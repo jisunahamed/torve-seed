@@ -69,7 +69,7 @@ const BUILT_IN_APP_INFO: Readonly<Record<string, { description: string; websiteU
   'gemini-cli': { description: 'Google Gemini CLI configured persistently through its official environment and settings files.', websiteUrl: 'https://geminicli.com/' },
   aider: { description: 'A terminal pair-programming assistant using Torve through its OpenAI-compatible endpoint.', websiteUrl: 'https://aider.chat/' },
   continue: { description: 'The open-source coding assistant configured with a dedicated Torve model provider.', websiteUrl: 'https://continue.dev/' },
-  antigravity: { description: 'MCP fallback for standalone Antigravity. Native Model Picker via jetski.cloudCodeUrl is available only in compatible VS Code-based editions; reload the IDE after enabling it.' },
+  antigravity: { description: 'Unified Native Model Picker and MCP Bridge for Google Antigravity. Connecting configures both the MCP bridge and the standalone Native Model Picker.' },
   zed: {
     description: 'A high-performance collaborative code editor with built-in AI assistance.',
     websiteUrl: 'https://zed.dev/download',
@@ -107,6 +107,31 @@ type GuiTestResult = {
 
 type CloudActivity = { id: string; timestamp: number; appId: string | null; protocol: string; requestedModel: string | null; resolvedModel: string | null; statusCode: number; latencyMs: number; stream: boolean; usage: { inputTokens: number; outputTokens: number } | null; errorSummary: string | null };
 
+type AntigravityBridgeExtras = {
+  antigravityStandaloneCloseAndEnable?: () => Promise<{ ok: boolean; status?: AntigravityStandalonePatchStatus; error?: string }>;
+  antigravityLaunch?: () => Promise<{ ok: boolean; targetPath?: string; error?: string }>;
+};
+
+function antigravityStatusSummary(patch: AntigravityStandalonePatchStatus | null): {
+  text: string;
+  tone: 'default' | 'ok' | 'warn' | 'error';
+} {
+  if (!patch) return { text: 'Checking standalone Antigravity…', tone: 'default' };
+  if (!patch.installed) return { text: 'MCP Bridge only (standalone Antigravity not found)', tone: 'default' };
+  if (patch.enabled && patch.running) return { text: 'Native Model Picker: Active (Close Antigravity to disconnect)', tone: 'warn' };
+  if (patch.enabled) return { text: 'Native Model Picker: Active', tone: 'ok' };
+  if (patch.state === 'needs-reapply' && !patch.running) {
+    return { text: 'Native Model Picker: Needs re-apply after Antigravity update', tone: 'warn' };
+  }
+  if (patch.running || patch.state === 'close-antigravity') {
+    return { text: 'Close Antigravity to apply Native Model Picker', tone: 'warn' };
+  }
+  if (patch.state === 'error') {
+    return { text: `Native Model Picker: ${patch.message}`, tone: 'error' };
+  }
+  return { text: 'Native Model Picker: Off (applied automatically on connect)', tone: 'default' };
+}
+
 let cachedCloudModelsSnapshot: Array<{ id: string }> = [];
 
 export function VprToolsView() {
@@ -141,6 +166,7 @@ export function VprToolsView() {
   const [cloudConnected, setCloudConnected] = useState(false);
   const [antigravityPatch, setAntigravityPatch] = useState<AntigravityStandalonePatchStatus | null>(null);
   const [antigravityPatchBusy, setAntigravityPatchBusy] = useState(false);
+  const [antigravityInlineNotice, setAntigravityInlineNotice] = useState<string | null>(null);
   const [backupsByApp, setBackupsByApp] = useState<Record<string, { filesCount: number; updatedAt: number }>>({});
   const [appsRefreshing, setAppsRefreshing] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
@@ -269,21 +295,74 @@ export function VprToolsView() {
   }, [refreshCloudModels]);
 
   const refreshAntigravityPatch = useCallback(async (bypassCache = false) => {
-    try { setAntigravityPatch(await window.torveDesktop?.antigravityStandaloneStatus?.(bypassCache ? { bypassCache: true } : undefined) ?? null); }
-    catch { setAntigravityPatch(null); }
+    try {
+      const status = await window.torveDesktop?.antigravityStandaloneStatus?.(bypassCache ? { bypassCache: true } : undefined) ?? null;
+      setAntigravityPatch(status);
+      if (status && !status.running) setAntigravityInlineNotice(null);
+      return status;
+    } catch {
+      setAntigravityPatch(null);
+      return null;
+    }
   }, []);
   useEffect(() => { void refreshAntigravityPatch(false); }, [refreshAntigravityPatch]);
 
-  const toggleAntigravityPatch = useCallback(async () => {
-    if (!antigravityPatch || antigravityPatch.running) return;
-    setAntigravityPatchBusy(true); setMessage(null);
+  const applyAntigravityPicker = useCallback(async () => {
+    setAntigravityPatchBusy(true);
+    setMessage(null);
+    setAntigravityInlineNotice(null);
     try {
-      const result = await window.torveDesktop?.antigravityStandaloneSet?.(!antigravityPatch.enabled);
-      if (!result?.ok) throw new Error(result?.error ?? 'Unable to update the Antigravity native picker patch.');
-      setAntigravityPatch(result.status ?? null);
-    } catch (err) { setMessage(err instanceof Error ? err.message : String(err)); await refreshAntigravityPatch(); }
-    finally { setAntigravityPatchBusy(false); }
-  }, [antigravityPatch, refreshAntigravityPatch]);
+      const result = await window.torveDesktop?.antigravityStandaloneSet?.(true);
+      if (result?.status) setAntigravityPatch(result.status);
+      else await refreshAntigravityPatch(true);
+      if (!result?.ok) throw new Error(result?.error ?? 'Unable to apply the Antigravity native picker patch.');
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(errMsg);
+      setAntigravityInlineNotice(errMsg);
+      await refreshAntigravityPatch(true);
+    } finally {
+      setAntigravityPatchBusy(false);
+    }
+  }, [refreshAntigravityPatch]);
+
+  const closeAndEnableAntigravityPicker = useCallback(async () => {
+    setAntigravityPatchBusy(true);
+    setMessage(null);
+    setAntigravityInlineNotice(null);
+    try {
+      const bridge = window.torveDesktop as (Window['torveDesktop'] & AntigravityBridgeExtras) | undefined;
+      const result = await bridge?.antigravityStandaloneCloseAndEnable?.();
+      if (result?.status) setAntigravityPatch(result.status);
+      else await refreshAntigravityPatch(true);
+      if (!result?.ok) throw new Error(result?.error ?? 'Unable to close Antigravity and apply the native picker patch.');
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(errMsg);
+      setAntigravityInlineNotice(errMsg);
+      await refreshAntigravityPatch(true);
+    } finally {
+      setAntigravityPatchBusy(false);
+    }
+  }, [refreshAntigravityPatch]);
+
+  const launchAntigravityApp = useCallback(async () => {
+    setAntigravityPatchBusy(true);
+    setMessage(null);
+    try {
+      const bridge = window.torveDesktop as (Window['torveDesktop'] & AntigravityBridgeExtras) | undefined;
+      const result = await bridge?.antigravityLaunch?.();
+      if (result && !result.ok) {
+        setMessage(result.error ?? 'Unable to launch Antigravity.');
+      } else {
+        window.setTimeout(() => { void refreshAntigravityPatch(true); }, 1000);
+      }
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAntigravityPatchBusy(false);
+    }
+  }, [refreshAntigravityPatch]);
 
   useEffect(() => {
     const bridge = window.torveDesktop;
@@ -411,8 +490,36 @@ export function VprToolsView() {
     recordUserAction('app_connect', 'apps', normalizeTelemetryAppName(profileName));
     const names = Array.from(new Set([...activeProfileNames, profileName]));
     setConnecting(profileName);
+    if (profileName === 'antigravity') setAntigravityInlineNotice(null);
     try {
       if (!await startProfiles(names)) return;
+      if (profileName === 'antigravity') {
+        const currentPatch = await refreshAntigravityPatch(true) ?? antigravityPatch;
+        if (currentPatch?.installed) {
+          if (currentPatch.running || currentPatch.state === 'close-antigravity') {
+            return;
+          }
+          if (!currentPatch.enabled) {
+            setAntigravityPatchBusy(true);
+            try {
+              const patchResult = await window.torveDesktop?.antigravityStandaloneSet?.(true);
+              if (patchResult?.status) {
+                setAntigravityPatch(patchResult.status);
+              } else {
+                await refreshAntigravityPatch(true);
+              }
+              if (patchResult && !patchResult.ok && patchResult.error) {
+                setMessage(patchResult.error);
+                setAntigravityInlineNotice(patchResult.error);
+              }
+            } finally {
+              setAntigravityPatchBusy(false);
+            }
+            return;
+          }
+        }
+        return;
+      }
       const profile = profiles.find((entry) => entry.name === profileName);
       if (!profile) return;
       if (profile.appAction === 'open-url' && profile.openUrl && !profile.launchAppName) {
@@ -423,17 +530,45 @@ export function VprToolsView() {
     } finally {
       setConnecting(null);
     }
-  }, [activeProfileNames, openTool, openUrl, profiles, startProfiles]);
+  }, [activeProfileNames, antigravityPatch, openTool, openUrl, profiles, refreshAntigravityPatch, startProfiles]);
 
-  const disconnectProfile = useCallback((profileName: string) => {
+  const disconnectProfile = useCallback(async (profileName: string) => {
+    if (profileName === 'antigravity') {
+      setAntigravityInlineNotice(null);
+      setMessage(null);
+      const currentPatch = await refreshAntigravityPatch(true) ?? antigravityPatch;
+      if (currentPatch?.enabled) {
+        if (currentPatch.running || currentPatch.state === 'close-antigravity') {
+          const notice = 'Close Antigravity first before disconnecting so Torve can restore the original app bundle cleanly.';
+          setAntigravityInlineNotice(notice);
+          setMessage(notice);
+          return;
+        }
+        setAntigravityPatchBusy(true);
+        try {
+          const patchResult = await window.torveDesktop?.antigravityStandaloneSet?.(false);
+          if (patchResult?.status) {
+            setAntigravityPatch(patchResult.status);
+          } else {
+            await refreshAntigravityPatch(true);
+          }
+          if (patchResult && !patchResult.ok && patchResult.error) {
+            setMessage(patchResult.error);
+            setAntigravityInlineNotice(patchResult.error);
+          }
+        } finally {
+          setAntigravityPatchBusy(false);
+        }
+      }
+    }
     const remaining = activeProfileNames.filter((name) => name !== profileName);
     if (remaining.length === 0) {
-      void disconnect(profileName);
+      await disconnect(profileName);
       return;
     }
     recordUserAction('app_disconnect', 'apps', normalizeTelemetryAppName(profileName));
-    void startProfiles(remaining);
-  }, [activeProfileNames, disconnect, startProfiles]);
+    await startProfiles(remaining);
+  }, [activeProfileNames, antigravityPatch, disconnect, refreshAntigravityPatch, startProfiles]);
 
   const restartApp = useCallback(async (profileName: string, label: string) => {
     const bridge = window.torveDesktop;
@@ -776,7 +911,7 @@ export function VprToolsView() {
                         className={`${styles.connectedToggle}${connected ? '' : ` ${styles.connectedToggleOff}`}`}
                         disabled={busy !== null || (!connected && !cloudConnected && !defaultPeerId)}
                         onClick={() => {
-                          if (connected) disconnectProfile(profile.name);
+                          if (connected) void disconnectProfile(profile.name);
                           else void connectProfile(profile.name);
                         }}
                         aria-label={`${connected ? 'Disconnect' : 'Connect'} ${profile.displayName}`}
@@ -795,22 +930,94 @@ export function VprToolsView() {
                       </button>
                     )}
                   </div>
-                  {profile.name === 'antigravity' ? (
-                    <div className={styles.antigravityNativePatch}>
-                      <div>
-                        <strong>Enable Native Model Picker (Standalone 2.34.0 Patch)<span className={styles.torveBetaBadge}>Beta</span></strong>
-                        <p className={styles.mcpModelNote}>{antigravityPatch?.message ?? 'Checking standalone installation…'} MCP Bridge remains available separately.</p>
+                  {profile.name === 'antigravity' ? (() => {
+                    const statusSummary = antigravityStatusSummary(antigravityPatch);
+                    const statusClass = statusSummary.tone === 'ok'
+                      ? styles.antigravityStatusOk
+                      : statusSummary.tone === 'warn'
+                        ? styles.antigravityStatusWarn
+                        : statusSummary.tone === 'error'
+                          ? styles.antigravityStatusError
+                          : '';
+                    const showCloseAndApply = Boolean(
+                      antigravityPatch?.installed &&
+                      (antigravityPatch.running || antigravityPatch.state === 'close-antigravity') &&
+                      !antigravityPatch.enabled,
+                    );
+                    const showApplyReapply = Boolean(
+                      antigravityPatch?.installed &&
+                      antigravityPatch.state === 'needs-reapply' &&
+                      !antigravityPatch.running,
+                    );
+                    const showLaunch = Boolean(
+                      antigravityPatch?.installed &&
+                      antigravityPatch.enabled &&
+                      !antigravityPatch.running,
+                    );
+                    const showRefreshWhileRunning = Boolean(
+                      antigravityPatch?.installed &&
+                      antigravityPatch.enabled &&
+                      antigravityPatch.running,
+                    );
+                    return (
+                      <div className={styles.antigravityNativePatch}>
+                        <div className={styles.antigravityStatusRow}>
+                          <span className={`${styles.antigravityStatusText}${statusClass ? ` ${statusClass}` : ''}`}>
+                            {statusSummary.text}
+                          </span>
+                          {(showCloseAndApply || showApplyReapply || showLaunch || showRefreshWhileRunning) ? (
+                            <div className={styles.antigravityInlineActions}>
+                              {showCloseAndApply ? (
+                                <button
+                                  type="button"
+                                  className={styles.antigravityInlinePrimaryBtn}
+                                  disabled={antigravityPatchBusy || connecting === 'antigravity'}
+                                  onClick={() => { void closeAndEnableAntigravityPicker(); }}
+                                >
+                                  {antigravityPatchBusy ? 'Applying…' : 'Close Antigravity & Apply Picker'}
+                                </button>
+                              ) : null}
+                              {showApplyReapply ? (
+                                <button
+                                  type="button"
+                                  className={styles.antigravityInlinePrimaryBtn}
+                                  disabled={antigravityPatchBusy || connecting === 'antigravity'}
+                                  onClick={() => { void applyAntigravityPicker(); }}
+                                >
+                                  {antigravityPatchBusy ? 'Applying…' : 'Apply Native Picker'}
+                                </button>
+                              ) : null}
+                              {showLaunch ? (
+                                <button
+                                  type="button"
+                                  className={styles.antigravityInlineBtn}
+                                  disabled={antigravityPatchBusy}
+                                  onClick={() => { void launchAntigravityApp(); }}
+                                >
+                                  Launch Antigravity
+                                </button>
+                              ) : null}
+                              {showRefreshWhileRunning ? (
+                                <button
+                                  type="button"
+                                  className={styles.antigravityInlineBtn}
+                                  disabled={antigravityPatchBusy}
+                                  onClick={() => { void refreshAntigravityPatch(true); }}
+                                >
+                                  Refresh Status
+                                </button>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                        {antigravityInlineNotice ? (
+                          <span className={`${styles.antigravityStatusText} ${styles.antigravityStatusWarn}`}>
+                            {antigravityInlineNotice}
+                          </span>
+                        ) : null}
                       </div>
-                      <button
-                        type="button" role="switch" aria-checked={antigravityPatch?.enabled === true}
-                        className={`${styles.connectedToggle}${antigravityPatch?.enabled ? '' : ` ${styles.connectedToggleOff}`}`}
-                        disabled={!antigravityPatch?.installed || antigravityPatch.running || antigravityPatchBusy || antigravityPatch.state === 'error'}
-                        onClick={() => { void toggleAntigravityPatch(); }}
-                        aria-label="Enable Native Model Picker for standalone Antigravity"
-                        title={antigravityPatch?.message ?? 'Checking standalone installation'}
-                      ><span /></button>
-                    </div>
-                  ) : null}
+                    );
+                  })() : null}
                   {profile.name === 'codex' ? (
                     <p className={styles.codexRestartNote}>Restart Codex if it was open so it connects cleanly to 127.0.0.1:8378.</p>
                   ) : null}
@@ -1169,7 +1376,7 @@ export function VprToolsView() {
                         type="button"
                         className={styles.settingDanger}
                         disabled={busy !== null}
-                        onClick={() => disconnectProfile(settingsProfile.name)}
+                        onClick={() => { void disconnectProfile(settingsProfile.name); }}
                       >
                         Disconnect
                       </button>

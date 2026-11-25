@@ -7,6 +7,7 @@ import test from 'node:test';
 import {
   ANTIGRAVITY_STANDALONE_PATCH_INTERNALS,
   antigravityStandaloneStatus,
+  closeAntigravityAndEnablePatch,
   disableAntigravityStandalonePatch,
   discoverAntigravityInstallDir,
   enableAntigravityStandalonePatch,
@@ -90,3 +91,76 @@ test('standalone patch refuses while Antigravity is running', async () => fixtur
     /Close Antigravity/,
   );
 }));
+
+test('closeAntigravityAndEnablePatch closes running instance and enables the patch', async () => fixture(async ({ installDir, backupRoot, target }) => {
+  let running = true;
+  let killed = false;
+  const status = await closeAntigravityAndEnablePatch({
+    installDir,
+    backupRoot,
+    version: '2.36.0',
+    isRunning: () => running,
+    killProcess: async () => {
+      killed = true;
+      running = false;
+    },
+  });
+  assert.equal(killed, true);
+  assert.equal(status.state, 'active');
+  assert.equal(status.enabled, true);
+  assert.ok((await readFile(target)).includes(Buffer.from(ANTIGRAVITY_STANDALONE_PATCH_INTERNALS.PATCHED_ENDPOINT)));
+}));
+
+test('closeAntigravityAndEnablePatch fails cleanly if Antigravity does not exit', async () => fixture(async ({ installDir, backupRoot }) => {
+  await assert.rejects(
+    closeAntigravityAndEnablePatch({
+      installDir,
+      backupRoot,
+      version: '2.36.0',
+      isRunning: () => true,
+      killProcess: async () => undefined,
+    }),
+    /still running/,
+  );
+}));
+
+test('standalone patch re-applies cleanly after an Antigravity update including unknown or unchanged version strings', async () => fixture(async ({ installDir, backupRoot, target }) => {
+  const initialOptions = { installDir, backupRoot, version: 'unknown', isRunning: () => false };
+  assert.equal((await enableAntigravityStandalonePatch(initialOptions)).state, 'active');
+
+  const updatedOriginal = Buffer.from(`updated hotfix build\nexports.ENDPOINT='${ANTIGRAVITY_STANDALONE_PATCH_INTERNALS.ORIGINAL_ENDPOINT}';`);
+  await writeFile(target, updatedOriginal);
+  assert.equal((await antigravityStandaloneStatus(initialOptions)).state, 'needs-reapply');
+
+  // Re-applying with the same 'unknown' version string uses a hash-keyed backup dir and succeeds.
+  const reapplied = await enableAntigravityStandalonePatch(initialOptions);
+  assert.equal(reapplied.state, 'active');
+  assert.equal(reapplied.enabled, true);
+  assert.ok((await readFile(target)).includes(Buffer.from(ANTIGRAVITY_STANDALONE_PATCH_INTERNALS.PATCHED_ENDPOINT)));
+
+  // Restoring restores the updated build cleanly.
+  assert.equal((await disableAntigravityStandalonePatch(initialOptions)).state, 'inactive');
+  assert.deepEqual(await readFile(target), updatedOriginal);
+  // Calling disable again on an already-restored file succeeds cleanly without throwing.
+  assert.equal((await disableAntigravityStandalonePatch(initialOptions)).state, 'inactive');
+}));
+
+test('standalone patch discovers nested unpacked bundle under resources/app/out', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'torve-antigravity-nested-out-'));
+  const installDir = path.join(dir, 'Antigravity');
+  const backupRoot = path.join(dir, 'backups');
+  const nestedTarget = path.join(installDir, 'resources', 'app', 'out', 'custom', 'bundle.js');
+  const original = Buffer.from(`exports.ENDPOINT="${ANTIGRAVITY_STANDALONE_PATCH_INTERNALS.ORIGINAL_ENDPOINT}";`);
+  try {
+    await mkdir(path.dirname(nestedTarget), { recursive: true });
+    await writeFile(path.join(installDir, 'Antigravity.exe'), 'exe');
+    await writeFile(nestedTarget, original);
+    const options = { installDir, backupRoot, version: '2.37.0', isRunning: () => false };
+    assert.equal(path.resolve((await antigravityStandaloneStatus(options)).targetPath), path.resolve(nestedTarget));
+    assert.equal((await enableAntigravityStandalonePatch(options)).state, 'active');
+    assert.equal((await disableAntigravityStandalonePatch(options)).state, 'inactive');
+    assert.deepEqual(await readFile(nestedTarget), original);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

@@ -54,6 +54,7 @@ export const FALLBACK_CODEX_MODEL_TEMPLATE: CodexCatalogModel = {
   experimental_supported_tools: [],
   input_modalities: ['text', 'image'],
   supports_search_tool: true,
+  supports_parallel_tool_calls: true,
   use_responses_lite: false,
   node_repl_auto_review_required: false,
   node_repl_disabled: false,
@@ -147,18 +148,12 @@ export function codexCatalogPayload(models: readonly TorveModel[], base = instal
       }
     }
     const rawContext = numberValue(model['max_input_tokens'], model['context_window'], model['context_length']);
-    // Raise the floor so 100K+ token Codex sessions never get "no model" / context limit errors.
-    // 1M-capable models keep their full window; all others get at least 200K.
-    const context = rawContext !== undefined
-      ? (rawContext >= 500_000 ? rawContext : Math.max(rawContext, 200_000))
-      : 200_000;
-    entry['context_window'] = context;
-    entry['max_context_window'] = context;
-    // Allow sessions that fill up to 95% of the window (Codex default is already 95%,
-    // but some older templates hard-code lower values).
-    if (typeof entry['effective_context_window_percent'] === 'number' && (entry['effective_context_window_percent'] as number) < 90) {
-      entry['effective_context_window_percent'] = 95;
-    }
+    const contextWindow = Math.max(rawContext ?? 0, 1_000_000);
+    entry['context_window'] = contextWindow;
+    entry['max_context_window'] = contextWindow;
+    entry['auto_compact_token_limit'] = 900_000;
+    entry['effective_context_window_percent'] = 95;
+    entry['supports_parallel_tool_calls'] = true;
     return entry;
   });
   return { ...base, models: [...native, ...torve] };

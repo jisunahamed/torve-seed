@@ -20,8 +20,10 @@ import {
 import { getDirectCloudOverrides, setDirectCloudOverride } from '../torve-cloud/overrides.js';
 import {
   antigravityStandaloneStatus,
+  closeAntigravityAndEnablePatch,
   disableAntigravityStandalonePatch,
   enableAntigravityStandalonePatch,
+  launchAntigravity,
 } from '../torve-cloud/antigravity-standalone-patch.js';
 import {
   discardDirectCloudBackup,
@@ -511,6 +513,24 @@ export function registerTorveAccountIpc(): void {
       };
     }
   });
+  ipcMain.handle('torve:antigravity-standalone-close-and-enable', async () => {
+    try {
+      if (!await getTorveCloudApiKey()) {
+        throw new Error('Connect a Torve account before enabling the Antigravity native picker.');
+      }
+      await startTorveCloudProxy();
+      const status = await closeAntigravityAndEnablePatch();
+      invalidateSystemProxyProfilesCache();
+      return { ok: true, status };
+    } catch (err) {
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+        status: await antigravityStandaloneStatus({ bypassCache: true }),
+      };
+    }
+  });
+  ipcMain.handle('torve:antigravity-launch', () => launchAntigravity());
 
   ipcMain.handle('torve:overrides-get', getDirectCloudOverrides);
   ipcMain.handle('torve:override-set', async (_event, appId: unknown, value: unknown) => {
