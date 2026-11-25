@@ -793,6 +793,10 @@ function applyOpencodeProviderToFile(filePath: string, patch: OpencodeConfigPatc
   const aliasRawContext = aliasModel && typeof aliasModel.context === 'number' && Number.isFinite(aliasModel.context) && aliasModel.context > 0
     ? aliasModel.context
     : TORVE_MODEL_CONTEXT_WINDOW;
+  const aliasRawOutput = aliasModel && typeof aliasModel.output === 'number' && Number.isFinite(aliasModel.output) && aliasModel.output > 0
+    ? aliasModel.output
+    : TORVE_MODEL_MAX_OUTPUT_TOKENS;
+  const OPENCODE_MIN_OUTPUT_TOKENS = 32_768;
 
   const models: JsonObject = {
     [alias]: {
@@ -801,7 +805,7 @@ function applyOpencodeProviderToFile(filePath: string, patch: OpencodeConfigPatc
       modalities: { input: ['text', 'image'], output: ['text'] },
       limit: {
         context: Math.max(aliasRawContext || 0, 1_000_000),
-        output: TORVE_MODEL_MAX_OUTPUT_TOKENS,
+        output: Math.max(aliasRawOutput || 0, OPENCODE_MIN_OUTPUT_TOKENS),
       },
     },
   };
@@ -811,12 +815,13 @@ function applyOpencodeProviderToFile(filePath: string, patch: OpencodeConfigPatc
     const rawContext = typeof model.context === 'number' && Number.isFinite(model.context) && model.context > 0
       ? model.context
       : 0;
+    const rawOutput = typeof model.output === 'number' && Number.isFinite(model.output) && model.output > 0
+      ? model.output
+      : 0;
     const limit: JsonObject = {
       context: Math.max(rawContext || 0, 1_000_000),
+      output: Math.max(rawOutput || 0, OPENCODE_MIN_OUTPUT_TOKENS),
     };
-    if (typeof model.output === 'number' && Number.isFinite(model.output) && model.output > 0) {
-      limit['output'] = model.output;
-    }
     models[id] = {
       name: model.name.trim() || id,
       attachment: model.vision === true,

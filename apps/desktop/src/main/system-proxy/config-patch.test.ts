@@ -125,7 +125,7 @@ test('applyConfigPatch patches JSONC configs and writes a backup before normaliz
         name: 'Torve Auto',
         attachment: true,
         modalities: { input: ['text', 'image'], output: ['text'] },
-        limit: { context: Math.max(TORVE_MODEL_CONTEXT_WINDOW, 1_000_000), output: TORVE_MODEL_MAX_OUTPUT_TOKENS },
+        limit: { context: Math.max(TORVE_MODEL_CONTEXT_WINDOW, 1_000_000), output: Math.max(TORVE_MODEL_MAX_OUTPUT_TOKENS, 32_768) },
       },
     });
     assert.ok((config.provider.torve?.models?.['torve']?.limit.context ?? 0) >= 1_000_000);
@@ -166,6 +166,7 @@ test('OpenCode Direct Cloud patch writes auto plus every concrete catalog model'
         { id: 'deepseek-v4-1-flash', name: 'DeepSeek V4.1 Flash', context: 1_048_576, output: 1024 },
         { id: 'gemma-4', name: 'Gemma 4', context: 262_144, output: 8192, vision: true },
         { id: 'no-ctx-model', name: 'No Context Model' },
+        { id: 'high-output-model', name: 'High Output Model', context: 1_000_000, output: 65_536 },
       ],
     };
 
@@ -187,13 +188,15 @@ test('OpenCode Direct Cloud patch writes auto plus every concrete catalog model'
     assert.equal(torve.npm, '@torveai/tool-provider');
     assert.equal(torve.options.baseURL, 'http://127.0.0.1:8378/app/opencode/v1');
     assert.equal(torve.options.apiKey, 'torve-local-proxy');
-    assert.deepEqual(Object.keys(torve.models), ['auto', 'deepseek-v4-1-flash', 'gemma-4', 'no-ctx-model']);
-    assert.equal(torve.models['auto']?.limit?.context, 1_000_000);
-    assert.deepEqual(torve.models['deepseek-v4-1-flash']?.limit, { context: 1_048_576, output: 1024 });
-    assert.deepEqual(torve.models['gemma-4']?.limit, { context: 1_000_000, output: 8192 });
-    assert.deepEqual(torve.models['no-ctx-model']?.limit, { context: 1_000_000 });
+    assert.deepEqual(Object.keys(torve.models), ['auto', 'deepseek-v4-1-flash', 'gemma-4', 'no-ctx-model', 'high-output-model']);
+    assert.deepEqual(torve.models['auto']?.limit, { context: 1_000_000, output: 32_768 });
+    assert.deepEqual(torve.models['deepseek-v4-1-flash']?.limit, { context: 1_048_576, output: 32_768 });
+    assert.deepEqual(torve.models['gemma-4']?.limit, { context: 1_000_000, output: 32_768 });
+    assert.deepEqual(torve.models['no-ctx-model']?.limit, { context: 1_000_000, output: 32_768 });
+    assert.deepEqual(torve.models['high-output-model']?.limit, { context: 1_000_000, output: 65_536 });
     for (const model of Object.values(torve.models)) {
       assert.ok((model.limit?.context ?? 0) >= 1_000_000);
+      assert.ok((model.limit?.output ?? 0) >= 32_768);
     }
     assert.deepEqual(torve.models['gemma-4']?.modalities, { input: ['text', 'image'], output: ['text'] });
   });

@@ -250,7 +250,7 @@ function catalogModel(model: TorveModel, placeholderId: string): JsonObject {
     supportsThinking,
     recommended: false,
     maxTokens: Math.max(numberValue(model['max_input_tokens'], model['context_window'], model['max_tokens'], 1_000_000), 1_000_000),
-    maxOutputTokens: numberValue(model['max_output_tokens'], model['max_tokens'], 8_192),
+    maxOutputTokens: Math.max(numberValue(model['max_output_tokens'], model['max_tokens'], 32_768), 32_768),
     model: placeholderId,
     apiProvider: 'API_PROVIDER_GOOGLE_GEMINI',
     modelProvider: 'MODEL_PROVIDER_GOOGLE',
@@ -308,7 +308,10 @@ function toOpenAiRequest(envelope: JsonObject, model: string, stream: boolean): 
   const body: JsonObject = { model, messages: messages.length ? messages : [{ role: 'user', content: '' }], stream };
   if (typeof config['temperature'] === 'number') body['temperature'] = config['temperature'];
   if (typeof config['topP'] === 'number') body['top_p'] = config['topP'];
-  if (typeof config['maxOutputTokens'] === 'number') body['max_tokens'] = config['maxOutputTokens'];
+  const rawMaxOut = typeof config['maxOutputTokens'] === 'number' && Number.isFinite(config['maxOutputTokens']) && config['maxOutputTokens'] > 0
+    ? config['maxOutputTokens']
+    : 0;
+  body['max_tokens'] = rawMaxOut === 0 || rawMaxOut <= 8_192 ? 32_768 : rawMaxOut;
   const level = objectValue(config['thinkingConfig'])['thinkingLevel'];
   if (typeof level === 'string' && ['low', 'medium', 'high'].includes(level.toLowerCase())) body['reasoning_effort'] = level.toLowerCase();
   const tools: JsonObject[] = [];

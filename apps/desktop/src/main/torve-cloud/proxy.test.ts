@@ -38,6 +38,7 @@ async function withProxy(
   models: TorveModel[],
   upstreamHandler: UpstreamHandler,
   fn: (baseUrl: string) => Promise<void>,
+  extraOptions: { headerTimeoutMs?: number; streamIdleTimeoutMs?: number } = {},
 ): Promise<void> {
   const prevApiUrl = process.env['TORVE_CLOUD_API_URL'];
   const upstream = createServer((req, res) => {
@@ -61,6 +62,7 @@ async function withProxy(
       },
       recordUsage: false,
       debugLog: false,
+      ...extraOptions,
     });
     const status = torveCloudProxyStatus();
     assert.equal(status.running, true);
@@ -92,10 +94,14 @@ test('GET /v1/models enforces 1M context_window and max_input_tokens floor and p
     assert.equal(json.data[0]!['context_window'], 1_000_000);
     assert.equal(json.data[0]!['max_input_tokens'], 1_000_000);
     assert.equal(json.data[0]!['max_output_tokens'], 65_536);
+    assert.equal(json.data[0]!['max_tokens'], 65_536);
     assert.equal(json.data[1]!['context_window'], 1_000_000);
     assert.equal(json.data[1]!['max_input_tokens'], 1_000_000);
+    assert.equal(json.data[1]!['max_output_tokens'], 32_768);
+    assert.equal(json.data[1]!['max_tokens'], 32_768);
     assert.equal(json.data[2]!['context_window'], 2_000_000);
     assert.equal(json.data[2]!['max_input_tokens'], 2_000_000);
+    assert.equal(json.data[2]!['max_output_tokens'], 32_768);
 
     const codexResp = await fetch(`${baseUrl}/app/codex/v1/models?client_version=0.171.0`);
     assert.equal(codexResp.status, 200);
@@ -519,4 +525,114 @@ test('proxy accepts payloads larger than 32 MiB within the 64 MiB body limit', a
     assert.equal(resp.status, 200);
     assert.ok(receivedBytes > 33 * 1024 * 1024);
   });
+});
+
+test('outbound max_tokens floor raises omitted or <=8192 limits to 32768 while preserving larger explicit values', async () => {
+  const seenMaxTokens: Array<{ path: string; maxTokens: unknown; maxCompletionTokens: unknown }> = [];
+  await withProxy([{ id: 'glm-5-3-flash', max_output_tokens: 1024 }], (_req, bodyText, res) => {
+    const body = JSON.parse(bodyText) as Record<string, unknown>;
+    seenMaxTokens.push({
+      path: _req.url ?? '',
+      maxTokens: body['max_tokens'],
+      maxCompletionTokens: body['max_completion_tokens'],
+    });
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({
+      id: 'chat_out_floor',
+      model: 'glm-5-3-flash',
+      choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 10, completion_tokens: 2 },
+    }));
+  }, async (baseUrl) => {
+    // 1) OpenCode /v1/chat/completions with max_tokens=1024 -> lifted to 32768
+    await fetch(`${baseUrl}/app/opencode/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'glm-5-3-flash', max_tokens: 1024, stream: false, messages: [{ role: 'user', content: 'hi' }] }),
+    });
+    // 2) Chat completions with omitted max_tokens -> injected 32768
+    await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'glm-5-3-flash', stream: false, messages: [{ role: 'user', content: 'hi' }] }),
+    });
+    // 3) Chat completions with explicit 65536 -> preserved
+    await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'glm-5-3-flash', max_tokens: 65_536, stream: false, messages: [{ role: 'user', content: 'hi' }] }),
+    });
+    // 4) /v1/responses with max_output_tokens=8192 -> lifted to 32768
+    await fetch(`${baseUrl}/app/codex/v1/responses`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'glm-5-3-flash', max_output_tokens: 8192, stream: false, input: 'hi' }),
+    });
+    // 5) /v1/messages with max_tokens=4096 -> lifted to 32768
+    await fetch(`${baseUrl}/v1/messages`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'glm-5-3-flash', max_tokens: 4096, stream: false, messages: [{ role: 'user', content: 'hi' }] }),
+    });
+    // 6) Gemini with omitted maxOutputTokens -> injected 32768
+    await fetch(`${baseUrl}/v1beta/models/glm-5-3-flash:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'hi' }] }] }),
+    });
+
+    assert.equal(seenMaxTokens.length, 6);
+    assert.equal(seenMaxTokens[0]!.maxTokens, 32_768);
+    assert.equal(seenMaxTokens[1]!.maxTokens, 32_768);
+    assert.equal(seenMaxTokens[2]!.maxTokens, 65_536);
+    assert.equal(seenMaxTokens[3]!.maxTokens, 32_768);
+    assert.equal(seenMaxTokens[4]!.maxTokens, 32_768);
+    assert.equal(seenMaxTokens[5]!.maxTokens, 32_768);
+  });
+});
+
+test('per-chunk SSE idle timeout resets on every chunk and only aborts genuinely stalled streams', async () => {
+  // 1) Active stream lasting ~280ms (> 140ms header/idle timeout) stays alive because chunks arrive every ~55ms.
+  await withProxy([{ id: 'glm-5-3-flash' }], (_req, _body, res) => {
+    void (async () => {
+      res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8' });
+      res.flushHeaders?.();
+      for (let i = 0; i < 5; i++) {
+        await new Promise((r) => setTimeout(r, 55));
+        res.write(`data: ${JSON.stringify({ id: 'c_idle', model: 'glm-5-3-flash', choices: [{ index: 0, delta: { content: `p${i}` } }] })}\n\n`);
+      }
+      res.write(`data: ${JSON.stringify({ id: 'c_idle', model: 'glm-5-3-flash', choices: [{ index: 0, delta: {}, finish_reason: 'stop' }], usage: { prompt_tokens: 5, completion_tokens: 5 } })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+    })();
+  }, async (baseUrl) => {
+    const resp = await fetch(`${baseUrl}/app/opencode/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'glm-5-3-flash', stream: true, messages: [{ role: 'user', content: 'stream' }] }),
+    });
+    assert.equal(resp.status, 200);
+    const body = await resp.text();
+    assert.equal(body.includes('Torve Cloud stream timed out.'), false);
+    assert.ok(body.includes('p4'));
+    assert.ok(body.includes('data: [DONE]'));
+  }, { headerTimeoutMs: 140, streamIdleTimeoutMs: 140 });
+
+  // 2) Stalled stream (no chunk for > 120ms after first chunk) emits Torve Cloud stream timed out.
+  await withProxy([{ id: 'glm-5-3-flash' }], (req, _body, res) => {
+    res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8' });
+    res.flushHeaders?.();
+    res.write(`data: ${JSON.stringify({ id: 'c_stall', model: 'glm-5-3-flash', choices: [{ index: 0, delta: { reasoning_content: 'start' } }] })}\n\n`);
+    const timer = setTimeout(() => { if (!res.writableEnded) res.end(); }, 2_000);
+    req.on('close', () => clearTimeout(timer));
+  }, async (baseUrl) => {
+    const resp = await fetch(`${baseUrl}/app/opencode/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'glm-5-3-flash', stream: true, messages: [{ role: 'user', content: 'stall' }] }),
+    });
+    assert.equal(resp.status, 200);
+    const body = await resp.text();
+    assert.ok(body.includes('Torve Cloud stream timed out.'));
+  }, { headerTimeoutMs: 120, streamIdleTimeoutMs: 120 });
 });

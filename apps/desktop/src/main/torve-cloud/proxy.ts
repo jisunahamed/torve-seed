@@ -26,6 +26,8 @@ const DEFAULT_PORT = Number(process.env['TORVE_CLOUD_PROXY_PORT']) || 8378;
 const MAX_BODY_BYTES = 64 * 1024 * 1024;
 const UPSTREAM_REQUEST_TIMEOUT_MS = 120_000;
 const MIN_CONTEXT_WINDOW_FLOOR = 1_000_000;
+const MIN_OUTPUT_TOKENS_FLOOR = 32_768;
+const LOW_OUTPUT_TOKENS_THRESHOLD = 8_192;
 const HOP_BY_HOP = new Set(['connection', 'host', 'content-length', 'transfer-encoding', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'te', 'trailer', 'upgrade']);
 const ANTIGRAVITY_DEBUG_PATH = pathModule.join(homedir(), '.torve', 'antigravity-proxy-debug.log');
 
@@ -48,6 +50,8 @@ export type TorveCloudProxyOptions = {
   getApiKey?: () => Promise<string | null> | string | null;
   getModels?: (apiKey: string) => Promise<TorveModel[]>;
   resolveModel?: (appId: string | null, requestedModel: string | null, fallback: string | null) => Promise<string | null>;
+  headerTimeoutMs?: number;
+  streamIdleTimeoutMs?: number;
   recordUsage?: boolean;
   debugLog?: boolean;
 };
@@ -88,6 +92,8 @@ export async function startTorveCloudProxy(port = DEFAULT_PORT, options: TorveCl
   if (server) await stopTorveCloudProxy();
   activeOptions = options;
   server = createServer((req, res) => { void handle(req, res); });
+  server.requestTimeout = 0;
+  server.headersTimeout = resolveHeaderTimeoutMs();
   server.on('clientError', (_error, socket) => socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'));
   await new Promise<void>((resolve, reject) => {
     const listening = () => { server?.off('error', reject); resolve(); };
@@ -100,6 +106,77 @@ export async function startTorveCloudProxy(port = DEFAULT_PORT, options: TorveCl
   if (activeOptions.debugLog !== false) {
     await antigravityDebug({ event: 'proxy-start', port: activePort, timestamp: new Date().toISOString() });
   }
+}
+
+function resolveHeaderTimeoutMs(): number {
+  const v = activeOptions.headerTimeoutMs;
+  return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : UPSTREAM_REQUEST_TIMEOUT_MS;
+}
+
+function resolveStreamIdleTimeoutMs(): number {
+  const v = activeOptions.streamIdleTimeoutMs;
+  return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : UPSTREAM_REQUEST_TIMEOUT_MS;
+}
+
+type UpstreamFetchControl = {
+  signal: AbortSignal;
+  markHeadersReceived: (streaming: boolean) => void;
+  touchChunk: () => void;
+  clear: () => void;
+};
+
+/**
+ * Splits upstream fetch deadlines into:
+ *  1) initial connect/response-header timeout, cleared once headers arrive
+ *  2) per-chunk SSE idle timeout that resets on every received chunk, so long
+ *     reasoning + large file generation streams stay alive while active.
+ */
+function createUpstreamFetchControl(res?: ServerResponse): UpstreamFetchControl {
+  const controller = new AbortController();
+  const headerMs = resolveHeaderTimeoutMs();
+  const idleMs = resolveStreamIdleTimeoutMs();
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let currentWindowMs = headerMs;
+
+  const arm = (ms: number): void => {
+    if (timer) clearTimeout(timer);
+    currentWindowMs = ms;
+    timer = setTimeout(() => {
+      controller.abort(new DOMException(`Upstream timed out after ${ms}ms`, 'TimeoutError'));
+    }, ms);
+    timer.unref?.();
+  };
+
+  const clear = (): void => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    if (res) res.off('close', onClientClose);
+  };
+
+  const onClientClose = (): void => {
+    if (res && !res.writableFinished) {
+      clear();
+      controller.abort();
+    }
+  };
+  if (res) res.once('close', onClientClose);
+
+  arm(headerMs);
+
+  return {
+    signal: controller.signal,
+    markHeadersReceived(streaming: boolean) {
+      if (controller.signal.aborted) return;
+      arm(streaming ? idleMs : headerMs);
+    },
+    touchChunk() {
+      if (controller.signal.aborted) return;
+      arm(currentWindowMs);
+    },
+    clear,
+  };
 }
 
 export async function stopTorveCloudProxy(): Promise<void> {
@@ -195,18 +272,37 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     if (!apiKey) { status = 401; errorSummary = 'Torve account is not connected.'; return sendError(res, status, 'Connect a Torve account in Torve Desktop first.'); }
     if (req.method === 'GET' && path === '/v1/models') {
       const models = await resolveModelsCatalog(apiKey);
-      // Guarantee a 1M token context floor on every advertised model so large-context
-      // coding agents never reject or prematurely truncate sessions.
+      // Guarantee a 1M token context floor and 32K output floor on every advertised model so
+      // large-context coding agents never reject sessions or truncate at 1024 tokens.
       const modelsWithFloor = models.map((m) => {
         const rawContext = finitePositiveNumber(m['context_window']);
         const rawMaxInput = finitePositiveNumber(m['max_input_tokens']);
         const rawLength = finitePositiveNumber(m['context_length']);
-        const raw = Math.max(rawContext, rawMaxInput, rawLength);
-        const floored = Math.max(raw, MIN_CONTEXT_WINDOW_FLOOR);
-        const nextContextWindow = Math.max(rawContext, floored);
-        const nextMaxInput = Math.max(rawMaxInput, floored);
-        if (rawContext === nextContextWindow && rawMaxInput === nextMaxInput) return m;
-        return { ...m, context_window: nextContextWindow, max_input_tokens: nextMaxInput };
+        const flooredContext = Math.max(Math.max(rawContext, rawMaxInput, rawLength), MIN_CONTEXT_WINDOW_FLOOR);
+        const nextContextWindow = Math.max(rawContext, flooredContext);
+        const nextMaxInput = Math.max(rawMaxInput, flooredContext);
+
+        const rawMaxOutput = finitePositiveNumber(m['max_output_tokens']);
+        const rawMaxTokens = finitePositiveNumber(m['max_tokens']);
+        const flooredOutput = Math.max(Math.max(rawMaxOutput, rawMaxTokens), MIN_OUTPUT_TOKENS_FLOOR);
+        const nextMaxOutput = Math.max(rawMaxOutput, flooredOutput);
+        const nextMaxTokens = Math.max(rawMaxTokens, flooredOutput);
+
+        if (
+          rawContext === nextContextWindow
+          && rawMaxInput === nextMaxInput
+          && rawMaxOutput === nextMaxOutput
+          && rawMaxTokens === nextMaxTokens
+        ) {
+          return m;
+        }
+        return {
+          ...m,
+          context_window: nextContextWindow,
+          max_input_tokens: nextMaxInput,
+          max_output_tokens: nextMaxOutput,
+          max_tokens: nextMaxTokens,
+        };
       });
       status = 200;
       return sendJson(res, 200, modelsEndpointPayload(modelsWithFloor, requestUrl.searchParams.get('client_version')));
@@ -256,28 +352,35 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     stream = adapted.streamRequested;
     const routed = await resolveRoutedModel(adapted.request.body, appId, requestedModel, apiKey);
     resolvedModel = routed.model;
-    const upstream = await fetch(`${torveCloudUpstream()}${adapted.request.path}`, {
-      method: 'POST',
-      headers: upstreamHeaders(adapted.request.headers, apiKey, appId),
-      body: routed.body,
-      signal: AbortSignal.timeout(UPSTREAM_REQUEST_TIMEOUT_MS),
-    });
-    status = upstream.status;
-    if (upstream.body && isSse(upstream.headers.get('content-type'))) {
-      if (source === 'anthropic-messages') {
-        usage = await streamChatToAnthropicSse(res, upstream, resolvedModel ?? requestedModel);
+    const fetchCtrl = createUpstreamFetchControl(res);
+    try {
+      const upstream = await fetch(`${torveCloudUpstream()}${adapted.request.path}`, {
+        method: 'POST',
+        headers: upstreamHeaders(adapted.request.headers, apiKey, appId),
+        body: routed.body,
+        signal: fetchCtrl.signal,
+      });
+      status = upstream.status;
+      const streaming = Boolean(upstream.body && isSse(upstream.headers.get('content-type')));
+      fetchCtrl.markHeadersReceived(streaming);
+      if (streaming && upstream.body) {
+        if (source === 'anthropic-messages') {
+          usage = await streamChatToAnthropicSse(res, upstream, resolvedModel ?? requestedModel, fetchCtrl.touchChunk);
+          return;
+        }
+        usage = await pipeStreaming(res, upstream, fetchCtrl.touchChunk);
         return;
       }
-      usage = await pipeStreaming(res, upstream);
-      return;
+      const upstreamBytes = new Uint8Array(await upstream.arrayBuffer());
+      usage = usageFromJson(upstreamBytes);
+      const response: SerializedHttpResponse = { requestId: incoming.requestId, statusCode: upstream.status, headers: responseHeaders(upstream.headers), body: upstreamBytes };
+      const outgoing = transformResponse(response, { from: target, to: source, streamRequested: adapted.streamRequested, fallbackModel: requestedModel });
+      if (!outgoing) { status = 502; errorSummary = 'Response translation failed.'; return sendError(res, status, 'Torve returned a response this client protocol cannot represent.'); }
+      res.writeHead(outgoing.statusCode, outgoing.headers);
+      res.end(outgoing.body);
+    } finally {
+      fetchCtrl.clear();
     }
-    const upstreamBytes = new Uint8Array(await upstream.arrayBuffer());
-    usage = usageFromJson(upstreamBytes);
-    const response: SerializedHttpResponse = { requestId: incoming.requestId, statusCode: upstream.status, headers: responseHeaders(upstream.headers), body: upstreamBytes };
-    const outgoing = transformResponse(response, { from: target, to: source, streamRequested: adapted.streamRequested, fallbackModel: requestedModel });
-    if (!outgoing) { status = 502; errorSummary = 'Response translation failed.'; return sendError(res, status, 'Torve returned a response this client protocol cannot represent.'); }
-    res.writeHead(outgoing.statusCode, outgoing.headers);
-    res.end(outgoing.body);
   } catch (err) {
     if (err instanceof PayloadTooLargeError) {
       status = 413;
@@ -339,8 +442,8 @@ function beginSseResponse(res: ServerResponse, statusCode: number, baseHeaders: 
   res.socket?.setNoDelay?.(true);
 }
 
-/** Pass through OpenAI Chat Completions SSE unbuffered with flush + [DONE] guarantee. */
-async function pipeStreaming(res: ServerResponse, upstream: Response): Promise<TorveCloudActivity['usage']> {
+/** Pass through OpenAI Chat Completions SSE unbuffered with flush, idle-timeout reset, and [DONE] guarantee. */
+async function pipeStreaming(res: ServerResponse, upstream: Response, onChunk?: () => void): Promise<TorveCloudActivity['usage']> {
   beginSseResponse(res, upstream.status, responseHeaders(upstream.headers));
   if (!upstream.body) { res.end(); return null; }
   const reader = upstream.body.getReader();
@@ -352,6 +455,7 @@ async function pipeStreaming(res: ServerResponse, upstream: Response): Promise<T
     for (;;) {
       const next = await reader.read();
       if (next.done) break;
+      onChunk?.();
       usageTracker.push(next.value);
       tail = `${tail}${detector.decode(next.value, { stream: true })}`.slice(-256);
       if (/data:\s*\[DONE\]/.test(tail)) sawDone = true;
@@ -375,6 +479,7 @@ async function pipeStreaming(res: ServerResponse, upstream: Response): Promise<T
 async function consumeOpenAiSse(
   body: ReadableStream<Uint8Array>,
   onEvent: (parsed: Record<string, unknown>) => void,
+  onChunk?: () => void,
 ): Promise<{ usage: TorveCloudActivity['usage']; sawDone: boolean }> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
@@ -411,6 +516,7 @@ async function consumeOpenAiSse(
     for (;;) {
       const next = await reader.read();
       if (next.done) break;
+      onChunk?.();
       usageTracker.push(next.value);
       pending += decoder.decode(next.value, { stream: true });
       const blocks = pending.split(/\r?\n\r?\n/);
@@ -632,7 +738,7 @@ export function buildChatRequestFromResponses(
     ...(stream ? { stream_options: { include_usage: true } } : {}),
   };
 
-  if (typeof reqBody['max_output_tokens'] === 'number') chatBody['max_tokens'] = reqBody['max_output_tokens'];
+  chatBody['max_tokens'] = floorOutboundOutputTokens(reqBody['max_output_tokens'] ?? reqBody['max_tokens']);
   if (typeof reqBody['parallel_tool_calls'] === 'boolean') chatBody['parallel_tool_calls'] = reqBody['parallel_tool_calls'];
   if (reqBody['reasoning'] && typeof reqBody['reasoning'] === 'object' && !Array.isArray(reqBody['reasoning'])) {
     const effort = (reqBody['reasoning'] as Record<string, unknown>)['effort'];
@@ -721,6 +827,7 @@ async function streamChatToResponsesSse(
   res: ServerResponse,
   upstream: Response,
   fallbackModel: string | null,
+  onChunk?: () => void,
 ): Promise<TorveCloudActivity['usage']> {
   beginSseResponse(res, upstream.status, responseHeaders(upstream.headers));
   if (!upstream.body) { res.end(); return null; }
@@ -986,7 +1093,7 @@ async function streamChatToResponsesSse(
           });
         }
       }
-    });
+    }, onChunk);
 
     finalize();
     return result.usage ?? (usageDetails.inputTokens > 0 || usageDetails.outputTokens > 0
@@ -1022,69 +1129,76 @@ async function handleResponsesRequest(
   const chatBody = buildChatRequestFromResponses(reqBody, resolvedModel);
   const headers = jsonUpstreamHeaders(incomingHeaders, apiKey, appId, stream ? 'text/event-stream' : 'application/json');
 
-  const upstream = await fetch(`${torveCloudUpstream()}/v1/chat/completions`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(chatBody),
-    signal: AbortSignal.timeout(UPSTREAM_REQUEST_TIMEOUT_MS),
-  });
+  const fetchCtrl = createUpstreamFetchControl(res);
+  try {
+    const upstream = await fetch(`${torveCloudUpstream()}/v1/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(chatBody),
+      signal: fetchCtrl.signal,
+    });
+    const streaming = Boolean(upstream.body && isSse(upstream.headers.get('content-type')));
+    fetchCtrl.markHeadersReceived(streaming);
 
-  if (upstream.body && isSse(upstream.headers.get('content-type'))) {
-    const usage = await streamChatToResponsesSse(res, upstream, resolvedModel ?? requestedModel);
-    return { status: upstream.status, requestedModel, resolvedModel, stream, usage, errorSummary: upstream.ok ? null : `Torve Cloud returned ${upstream.status}.` };
-  }
-
-  const upstreamBytes = new Uint8Array(await upstream.arrayBuffer());
-  if (!upstream.ok) {
-    const message = extractUpstreamErrorMessage(upstreamBytes, upstream.status);
-    sendJson(res, upstream.status, { error: { message, type: 'torve_cloud_error' } });
-    return { status: upstream.status, requestedModel, resolvedModel, stream, usage: null, errorSummary: message };
-  }
-
-  const parsedChat = parseJsonObjectBytes(upstreamBytes);
-  if (!parsedChat) {
-    sendError(res, 502, 'Torve returned a response this client protocol cannot represent.');
-    return { status: 502, requestedModel, resolvedModel, stream, usage: null, errorSummary: 'Response translation failed.' };
-  }
-  const usage = usageFromJson(upstreamBytes);
-  const responsesPayload = buildResponsesJsonFromChat(parsedChat, resolvedModel ?? requestedModel);
-
-  if (stream) {
-    // Upstream ignored stream:true and returned 200 JSON; emit valid Responses SSE events.
-    beginSseResponse(res, 200, responseHeaders(upstream.headers));
-    let seq = 0;
-    const writeSse = (event: string, data: Record<string, unknown>): void => {
-      res.write(`event: ${event}\ndata: ${JSON.stringify({ type: event, sequence_number: seq++, ...data })}\n\n`);
-    };
-    const inProgress = { ...responsesPayload, status: 'in_progress', output: [], output_text: '' };
-    writeSse('response.created', { response: inProgress });
-    writeSse('response.in_progress', { response: inProgress });
-    const output = Array.isArray(responsesPayload['output']) ? responsesPayload['output'] as Array<Record<string, unknown>> : [];
-    for (const [idx, item] of output.entries()) {
-      if (item['type'] === 'message') {
-        writeSse('response.output_item.added', { output_index: idx, item: { ...item, status: 'in_progress', content: [{ type: 'output_text', text: '', annotations: [] }] } });
-        writeSse('response.content_part.added', { output_index: idx, item_id: item['id'], content_index: 0, part: { type: 'output_text', text: '', annotations: [] } });
-        const text = typeof responsesPayload['output_text'] === 'string' ? responsesPayload['output_text'] : '';
-        if (text) writeSse('response.output_text.delta', { output_index: idx, item_id: item['id'], content_index: 0, delta: text, logprobs: [] });
-        writeSse('response.output_text.done', { output_index: idx, item_id: item['id'], content_index: 0, text, logprobs: [] });
-        writeSse('response.content_part.done', { output_index: idx, item_id: item['id'], content_index: 0, part: { type: 'output_text', text, annotations: [] } });
-        writeSse('response.output_item.done', { output_index: idx, item });
-      } else if (item['type'] === 'function_call') {
-        const args = typeof item['arguments'] === 'string' ? item['arguments'] : '';
-        writeSse('response.output_item.added', { output_index: idx, item: { ...item, status: 'in_progress', arguments: '' } });
-        if (args) writeSse('response.function_call_arguments.delta', { output_index: idx, item_id: item['id'], call_id: item['call_id'], delta: args });
-        writeSse('response.function_call_arguments.done', { output_index: idx, item_id: item['id'], call_id: item['call_id'], name: item['name'], arguments: args });
-        writeSse('response.output_item.done', { output_index: idx, item });
-      }
+    if (streaming && upstream.body) {
+      const usage = await streamChatToResponsesSse(res, upstream, resolvedModel ?? requestedModel, fetchCtrl.touchChunk);
+      return { status: upstream.status, requestedModel, resolvedModel, stream, usage, errorSummary: upstream.ok ? null : `Torve Cloud returned ${upstream.status}.` };
     }
-    writeSse('response.completed', { response: responsesPayload });
-    res.write('data: [DONE]\n\n');
-    res.end();
-    return { status: 200, requestedModel, resolvedModel, stream, usage, errorSummary: null };
-  }
 
-  sendJson(res, upstream.status, responsesPayload);
-  return { status: upstream.status, requestedModel, resolvedModel, stream, usage, errorSummary: null };
+    const upstreamBytes = new Uint8Array(await upstream.arrayBuffer());
+    if (!upstream.ok) {
+      const message = extractUpstreamErrorMessage(upstreamBytes, upstream.status);
+      sendJson(res, upstream.status, { error: { message, type: 'torve_cloud_error' } });
+      return { status: upstream.status, requestedModel, resolvedModel, stream, usage: null, errorSummary: message };
+    }
+
+    const parsedChat = parseJsonObjectBytes(upstreamBytes);
+    if (!parsedChat) {
+      sendError(res, 502, 'Torve returned a response this client protocol cannot represent.');
+      return { status: 502, requestedModel, resolvedModel, stream, usage: null, errorSummary: 'Response translation failed.' };
+    }
+    const usage = usageFromJson(upstreamBytes);
+    const responsesPayload = buildResponsesJsonFromChat(parsedChat, resolvedModel ?? requestedModel);
+
+    if (stream) {
+      // Upstream ignored stream:true and returned 200 JSON; emit valid Responses SSE events.
+      beginSseResponse(res, 200, responseHeaders(upstream.headers));
+      let seq = 0;
+      const writeSse = (event: string, data: Record<string, unknown>): void => {
+        res.write(`event: ${event}\ndata: ${JSON.stringify({ type: event, sequence_number: seq++, ...data })}\n\n`);
+      };
+      const inProgress = { ...responsesPayload, status: 'in_progress', output: [], output_text: '' };
+      writeSse('response.created', { response: inProgress });
+      writeSse('response.in_progress', { response: inProgress });
+      const output = Array.isArray(responsesPayload['output']) ? responsesPayload['output'] as Array<Record<string, unknown>> : [];
+      for (const [idx, item] of output.entries()) {
+        if (item['type'] === 'message') {
+          writeSse('response.output_item.added', { output_index: idx, item: { ...item, status: 'in_progress', content: [{ type: 'output_text', text: '', annotations: [] }] } });
+          writeSse('response.content_part.added', { output_index: idx, item_id: item['id'], content_index: 0, part: { type: 'output_text', text: '', annotations: [] } });
+          const text = typeof responsesPayload['output_text'] === 'string' ? responsesPayload['output_text'] : '';
+          if (text) writeSse('response.output_text.delta', { output_index: idx, item_id: item['id'], content_index: 0, delta: text, logprobs: [] });
+          writeSse('response.output_text.done', { output_index: idx, item_id: item['id'], content_index: 0, text, logprobs: [] });
+          writeSse('response.content_part.done', { output_index: idx, item_id: item['id'], content_index: 0, part: { type: 'output_text', text, annotations: [] } });
+          writeSse('response.output_item.done', { output_index: idx, item });
+        } else if (item['type'] === 'function_call') {
+          const args = typeof item['arguments'] === 'string' ? item['arguments'] : '';
+          writeSse('response.output_item.added', { output_index: idx, item: { ...item, status: 'in_progress', arguments: '' } });
+          if (args) writeSse('response.function_call_arguments.delta', { output_index: idx, item_id: item['id'], call_id: item['call_id'], delta: args });
+          writeSse('response.function_call_arguments.done', { output_index: idx, item_id: item['id'], call_id: item['call_id'], name: item['name'], arguments: args });
+          writeSse('response.output_item.done', { output_index: idx, item });
+        }
+      }
+      writeSse('response.completed', { response: responsesPayload });
+      res.write('data: [DONE]\n\n');
+      res.end();
+      return { status: 200, requestedModel, resolvedModel, stream, usage, errorSummary: null };
+    }
+
+    sendJson(res, upstream.status, responsesPayload);
+    return { status: upstream.status, requestedModel, resolvedModel, stream, usage, errorSummary: null };
+  } finally {
+    fetchCtrl.clear();
+  }
 }
 
 function formatCompactTranscript(reqBody: Record<string, unknown>): string {
@@ -1148,13 +1262,15 @@ async function handleResponsesCompact(
     : body;
 
   // 1) Try native upstream /v1/responses/compact first.
+  const compactCtrl = createUpstreamFetchControl(res);
   try {
     const nativeResp = await fetch(`${torveCloudUpstream()}/v1/responses/compact`, {
       method: 'POST',
       headers: jsonUpstreamHeaders(incomingHeaders, apiKey, appId, 'application/json'),
       body: forwardBody,
-      signal: AbortSignal.timeout(UPSTREAM_REQUEST_TIMEOUT_MS),
+      signal: compactCtrl.signal,
     });
+    compactCtrl.markHeadersReceived(false);
     if (nativeResp.ok) {
       const nativeBytes = new Uint8Array(await nativeResp.arrayBuffer());
       const parsed = parseJsonObjectBytes(nativeBytes);
@@ -1173,31 +1289,41 @@ async function handleResponsesCompact(
     }
   } catch {
     /* Fall back to Chat Completions summarization when native compaction is unavailable */
+  } finally {
+    compactCtrl.clear();
   }
 
   // 2) Fallback: summarize cleanly via /v1/chat/completions.
   const transcript = formatCompactTranscript(reqBody);
-  const chatResp = await fetch(`${torveCloudUpstream()}/v1/chat/completions`, {
-    method: 'POST',
-    headers: jsonUpstreamHeaders(incomingHeaders, apiKey, appId, 'application/json'),
-    body: JSON.stringify({
-      ...(effectiveModel ? { model: effectiveModel } : {}),
-      stream: false,
-      messages: [
-        {
-          role: 'system',
-          content: 'You are compacting a coding agent session. Produce a concise, faithful session summary that preserves all important file paths, architectural decisions, code symbols, command/test outputs, errors, and remaining open tasks. Return only the compacted summary.',
-        },
-        {
-          role: 'user',
-          content: transcript,
-        },
-      ],
-    }),
-    signal: AbortSignal.timeout(UPSTREAM_REQUEST_TIMEOUT_MS),
-  });
-
-  const chatBytes = new Uint8Array(await chatResp.arrayBuffer());
+  const chatCtrl = createUpstreamFetchControl(res);
+  let chatResp: Response;
+  let chatBytes: Uint8Array;
+  try {
+    chatResp = await fetch(`${torveCloudUpstream()}/v1/chat/completions`, {
+      method: 'POST',
+      headers: jsonUpstreamHeaders(incomingHeaders, apiKey, appId, 'application/json'),
+      body: JSON.stringify({
+        ...(effectiveModel ? { model: effectiveModel } : {}),
+        stream: false,
+        max_tokens: MIN_OUTPUT_TOKENS_FLOOR,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are compacting a coding agent session. Produce a concise, faithful session summary that preserves all important file paths, architectural decisions, code symbols, command/test outputs, errors, and remaining open tasks. Return only the compacted summary.',
+          },
+          {
+            role: 'user',
+            content: transcript,
+          },
+        ],
+      }),
+      signal: chatCtrl.signal,
+    });
+    chatCtrl.markHeadersReceived(false);
+    chatBytes = new Uint8Array(await chatResp.arrayBuffer());
+  } finally {
+    chatCtrl.clear();
+  }
   if (!chatResp.ok) {
     const message = extractUpstreamErrorMessage(chatBytes, chatResp.status);
     sendError(res, chatResp.status, message);
@@ -1256,6 +1382,7 @@ async function streamChatToAnthropicSse(
   res: ServerResponse,
   upstream: Response,
   fallbackModel: string | null,
+  onChunk?: () => void,
 ): Promise<TorveCloudActivity['usage']> {
   beginSseResponse(res, upstream.status, responseHeaders(upstream.headers));
   if (!upstream.body) { res.end(); return null; }
@@ -1489,7 +1616,7 @@ async function streamChatToAnthropicSse(
           });
         }
       }
-    });
+    }, onChunk);
 
     finalize();
     return result.usage ?? (usageDetails.inputTokens > 0 || usageDetails.outputTokens > 0
@@ -1578,102 +1705,114 @@ async function handleGeminiRequest(req: IncomingMessage, res: ServerResponse, pa
   }
   const messages = geminiMessages(input);
   const tools = geminiTools(input);
-  const upstream = await fetch(`${torveCloudUpstream()}/v1/chat/completions`, {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      'content-type': 'application/json',
-      accept: stream ? 'text/event-stream' : 'application/json',
-      'x-torve-client-app': sanitizeTorveClientApp(appId),
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      ...(tools ? { tools } : {}),
-      stream,
-      ...(stream ? { stream_options: { include_usage: true } } : {}),
-    }),
-    signal: AbortSignal.timeout(UPSTREAM_REQUEST_TIMEOUT_MS),
-  });
-  if (!stream || !upstream.body || !isSse(upstream.headers.get('content-type'))) {
-    const upstreamBytes = new Uint8Array(await upstream.arrayBuffer());
-    const payload = parseJsonObjectBytes(upstreamBytes);
-    if (!upstream.ok) {
-      if (payload) sendJson(res, upstream.status, payload);
-      else sendError(res, upstream.status, extractUpstreamErrorMessage(upstreamBytes, upstream.status));
-      return { status: upstream.status, requestedModel, resolvedModel: model, stream, usage: null };
-    }
-    if (!payload) {
-      sendError(res, 502, 'Torve returned an invalid response.');
-      return { status: 502, requestedModel, resolvedModel: model, stream, usage: null };
-    }
-    const usage = extractTokenUsageFromRecord(payload);
-    sendJson(res, upstream.status, openAiToGemini(payload));
-    return { status: upstream.status, requestedModel, resolvedModel: model, stream, usage };
-  }
-
-  beginSseResponse(res, upstream.status, responseHeaders(upstream.headers));
-  const accumulatedTools = new Map<number, { name: string; arguments: string }>();
-  let latestUsage: unknown = undefined;
-
-  const flushAccumulatedTools = (finishReason: string | null): void => {
-    if (accumulatedTools.size === 0) return;
-    const parts: Array<Record<string, unknown>> = [];
-    for (const [, tc] of [...accumulatedTools.entries()].sort((a, b) => a[0] - b[0])) {
-      parts.push({ functionCall: { name: tc.name, args: safeJson(tc.arguments) } });
-    }
-    accumulatedTools.clear();
-    res.write(`data: ${JSON.stringify({
-      candidates: [{ content: { role: 'model', parts }, ...(finishReason ? { finishReason: 'STOP' } : {}) }],
-      usageMetadata: geminiUsage(latestUsage),
-    })}\n\n`);
-  };
-
+  const genConfig = input['generationConfig'] && typeof input['generationConfig'] === 'object' && !Array.isArray(input['generationConfig'])
+    ? input['generationConfig'] as Record<string, unknown>
+    : null;
+  const maxTokens = floorOutboundOutputTokens(genConfig?.['maxOutputTokens']);
+  const fetchCtrl = createUpstreamFetchControl(res);
   try {
-    const result = await consumeOpenAiSse(upstream.body, (parsed) => {
-      if (parsed['usage'] !== undefined) latestUsage = parsed['usage'];
-      const choice = Array.isArray(parsed['choices']) ? parsed['choices'][0] as Record<string, unknown> | undefined : undefined;
-      const delta = choice?.['delta'] && typeof choice['delta'] === 'object' ? choice['delta'] as Record<string, unknown> : {};
-      const finishReason = typeof choice?.['finish_reason'] === 'string' && choice['finish_reason'] ? choice['finish_reason'] : null;
-
-      const deltaToolCalls = Array.isArray(delta['tool_calls']) ? delta['tool_calls'] : [];
-      for (const rawTc of deltaToolCalls) {
-        if (!rawTc || typeof rawTc !== 'object') continue;
-        const tc = rawTc as Record<string, unknown>;
-        const idx = typeof tc['index'] === 'number' && Number.isFinite(tc['index']) ? Math.max(0, Math.floor(tc['index'])) : 0;
-        const fn = tc['function'] && typeof tc['function'] === 'object' ? tc['function'] as Record<string, unknown> : {};
-        const existing = accumulatedTools.get(idx) ?? { name: '', arguments: '' };
-        const name = typeof fn['name'] === 'string' && fn['name'] ? fn['name'] : existing.name;
-        const argsDelta = typeof fn['arguments'] === 'string' ? fn['arguments'] : '';
-        accumulatedTools.set(idx, { name, arguments: existing.arguments + argsDelta });
-      }
-
-      const parts: Array<Record<string, unknown>> = [];
-      const reasoning = extractChatReasoning(delta);
-      if (reasoning) parts.push({ thought: true, text: reasoning });
-      if (typeof delta['content'] === 'string' && delta['content'].length > 0) parts.push({ text: delta['content'] });
-
-      if (finishReason && accumulatedTools.size > 0) {
-        for (const [, tc] of [...accumulatedTools.entries()].sort((a, b) => a[0] - b[0])) {
-          parts.push({ functionCall: { name: tc.name, args: safeJson(tc.arguments) } });
-        }
-        accumulatedTools.clear();
-      }
-
-      if (parts.length > 0 || finishReason || parsed['usage'] !== undefined) {
-        const candidate: Record<string, unknown> | null = (parts.length > 0 || finishReason)
-          ? { content: { role: 'model', parts }, ...(finishReason ? { finishReason: 'STOP' } : {}) }
-          : null;
-        res.write(`data: ${JSON.stringify({
-          candidates: candidate ? [candidate] : [],
-          usageMetadata: geminiUsage(latestUsage ?? parsed['usage']),
-        })}\n\n`);
-      }
+    const upstream = await fetch(`${torveCloudUpstream()}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        'content-type': 'application/json',
+        accept: stream ? 'text/event-stream' : 'application/json',
+        'x-torve-client-app': sanitizeTorveClientApp(appId),
+      },
+      body: JSON.stringify({
+        model,
+        messages,
+        max_tokens: maxTokens,
+        ...(tools ? { tools } : {}),
+        stream,
+        ...(stream ? { stream_options: { include_usage: true } } : {}),
+      }),
+      signal: fetchCtrl.signal,
     });
-    flushAccumulatedTools('STOP');
-    return { status: upstream.status, requestedModel, resolvedModel: model, stream, usage: result.usage };
+    const streaming = Boolean(stream && upstream.body && isSse(upstream.headers.get('content-type')));
+    fetchCtrl.markHeadersReceived(streaming);
+    if (!streaming || !upstream.body) {
+      const upstreamBytes = new Uint8Array(await upstream.arrayBuffer());
+      const payload = parseJsonObjectBytes(upstreamBytes);
+      if (!upstream.ok) {
+        if (payload) sendJson(res, upstream.status, payload);
+        else sendError(res, upstream.status, extractUpstreamErrorMessage(upstreamBytes, upstream.status));
+        return { status: upstream.status, requestedModel, resolvedModel: model, stream, usage: null };
+      }
+      if (!payload) {
+        sendError(res, 502, 'Torve returned an invalid response.');
+        return { status: 502, requestedModel, resolvedModel: model, stream, usage: null };
+      }
+      const usage = extractTokenUsageFromRecord(payload);
+      sendJson(res, upstream.status, openAiToGemini(payload));
+      return { status: upstream.status, requestedModel, resolvedModel: model, stream, usage };
+    }
+
+    beginSseResponse(res, upstream.status, responseHeaders(upstream.headers));
+    const accumulatedTools = new Map<number, { name: string; arguments: string }>();
+    let latestUsage: unknown = undefined;
+
+    const flushAccumulatedTools = (finishReason: string | null): void => {
+      if (accumulatedTools.size === 0) return;
+      const parts: Array<Record<string, unknown>> = [];
+      for (const [, tc] of [...accumulatedTools.entries()].sort((a, b) => a[0] - b[0])) {
+        parts.push({ functionCall: { name: tc.name, args: safeJson(tc.arguments) } });
+      }
+      accumulatedTools.clear();
+      res.write(`data: ${JSON.stringify({
+        candidates: [{ content: { role: 'model', parts }, ...(finishReason ? { finishReason: 'STOP' } : {}) }],
+        usageMetadata: geminiUsage(latestUsage),
+      })}\n\n`);
+    };
+
+    try {
+      const result = await consumeOpenAiSse(upstream.body, (parsed) => {
+        if (parsed['usage'] !== undefined) latestUsage = parsed['usage'];
+        const choice = Array.isArray(parsed['choices']) ? parsed['choices'][0] as Record<string, unknown> | undefined : undefined;
+        const delta = choice?.['delta'] && typeof choice['delta'] === 'object' ? choice['delta'] as Record<string, unknown> : {};
+        const finishReason = typeof choice?.['finish_reason'] === 'string' && choice['finish_reason'] ? choice['finish_reason'] : null;
+
+        const deltaToolCalls = Array.isArray(delta['tool_calls']) ? delta['tool_calls'] : [];
+        for (const rawTc of deltaToolCalls) {
+          if (!rawTc || typeof rawTc !== 'object') continue;
+          const tc = rawTc as Record<string, unknown>;
+          const idx = typeof tc['index'] === 'number' && Number.isFinite(tc['index']) ? Math.max(0, Math.floor(tc['index'])) : 0;
+          const fn = tc['function'] && typeof tc['function'] === 'object' ? tc['function'] as Record<string, unknown> : {};
+          const existing = accumulatedTools.get(idx) ?? { name: '', arguments: '' };
+          const name = typeof fn['name'] === 'string' && fn['name'] ? fn['name'] : existing.name;
+          const argsDelta = typeof fn['arguments'] === 'string' ? fn['arguments'] : '';
+          accumulatedTools.set(idx, { name, arguments: existing.arguments + argsDelta });
+        }
+
+        const parts: Array<Record<string, unknown>> = [];
+        const reasoning = extractChatReasoning(delta);
+        if (reasoning) parts.push({ thought: true, text: reasoning });
+        if (typeof delta['content'] === 'string' && delta['content'].length > 0) parts.push({ text: delta['content'] });
+
+        if (finishReason && accumulatedTools.size > 0) {
+          for (const [, tc] of [...accumulatedTools.entries()].sort((a, b) => a[0] - b[0])) {
+            parts.push({ functionCall: { name: tc.name, args: safeJson(tc.arguments) } });
+          }
+          accumulatedTools.clear();
+        }
+
+        if (parts.length > 0 || finishReason || parsed['usage'] !== undefined) {
+          const candidate: Record<string, unknown> | null = (parts.length > 0 || finishReason)
+            ? { content: { role: 'model', parts }, ...(finishReason ? { finishReason: 'STOP' } : {}) }
+            : null;
+          res.write(`data: ${JSON.stringify({
+            candidates: candidate ? [candidate] : [],
+            usageMetadata: geminiUsage(latestUsage ?? parsed['usage']),
+          })}\n\n`);
+        }
+      }, fetchCtrl.touchChunk);
+      flushAccumulatedTools('STOP');
+      return { status: upstream.status, requestedModel, resolvedModel: model, stream, usage: result.usage };
+    } finally {
+      if (!res.writableEnded) res.end();
+    }
   } finally {
-    if (!res.writableEnded) res.end();
+    fetchCtrl.clear();
   }
 }
 
@@ -1794,6 +1933,29 @@ function safeJson(value: unknown): Record<string, unknown> {
 
 function geminiUsage(value: unknown): Record<string, number> { const usage = value && typeof value === 'object' ? value as Record<string, unknown> : {}; const prompt = typeof usage['prompt_tokens'] === 'number' ? usage['prompt_tokens'] : 0; const output = typeof usage['completion_tokens'] === 'number' ? usage['completion_tokens'] : 0; return { promptTokenCount: prompt, candidatesTokenCount: output, totalTokenCount: prompt + output }; }
 
+function floorOutboundOutputTokens(value: unknown): number {
+  const n = finitePositiveNumber(value);
+  return n === 0 || n <= LOW_OUTPUT_TOKENS_THRESHOLD ? MIN_OUTPUT_TOKENS_FLOOR : n;
+}
+
+function applyOutboundMaxTokens(body: Record<string, unknown>): { next: Record<string, unknown>; changed: boolean } {
+  if (body['max_completion_tokens'] !== undefined) {
+    const current = finitePositiveNumber(body['max_completion_tokens']);
+    if (current === 0 || current <= LOW_OUTPUT_TOKENS_THRESHOLD) {
+      return { next: { ...body, max_completion_tokens: MIN_OUTPUT_TOKENS_FLOOR }, changed: true };
+    }
+    return { next: body, changed: false };
+  }
+  if (body['max_tokens'] !== undefined) {
+    const current = finitePositiveNumber(body['max_tokens']);
+    if (current === 0 || current <= LOW_OUTPUT_TOKENS_THRESHOLD) {
+      return { next: { ...body, max_tokens: MIN_OUTPUT_TOKENS_FLOOR }, changed: true };
+    }
+    return { next: body, changed: false };
+  }
+  return { next: { ...body, max_tokens: MIN_OUTPUT_TOKENS_FLOOR }, changed: true };
+}
+
 /** Config-patched clients use the stable `torve` alias. Resolve it only at
  * the loopback boundary so individual tool configs never need a raw model id
  * or API key. The catalog's first available model is a safe initial default;
@@ -1802,8 +1964,12 @@ async function resolveRoutedModel(body: Uint8Array, appId: string | null, reques
   try {
     const json = JSON.parse(new TextDecoder().decode(body)) as Record<string, unknown>;
     const model = await resolveModelForRequest(appId, requestedModel, apiKey);
-    if (!model || json['model'] === model) return { body, model };
-    return { body: new TextEncoder().encode(JSON.stringify({ ...json, model })), model };
+    const modelChanged = Boolean(model && json['model'] !== model);
+    const { next: withOutputFloor, changed: outputChanged } = applyOutboundMaxTokens(
+      modelChanged && model ? { ...json, model } : json,
+    );
+    if (!modelChanged && !outputChanged) return { body, model };
+    return { body: new TextEncoder().encode(JSON.stringify(withOutputFloor)), model };
   } catch { return { body, model: requestedModel }; }
 }
 

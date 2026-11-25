@@ -34,7 +34,7 @@ test('fetchAvailableModels injects Torve models and stable placeholder identitie
   try {
     const result = await handleAntigravityV1Internal(request('/v1internal:fetchAvailableModels'), { apiKey: 'torve-key', models, fetchImpl, googleUpstream: 'https://google.example', torveUpstream: 'https://torve.example', identityPath });
     const body = await result.response.json() as Omit<typeof catalog, 'models'> & {
-      models: Record<string, { displayName?: string; model?: string; maxTokens?: number }>;
+      models: Record<string, { displayName?: string; model?: string; maxTokens?: number; maxOutputTokens?: number }>;
     };
     const torveIds = Object.keys(body.models).filter((id) => id.startsWith('MODEL_PLACEHOLDER_'));
     assert.equal(torveIds.length, 2);
@@ -44,8 +44,10 @@ test('fetchAvailableModels injects Torve models and stable placeholder identitie
     assert.ok(longEntry);
     assert.equal(reasonerEntry.model, 'MODEL_PLACEHOLDER_M1649');
     assert.ok((reasonerEntry.maxTokens ?? 0) >= 1_000_000);
+    assert.equal(reasonerEntry.maxOutputTokens, 32_768);
     assert.equal(longEntry.model, 'MODEL_PLACEHOLDER_M1650');
     assert.equal(longEntry.maxTokens, 2_000_000);
+    assert.equal(longEntry.maxOutputTokens, 32_768);
     assert.deepEqual(body.models['gemini-native'], { displayName: 'Gemini Native', model: 'MODEL_GEMINI' });
     assert.deepEqual(body.models['gemini-flash'], { displayName: 'Gemini Flash', model: 'MODEL_GEMINI_FLASH' });
     assert.deepEqual(body.groupedModels, [{ groupName: 'Google', modelIds: ['gemini-native', 'gemini-flash'] }]);
@@ -107,12 +109,14 @@ test('streamGenerateContent routes Torve IDs locally and native Google IDs upstr
     const torveId = Object.entries(catalogBody.models).find(([, value]) => value.displayName === 'Torve Reasoner')![0];
     calls.length = 0;
 
-    const routed = await handleAntigravityV1Internal(request('/v1internal:streamGenerateContent?alt=sse', { model: torveId, request: { contents: [{ role: 'user', parts: [{ text: 'hello' }] }] } }), { apiKey: 'torve-key', models, fetchImpl, googleUpstream: 'https://google.example', torveUpstream: 'https://torve.example', identityPath });
+    const routed = await handleAntigravityV1Internal(request('/v1internal:streamGenerateContent?alt=sse', { model: torveId, request: { contents: [{ role: 'user', parts: [{ text: 'hello' }] }], generationConfig: { maxOutputTokens: 1024 } } }), { apiKey: 'torve-key', models, fetchImpl, googleUpstream: 'https://google.example', torveUpstream: 'https://torve.example', identityPath });
     const routedText = await routed.response.text();
     assert.equal(routed.meta.torveRouted, true);
     assert.equal(calls[0]?.url, 'https://torve.example/v1/chat/completions');
     assert.equal(calls[0]?.authorization, 'Bearer torve-key');
-    assert.equal((JSON.parse(calls[0]!.body) as { model: string }).model, 'torve-reasoner');
+    const forwardedPayload = JSON.parse(calls[0]!.body) as { model: string; max_tokens?: number };
+    assert.equal(forwardedPayload.model, 'torve-reasoner');
+    assert.equal(forwardedPayload.max_tokens, 32_768);
     assert.match(routedText, /"thought":true/);
     assert.match(routedText, /"text":"answer"/);
     assert.match(routedText, /"functionCall":\{"name":"read_file"/);
