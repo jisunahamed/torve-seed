@@ -8,7 +8,9 @@ const desktopDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.
 
 const env = { ...process.env };
 const hasCert = Boolean(env['CSC_LINK'] || (env['WIN_SIGN_EMAIL'] && env['WIN_SIGN_OTP']));
-const args = ['--win', ...process.argv.slice(2)];
+const userArgs = process.argv.slice(2);
+const hasPublishFlag = userArgs.some((arg) => arg === '--publish' || arg === '-p' || arg.startsWith('--publish='));
+const args = ['--win', ...(hasPublishFlag ? [] : ['--publish', 'never']), ...userArgs];
 
 if (!hasCert && env['CSC_IDENTITY_AUTO_DISCOVERY'] === undefined) {
   env['CSC_IDENTITY_AUTO_DISCOVERY'] = 'false';
