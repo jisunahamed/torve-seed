@@ -463,7 +463,21 @@ registerTelegramIpc({ telegramBridge });
 // Cache the latest display payload so a freshly opened float window can be
 // primed before the main window's next periodic update.
 
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    const existingWindow = getMainWindow();
+    if (!existingWindow || existingWindow.isDestroyed()) return;
+    if (existingWindow.isMinimized()) existingWindow.restore();
+    existingWindow.show();
+    existingWindow.focus();
+  });
+}
+
 app.whenReady().then(async () => {
+  if (!gotSingleInstanceLock) return;
   installAttachmentProtocol();
   app.setName(INTERNAL_APP_NAME);
   app.setAboutPanelOptions({

@@ -1433,33 +1433,35 @@ export const ToastStack = React.forwardRef<ToastStackHandle, ToastStackProps>(
             </AnimatePresence>
           </ol>
 
-          {/* Nothing left. */}
-          <AnimatePresence>
-            {count === 0 && (
-              <motion.p
-                initial={
-                  still
-                    ? { opacity: 0 }
-                    : { opacity: 0, y: 8, filter: "blur(4px)" }
-                }
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, transition: { duration: 0.12 } }}
-                transition={{
-                  duration: 0.4,
-                  delay: still ? 0 : 0.2,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                className="absolute inset-0 flex items-center justify-center gap-2 rounded-[22px] border border-dashed border-[#27272A] bg-[#111111]/60 text-sm text-[#71717A]"
-              >
-                <CircleCheckIcon
-                  className="size-4 text-[#14FF73]"
-                  strokeWidth={2}
-                  active={!still}
-                />
-                You are all caught up
-              </motion.p>
-            )}
-          </AnimatePresence>
+          {/* Empty when triggers are off (desktop overlay mode). */}
+          {triggers && (
+            <AnimatePresence>
+              {count === 0 && (
+                <motion.p
+                  initial={
+                    still
+                      ? { opacity: 0 }
+                      : { opacity: 0, y: 8, filter: "blur(4px)" }
+                  }
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                  transition={{
+                    duration: 0.4,
+                    delay: still ? 0 : 0.2,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  className="absolute inset-0 flex items-center justify-center gap-2 rounded-lg border border-dashed border-[#222226] bg-[#111114]/90 text-sm text-[#71717A]"
+                >
+                  <CircleCheckIcon
+                    className="size-4 text-[#14FF73]"
+                    strokeWidth={2}
+                    active={!still}
+                  />
+                  You are all caught up
+                </motion.p>
+              )}
+            </AnimatePresence>
+          )}
         </motion.div>
 
         {triggers && (

@@ -388,7 +388,7 @@ export const QuotaGauge = React.forwardRef<HTMLDivElement, QuotaGaugeProps>(
         animate={shown ? { opacity: 1, y: 0 } : undefined}
         transition={{ duration: 0.6, ease: GLIDE }}
         className={cn(
-          "w-[320px] max-w-full rounded-3xl border border-[#27272A] bg-[#111111] p-6 text-[#F4F4F5] shadow-none",
+          "w-[320px] max-w-full rounded-[10px] border border-[#222226] bg-[#111114] p-5 text-[#F4F4F5] shadow-none",
           className,
         )}
       >
@@ -469,7 +469,7 @@ export const QuotaGauge = React.forwardRef<HTMLDivElement, QuotaGaugeProps>(
         </div>
 
         {/* Caption: progress, or what is left on hover. */}
-        <div className="relative -mt-4 h-11 overflow-hidden text-center">
+        <div className="relative mt-2 h-11 overflow-hidden text-center">
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={hover ? "left" : "share"}

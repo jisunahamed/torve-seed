@@ -6,31 +6,29 @@
 export type WindowSizePresetName = 'standard' | 'compact';
 
 export const VIEW_WINDOW_PRESETS = {
-  // AI VPN screens are small single-purpose panels.
-  home: 'compact',
-  explore: 'compact',
-  model: 'compact',
-  tools: 'compact',
-  tunnels: 'compact',
-  chats: 'compact',
-  preferences: 'compact',
-  credits: 'compact',
-  deposit: 'compact',
-  activity: 'compact',
-  rewards: 'compact',
-  'torve-account': 'compact',
-  help: 'compact',
+  // Primary desktop views share the spacious, resizable developer workspace.
+  home: 'standard',
+  explore: 'standard',
+  model: 'standard',
+  tools: 'standard',
+  tunnels: 'standard',
+  chats: 'standard',
+  preferences: 'standard',
+  credits: 'standard',
+  deposit: 'standard',
+  activity: 'standard',
+  rewards: 'standard',
+  'torve-account': 'standard',
+  help: 'standard',
   // Chat's base preset is the thin panel, but the view opens wide by default:
   // chatPanelExpanded starts true, and AppShell applies the standard preset
   // whenever it is set — the in-view toggle collapses back to this.
   chat: 'compact',
-  // Diagnostic screens stay in the same compact panel as the AI VPN views
-  // (they're reachable from Help & Support) — their tables and panels scroll
-  // within the window instead of blowing it up to the wide preset.
-  peers: 'compact',
-  connection: 'compact',
-  desktop: 'compact',
-  config: 'compact',
+  // Diagnostic screens stay in the same workspace size.
+  peers: 'standard',
+  connection: 'standard',
+  desktop: 'standard',
+  config: 'standard',
 } as const satisfies Record<string, WindowSizePresetName>;
 
 export function windowPresetForView(view: string): WindowSizePresetName {

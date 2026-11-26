@@ -300,12 +300,22 @@ export function VprHomeView({ onSelectView }: Props) {
                 {proxyStatus?.running ? 'Active' : 'Stopped'}
               </span>
             </div>
-            <div className={styles.statBox}>
+            <div
+              className={styles.statBox}
+              style={{ cursor: 'pointer' }}
+              title="Click to copy local proxy URL"
+              onClick={() => {
+                const url = `http://127.0.0.1:${proxyPort}`;
+                void navigator.clipboard?.writeText(url).then(() => {
+                  toast.push({ kind: 'success', title: 'Copied local proxy URL', description: url, duration: 2500 });
+                }).catch(() => {});
+              }}
+            >
               <div className={styles.statValue} style={{ fontSize: 15 }}>
                 http://127.0.0.1:{proxyPort}
               </div>
               <div className={styles.statSub}>
-                Upstream: {proxyStatus?.upstream || 'https://api.torveai.com'}
+                Upstream: {proxyStatus?.upstream || 'https://api.torveai.com'} · Click to copy
               </div>
             </div>
           </section>

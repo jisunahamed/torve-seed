@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowDown01Icon, ArrowRight01Icon, ArrowUpRight01Icon } from '@hugeicons/core-free-icons';
 import type { TorveAccountStatus, TorveDesktopMeResponse } from '../../../types/bridge';
@@ -42,8 +42,34 @@ export function TorveAuthCard({
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [busy, setBusy] = useState<'pkce' | 'manual' | 'signout' | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarFailed, setAvatarFailed] = useState(false);
 
   const user = me?.user ?? account?.userMeta ?? null;
+  const resolvedEmail = user?.email ?? account?.email ?? null;
+
+  useEffect(() => {
+    setAvatarFailed(false);
+    const normalized = resolvedEmail?.trim().toLowerCase();
+    if (!normalized || typeof crypto === 'undefined' || !crypto.subtle) {
+      setAvatarUrl(null);
+      return;
+    }
+    let cancelled = false;
+    const data = new TextEncoder().encode(normalized);
+    void crypto.subtle.digest('SHA-256', data).then((buf) => {
+      if (cancelled) return;
+      const hash = Array.from(new Uint8Array(buf))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+      setAvatarUrl(`https://www.gravatar.com/avatar/${hash}?d=404&s=96`);
+    }).catch(() => {
+      if (!cancelled) setAvatarUrl(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedEmail]);
   const key = me?.key ?? account?.keyMeta ?? null;
   const activeError = localError || authError?.message || null;
   const isKeyLimitError = authError?.statusCode === 409 || /key limit/i.test(activeError ?? '');
@@ -113,7 +139,23 @@ export function TorveAuthCard({
         <div className={styles.header}>
           <div className={styles.identity}>
             <div className={styles.markFrame}>
-              <TorveMark size={compact ? 32 : 36} />
+              {avatarUrl && !avatarFailed ? (
+                <img
+                  src={avatarUrl}
+                  alt={user?.name || email}
+                  draggable={false}
+                  onError={() => setAvatarFailed(true)}
+                  style={{
+                    width: compact ? 32 : 36,
+                    height: compact ? 32 : 36,
+                    borderRadius: 8,
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+              ) : (
+                <TorveMark size={compact ? 32 : 36} />
+              )}
             </div>
             <div className={styles.identityCopy}>
               <div className={styles.titleRow}>

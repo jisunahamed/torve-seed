@@ -430,11 +430,8 @@ export function applyWindowPreset(presetName: string): { ok: true; skipped?: 'fu
 }
 
 export function createWindow(config: WindowConfig): void {
-  // The default view is 'home', which maps to the compact preset (see
-  // applyWindowView). Open at that size so the window doesn't briefly render
-  // large and then snap down on first mount.
-  const initialPreset = WINDOW_SIZE_PRESETS.compact;
-  activeSizePreset = 'compact';
+  const initialPreset = WINDOW_SIZE_PRESETS.standard;
+  activeSizePreset = 'standard';
   const macosWindowChrome = process.platform === 'darwin'
     ? {
       titleBarStyle: 'hiddenInset' as const,
@@ -449,12 +446,10 @@ export function createWindow(config: WindowConfig): void {
     minHeight: initialPreset.minHeight,
     useContentSize: true,
     autoHideMenuBar: process.platform !== 'darwin',
-    // Starts on the compact preset, which is fixed-size; applySizePreset
-    // re-enables resizing when a standard-preset view (chat) is shown.
-    resizable: false,
+    resizable: true,
     title: config.appName,
     icon: config.appIconPath,
-    backgroundColor: '#ececec',
+    backgroundColor: '#0A0A0A',
     webPreferences: {
       preload: PRELOAD_PATH,
       contextIsolation: true,

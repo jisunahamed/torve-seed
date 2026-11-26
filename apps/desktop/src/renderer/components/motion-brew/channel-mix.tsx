@@ -1175,7 +1175,7 @@ export const ChannelMix = React.forwardRef<HTMLDivElement, ChannelMixProps>(
         animate={shown ? { opacity: 1, y: 0, filter: "blur(0px)" } : undefined}
         transition={{ duration: 0.6, ease: GLIDE }}
         className={cn(
-          "@container w-full max-w-full overflow-hidden rounded-2xl border border-[#27272A] bg-[#111111] text-[#F4F4F5] shadow-none",
+          "@container w-full max-w-full overflow-hidden rounded-[10px] border border-[#222226] bg-[#111114] text-[#F4F4F5] shadow-none",
           className,
         )}
       >

@@ -2015,10 +2015,10 @@ export const SearchModal = React.forwardRef<HTMLDivElement, SearchModalProps>(
                 }
               : undefined
           }
-          className="relative flex h-14 items-center gap-3 rounded-[22px] border border-[#27272A] bg-[#111111] pl-4 pr-2.5"
+          className="relative flex h-12 items-center gap-3 rounded-[10px] border border-[#222226] bg-[#111114] pl-3.5 pr-2.5"
         >
           <SearchIcon
-            className="size-5 shrink-0 text-[#71717A]"
+            className="size-4 shrink-0 text-[#71717A]"
             active={typing}
           />
           <div className="relative h-full min-w-0 flex-1">
@@ -2049,13 +2049,13 @@ export const SearchModal = React.forwardRef<HTMLDivElement, SearchModalProps>(
               onPointerDown={() => setExpanded(true)}
               onBlur={() => setFocused(false)}
               onKeyDown={onKeyDown}
-              className="h-full w-full bg-transparent text-[16px] text-[#F4F4F5] caret-[#D8FF0A] outline-none placeholder:text-[#71717A]"
+              className="h-full w-full border-0 bg-transparent p-0 text-[14px] text-[#F4F4F5] caret-[#D8FF0A] shadow-none outline-none placeholder:text-[#71717A]"
             />
             {/* The rolling example, shown while the field is empty. */}
             {!query && example && (
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-nowrap text-[16px] text-[#71717A]"
+                className="pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-nowrap text-[14px] text-[#71717A]"
               >
                 Search for&nbsp;
                 <span className="relative inline-grid overflow-hidden">
@@ -2157,7 +2157,7 @@ export const SearchModal = React.forwardRef<HTMLDivElement, SearchModalProps>(
               transition={{ type: "spring", stiffness: 380, damping: 32 }}
               style={{ transformOrigin: "50% 0%" }}
               className={cn(
-                "mt-2 overflow-hidden rounded-[24px] border border-[#27272A] bg-[#111111] shadow-[0_24px_60px_-16px_rgba(0,0,0,0.9)]",
+                "mt-2 overflow-hidden rounded-[10px] border border-[#222226] bg-[#111114] shadow-[0_24px_60px_-16px_rgba(0,0,0,0.9)]",
                 modal ? "relative" : "absolute inset-x-0 top-full z-30",
               )}
             >

@@ -541,7 +541,7 @@ export const UsageRing = React.forwardRef<HTMLDivElement, UsageRingProps>(
         animate={shown ? { opacity: 1, y: 0 } : undefined}
         transition={{ duration: 0.6, ease: GLIDE }}
         className={cn(
-          "w-[340px] max-w-full rounded-3xl border border-[#27272A] bg-[#111111] p-6 text-[#F4F4F5] shadow-none",
+          "w-[340px] max-w-full rounded-[10px] border border-[#222226] bg-[#111114] p-5 text-[#F4F4F5] shadow-none",
           className,
         )}
       >

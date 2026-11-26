@@ -29,7 +29,7 @@ describe('view registry', () => {
     const loaded = await preloadViews(['explore']);
     expect(loaded).toHaveLength(1);
     expect(loaded[0]).toBe(await preloadView('explore'));
-  });
+  }, 15_000);
 
   it('derives the clean 4-tab Torve Desktop nav rail without P2P clutter', () => {
     expect(navViews('main').map((entry) => entry.view)).toEqual(

@@ -78,6 +78,29 @@ function VprShellInner({ activeView, onSelectView, onNavigateBack, children }: V
   const [availableApps, setAvailableApps] = useState<SystemProxyProfileSummary[]>([]);
   const [models, setModels] = useState<CatalogModelEntry[]>([]);
   const [accountStatus, setAccountStatus] = useState<TorveAccountStatus | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const email = accountStatus?.email?.trim().toLowerCase();
+    if (!email || typeof crypto === 'undefined' || !crypto.subtle) {
+      setAvatarUrl(undefined);
+      return;
+    }
+    let cancelled = false;
+    const data = new TextEncoder().encode(email);
+    void crypto.subtle.digest('SHA-256', data).then((buf) => {
+      if (cancelled) return;
+      const hash = Array.from(new Uint8Array(buf))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+      setAvatarUrl(`https://www.gravatar.com/avatar/${hash}?d=404&s=96`);
+    }).catch(() => {
+      if (!cancelled) setAvatarUrl(undefined);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [accountStatus?.email]);
 
   useEffect(() => {
     window.torveDesktop?.getAppVersion?.().then(setAppVersion).catch(() => {});
@@ -173,13 +196,14 @@ function VprShellInner({ activeView, onSelectView, onNavigateBack, children }: V
       return {
         name: accountStatus.userMeta?.name || accountStatus.email?.split('@')[0] || 'Torve Account',
         email: accountStatus.email ?? 'Connected',
+        avatar: avatarUrl,
       };
     }
     return {
       name: 'Not signed in',
       email: 'Sign in on Overview',
     };
-  }, [accountStatus]);
+  }, [accountStatus, avatarUrl]);
 
   const sidebarValue = activeView === 'model' ? 'explore' : activeView;
 
@@ -340,26 +364,40 @@ function VprShellInner({ activeView, onSelectView, onNavigateBack, children }: V
         </div>
       </main>
       <footer className={styles.statusStrip}>
-        <span className={`${styles.statusItem} ${proxyActive ? styles.statusOk : styles.statusMuted}`}>
+        <button
+          type="button"
+          className={`${styles.statusBtn} ${proxyActive ? styles.statusOk : styles.statusMuted}`}
+          title="Click to copy local proxy endpoint"
+          onClick={() => {
+            const url = `http://127.0.0.1:${proxyPort}`;
+            void navigator.clipboard?.writeText(url).then(() => {
+              toast.push({ kind: 'success', title: 'Copied proxy URL', description: url, duration: 2500 });
+            }).catch(() => {});
+          }}
+        >
           <span className={`${styles.statusDot} ${proxyActive ? styles.statusDotOk : styles.statusDotOff}`} />
-          Proxy 127.0.0.1:{proxyPort} ({proxyActive ? 'Active' : 'Stopped'})
-        </span>
+          <span className={styles.statusMono}>127.0.0.1:{proxyPort}</span>
+          <span>({proxyActive ? 'Active' : 'Stopped'})</span>
+        </button>
         <span className={styles.statusSep} aria-hidden="true">|</span>
-        <span className={styles.statusItem}>
+        <button
+          type="button"
+          className={styles.statusBtn}
+          onClick={() => onSelectView('tools')}
+        >
           <span
             className={`${styles.statusDot} ${connectedAppsCount > 0 ? styles.statusDotLime : styles.statusDotOff}`}
           />
-          {connectedAppsCount} {connectedAppsCount === 1 ? 'App' : 'Apps'} Connected
-        </span>
-        <span className={styles.statusSep} aria-hidden="true">|</span>
-        <span className={styles.statusItem}>
-          <span>{accountStatus?.connected ? (accountStatus.email ?? 'Signed in') : 'Not signed in'}</span>
-          {accountStatus?.connected && planName && (
+          <span>{connectedAppsCount} {connectedAppsCount === 1 ? 'App' : 'Apps'}</span>
+        </button>
+        {accountStatus?.connected && planName && (
+          <>
+            <span className={styles.statusSep} aria-hidden="true">|</span>
             <span className={styles.planBadge}>{planName}</span>
-          )}
-        </span>
+          </>
+        )}
         <span className={styles.statusSpacer} />
-        <span className={styles.statusItem}>Torve Desktop v{appVersion}</span>
+        <span className={`${styles.statusItem} ${styles.statusMono}`}>v{appVersion}</span>
       </footer>
     </div>
   );

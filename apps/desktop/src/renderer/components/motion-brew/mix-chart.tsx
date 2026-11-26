@@ -404,7 +404,7 @@ export const MixChart = React.forwardRef<HTMLDivElement, MixChartProps>(function
       animate={shown ? { opacity: 1, y: 0 } : undefined}
       transition={{ duration: 0.6, ease: EASE }}
       className={cn(
-        "relative w-full max-w-full rounded-2xl border border-[#27272A] bg-[#111111] p-5 text-[#F4F4F5] shadow-none sm:p-6",
+        "relative w-full max-w-full rounded-[10px] border border-[#222226] bg-[#111114] p-5 text-[#F4F4F5] shadow-none sm:p-5",
         className,
       )}
     >
@@ -443,9 +443,9 @@ export const MixChart = React.forwardRef<HTMLDivElement, MixChartProps>(function
 
       {/* The total and its change. */}
       <div className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-        <p className="text-[30px] font-semibold leading-none tracking-[-0.03em] text-[#F4F4F5]">
+        <p className="flex items-baseline gap-1.5 text-[28px] font-semibold leading-none tracking-[-0.03em] text-[#F4F4F5]">
           <Total value={total} decimals={dp} run={shown} still={still} />
-          <span className="ml-1.5 text-sm font-medium tracking-normal text-[#71717A]">{unit}</span>
+          <span className="text-sm font-medium tracking-normal text-[#71717A]">{unit}</span>
         </p>
         {range?.change !== undefined && (
           <motion.span

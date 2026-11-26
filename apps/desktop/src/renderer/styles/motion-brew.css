@@ -4,10 +4,10 @@
 @source "../ui";
 
 @theme {
-  --color-torve-canvas: #0a0a0a;
-  --color-torve-card: #111111;
+  --color-torve-canvas: #09090b;
+  --color-torve-card: #111114;
   --color-torve-surface: #18181b;
-  --color-torve-border: #27272a;
+  --color-torve-border: #222226;
   --color-torve-lime: #d8ff0a;
   --color-torve-green: #14ff73;
   --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -20,4 +20,20 @@
   [role="button"]:not([aria-disabled="true"]) {
     cursor: pointer;
   }
+}
+
+/* Override unlayered legacy button/input defaults from @torveai/ui inside Motion Brew surfaces */
+aside button:not([class*="border"]),
+[role="dialog"] button:not([class*="border"]),
+[role="radiogroup"] button:not([class*="border"]) {
+  border: 0;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+[role="dialog"] input {
+  border: 0;
+  padding: 0;
+  background-color: transparent;
+  box-shadow: none;
 }

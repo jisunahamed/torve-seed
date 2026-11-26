@@ -2778,7 +2778,12 @@ export const SidebarNav = React.forwardRef<HTMLElement, SidebarNavProps>(
       note?: string;
       y: number;
     } | null>(null);
-    const showTip = (el: HTMLElement, label: string, note?: string) => {
+    const [avatarFailed, setAvatarFailed] = useState(false);
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [user.avatar]);
+
+  const showTip = (el: HTMLElement, label: string, note?: string) => {
       if (!collapsed || !root.current) return;
       const a = el.getBoundingClientRect();
       const b = root.current.getBoundingClientRect();
@@ -3249,11 +3254,12 @@ export const SidebarNav = React.forwardRef<HTMLElement, SidebarNavProps>(
                 }
                 onPointerLeave={() => setTip(null)}
               >
-                {user.avatar ? (
+                {user.avatar && !avatarFailed ? (
                   <img
                     src={user.avatar}
                     alt=""
                     draggable={false}
+                    onError={() => setAvatarFailed(true)}
                     className="size-8 rounded-full object-cover"
                   />
                 ) : (
