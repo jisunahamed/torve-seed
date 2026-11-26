@@ -13,6 +13,14 @@ files:
   - dist/**/*
   - assets/**/*
   - package.json
+  - "!**/*.map"
+  - "!**/*.js.map"
+  - "!**/*.css.map"
+  - "!**/*.d.ts"
+  - "!**/*.d.ts.map"
+  - "!**/*.ts"
+  - "!src/**"
+  - "!tests/**"
   - "!node_modules/koffi/build/koffi/linux*"
   - "!node_modules/koffi/build/koffi/win32*"
   - "!node_modules/koffi/build/koffi/freebsd*"
@@ -76,6 +84,8 @@ extraResources:
     to: cli-dist/
     filter:
       - "**/*"
+      - "!**/*.map"
+      - "!**/*.d.ts"
   - from: ../../packages/torve-verifier/dist
     to: bundled-plugins/@torveai/torve-verifier/dist
     filter:
@@ -125,7 +135,7 @@ extraResources:
 # electron-builder invocation can build x64 + arm64 with matching-arch
 # native modules — and generate ONE latest-mac.yml listing both arches.
 beforePack: ./scripts/before-pack.js
-afterPack: ./scripts/after-pack.js
+afterPack: ./scripts/after-pack-harden.mjs
 
 mac:
   extraResources:

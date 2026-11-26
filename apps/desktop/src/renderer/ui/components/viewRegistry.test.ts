@@ -37,7 +37,7 @@ describe('view registry', () => {
     );
     expect(navViews('bottom').map((entry) => entry.view)).toEqual(['preferences'] satisfies ViewName[]);
     expect(getViewRegistryEntry('home').nav?.label).toBe('Overview');
-    expect(getViewRegistryEntry('tools').nav?.label).toBe('Apps');
+    expect(getViewRegistryEntry('tools').nav?.label).toBe('Connected Apps');
     expect(getViewRegistryEntry('explore').nav?.label).toBe('Models & Usage');
     expect(getViewRegistryEntry('preferences').nav?.label).toBe('Settings');
     for (const removedNav of ['tunnels', 'rewards', 'credits', 'chat', 'torve-account'] as const) {

@@ -11,7 +11,7 @@
   flex-direction: column;
   gap: 12px;
   width: 100%;
-  max-width: 392px;
+  max-width: 480px;
   margin: 0 auto;
   min-width: 0;
 }
@@ -20,18 +20,33 @@
   min-height: 24px;
   display: flex;
   align-items: center;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #a1a1aa);
   font-size: 12px;
   font-weight: 600;
   line-height: 16px;
 }
 
 .note {
-  padding: 8px 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--border, #27272a);
   border-radius: 12px;
-  background: var(--bg-surface);
-  color: var(--text-secondary);
+  background: var(--bg-card, #111111);
+  color: var(--text-secondary, #a1a1aa);
   font-size: 12px;
+  line-height: 16px;
+}
+
+.progressBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid rgba(216, 255, 10, 0.35);
+  border-radius: 12px;
+  background: var(--bg-card, #111111);
+  color: var(--text-primary, #f4f4f5);
+  font-size: 12px;
+  font-weight: 500;
   line-height: 16px;
 }
 
@@ -40,21 +55,27 @@
   display: grid;
   place-items: center;
   padding: 16px;
+  border: 1px solid var(--border, #27272a);
   border-radius: 16px;
-  background: var(--bg-card);
-  box-shadow: var(--shadow-sm);
-  color: var(--text-muted);
+  background: var(--bg-card, #111111);
+  box-shadow: none;
+  color: var(--text-muted, #a1a1aa);
   font-size: 13px;
   text-align: center;
 }
 
-/* ---------- App rows (Figma "apps connect") ---------- */
+/* ---------- App rows & BrandBridge ---------- */
+
+.bridgeWrap {
+  width: 100%;
+  flex: 0 0 auto;
+}
 
 .appList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 0 8px;
+  gap: 10px;
+  padding: 0;
 }
 
 .appScroll {
@@ -62,7 +83,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
@@ -76,64 +97,98 @@
   gap: 8px;
 }
 
-/* Rows sit directly on the page background — no pill chrome. */
 .appPill {
-  background: transparent;
+  padding: 12px 14px;
+  border: 1px solid var(--border, #27272a);
+  border-radius: 14px;
+  background: var(--bg-card, #111111);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.appPill:hover {
+  border-color: var(--border-strong, #3f3f46);
 }
 
 .appPillConnected {
-  background: transparent;
+  border-color: rgba(20, 255, 115, 0.35);
+  background: linear-gradient(180deg, rgba(20, 255, 115, 0.04), rgba(17, 17, 17, 0) 60%), var(--bg-card, #111111);
+}
+
+.appPillConnected:hover {
+  border-color: rgba(20, 255, 115, 0.52);
 }
 
 .modelToolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: var(--text-muted);
+  gap: 10px;
+  color: var(--text-secondary, #a1a1aa);
   font-size: 12px;
 }
 
 .modelToolbar button {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 8px;
-  border: 1px solid var(--border-subtle);
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border, #27272a);
   border-radius: 8px;
-  background: var(--bg-card);
-  color: var(--text-secondary);
+  background: var(--bg-surface, #18181b);
+  color: var(--text-primary, #f4f4f5);
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.modelToolbar button:hover:not(:disabled) {
+  border-color: rgba(216, 255, 10, 0.45);
+  background: #27272a;
+}
+
+.modelToolbar button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .modelPicker {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 6px 0 0 30px;
-  color: var(--text-muted);
+  margin: 10px 0 0 34px;
+  color: var(--text-secondary, #a1a1aa);
   font-size: 11px;
+  font-weight: 500;
 }
 
 .modelPicker select {
   min-width: 0;
   flex: 1;
-  padding: 5px 8px;
-  border: 1px solid var(--border-subtle);
+  padding: 6px 10px;
+  border: 1px solid var(--border, #27272a);
   border-radius: 8px;
-  background: var(--bg-card);
-  color: var(--text-primary);
+  background: var(--bg-surface, #18181b);
+  color: var(--text-primary, #f4f4f5);
   font: inherit;
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+
+.modelPicker select:hover,
+.modelPicker select:focus-visible {
+  border-color: rgba(216, 255, 10, 0.55);
 }
 
 .mcpModelNote {
-  margin: 6px 0 0 30px;
-  color: var(--text-muted);
+  margin: 8px 0 0 34px;
+  color: var(--text-secondary, #a1a1aa);
   font-size: 11px;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .mcpModelNote code {
-  color: var(--accent-strong);
+  color: #d8ff0a;
   font: inherit;
 }
 
@@ -142,12 +197,12 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 6px;
   min-height: 36px;
 }
 
 .appIdentity {
-  flex: 1 1 200px;
+  flex: 1 1 130px;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -199,7 +254,7 @@
 }
 
 .appNameLink:hover {
-  color: var(--brand);
+  color: #d8ff0a;
 }
 
 .settingWebsiteLink {
@@ -210,7 +265,7 @@
   padding: 0;
   border: none;
   background: transparent;
-  color: var(--brand);
+  color: #d8ff0a;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -237,7 +292,9 @@
 }
 
 .connectedDot,
-.restartDot {
+.restartDot,
+.progressDot,
+.errorDot {
   flex: 0 0 auto;
   width: 6px;
   height: 6px;
@@ -245,16 +302,86 @@
 }
 
 .connectedDot {
-  background: var(--accent-green, #4ade80);
+  background: #14ff73;
 }
 
 .restartDot {
   background: #f59e0b;
 }
 
+.progressDot {
+  background: #d8ff0a;
+  animation: progress-pulse 1.1s ease-in-out infinite;
+}
+
+.errorDot {
+  background: var(--danger, #e05c5c);
+}
+
+@keyframes progress-pulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
 .appMetaWarning,
 .appRestartNeeded {
   color: #f59e0b;
+}
+
+.appMetaProgress {
+  color: var(--text-secondary);
+}
+
+.appMetaError {
+  color: var(--danger, #e05c5c);
+}
+
+.quickActionBar {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border, #27272a);
+  border-radius: 9px;
+  background: var(--bg-surface, #18181b);
+}
+
+.quickActionBtn {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary, #a1a1aa);
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+}
+
+.quickActionBtn:hover:not(:disabled) {
+  color: #f4f4f5;
+  background: #27272a;
+  border-color: #3f3f46;
+}
+
+.quickActionBtn:disabled {
+  opacity: 0.36;
+  cursor: default;
+}
+
+.quickActionBtn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(216, 255, 10, 0.45);
 }
 
 .appOpen {
@@ -542,9 +669,10 @@
 }
 
 .wizardStepActive .wizardStepNum {
-  border-color: var(--accent-green);
-  background: var(--accent-green);
-  color: #ffffff;
+  border-color: #14ff73;
+  background: #14ff73;
+  color: #0a0a0a;
+  font-weight: 700;
 }
 
 .wizardStepDone {
@@ -649,10 +777,10 @@
   padding: 5px 12px;
   border: none;
   border-radius: 8px;
-  background: var(--brand);
-  color: #ffffff;
+  background: #d8ff0a;
+  color: #0a0a0a;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 20px;
   cursor: pointer;
   transition: filter 0.12s ease;
@@ -792,65 +920,73 @@
 }
 
 .appOpen:hover {
-  color: var(--accent-green);
-  background: var(--bg-surface);
+  color: #14ff73;
+  background: var(--bg-surface, #18181b);
 }
 
-/* Brand-filled Connect button (Figma "Default model" chip). */
+/* Brand-filled Connect button. */
 .connectAction {
   flex: 0 0 auto;
-  padding: 4px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
   border: none;
   border-radius: 8px;
-  background: var(--brand);
-  color: #ffffff;
+  background: #d8ff0a;
+  color: #0a0a0a;
   font-size: 12px;
-  font-weight: 500;
-  line-height: 20px;
+  font-weight: 600;
+  line-height: 18px;
   cursor: pointer;
   transition: filter 0.12s ease;
 }
 
 .connectAction:hover:not(:disabled) {
-  filter: brightness(1.08);
+  filter: brightness(1.06);
 }
 
 .connectAction:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: default;
 }
 
 .connectAction:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(var(--brand-rgb), 0.4);
+  box-shadow: 0 0 0 2px rgba(216, 255, 10, 0.5);
 }
 
 .connectedToggle {
   flex: 0 0 auto;
-  width: 36px;
+  width: 38px;
   height: 22px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   padding: 2px;
-  border: none;
+  border: 1px solid rgba(20, 255, 115, 0.55);
   border-radius: 999px;
-  background: var(--accent-green, #4ade80);
+  background: #14ff73;
   cursor: pointer;
-  transition: filter 0.12s ease, opacity 0.12s ease, background 0.12s ease;
+  transition: filter 0.12s ease, opacity 0.12s ease, background 0.12s ease, border-color 0.12s ease;
 }
 
 .connectedToggle span {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  background: #0a0a0a;
+  box-shadow: none;
 }
 
 .connectedToggleOff {
   justify-content: flex-start;
-  background: var(--border-strong);
+  border-color: var(--border-strong, #3f3f46);
+  background: var(--bg-surface, #18181b);
+}
+
+.connectedToggleOff span {
+  background: #a1a1aa;
 }
 
 .connectedToggle:hover:not(:disabled) {
@@ -858,13 +994,13 @@
 }
 
 .connectedToggle:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: default;
 }
 
 .connectedToggle:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(var(--brand-rgb), 0.4);
+  box-shadow: 0 0 0 2px rgba(216, 255, 10, 0.5);
 }
 
 /* ---------- Expanded body ---------- */
@@ -923,19 +1059,20 @@
   gap: 6px;
   min-height: 36px;
   padding: 6px 12px;
-  border: 1px dashed var(--border-strong);
+  border: 1px dashed var(--border, #27272a);
   border-radius: 12px;
-  background: transparent;
-  color: var(--text-secondary);
+  background: var(--bg-card, #111111);
+  color: var(--text-secondary, #a1a1aa);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color 0.12s ease, color 0.12s ease;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
 }
 
 .addAppButton:hover:not(:disabled) {
-  border-color: rgba(var(--brand-rgb), 0.5);
-  color: var(--text-primary);
+  border-color: rgba(216, 255, 10, 0.5);
+  background: var(--bg-surface, #18181b);
+  color: var(--text-primary, #f4f4f5);
 }
 
 /* Recent chats card moved to the shared VprRecentChats component. */
@@ -946,9 +1083,10 @@
   display: grid;
   gap: 8px;
   padding: 14px;
+  border: 1px solid var(--border, #27272a);
   border-radius: 14px;
-  background: var(--bg-card);
-  box-shadow: var(--shadow-sm);
+  background: var(--bg-card, #111111);
+  box-shadow: none;
 }
 
 /* Collapsible header — the whole row toggles the card open. */
@@ -1067,9 +1205,9 @@
 .antigravityNativePatch {
   display: grid;
   gap: 8px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--vpr-border-subtle);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #27272a);
 }
 .antigravityStatusRow {
   display: flex;
@@ -1081,16 +1219,16 @@
 .antigravityStatusText {
   font-size: 11px;
   line-height: 1.4;
-  color: var(--text-muted);
+  color: var(--text-secondary, #a1a1aa);
 }
 .antigravityStatusOk {
-  color: var(--accent-green, #4ade80);
+  color: #14ff73;
 }
 .antigravityStatusWarn {
   color: #f59e0b;
 }
 .antigravityStatusError {
-  color: var(--danger, #e05c5c);
+  color: var(--danger, #f87171);
 }
 .antigravityInlineActions {
   display: flex;
@@ -1101,17 +1239,17 @@
 .antigravityInlineBtn {
   padding: 4px 10px;
   border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-surface);
-  color: var(--text-primary);
+  border: 1px solid var(--border, #27272a);
+  background: var(--bg-surface, #18181b);
+  color: var(--text-primary, #f4f4f5);
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 .antigravityInlineBtn:hover:not(:disabled) {
-  background: var(--bg-hover);
-  border-color: var(--border-strong);
+  background: var(--bg-hover, #27272a);
+  border-color: var(--border-strong, #3f3f46);
 }
 .antigravityInlineBtn:disabled {
   opacity: 0.55;
@@ -1121,15 +1259,15 @@
   padding: 4px 10px;
   border-radius: 6px;
   border: none;
-  background: var(--brand);
-  color: #ffffff;
+  background: #d8ff0a;
+  color: #0a0a0a;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: filter 0.12s ease;
 }
 .antigravityInlinePrimaryBtn:hover:not(:disabled) {
-  filter: brightness(1.08);
+  filter: brightness(1.06);
 }
 .antigravityInlinePrimaryBtn:disabled {
   opacity: 0.55;
@@ -1138,7 +1276,7 @@
 .torveBetaBadge {
   display: inline-flex;
   align-items: center;
-  margin-left: 6px;
+  margin-left: 4px;
   padding: 1px 6px;
   border-radius: 999px;
   font-size: 10px;
@@ -1152,7 +1290,7 @@
 .claudeCodeBadge {
   display: inline-flex;
   align-items: center;
-  margin-left: 6px;
+  margin-left: 4px;
   padding: 1px 6px;
   border-radius: 999px;
   font-size: 10px;
@@ -1163,31 +1301,34 @@
   border: 1px solid rgba(20, 255, 115, 0.35);
 }
 .codexRestartNote {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 11px;
-  color: var(--accent-yellow, #d8ff0a);
+  color: #d8ff0a;
 }
 .backupStatusRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--vpr-border-subtle);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #27272a);
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--text-secondary, #a1a1aa);
 }
 .backupRestoreBtn {
   padding: 3px 8px;
   border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-surface);
-  color: var(--text-primary);
+  border: 1px solid var(--border, #27272a);
+  background: var(--bg-surface, #18181b);
+  color: var(--text-primary, #f4f4f5);
   font-size: 11px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
 }
 .backupRestoreBtn:hover:not(:disabled) {
-  background: var(--bg-hover);
+  background: var(--bg-hover, #27272a);
+  border-color: var(--border-strong, #3f3f46);
 }
 /* End connected-app styles. */

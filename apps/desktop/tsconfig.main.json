@@ -3,8 +3,11 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
+    "sourceMap": false,
+    "inlineSourceMap": false,
     "declaration": false,
     "declarationMap": false,
+    "removeComments": true,
     "types": ["node", "electron"]
   },
   "include": ["src/main/**/*.ts", "src/main/**/*.cts", "src/shared/**/*.ts"]

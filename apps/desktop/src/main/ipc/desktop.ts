@@ -30,6 +30,12 @@ import {
   effectiveLaunchTarget,
 } from '../connected-apps/profile-targets.js';
 import {
+  launchAntigravity,
+} from '../torve-cloud/antigravity-standalone-patch.js';
+import {
+  reopenConnectedApp,
+} from '../torve-cloud/app-lifecycle.js';
+import {
   allSystemProxyProfiles,
 } from '../system-proxy/profiles.js';
 import {
@@ -74,13 +80,19 @@ export function registerDesktopIpc(): void {
 
   ipcMain.handle('desktop:open-tool', async (_event, toolName: string) => {
     try {
-      const key = typeof toolName === 'string' ? toolName : '';
+      const key = typeof toolName === 'string' ? toolName.trim() : '';
+      if (!key) {
+        return { ok: false, error: 'Unknown tool.' };
+      }
       if (key === 'cursor') {
         const target = namedAppTarget('Cursor');
         if (!target) return { ok: false, error: 'Could not find Cursor on this device.' };
         const result = launchAppTarget(target);
         if (result.ok) await waitForAppTarget(target);
         return result;
+      }
+      if (key === 'antigravity') {
+        return await launchAntigravity();
       }
       const profile = allSystemProxyProfiles().find((item) => item.name === key || item.toolName === key);
       if (!profile) {
@@ -111,22 +123,16 @@ export function registerDesktopIpc(): void {
         if (!target) {
           return { ok: false, error: `Could not find ${profile.restartAppName} on this device.` };
         }
-        try {
-          // A resolved path launches the same way everywhere; macOS name-only
-          // targets still go through `open -a`.
-          const result = launchAppTarget(target, {
-            env: { NODE_EXTRA_CA_CERTS: systemProxyCaPath() },
-          });
-          if (!result.ok) return result;
-          markAppTargetManaged(target);
-          await waitForAppTarget(target);
-          await captureManagedAppTarget(target);
-          return { ok: true };
-        } catch (err) {
-          return { ok: false, error: err instanceof Error ? err.message : String(err) };
-        }
+        const result = launchAppTarget(target, {
+          env: { NODE_EXTRA_CA_CERTS: systemProxyCaPath() },
+        });
+        if (!result.ok) return result;
+        markAppTargetManaged(target);
+        await waitForAppTarget(target);
+        await captureManagedAppTarget(target);
+        return { ok: true };
       }
-      return { ok: false, error: 'No open target configured for this tool.' };
+      return await reopenConnectedApp(profile.name);
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }

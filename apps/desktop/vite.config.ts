@@ -1,22 +1,25 @@
 import path from 'node:path';
 import { readFileSync } from 'node:fs';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 const rendererRoot = path.resolve(__dirname, 'src/renderer');
 const pkg = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'));
 
-export default defineConfig(() => {
+export default defineConfig(({ command }) => {
   const rendererPort = Number(process.env.TORVE_DESKTOP_RENDERER_PORT) || 5174;
   const systemProxyPort = Number(process.env.TORVE_SYSTEM_PROXY_PORT) || 8378;
 
   return {
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   base: './',
   root: rendererRoot,
   build: {
     outDir: path.resolve(__dirname, 'dist/renderer'),
     emptyOutDir: true,
+    sourcemap: false,
+    minify: 'esbuild',
     rollupOptions: {
       input: {
         index: path.resolve(rendererRoot, 'index.html'),
@@ -25,6 +28,17 @@ export default defineConfig(() => {
       },
     },
   },
+  ...(command === 'build'
+    ? {
+      esbuild: {
+        legalComments: 'none',
+        drop: ['debugger'],
+        minifyIdentifiers: true,
+        minifySyntax: true,
+        minifyWhitespace: true,
+      },
+    }
+    : {}),
   css: {
     modules: {
       localsConvention: 'camelCaseOnly'

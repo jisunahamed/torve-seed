@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ArrowDown01Icon, ArrowRight01Icon, ArrowUpRight01Icon } from '@hugeicons/core-free-icons';
 import type { TorveAccountStatus, TorveDesktopMeResponse } from '../../../types/bridge';
-import { TorveMark } from '../brand/TorveMark';
+import { TorveMark, TorveWordmark } from '../brand/TorveMark';
 import styles from './TorveAuthCard.module.scss';
 
 type Props = {
@@ -96,6 +96,12 @@ export function TorveAuthCard({
     }
   };
 
+  const openDashboardKeys = () => {
+    if (typeof window !== 'undefined') {
+      void window.torveDesktop?.openExternalUrl?.(DASHBOARD_KEYS_URL);
+    }
+  };
+
   if (account?.connected) {
     const email = user?.email ?? account.email ?? 'Connected account';
     const planLabel = (user?.plan || 'free').toUpperCase();
@@ -103,15 +109,18 @@ export function TorveAuthCard({
     const isActiveStatus = statusLabel.toLowerCase() === 'active';
 
     return (
-      <section className={styles.card} aria-label="Torve account">
+      <section className={`${styles.card} ${compact ? styles.cardCompact : ''}`} aria-label="Torve account">
         <div className={styles.header}>
           <div className={styles.identity}>
-            <TorveMark size={compact ? 32 : 36} />
-            <div>
+            <div className={styles.markFrame}>
+              <TorveMark size={compact ? 32 : 36} />
+            </div>
+            <div className={styles.identityCopy}>
               <div className={styles.titleRow}>
                 <span className={styles.title}>{user?.name || email}</span>
                 <span className={`${styles.badge} ${planBadgeClass(user?.plan)}`}>{planLabel}</span>
                 <span className={`${styles.badge} ${isActiveStatus ? styles.statusActive : styles.statusWarn}`}>
+                  <span className={styles.statusDot} aria-hidden />
                   {statusLabel}
                 </span>
               </div>
@@ -119,6 +128,16 @@ export function TorveAuthCard({
             </div>
           </div>
           <div className={styles.actions}>
+            {!compact ? (
+              <button
+                type="button"
+                className={styles.secondaryBtn}
+                onClick={openDashboardKeys}
+              >
+                <span>Manage Keys</span>
+                <HugeiconsIcon icon={ArrowUpRight01Icon} size={13} strokeWidth={2} />
+              </button>
+            ) : null}
             <button
               type="button"
               className={styles.secondaryBtn}
@@ -144,19 +163,31 @@ export function TorveAuthCard({
             <span className={styles.metaValue}>{account.authMode === 'oauth' ? 'Browser PKCE' : 'API Key'}</span>
           </div>
         </div>
+
+        {activeError ? (
+          <div className={styles.errorBox} role="alert">
+            <div>{activeError}</div>
+          </div>
+        ) : null}
       </section>
     );
   }
 
   return (
-    <section className={styles.card} aria-label="Sign in to Torve Desktop">
+    <section className={`${styles.card} ${styles.signInCard} ${compact ? styles.cardCompact : ''}`} aria-label="Sign in to Torve Desktop">
       <div className={styles.header}>
         <div className={styles.identity}>
-          <TorveMark size={36} />
-          <div>
+          <div className={styles.markFrameHero}>
+            <TorveMark size={compact ? 32 : 40} />
+          </div>
+          <div className={styles.identityCopy}>
+            <div className={styles.brandLockup}>
+              <TorveWordmark height={compact ? 15 : 18} />
+              <span className={styles.desktopPill}>Desktop</span>
+            </div>
             <div className={styles.title}>Sign in to Torve Desktop</div>
             <div className={styles.subtitle}>
-              Connect your Torve account via browser approval to route your coding tools through 127.0.0.1:8378.
+              Connect your Torve account via browser PKCE approval to route coding tools through 127.0.0.1:8378.
             </div>
           </div>
         </div>
@@ -164,7 +195,10 @@ export function TorveAuthCard({
 
       {pkcePending ? (
         <div className={styles.pendingBox}>
-          <span>Waiting for browser approval on torveai.com…</span>
+          <div className={styles.pendingText}>
+            <span className={styles.pendingPulse} aria-hidden />
+            <span>Waiting for browser approval on torveai.com…</span>
+          </div>
           <button
             type="button"
             className={styles.secondaryBtn}
@@ -182,8 +216,9 @@ export function TorveAuthCard({
             onClick={() => { void handlePkce(); }}
           >
             <span>{busy === 'pkce' ? 'Opening Browser…' : 'Sign in with torveai.com'}</span>
-            <HugeiconsIcon icon={ArrowUpRight01Icon} size={15} strokeWidth={2.2} />
+            <HugeiconsIcon icon={ArrowUpRight01Icon} size={15} strokeWidth={2.4} />
           </button>
+          <span className={styles.pkceHint}>Encrypted in OS keychain · PKCE OAuth</span>
         </div>
       )}
 
@@ -194,7 +229,7 @@ export function TorveAuthCard({
             <button
               type="button"
               className={styles.secondaryBtn}
-              onClick={() => { void window.torveDesktop?.openExternalUrl?.(DASHBOARD_KEYS_URL); }}
+              onClick={openDashboardKeys}
             >
               Manage Keys on torveai.com Dashboard
               <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} strokeWidth={2} />
@@ -210,7 +245,7 @@ export function TorveAuthCard({
         aria-expanded={manualOpen}
       >
         <HugeiconsIcon icon={manualOpen ? ArrowDown01Icon : ArrowRight01Icon} size={14} strokeWidth={2} />
-        <span>Or connect with API Key</span>
+        <span>Or connect manually with API Key</span>
       </button>
 
       {manualOpen ? (
@@ -230,7 +265,7 @@ export function TorveAuthCard({
             </button>
           </div>
           <span className={styles.hint}>
-            Stored encrypted in OS credential storage (`safeStorage`) and validated against `/api/desktop/me` + `/v1/models`.
+            Stored encrypted in OS credential storage (safeStorage) and validated against /api/desktop/me + /v1/models.
           </span>
         </form>
       ) : null}

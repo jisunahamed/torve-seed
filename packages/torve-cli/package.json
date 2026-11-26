@@ -1,0 +1,27 @@
+{
+  "name": "@torveai/torve-cli",
+  "version": "0.1.0",
+  "description": "Standalone cross-platform companion CLI for Torve Cloud AI proxy and coding harnesses",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "bin": {
+    "torve": "dist/cli.js"
+  },
+  "files": [
+    "dist/cli.js",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.3.0",
+    "vitest": "^2.1.0"
+  }
+}

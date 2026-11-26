@@ -578,14 +578,19 @@ function extractResponsesContentAsChat(content: unknown): string | Array<Record<
   return parts;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 function stringifyResponsesToolOutput(output: unknown): string {
   if (typeof output === 'string') return output;
+  if (output === undefined || output === null) return '';
   if (Array.isArray(output)) {
     const texts: string[] = [];
     let allText = true;
     for (const part of output) {
-      if (part && typeof part === 'object' && typeof (part as Record<string, unknown>)['text'] === 'string') {
-        texts.push((part as Record<string, unknown>)['text'] as string);
+      if (isPlainObject(part) && typeof part['text'] === 'string') {
+        texts.push(part['text']);
       } else {
         allText = false;
         break;
@@ -594,73 +599,301 @@ function stringifyResponsesToolOutput(output: unknown): string {
     if (allText) return texts.join('\n');
   }
   try {
-    return JSON.stringify(output ?? '');
+    return JSON.stringify(output);
   } catch {
-    return String(output ?? '');
+    return String(output);
   }
 }
 
-function convertResponsesToolsToChat(rawTools: unknown): Array<Record<string, unknown>> | undefined {
-  if (!Array.isArray(rawTools)) return undefined;
-  const out: Array<Record<string, unknown>> = [];
+type FlattenedToolCandidate = {
+  originalName: string;
+  namespacePath: string[];
+  description?: string;
+  parameters: Record<string, unknown>;
+  strict?: boolean;
+  isCustom: boolean;
+};
+
+export type NormalizedResponsesTools = {
+  tools: Array<Record<string, unknown>> | undefined;
+  forwardedToOriginalName: Map<string, string>;
+  originalToForwardedName: Map<string, string>;
+  ambiguousOriginalNames: Set<string>;
+  forwardedNames: Set<string>;
+  customToolNames: Set<string>;
+};
+
+function sanitizeNamespaceSegment(segment: string): string {
+  const cleaned = segment.replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
+  return cleaned || 'ns';
+}
+
+function normalizeSchemaParameters(rawParams: unknown): Record<string, unknown> {
+  if (isPlainObject(rawParams) && Object.keys(rawParams).length > 0) {
+    return rawParams;
+  }
+  return { type: 'object', properties: {} };
+}
+
+function buildCustomToolParameters(name: string, description?: string): Record<string, unknown> {
+  return {
+    type: 'object',
+    properties: {
+      input: {
+        type: 'string',
+        description: description ?? `Input payload for ${name}.`,
+      },
+    },
+    required: ['input'],
+  };
+}
+
+function collectFlattenedResponsesTools(
+  rawTools: unknown,
+  namespacePath: string[],
+  out: FlattenedToolCandidate[],
+): void {
+  if (!Array.isArray(rawTools)) return;
   for (const raw of rawTools) {
-    if (!raw || typeof raw !== 'object') continue;
-    const tool = raw as Record<string, unknown>;
-    const type = typeof tool['type'] === 'string' ? tool['type'] : '';
-    if (type === 'function') {
-      if (tool['function'] && typeof tool['function'] === 'object') {
-        out.push(tool);
-        continue;
-      }
-      if (typeof tool['name'] === 'string' && tool['name']) {
-        const fn: Record<string, unknown> = {
-          name: tool['name'],
-          ...(typeof tool['description'] === 'string' && tool['description'] ? { description: tool['description'] } : {}),
-          parameters: tool['parameters'] && typeof tool['parameters'] === 'object' && !Array.isArray(tool['parameters'])
-            ? tool['parameters']
-            : { type: 'object', properties: {} },
-          ...(typeof tool['strict'] === 'boolean' ? { strict: tool['strict'] } : {}),
-        };
-        out.push({ type: 'function', function: fn });
-      }
+    if (!isPlainObject(raw)) continue;
+    const type = typeof raw['type'] === 'string' ? raw['type'] : '';
+
+    if (type === 'namespace') {
+      const nsName = typeof raw['name'] === 'string' ? raw['name'].trim() : '';
+      const nextPath = nsName ? [...namespacePath, nsName] : namespacePath;
+      collectFlattenedResponsesTools(raw['tools'], nextPath, out);
       continue;
     }
-    if (type === 'custom' && typeof tool['name'] === 'string' && tool['name']) {
+
+    if (type === 'function') {
+      const fnObj = isPlainObject(raw['function']) ? raw['function'] : null;
+      const rawName = fnObj && fnObj['name'] !== undefined ? fnObj['name'] : raw['name'];
+      const name = typeof rawName === 'string' ? rawName.trim() : '';
+      if (!name) continue;
+
+      const rawDesc = fnObj && fnObj['description'] !== undefined ? fnObj['description'] : raw['description'];
+      const description = typeof rawDesc === 'string' && rawDesc.length > 0 ? rawDesc : undefined;
+      const rawParams = fnObj && fnObj['parameters'] !== undefined ? fnObj['parameters'] : raw['parameters'];
+      const rawStrict = fnObj && fnObj['strict'] !== undefined ? fnObj['strict'] : raw['strict'];
+
       out.push({
-        type: 'function',
-        function: {
-          name: tool['name'],
-          ...(typeof tool['description'] === 'string' && tool['description'] ? { description: tool['description'] } : {}),
-          parameters: { type: 'object', properties: { input: { type: 'string' } }, required: ['input'] },
-        },
+        originalName: name,
+        namespacePath,
+        ...(description !== undefined ? { description } : {}),
+        parameters: normalizeSchemaParameters(rawParams),
+        ...(typeof rawStrict === 'boolean' ? { strict: rawStrict } : {}),
+        isCustom: false,
       });
       continue;
     }
-    if (type) out.push(tool);
+
+    if (type === 'custom') {
+      const name = typeof raw['name'] === 'string' ? raw['name'].trim() : '';
+      if (!name) continue;
+      const description = typeof raw['description'] === 'string' && raw['description'].length > 0
+        ? raw['description']
+        : undefined;
+
+      out.push({
+        originalName: name,
+        namespacePath,
+        ...(description !== undefined ? { description } : {}),
+        parameters: buildCustomToolParameters(name, description),
+        isCustom: true,
+      });
+      continue;
+    }
+    // Strip all Responses-only / unsupported built-in or unknown tool variants
+    // (web_search, web_search_preview, local_shell, code_interpreter, file_search,
+    // computer_use_preview, image_generation, mcp, etc.).
   }
-  return out.length > 0 ? out : undefined;
 }
 
-function convertResponsesToolChoiceToChat(rawChoice: unknown): unknown {
-  if (typeof rawChoice === 'string') return rawChoice;
-  if (!rawChoice || typeof rawChoice !== 'object') return undefined;
-  const choice = rawChoice as Record<string, unknown>;
-  if (choice['type'] === 'function') {
-    if (typeof choice['name'] === 'string' && choice['name']) {
-      return { type: 'function', function: { name: choice['name'] } };
-    }
-    if (choice['function'] && typeof choice['function'] === 'object') {
-      return choice;
-    }
+export function convertResponsesToolsToChat(rawTools: unknown): NormalizedResponsesTools {
+  const forwardedToOriginalName = new Map<string, string>();
+  const originalToForwardedName = new Map<string, string>();
+  const ambiguousOriginalNames = new Set<string>();
+  const forwardedNames = new Set<string>();
+  const customToolNames = new Set<string>();
+
+  if (!Array.isArray(rawTools)) {
+    return {
+      tools: undefined,
+      forwardedToOriginalName,
+      originalToForwardedName,
+      ambiguousOriginalNames,
+      forwardedNames,
+      customToolNames,
+    };
   }
-  return choice;
+
+  const collected: FlattenedToolCandidate[] = [];
+  collectFlattenedResponsesTools(rawTools, [], collected);
+
+  // Deduplicate exact duplicates within the same namespace scope before checking cross-namespace collisions.
+  const dedupedByScope: FlattenedToolCandidate[] = [];
+  const seenScopeKeys = new Set<string>();
+  const nameCounts = new Map<string, number>();
+
+  for (const item of collected) {
+    const scopeKey = `${item.namespacePath.join('\0')}\0${item.originalName}`;
+    if (seenScopeKeys.has(scopeKey)) continue;
+    seenScopeKeys.add(scopeKey);
+    dedupedByScope.push(item);
+    nameCounts.set(item.originalName, (nameCounts.get(item.originalName) ?? 0) + 1);
+  }
+
+  const out: Array<Record<string, unknown>> = [];
+  for (const item of dedupedByScope) {
+    const hasCollision = (nameCounts.get(item.originalName) ?? 0) > 1;
+    let candidateName = item.originalName;
+    if (hasCollision && item.namespacePath.length > 0) {
+      const nsPrefix = item.namespacePath.map(sanitizeNamespaceSegment).join('__');
+      candidateName = `${nsPrefix}__${item.originalName}`;
+    }
+
+    let forwardedName = candidateName;
+    if (forwardedNames.has(forwardedName)) {
+      if (item.namespacePath.length === 0) continue;
+      let suffix = 2;
+      while (forwardedNames.has(`${candidateName}_${suffix}`)) suffix++;
+      forwardedName = `${candidateName}_${suffix}`;
+    }
+
+    forwardedNames.add(forwardedName);
+    if (forwardedName !== item.originalName) {
+      forwardedToOriginalName.set(forwardedName, item.originalName);
+    }
+
+    if (hasCollision) {
+      ambiguousOriginalNames.add(item.originalName);
+      if (item.namespacePath.length === 0) {
+        originalToForwardedName.set(item.originalName, forwardedName);
+      }
+    } else {
+      originalToForwardedName.set(item.originalName, forwardedName);
+    }
+
+    if (item.isCustom) {
+      customToolNames.add(item.originalName);
+      customToolNames.add(forwardedName);
+    }
+
+    out.push({
+      type: 'function',
+      function: {
+        name: forwardedName,
+        ...(item.description !== undefined ? { description: item.description } : {}),
+        parameters: item.parameters,
+        ...(item.strict !== undefined ? { strict: item.strict } : {}),
+      },
+    });
+  }
+
+  return {
+    tools: out.length > 0 ? out : undefined,
+    forwardedToOriginalName,
+    originalToForwardedName,
+    ambiguousOriginalNames,
+    forwardedNames,
+    customToolNames,
+  };
 }
 
-/** Translate an OpenAI Responses API request directly to OpenAI Chat Completions without injecting synthetic tools. */
-export function buildChatRequestFromResponses(
+function resolveToolChoiceName(
+  rawName: unknown,
+  namespaceHint: unknown,
+  toolMap: NormalizedResponsesTools,
+): string | undefined {
+  if (typeof rawName !== 'string') return undefined;
+  const trimmed = rawName.trim();
+  if (!trimmed) return undefined;
+
+  if (typeof namespaceHint === 'string' && namespaceHint.trim()) {
+    const qualified = `${sanitizeNamespaceSegment(namespaceHint.trim())}__${trimmed}`;
+    if (toolMap.forwardedNames.has(qualified)) return qualified;
+  }
+
+  if (toolMap.forwardedNames.has(trimmed)) return trimmed;
+  if (!toolMap.ambiguousOriginalNames.has(trimmed)) {
+    const mapped = toolMap.originalToForwardedName.get(trimmed);
+    if (mapped && toolMap.forwardedNames.has(mapped)) return mapped;
+  }
+  return undefined;
+}
+
+function convertResponsesToolChoiceToChat(rawChoice: unknown, toolMap: NormalizedResponsesTools): unknown {
+  if (!toolMap.tools || toolMap.tools.length === 0) return undefined;
+
+  if (typeof rawChoice === 'string') {
+    return rawChoice === 'auto' || rawChoice === 'none' || rawChoice === 'required' ? rawChoice : undefined;
+  }
+  if (!isPlainObject(rawChoice)) return undefined;
+
+  const choiceType = typeof rawChoice['type'] === 'string' ? rawChoice['type'] : '';
+  if (choiceType === 'function' || choiceType === 'custom') {
+    const fnObj = isPlainObject(rawChoice['function']) ? rawChoice['function'] : null;
+    const rawName = fnObj && fnObj['name'] !== undefined ? fnObj['name'] : rawChoice['name'];
+    const mappedName = resolveToolChoiceName(rawName, rawChoice['namespace'], toolMap);
+    return mappedName ? { type: 'function', function: { name: mappedName } } : undefined;
+  }
+
+  if (choiceType === 'allowed_tools') {
+    const allowed = Array.isArray(rawChoice['tools']) ? rawChoice['tools'] : [];
+    const keptNames: string[] = [];
+    for (const entry of allowed) {
+      if (!isPlainObject(entry)) continue;
+      const entryType = typeof entry['type'] === 'string' ? entry['type'] : '';
+      if (entryType !== 'function' && entryType !== 'custom') continue;
+      const fnObj = isPlainObject(entry['function']) ? entry['function'] : null;
+      const rawName = fnObj && fnObj['name'] !== undefined ? fnObj['name'] : entry['name'];
+      const mapped = resolveToolChoiceName(rawName, entry['namespace'], toolMap);
+      if (mapped && !keptNames.includes(mapped)) keptNames.push(mapped);
+    }
+    if (keptNames.length === 1) {
+      return { type: 'function', function: { name: keptNames[0] } };
+    }
+    if (keptNames.length > 1) {
+      return rawChoice['mode'] === 'required' ? 'required' : 'auto';
+    }
+    return undefined;
+  }
+
+  return undefined;
+}
+
+function normalizeOutboundToolArguments(rawArgs: unknown, isCustom: boolean): string {
+  if (isCustom) {
+    if (typeof rawArgs === 'string') {
+      try {
+        const parsed = JSON.parse(rawArgs) as unknown;
+        if (isPlainObject(parsed) && 'input' in parsed) {
+          return rawArgs;
+        }
+      } catch {
+        /* raw freeform custom tool input — wrap below */
+      }
+      return JSON.stringify({ input: rawArgs });
+    }
+    if (isPlainObject(rawArgs) && 'input' in rawArgs) {
+      return JSON.stringify(rawArgs);
+    }
+    return JSON.stringify({
+      input: rawArgs === undefined || rawArgs === null ? '' : stringifyResponsesToolOutput(rawArgs),
+    });
+  }
+
+  if (typeof rawArgs === 'string') {
+    return rawArgs.length > 0 ? rawArgs : '{}';
+  }
+  return JSON.stringify(rawArgs ?? {});
+}
+
+function buildChatRequestWithMappingFromResponses(
   reqBody: Record<string, unknown>,
   resolvedModel: string | null = null,
-): Record<string, unknown> {
+): { chatBody: Record<string, unknown>; toolMap: NormalizedResponsesTools } {
+  const toolMap = convertResponsesToolsToChat(reqBody['tools']);
   const messages: Array<Record<string, unknown>> = [];
   if (typeof reqBody['instructions'] === 'string' && reqBody['instructions'].length > 0) {
     messages.push({ role: 'system', content: reqBody['instructions'] });
@@ -683,10 +916,16 @@ export function buildChatRequestFromResponses(
         const callId = typeof item['call_id'] === 'string' && item['call_id']
           ? item['call_id']
           : (typeof item['id'] === 'string' && item['id'] ? item['id'] : `call_${randomUUID()}`);
-        const name = typeof item['name'] === 'string' ? item['name'] : '';
-        const rawArgs = type === 'custom_tool_call' ? (item['input'] ?? item['arguments']) : item['arguments'];
-        const args = typeof rawArgs === 'string' ? rawArgs : JSON.stringify(rawArgs ?? {});
-        const toolCall = { id: callId, type: 'function', function: { name, arguments: args } };
+        const rawName = typeof item['name'] === 'string' ? item['name'].trim() : '';
+        const resolvedName = resolveToolChoiceName(rawName, item['namespace'], toolMap) ?? rawName;
+        const isCustom = type === 'custom_tool_call'
+          || toolMap.customToolNames.has(rawName)
+          || toolMap.customToolNames.has(resolvedName);
+        const rawArgs = type === 'custom_tool_call'
+          ? (item['input'] !== undefined ? item['input'] : item['arguments'])
+          : item['arguments'];
+        const args = normalizeOutboundToolArguments(rawArgs, isCustom);
+        const toolCall = { id: callId, type: 'function', function: { name: resolvedName, arguments: args } };
         const prev = messages[messages.length - 1];
         if (prev && prev['role'] === 'assistant') {
           const existing = Array.isArray(prev['tool_calls']) ? prev['tool_calls'] as unknown[] : [];
@@ -747,16 +986,27 @@ export function buildChatRequestFromResponses(
   for (const field of ['temperature', 'top_p', 'stop', 'user', 'metadata', 'prompt_cache_key'] as const) {
     if (reqBody[field] !== undefined) chatBody[field] = reqBody[field];
   }
-  const tools = convertResponsesToolsToChat(reqBody['tools']);
-  if (tools) {
-    chatBody['tools'] = tools;
-    const toolChoice = convertResponsesToolChoiceToChat(reqBody['tool_choice']);
+  if (toolMap.tools) {
+    chatBody['tools'] = toolMap.tools;
+    const toolChoice = convertResponsesToolChoiceToChat(reqBody['tool_choice'], toolMap);
     if (toolChoice !== undefined) chatBody['tool_choice'] = toolChoice;
   }
-  return chatBody;
+  return { chatBody, toolMap };
 }
 
-export function buildResponsesJsonFromChat(chat: Record<string, unknown>, fallbackModel: string | null): Record<string, unknown> {
+/** Translate an OpenAI Responses API request directly to OpenAI Chat Completions without injecting synthetic tools. */
+export function buildChatRequestFromResponses(
+  reqBody: Record<string, unknown>,
+  resolvedModel: string | null = null,
+): Record<string, unknown> {
+  return buildChatRequestWithMappingFromResponses(reqBody, resolvedModel).chatBody;
+}
+
+export function buildResponsesJsonFromChat(
+  chat: Record<string, unknown>,
+  fallbackModel: string | null,
+  toolNameAliases?: ReadonlyMap<string, string>,
+): Record<string, unknown> {
   const respId = typeof chat['id'] === 'string' && chat['id'] ? chat['id'] : `resp_${randomUUID()}`;
   const model = typeof chat['model'] === 'string' && chat['model'] ? chat['model'] : (fallbackModel ?? 'unknown');
   const createdAt = typeof chat['created'] === 'number' ? chat['created'] : Math.floor(Date.now() / 1000);
@@ -784,7 +1034,8 @@ export function buildResponsesJsonFromChat(chat: Record<string, unknown>, fallba
     const fn = tc['function'] && typeof tc['function'] === 'object' ? tc['function'] as Record<string, unknown> : {};
     const callId = typeof tc['id'] === 'string' && tc['id'] ? tc['id'] : `call_${respId}_${i}`;
     const fcId = callId.startsWith('fc_') ? callId : `fc_${callId}`;
-    const name = typeof fn['name'] === 'string' ? fn['name'] : '';
+    const rawName = typeof fn['name'] === 'string' ? fn['name'] : '';
+    const name = rawName ? (toolNameAliases?.get(rawName) ?? rawName) : '';
     const args = typeof fn['arguments'] === 'string' ? fn['arguments'] : JSON.stringify(fn['arguments'] ?? {});
     output.push({
       id: fcId,
@@ -828,6 +1079,7 @@ async function streamChatToResponsesSse(
   upstream: Response,
   fallbackModel: string | null,
   onChunk?: () => void,
+  toolNameAliases?: ReadonlyMap<string, string>,
 ): Promise<TorveCloudActivity['usage']> {
   beginSseResponse(res, upstream.status, responseHeaders(upstream.headers));
   if (!upstream.body) { res.end(); return null; }
@@ -1048,7 +1300,8 @@ async function streamChatToResponsesSse(
           ? tc['function'] as Record<string, unknown>
           : {};
         const tcId = typeof tc['id'] === 'string' && tc['id'] ? tc['id'] : '';
-        const tcName = typeof fn['name'] === 'string' && fn['name'] ? fn['name'] : '';
+        const rawTcName = typeof fn['name'] === 'string' && fn['name'] ? fn['name'] : '';
+        const tcName = rawTcName ? (toolNameAliases?.get(rawTcName) ?? rawTcName) : '';
         const argsDelta = typeof fn['arguments'] === 'string' ? fn['arguments'] : '';
 
         let state = toolCalls.get(tcIndex);
@@ -1126,7 +1379,7 @@ async function handleResponsesRequest(
   const requestedModel = typeof reqBody['model'] === 'string' && reqBody['model'].trim() ? reqBody['model'].trim() : null;
   const resolvedModel = await resolveModelForRequest(appId, requestedModel, apiKey);
   const stream = Boolean(reqBody['stream']);
-  const chatBody = buildChatRequestFromResponses(reqBody, resolvedModel);
+  const { chatBody, toolMap } = buildChatRequestWithMappingFromResponses(reqBody, resolvedModel);
   const headers = jsonUpstreamHeaders(incomingHeaders, apiKey, appId, stream ? 'text/event-stream' : 'application/json');
 
   const fetchCtrl = createUpstreamFetchControl(res);
@@ -1141,7 +1394,13 @@ async function handleResponsesRequest(
     fetchCtrl.markHeadersReceived(streaming);
 
     if (streaming && upstream.body) {
-      const usage = await streamChatToResponsesSse(res, upstream, resolvedModel ?? requestedModel, fetchCtrl.touchChunk);
+      const usage = await streamChatToResponsesSse(
+        res,
+        upstream,
+        resolvedModel ?? requestedModel,
+        fetchCtrl.touchChunk,
+        toolMap.forwardedToOriginalName,
+      );
       return { status: upstream.status, requestedModel, resolvedModel, stream, usage, errorSummary: upstream.ok ? null : `Torve Cloud returned ${upstream.status}.` };
     }
 
@@ -1158,7 +1417,11 @@ async function handleResponsesRequest(
       return { status: 502, requestedModel, resolvedModel, stream, usage: null, errorSummary: 'Response translation failed.' };
     }
     const usage = usageFromJson(upstreamBytes);
-    const responsesPayload = buildResponsesJsonFromChat(parsedChat, resolvedModel ?? requestedModel);
+    const responsesPayload = buildResponsesJsonFromChat(
+      parsedChat,
+      resolvedModel ?? requestedModel,
+      toolMap.forwardedToOriginalName,
+    );
 
     if (stream) {
       // Upstream ignored stream:true and returned 200 JSON; emit valid Responses SSE events.

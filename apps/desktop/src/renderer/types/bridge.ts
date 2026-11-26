@@ -25,6 +25,23 @@ export type AntigravityStandalonePatchStatus = {
   message: string;
 };
 
+export type ConnectLifecycleStage =
+  | 'checking-proxy'
+  | 'backing-up'
+  | 'patching'
+  | 'restarting-app'
+  | 'verifying'
+  | 'done'
+  | 'error';
+
+export type ConnectLifecycleProgress = {
+  appId: string;
+  stage: ConnectLifecycleStage;
+  label: string;
+  detail?: string;
+  timestamp: number;
+};
+
 export type SystemProxyProfileSummary = {
   name: string;
   displayName: string;
@@ -568,8 +585,12 @@ export type DesktopBridge = {
   torveActivityClear?: () => Promise<{ ok: boolean }>;
   onTorveActivity?: (handler: (activity: { id: string; timestamp: number; appId: string | null; protocol: string; requestedModel: string | null; resolvedModel: string | null; statusCode: number; latencyMs: number; stream: boolean; usage: { inputTokens: number; outputTokens: number } | null; errorSummary: string | null }) => void) => () => void;
   torveDirectState?: () => Promise<{ running: boolean; port: number; activeProfileNames: string[]; mode: 'system-proxy'; peerId: string; pid: null; startedAt: number; lastExitCode: null; lastError: null }>;
-  torveDirectStart?: (profiles: string[]) => Promise<{ ok: boolean; state?: { running: boolean; port: number; activeProfileNames: string[]; mode: 'system-proxy'; peerId: string; pid: null; startedAt: number; lastExitCode: null; lastError: null }; error?: string }>;
+  torveDirectStart?: (profiles: string[]) => Promise<{ ok: boolean; state?: { running: boolean; port: number; activeProfileNames: string[]; mode: 'system-proxy'; peerId: string; pid: null; startedAt: number; lastExitCode: null; lastError: null }; launchedOrRestartedApps?: string[]; error?: string }>;
   torveDirectStop?: () => Promise<{ ok: boolean; state?: { running: boolean; port: number; activeProfileNames: string[]; mode: 'system-proxy'; peerId: string; pid: null; startedAt: number; lastExitCode: null; lastError: null }; error?: string }>;
+  torveAppOpen?: (appId: string) => Promise<{ ok: boolean; appId?: string; isGui?: boolean; fallback?: string; targetPath?: string; error?: string }>;
+  torveAppRestart?: (appId: string) => Promise<{ ok: boolean; appId?: string; isGui?: boolean; restarted?: boolean; launched?: boolean; needsSessionRestart?: boolean; verified?: boolean; detail?: string; error?: string }>;
+  torveAppRefresh?: (appId: string) => Promise<{ ok: boolean; appId?: string; verified?: boolean; proxyReachable?: boolean; configPresent?: boolean; detail?: string; error?: string }>;
+  onConnectProgress?: (handler: (event: ConnectLifecycleProgress) => void) => () => void;
   openTool?: (toolName: string) => Promise<{ ok: boolean; error?: string; fallback?: string }>;
   /** Reopen a tool chat session: 'terminal' runs the tool's resume command
       (`codex resume <id>`, ...); 'app' launches the tool's desktop app. */

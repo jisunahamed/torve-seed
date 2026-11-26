@@ -1,4 +1,5 @@
 import '@torveai/ui/styles';
+import './styles/motion-brew.css';
 import { initChatModule } from './modules/chat/controller';
 import { initSettingsModule } from './modules/app/settings';
 import { initRuntimeModule } from './modules/app/runtime';

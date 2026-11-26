@@ -86,7 +86,7 @@ export const VIEW_REGISTRY = {
       receivesOnSelectView: true,
       slideIndex: 1,
       preloadPriority: 'eager',
-      nav: { slot: 'main', label: 'Apps', icon: ConnectIcon },
+      nav: { slot: 'main', label: 'Connected Apps', icon: ConnectIcon },
     },
   ),
   explore: createViewEntry(

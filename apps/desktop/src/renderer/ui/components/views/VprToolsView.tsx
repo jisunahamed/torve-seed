@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, ArrowDown01Icon, ArrowLeft01Icon, ArrowReloadHorizontalIcon, ArrowRight01Icon, ArrowUpRight01Icon, Copy01Icon, Settings02Icon, SquareLock01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
+import { Bot, Code2, FastForward, Terminal } from 'lucide-react';
 import { Modal } from '@torveai/ui';
-import type { AntigravityStandalonePatchStatus, InstalledAppEntry, SystemProxyProfileSummary } from '../../../types/bridge';
+import type { AntigravityStandalonePatchStatus, ConnectLifecycleProgress, InstalledAppEntry, SystemProxyProfileSummary } from '../../../types/bridge';
 import { chooseBestVprRoute, isPeerRoutable } from '../../../modules/routing/select';
 import { routesForSelectedModel } from '../../../modules/catalog/view-models';
 import { installedAppsResource, refreshSystemProxyProfilesForce, systemProxyResource } from '../../../modules/app/vpr-resources';
@@ -15,6 +16,9 @@ import {
 import { shallowEqual, useUiSelector } from '../../hooks/useUiSelector';
 import { useActions } from '../../hooks/useActions';
 import { BrandIcon, isThemeAwareAppBrand, resolveBrandKey } from '../brand/BrandIcon';
+import { TorveMark } from '../brand/TorveMark';
+import { useTorveToast } from '../torve/TorveToastContext';
+import { BrandBridge, type BridgeBrand } from '../../../components/motion-brew/brand-bridge';
 import { VprBadge, VprPage, VprSearch } from '../vpr/VprKit';
 import { TelegramBotCard } from './TelegramBotCard';
 import { CursorAppCard } from './CursorAppCard';
@@ -134,8 +138,146 @@ function antigravityStatusSummary(patch: AntigravityStandalonePatchStatus | null
 
 let cachedCloudModelsSnapshot: Array<{ id: string }> = [];
 
+const OPENABLE_PROFILE_NAMES = new Set([
+  'antigravity',
+  'claude-desktop',
+  'cursor',
+  'windsurf',
+  'vscode',
+  'zed',
+  'hermes',
+  't3code',
+  'gooeypi',
+  'opencode',
+  'codex',
+  'goose',
+]);
+
+function QuickOpenIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 4h6v6" />
+      <path d="M10 14L20 4" />
+      <path d="M20 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h5" />
+    </svg>
+  );
+}
+
+function QuickRestartIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+      <path d="M21 3v6h-6" />
+    </svg>
+  );
+}
+
+function QuickRefreshIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.85" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M17 2l4 4-4 4" />
+      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <path d="M7 22l-4-4 4-4" />
+      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </svg>
+  );
+}
+
+function isActiveProgressStage(stage: ConnectLifecycleProgress['stage'] | undefined): boolean {
+  return stage === 'checking-proxy'
+    || stage === 'backing-up'
+    || stage === 'patching'
+    || stage === 'restarting-app'
+    || stage === 'verifying';
+}
+
+const BRIDGE_HARNESSES: BridgeBrand[] = [
+  {
+    id: 'codex',
+    name: 'Codex',
+    colors: ['#14FF73', '#D8FF0A'],
+    logo: <Terminal className="size-6 text-[#14FF73]" strokeWidth={1.85} aria-hidden="true" />,
+  },
+  {
+    id: 'antigravity',
+    name: 'Antigravity',
+    colors: ['#D8FF0A', '#14FF73'],
+    logo: (
+      <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
+        <path
+          d="M12 3.2L19.2 19.6L12 15.8L4.8 19.6L12 3.2Z"
+          stroke="#D8FF0A"
+          strokeWidth="1.9"
+          strokeLinejoin="round"
+        />
+        <circle cx="12" cy="11.5" r="2" fill="#14FF73" />
+      </svg>
+    ),
+  },
+  {
+    id: 'opencode',
+    name: 'OpenCode',
+    colors: ['#38BDF8', '#14FF73'],
+    logo: (
+      <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
+        <rect x="3.5" y="3.5" width="17" height="17" rx="3.5" stroke="#38BDF8" strokeWidth="1.8" />
+        <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#38BDF8" />
+      </svg>
+    ),
+  },
+  {
+    id: 'claude-desktop',
+    name: 'Claude Desktop',
+    colors: ['#F59E0B', '#D8FF0A'],
+    logo: (
+      <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
+        <g stroke="#F59E0B" strokeWidth="2" strokeLinecap="round">
+          <path d="M12 3v18" />
+          <path d="M3 12h18" />
+          <path d="M5.6 5.6l12.8 12.8" />
+          <path d="M18.4 5.6L5.6 18.4" />
+        </g>
+      </svg>
+    ),
+  },
+  {
+    id: 'claude-code',
+    name: 'Claude Code',
+    colors: ['#EC4899', '#A855F7'],
+    logo: <Code2 className="size-6 text-[#EC4899]" strokeWidth={1.9} aria-hidden="true" />,
+  },
+  {
+    id: 'gemini-cli',
+    name: 'Gemini CLI',
+    colors: ['#38BDF8', '#A855F7'],
+    logo: (
+      <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
+        <path
+          d="M12 2.5c.6 5.3 4.2 8.9 9.5 9.5-5.3.6-8.9 4.2-9.5 9.5-.6-5.3-4.2-8.9-9.5-9.5 5.3-.6 8.9-4.2 9.5-9.5z"
+          fill="#38BDF8"
+        />
+      </svg>
+    ),
+  },
+  {
+    id: 'aider',
+    name: 'Aider',
+    colors: ['#A855F7', '#EC4899'],
+    logo: <Bot className="size-6 text-[#A855F7]" strokeWidth={1.85} aria-hidden="true" />,
+  },
+  {
+    id: 'continue',
+    name: 'Continue',
+    colors: ['#14FF73', '#38BDF8'],
+    logo: <FastForward className="size-6 text-[#14FF73]" strokeWidth={1.85} aria-hidden="true" />,
+  },
+];
+
+const BRIDGE_HARNESS_IDS = new Set(BRIDGE_HARNESSES.map((harness) => harness.id));
+
 export function VprToolsView() {
   const actions = useActions();
+  const toast = useTorveToast();
   const snap = useUiSelector((state) => ({
     lastPeers: state.lastPeers,
     discoverRows: state.vprRoutableRows,
@@ -157,6 +299,8 @@ export function VprToolsView() {
   // was already running, so the row has to stay busy well past the click.
   const [connecting, setConnecting] = useState<string | null>(null);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
+  const [progressByApp, setProgressByApp] = useState<Record<string, ConnectLifecycleProgress>>({});
+  const lastLaunchedOrRestartedRef = useRef<string[]>([]);
   const [guiTest, setGuiTest] = useState<GuiTestResult | null>(null);
   const [trustBusy, setTrustBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -224,6 +368,18 @@ export function VprToolsView() {
   const defaultModel = snap.selection.model?.serviceId || peerOptions.find((peer) => peer.peerId === defaultPeerId)?.services[0] || '';
   const activeProfiles = useMemo(() => activeProfilesFromRuntimeState(proxyState), [proxyState]);
   const activeProfileNames = useMemo(() => activeProfiles ? [...activeProfiles] : [], [activeProfiles]);
+  const connectedBridgeIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const name of activeProfileNames) {
+      if (BRIDGE_HARNESS_IDS.has(name)) set.add(name);
+    }
+    return set;
+  }, [activeProfileNames]);
+  const displayNameFor = useCallback((profileName: string) => (
+    profiles.find((profile) => profile.name === profileName)?.displayName
+    ?? BRIDGE_HARNESSES.find((harness) => harness.id === profileName)?.name
+    ?? profileName
+  ), [profiles]);
   const setupProfiles = useMemo(() => {
     const metadata = proxyState as (Record<string, unknown> | null);
     return new Set(Array.isArray(metadata?.setupProfileNames) ? metadata.setupProfileNames.filter((name): name is string => typeof name === 'string') : []);
@@ -265,11 +421,13 @@ export function VprToolsView() {
         }
       });
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : String(err));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: 'Model refresh failed', description: errMsg });
     } finally {
       setModelsRefreshing(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     void refreshCloudModels(false);
@@ -316,15 +474,21 @@ export function VprToolsView() {
       if (result?.status) setAntigravityPatch(result.status);
       else await refreshAntigravityPatch(true);
       if (!result?.ok) throw new Error(result?.error ?? 'Unable to apply the Antigravity native picker patch.');
+      toast.push({
+        kind: 'success',
+        title: 'Antigravity picker applied',
+        description: 'Native Model Picker is now active.',
+      });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       setMessage(errMsg);
       setAntigravityInlineNotice(errMsg);
+      toast.push({ kind: 'error', title: 'Antigravity patch failed', description: errMsg });
       await refreshAntigravityPatch(true);
     } finally {
       setAntigravityPatchBusy(false);
     }
-  }, [refreshAntigravityPatch]);
+  }, [refreshAntigravityPatch, toast]);
 
   const closeAndEnableAntigravityPicker = useCallback(async () => {
     setAntigravityPatchBusy(true);
@@ -336,15 +500,21 @@ export function VprToolsView() {
       if (result?.status) setAntigravityPatch(result.status);
       else await refreshAntigravityPatch(true);
       if (!result?.ok) throw new Error(result?.error ?? 'Unable to close Antigravity and apply the native picker patch.');
+      toast.push({
+        kind: 'success',
+        title: 'Antigravity updated',
+        description: 'Closed Antigravity and enabled Native Model Picker.',
+      });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       setMessage(errMsg);
       setAntigravityInlineNotice(errMsg);
+      toast.push({ kind: 'error', title: 'Could not patch Antigravity', description: errMsg });
       await refreshAntigravityPatch(true);
     } finally {
       setAntigravityPatchBusy(false);
     }
-  }, [refreshAntigravityPatch]);
+  }, [refreshAntigravityPatch, toast]);
 
   const launchAntigravityApp = useCallback(async () => {
     setAntigravityPatchBusy(true);
@@ -353,16 +523,20 @@ export function VprToolsView() {
       const bridge = window.torveDesktop as (Window['torveDesktop'] & AntigravityBridgeExtras) | undefined;
       const result = await bridge?.antigravityLaunch?.();
       if (result && !result.ok) {
-        setMessage(result.error ?? 'Unable to launch Antigravity.');
+        const errMsg = result.error ?? 'Unable to launch Antigravity.';
+        setMessage(errMsg);
+        toast.push({ kind: 'error', title: 'Could not launch Antigravity', description: errMsg });
       } else {
         window.setTimeout(() => { void refreshAntigravityPatch(true); }, 1000);
       }
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : String(err));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: 'Could not launch Antigravity', description: errMsg });
     } finally {
       setAntigravityPatchBusy(false);
     }
-  }, [refreshAntigravityPatch]);
+  }, [refreshAntigravityPatch, toast]);
 
   useEffect(() => {
     const bridge = window.torveDesktop;
@@ -370,14 +544,47 @@ export function VprToolsView() {
     return bridge?.onTorveActivity?.((item) => setActivities((current) => [item, ...current.filter((entry) => entry.id !== item.id)].slice(0, 100)));
   }, []);
 
+  useEffect(() => {
+    const bridge = window.torveDesktop;
+    return bridge?.onConnectProgress?.((event) => {
+      if (!event?.appId) return;
+      setProgressByApp((prev) => ({ ...prev, [event.appId]: event }));
+      if (event.stage === 'error') {
+        toast.push({
+          kind: 'error',
+          title: `${displayNameFor(event.appId)} error`,
+          description: event.detail ?? event.label,
+        });
+      }
+      if (event.stage === 'done' || event.stage === 'error') {
+        window.setTimeout(() => {
+          setProgressByApp((prev) => {
+            const current = prev[event.appId];
+            if (!current || current.timestamp !== event.timestamp) return prev;
+            const next = { ...prev };
+            delete next[event.appId];
+            return next;
+          });
+        }, event.stage === 'done' ? 2500 : 5000);
+      }
+    });
+  }, []);
+
   const setAppModel = useCallback(async (appId: string, modelId: string) => {
     const result = await window.torveDesktop?.torveOverrideSet?.(appId, modelId ? { modelId, enabled: true } : null);
     if (!result?.ok) {
-      setMessage(result?.error ?? 'Unable to save the model selection');
+      const errMsg = result?.error ?? 'Unable to save the model selection';
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: 'Model update failed', description: errMsg });
       return;
     }
     setModelOverrides(result.overrides ?? {});
-  }, []);
+    toast.push({
+      kind: 'success',
+      title: `${displayNameFor(appId)} model updated`,
+      description: modelId ? `Pinned to ${modelId}` : 'Using Automatic routing',
+    });
+  }, [displayNameFor, toast]);
 
   // Direct Cloud profiles persist independently of the legacy P2P runtime.
   // Restore their connected rows once the normal catalog is available.
@@ -442,24 +649,30 @@ export function VprToolsView() {
   // model overrides here anymore.
   const startProfiles = useCallback(async (names: string[]): Promise<boolean> => {
     const bridge = window.torveDesktop;
+    lastLaunchedOrRestartedRef.current = [];
     setBusy(names.join(','));
     setMessage(null);
     const account = await bridge?.torveAccountGet?.();
     if (!account?.connected || !bridge?.torveDirectStart) {
       setBusy(null);
-      setMessage('Sign in to Torve Desktop on Overview before connecting apps.');
+      const warnMsg = 'Sign in to Torve Desktop on Overview before connecting apps.';
+      setMessage(warnMsg);
+      toast.push({ kind: 'warning', title: 'Sign in required', description: warnMsg });
       return false;
     }
     const result = await bridge.torveDirectStart(names);
     setBusy(null);
     if (!result.ok) {
-      setMessage(result.error ?? 'Unable to connect tool profile to Torve Cloud');
+      const errMsg = result.error ?? 'Unable to connect tool profile to Torve Cloud';
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: 'Connection failed', description: errMsg });
       return false;
     }
+    lastLaunchedOrRestartedRef.current = Array.isArray(result.launchedOrRestartedApps) ? result.launchedOrRestartedApps : [];
     systemProxyResource.setData({ profiles, state: result.state ?? null });
     void refreshCloudModels(false);
     return true;
-  }, [profiles, refreshCloudModels]);
+  }, [profiles, refreshCloudModels, toast]);
 
   const disconnect = useCallback(async (appName?: string) => {
     const bridge = window.torveDesktop;
@@ -471,32 +684,53 @@ export function VprToolsView() {
     setBusy(null);
     if (result?.ok) {
       systemProxyResource.setData({ profiles, state: result.state ?? null });
+      toast.push({
+        kind: 'info',
+        title: appName ? `${displayNameFor(appName)} disconnected` : 'Apps disconnected',
+        description: 'Restored original configuration.',
+      });
     } else {
-      setMessage(result?.error ?? 'Unable to disconnect tools');
+      const errMsg = result?.error ?? 'Unable to disconnect tools';
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: 'Disconnect failed', description: errMsg });
     }
-  }, [profiles, proxyState?.peerId]);
+  }, [displayNameFor, profiles, proxyState?.peerId, toast]);
 
   const openUrl = useCallback(async (url: string) => {
     const result = await window.torveDesktop?.openExternalUrl?.(url);
-    if (result && !result.ok) setMessage(result.error ?? 'Could not open tool');
-  }, []);
+    if (result && !result.ok) {
+      const errMsg = result.error ?? 'Could not open tool';
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: 'Could not open URL', description: errMsg });
+    }
+  }, [toast]);
 
   const openTool = useCallback(async (toolName: string) => {
     const result = await window.torveDesktop?.openTool?.(toolName);
-    if (result && !result.ok) setMessage(result.error ?? 'Could not open tool');
-  }, []);
+    if (result && !result.ok) {
+      const errMsg = result.error ?? 'Could not open tool';
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: `Could not open ${displayNameFor(toolName)}`, description: errMsg });
+    }
+  }, [displayNameFor, toast]);
 
   const connectProfile = useCallback(async (profileName: string) => {
     recordUserAction('app_connect', 'apps', normalizeTelemetryAppName(profileName));
     const names = Array.from(new Set([...activeProfileNames, profileName]));
     setConnecting(profileName);
     if (profileName === 'antigravity') setAntigravityInlineNotice(null);
+    const label = displayNameFor(profileName);
     try {
       if (!await startProfiles(names)) return;
       if (profileName === 'antigravity') {
         const currentPatch = await refreshAntigravityPatch(true) ?? antigravityPatch;
         if (currentPatch?.installed) {
           if (currentPatch.running || currentPatch.state === 'close-antigravity') {
+            toast.push({
+              kind: 'warning',
+              title: 'Antigravity connected (picker pending)',
+              description: 'Click "Close Antigravity & Apply Picker" to enable the Native Model Picker.',
+            });
             return;
           }
           if (!currentPatch.enabled) {
@@ -511,26 +745,38 @@ export function VprToolsView() {
               if (patchResult && !patchResult.ok && patchResult.error) {
                 setMessage(patchResult.error);
                 setAntigravityInlineNotice(patchResult.error);
+                toast.push({ kind: 'error', title: 'Antigravity patch failed', description: patchResult.error });
+                return;
               }
             } finally {
               setAntigravityPatchBusy(false);
             }
-            return;
           }
         }
+        toast.push({
+          kind: 'success',
+          title: `${label} connected`,
+          description: 'MCP bridge and Native Model Picker are ready.',
+        });
         return;
       }
+      toast.push({
+        kind: 'success',
+        title: `${label} connected`,
+        description: 'AI requests now route through Torve.',
+      });
       const profile = profiles.find((entry) => entry.name === profileName);
       if (!profile) return;
+      const alreadyHandledByLifecycle = lastLaunchedOrRestartedRef.current.includes(profileName);
       if (profile.appAction === 'open-url' && profile.openUrl && !profile.launchAppName) {
         await openUrl(profile.openUrl);
-      } else if (profile.launchAppName || profile.appAction === 'open-tool') {
+      } else if (!alreadyHandledByLifecycle && (profile.launchAppName || profile.appAction === 'open-tool')) {
         await openTool(profile.toolName ?? profile.name);
       }
     } finally {
       setConnecting(null);
     }
-  }, [activeProfileNames, antigravityPatch, openTool, openUrl, profiles, refreshAntigravityPatch, startProfiles]);
+  }, [activeProfileNames, antigravityPatch, displayNameFor, openTool, openUrl, profiles, refreshAntigravityPatch, startProfiles, toast]);
 
   const disconnectProfile = useCallback(async (profileName: string) => {
     if (profileName === 'antigravity') {
@@ -542,6 +788,7 @@ export function VprToolsView() {
           const notice = 'Close Antigravity first before disconnecting so Torve can restore the original app bundle cleanly.';
           setAntigravityInlineNotice(notice);
           setMessage(notice);
+          toast.push({ kind: 'warning', title: 'Close Antigravity first', description: notice });
           return;
         }
         setAntigravityPatchBusy(true);
@@ -555,6 +802,7 @@ export function VprToolsView() {
           if (patchResult && !patchResult.ok && patchResult.error) {
             setMessage(patchResult.error);
             setAntigravityInlineNotice(patchResult.error);
+            toast.push({ kind: 'error', title: 'Antigravity restore failed', description: patchResult.error });
           }
         } finally {
           setAntigravityPatchBusy(false);
@@ -567,24 +815,121 @@ export function VprToolsView() {
       return;
     }
     recordUserAction('app_disconnect', 'apps', normalizeTelemetryAppName(profileName));
-    await startProfiles(remaining);
-  }, [activeProfileNames, antigravityPatch, disconnect, refreshAntigravityPatch, startProfiles]);
+    const ok = await startProfiles(remaining);
+    if (ok) {
+      toast.push({
+        kind: 'info',
+        title: `${displayNameFor(profileName)} disconnected`,
+        description: 'Restored original configuration.',
+      });
+    }
+  }, [activeProfileNames, antigravityPatch, disconnect, displayNameFor, refreshAntigravityPatch, startProfiles, toast]);
 
-  const restartApp = useCallback(async (profileName: string, label: string) => {
+  const openConnectedApp = useCallback(async (profile: SystemProxyProfileSummary) => {
     const bridge = window.torveDesktop;
-    if (!bridge?.systemProxyRestartApp) return;
-    setActionBusy(profileName);
+    setActionBusy(profile.name);
     setMessage(null);
     try {
-      const result = await bridge.systemProxyRestartApp(profileName);
-      setMessage(result.ok ? `Restarted ${label}` : (result.error ?? `Unable to restart ${label}`));
-      if (result.ok) await refresh();
+      if (profile.appAction === 'open-url' && profile.openUrl && !profile.launchAppName) {
+        await openUrl(profile.openUrl);
+        return;
+      }
+      if (bridge?.torveAppOpen) {
+        const result = await bridge.torveAppOpen(profile.name);
+        if (!result.ok) {
+          const errMsg = result.error ?? `Could not open ${profile.displayName}`;
+          setMessage(errMsg);
+          toast.push({ kind: 'error', title: `Could not open ${profile.displayName}`, description: errMsg });
+        } else if (profile.name === 'antigravity') {
+          window.setTimeout(() => { void refreshAntigravityPatch(true); }, 1000);
+        }
+        return;
+      }
+      await openTool(profile.toolName ?? profile.name);
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : String(err));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: `Could not open ${profile.displayName}`, description: errMsg });
     } finally {
       setActionBusy(null);
     }
-  }, [refresh]);
+  }, [openTool, openUrl, refreshAntigravityPatch, toast]);
+
+  const restartApp = useCallback(async (profileName: string, label: string) => {
+    const bridge = window.torveDesktop;
+    if (!bridge?.torveAppRestart && !bridge?.systemProxyRestartApp) return;
+    setActionBusy(profileName);
+    setMessage(null);
+    try {
+      if (bridge.torveAppRestart) {
+        const result = await bridge.torveAppRestart(profileName);
+        if (!result.ok) {
+          const errMsg = result.error ?? `Unable to restart ${label}`;
+          setMessage(errMsg);
+          toast.push({ kind: 'error', title: `Could not restart ${label}`, description: errMsg });
+        } else if (result.needsSessionRestart) {
+          const detail = result.detail ?? `${label} config verified — start a new CLI session to apply.`;
+          setMessage(detail);
+          toast.push({ kind: 'info', title: `${label} verified`, description: detail });
+        } else {
+          const detail = result.detail ?? `Restarted ${label}`;
+          setMessage(detail);
+          toast.push({ kind: 'success', title: `${label} restarted`, description: detail });
+        }
+        if (result.ok) {
+          await refresh();
+          if (profileName === 'antigravity') await refreshAntigravityPatch(true);
+        }
+        return;
+      }
+      const result = await bridge.systemProxyRestartApp!(profileName);
+      if (result.ok) {
+        setMessage(`Restarted ${label}`);
+        toast.push({ kind: 'success', title: `${label} restarted` });
+        await refresh();
+      } else {
+        const errMsg = result.error ?? `Unable to restart ${label}`;
+        setMessage(errMsg);
+        toast.push({ kind: 'error', title: `Could not restart ${label}`, description: errMsg });
+      }
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: `Could not restart ${label}`, description: errMsg });
+    } finally {
+      setActionBusy(null);
+    }
+  }, [refresh, refreshAntigravityPatch, toast]);
+
+  const refreshConnectedApp = useCallback(async (profileName: string, label: string) => {
+    const bridge = window.torveDesktop;
+    if (!bridge?.torveAppRefresh) return;
+    setActionBusy(profileName);
+    setMessage(null);
+    try {
+      const result = await bridge.torveAppRefresh(profileName);
+      if (!result.ok) {
+        const errMsg = result.error ?? `Unable to verify ${label}`;
+        setMessage(errMsg);
+        toast.push({ kind: 'error', title: `${label} verification failed`, description: errMsg });
+      } else {
+        const detail = result.detail ?? `${label} config & proxy verified.`;
+        setMessage(detail);
+        toast.push({ kind: 'success', title: `${label} verified`, description: detail });
+      }
+      await Promise.all([
+        refresh(),
+        refreshCloudModels(false),
+        ...(profileName === 'antigravity' ? [refreshAntigravityPatch(true)] : []),
+      ]);
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: `${label} refresh failed`, description: errMsg });
+    } finally {
+      setActionBusy(null);
+    }
+  }, [refresh, refreshAntigravityPatch, refreshCloudModels, toast]);
 
   const trustCa = useCallback(async () => {
     const bridge = window.torveDesktop;
@@ -594,7 +939,9 @@ export function VprToolsView() {
     try {
       const result = await bridge.systemProxyInstallCa();
       if (!result.ok) {
-        setMessage(result.error ?? 'CA install failed');
+        const errMsg = result.error ?? 'CA install failed';
+        setMessage(errMsg);
+        toast.push({ kind: 'error', title: 'Certificate trust failed', description: errMsg });
         return;
       }
       const trust = await refreshCaTrust();
@@ -603,18 +950,29 @@ export function VprToolsView() {
       // skipped" even when the cert ends up trusted for this user — which is
       // all intercepted GUI apps need. Only surface the warning when the
       // keychain still doesn't verify the cert as trusted.
-      if (result.warning && trust !== 'trusted') setMessage(result.warning);
+      if (result.warning && trust !== 'trusted') {
+        setMessage(result.warning);
+        toast.push({ kind: 'warning', title: 'Certificate trust warning', description: result.warning });
+      } else if (trust === 'trusted') {
+        toast.push({ kind: 'success', title: 'HTTPS certificate trusted', description: 'Intercepted apps can connect securely.' });
+      }
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : String(err));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: 'Certificate trust failed', description: errMsg });
     } finally {
       setTrustBusy(false);
     }
-  }, [refreshCaTrust, testGui]);
+  }, [refreshCaTrust, testGui, toast]);
 
   const revealCa = useCallback(async () => {
     const result = await window.torveDesktop?.systemProxyRevealCa?.();
-    if (result && !result.ok) setMessage(result.error ?? 'Could not reveal the certificate');
-  }, []);
+    if (result && !result.ok) {
+      const errMsg = result.error ?? 'Could not reveal the certificate';
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: 'Could not reveal certificate', description: errMsg });
+    }
+  }, [toast]);
 
   const copyCaPath = useCallback(async () => {
     if (!caInfo?.path) return;
@@ -769,16 +1127,21 @@ export function VprToolsView() {
       }
       const result = await bridge.systemProxyRemoveCustomApp(profileName);
       if (!result.ok) {
-        setMessage(result.error ?? 'Unable to remove app');
+        const errMsg = result.error ?? 'Unable to remove app';
+        setMessage(errMsg);
+        toast.push({ kind: 'error', title: 'Could not remove app', description: errMsg });
         return;
       }
       await refresh();
+      toast.push({ kind: 'info', title: 'Custom app removed' });
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : String(err));
+      const errMsg = err instanceof Error ? err.message : String(err);
+      setMessage(errMsg);
+      toast.push({ kind: 'error', title: 'Could not remove app', description: errMsg });
     } finally {
       setActionBusy(null);
     }
-  }, [activeProfileNames, disconnect, refresh, startProfiles]);
+  }, [activeProfileNames, disconnect, refresh, startProfiles, toast]);
 
   const orderedProfiles = useMemo(() => {
     // Connected apps float to the top; the sort is stable, so each group keeps
@@ -801,10 +1164,21 @@ export function VprToolsView() {
     ? 'neutral'
     : caTrust === 'trusted' || caInfo?.exists ? 'green' : 'neutral';
 
+  const activeProgressBanner = useMemo(() => {
+    const entries = Object.values(progressByApp);
+    return entries.find((entry) => isActiveProgressStage(entry.stage)) ?? null;
+  }, [progressByApp]);
+
   return (
     <section className={`view view-vpr-tools view-pinned-header ${styles.view}`} role="tabpanel">
       <VprPage title="Connected apps" backFallback="home">
       <div className={styles.stack}>
+        {activeProgressBanner ? (
+          <p className={styles.progressBanner} role="status" aria-live="polite">
+            <span className={styles.progressDot} aria-hidden="true" />
+            <span>{activeProgressBanner.label}</span>
+          </p>
+        ) : null}
         {message ? <p className={styles.note} role="status">{message}</p> : null}
 
         <div className={styles.modelToolbar}>
@@ -818,7 +1192,20 @@ export function VprToolsView() {
                 refreshSystemProxyProfilesForce(),
                 refreshCloudModels(true),
                 refreshAntigravityPatch(true),
-              ]).finally(() => setAppsRefreshing(false));
+              ])
+                .then(() => {
+                  toast.push({
+                    kind: 'info',
+                    title: 'Apps refreshed',
+                    description: 'Detected harnesses and model catalog updated.',
+                  });
+                })
+                .catch((err) => {
+                  const errMsg = err instanceof Error ? err.message : String(err);
+                  setMessage(errMsg);
+                  toast.push({ kind: 'error', title: 'Refresh failed', description: errMsg });
+                })
+                .finally(() => setAppsRefreshing(false));
             }}
           >
             <HugeiconsIcon icon={ArrowReloadHorizontalIcon} size={14} strokeWidth={2} />
@@ -827,12 +1214,50 @@ export function VprToolsView() {
         </div>
 
         <div className={styles.appScroll}>
+          <div className={styles.bridgeWrap}>
+            <BrandBridge
+              brands={BRIDGE_HARNESSES}
+              connectedIds={[...connectedBridgeIds]}
+              autoplay={false}
+              hub={<TorveMark size={38} />}
+              title="Torve App Bridge"
+              description="Click any harness tile to route its AI traffic through Torve, or manage per-app models and settings below."
+              onToggle={(id, nextConnected) => {
+                if (busy !== null || connecting !== null) return;
+                if (!nextConnected) {
+                  void disconnectProfile(id);
+                  return;
+                }
+                if (!cloudConnected && !defaultPeerId) {
+                  const label = displayNameFor(id);
+                  const warnMsg = 'Sign in to Torve Desktop on Overview before connecting apps.';
+                  setMessage(warnMsg);
+                  toast.push({
+                    kind: 'warning',
+                    title: `Sign in to connect ${label}`,
+                    description: warnMsg,
+                  });
+                  return;
+                }
+                void connectProfile(id);
+              }}
+            />
+          </div>
+
           <div className={styles.appList}>
             <CursorAppCard appId="cline-roo" label="Cline / Roo Code" brand="generic" />
             {orderedProfiles.map((profile) => {
               const connected = activeProfiles?.has(profile.name) ?? false;
               const setupComplete = setupProfiles.has(profile.name);
-              const canRestart = connected && profile.canRestart === true;
+              const rowProgress = progressByApp[profile.name];
+              const progressActive = isActiveProgressStage(rowProgress?.stage);
+              const rowBusy = connecting === profile.name || actionBusy === profile.name || progressActive;
+              const canOpenApp = Boolean(
+                profile.launchAppName
+                || profile.appAction === 'open-url'
+                || profile.appAction === 'open-tool'
+                || OPENABLE_PROFILE_NAMES.has(profile.name),
+              );
               const brandKey = resolveBrandKey(profile.name, profile.displayName);
               const profileCard = (
                 <div key={profile.name} className={`${styles.appPill}${connected ? ` ${styles.appPillConnected}` : ''}`}>
@@ -851,11 +1276,7 @@ export function VprToolsView() {
                             <button
                               type="button"
                               className={styles.appNameLink}
-                              onClick={() => {
-                                void (profile.appAction === 'open-url' && profile.openUrl && !profile.launchAppName
-                                  ? openUrl(profile.openUrl)
-                                  : openTool(profile.toolName ?? profile.name));
-                              }}
+                              onClick={() => { void openConnectedApp(profile); }}
                               title={`Open ${profile.launchAppName ?? profile.displayName}`}
                             >
                               {profile.displayName}
@@ -866,43 +1287,89 @@ export function VprToolsView() {
                           {profile.name === 'claude-desktop' ? <span className={styles.claudeCodeBadge}>&lt;/&gt; Code</span> : null}
                           {profile.name === 'antigravity' ? <span className={styles.torveBetaBadge}>Beta</span> : null}
                         </span>
-                        {connected && (
+                        {rowProgress ? (
+                          <span
+                            className={`${styles.appMeta}${rowProgress.stage === 'error' ? ` ${styles.appMetaError}` : progressActive ? ` ${styles.appMetaProgress}` : ''}`}
+                            title={rowProgress.detail ?? rowProgress.label}
+                          >
+                            <span
+                              className={
+                                rowProgress.stage === 'error'
+                                  ? styles.errorDot
+                                  : progressActive
+                                    ? styles.progressDot
+                                    : styles.connectedDot
+                              }
+                              aria-hidden="true"
+                            />
+                            {rowProgress.label}
+                          </span>
+                        ) : connected ? (
                           <span className={`${styles.appMeta}${profile.needsRestart ? ` ${styles.appMetaWarning}` : ''}`}>
                             <span className={profile.needsRestart ? styles.restartDot : styles.connectedDot} aria-hidden="true" />
                             {profile.needsRestart ? 'Restart required' : 'Connected'}
                           </span>
-                        )}
+                        ) : null}
                       </span>
                     </span>
-                    {connecting === profile.name ? (
-                      <span
-                        className={styles.appBusy}
-                        role="status"
-                        aria-label={`Connecting ${profile.displayName}`}
-                        title={`Connecting ${profile.displayName}`}
-                      />
-                    ) : canRestart ? (
+                    <div className={styles.quickActionBar} role="group" aria-label={`${profile.displayName} quick actions`}>
+                      {rowBusy ? (
+                        <span
+                          className={styles.appBusy}
+                          role="status"
+                          aria-label={rowProgress?.label ?? `Working on ${profile.displayName}`}
+                          title={rowProgress?.label ?? `Working on ${profile.displayName}`}
+                        />
+                      ) : null}
                       <button
                         type="button"
-                        className={`${styles.appOpen}${profile.needsRestart ? ` ${styles.appRestartNeeded}` : ''}`}
-                        onClick={() => { void restartApp(profile.name, profile.displayName); }}
-                        disabled={actionBusy === profile.name}
-                        aria-label={`Restart ${profile.displayName}`}
-                        title={profile.needsRestart ? `Restart ${profile.displayName} to apply the connection` : `Restart ${profile.displayName}`}
+                        className={styles.quickActionBtn}
+                        disabled={rowBusy || !canOpenApp}
+                        onClick={() => { void openConnectedApp(profile); }}
+                        aria-label={`Open ${profile.displayName}`}
+                        title={canOpenApp
+                          ? `Open ${profile.launchAppName ?? profile.displayName}`
+                          : `${profile.displayName} is a terminal CLI — launch it from your terminal`}
                       >
-                        <HugeiconsIcon icon={ArrowReloadHorizontalIcon} size={16} strokeWidth={2} />
+                        <QuickOpenIcon />
                       </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      className={`${styles.configAction}${settingsFor === profile.name ? ` ${styles.configActionActive}` : ''}`}
-                      onClick={() => openSettings(profile)}
-                      aria-haspopup="dialog"
-                      aria-label={`${profile.displayName} settings`}
-                      title={`${profile.displayName} settings`}
-                    >
-                      <HugeiconsIcon icon={Settings02Icon} size={15} strokeWidth={2} />
-                    </button>
+                      <button
+                        type="button"
+                        className={`${styles.quickActionBtn}${connected && profile.needsRestart ? ` ${styles.appRestartNeeded}` : ''}`}
+                        disabled={rowBusy || !connected}
+                        onClick={() => { void restartApp(profile.name, profile.displayName); }}
+                        aria-label={`Restart ${profile.displayName}`}
+                        title={!connected
+                          ? `Connect ${profile.displayName} first to restart`
+                          : profile.needsRestart
+                            ? `Restart ${profile.displayName} to apply the connection`
+                            : `Restart GUI or verify CLI session for ${profile.displayName}`}
+                      >
+                        <QuickRestartIcon />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.quickActionBtn}
+                        disabled={rowBusy || !connected}
+                        onClick={() => { void refreshConnectedApp(profile.name, profile.displayName); }}
+                        aria-label={`Refresh and verify ${profile.displayName}`}
+                        title={!connected
+                          ? `Connect ${profile.displayName} first to refresh`
+                          : `Re-patch config and verify proxy for ${profile.displayName}`}
+                      >
+                        <QuickRefreshIcon />
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.configAction}${settingsFor === profile.name ? ` ${styles.configActionActive}` : ''}`}
+                        onClick={() => openSettings(profile)}
+                        aria-haspopup="dialog"
+                        aria-label={`${profile.displayName} settings`}
+                        title={`${profile.displayName} settings`}
+                      >
+                        <HugeiconsIcon icon={Settings02Icon} size={15} strokeWidth={2} />
+                      </button>
+                    </div>
                     {connected || setupComplete ? (
                       <button
                         type="button"
@@ -1046,10 +1513,21 @@ export function VprToolsView() {
                         disabled={actionBusy === profile.name}
                         onClick={() => {
                           setActionBusy(profile.name);
-                          void window.torveDesktop?.torveBackupsRestore?.(profile.name).then(async () => {
-                            await refresh();
-                            await refreshCloudModels(false);
-                          }).finally(() => setActionBusy(null));
+                          void window.torveDesktop?.torveBackupsRestore?.(profile.name)
+                            .then(async () => {
+                              await refresh();
+                              await refreshCloudModels(false);
+                              toast.push({
+                                kind: 'success',
+                                title: `${profile.displayName} backup restored`,
+                              });
+                            })
+                            .catch((err) => {
+                              const errMsg = err instanceof Error ? err.message : String(err);
+                              setMessage(errMsg);
+                              toast.push({ kind: 'error', title: 'Backup restore failed', description: errMsg });
+                            })
+                            .finally(() => setActionBusy(null));
                         }}
                       >
                         Restore

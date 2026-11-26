@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *, body.dark-theme, body.dark-theme *));
+@source "../components/motion-brew";
+@source "../ui";
+
+@theme {
+  --color-torve-canvas: #0a0a0a;
+  --color-torve-card: #111111;
+  --color-torve-surface: #18181b;
+  --color-torve-border: #27272a;
+  --color-torve-lime: #d8ff0a;
+  --color-torve-green: #14ff73;
+  --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+}
+
+/* Preserve base layout styling alongside Tailwind v4 utilities inside Electron renderer. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}

@@ -17,6 +17,11 @@ import {
   stopTorveCloudProfiles,
   torveCloudProfilesState,
 } from '../torve-cloud/profiles.js';
+import {
+  reopenConnectedApp,
+  restartConnectedAppLifecycle,
+  verifyConnectedAppConfig,
+} from '../torve-cloud/app-lifecycle.js';
 import { getDirectCloudOverrides, setDirectCloudOverride } from '../torve-cloud/overrides.js';
 import {
   antigravityStandaloneStatus,
@@ -86,7 +91,9 @@ let cachedMe: DesktopMeResponse | null = null;
 
 function broadcast(channel: string, payload: unknown): void {
   for (const window of BrowserWindow.getAllWindows()) {
-    window.webContents.send(channel, payload);
+    if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
+      window.webContents.send(channel, payload);
+    }
   }
 }
 
@@ -223,7 +230,12 @@ export async function resumeTorveCloudProxy(): Promise<void> {
     await refreshCatalogConfigsIfConnected(models);
   }).catch(() => {});
   const state = await torveCloudProfilesState();
-  if (state.activeProfileNames.length > 0) await startTorveCloudProfiles(state.activeProfileNames);
+  if (state.activeProfileNames.length > 0) {
+    await startTorveCloudProfiles(state.activeProfileNames, {
+      restartApps: false,
+      launchIfStopped: false,
+    });
+  }
 }
 
 export function registerTorveAccountIpc(): void {
@@ -552,19 +564,33 @@ export function registerTorveAccountIpc(): void {
     return { ok: true };
   });
 
-  ipcMain.handle('torve:direct-state', torveCloudProfilesState);
+  ipcMain.handle('torve:direct-state', () => torveCloudProfilesState());
   ipcMain.handle(
     'torve:direct-start',
     async (
       _event,
       profiles: unknown,
-    ): Promise<{ ok: boolean; state?: Awaited<ReturnType<typeof torveCloudProfilesState>>; error?: string }> => {
+    ): Promise<{
+      ok: boolean;
+      state?: Awaited<ReturnType<typeof torveCloudProfilesState>>;
+      launchedOrRestartedApps?: string[];
+      error?: string;
+    }> => {
       try {
+        const launchedOrRestartedApps: string[] = [];
         const state = await startTorveCloudProfiles(
           Array.isArray(profiles) ? profiles.filter((name): name is string => typeof name === 'string') : [],
+          {
+            onProgress: (progress) => {
+              broadcast('torve:connect-progress', progress);
+            },
+            onAppLaunchedOrRestarted: (appId) => {
+              launchedOrRestartedApps.push(appId);
+            },
+          },
         );
         invalidateSystemProxyProfilesCache();
-        return { ok: true, state };
+        return { ok: true, state, launchedOrRestartedApps };
       } catch (err) {
         return { ok: false, error: err instanceof Error ? err.message : String(err) };
       }
@@ -582,6 +608,65 @@ export function registerTorveAccountIpc(): void {
       }
     },
   );
+
+  ipcMain.handle('torve:app-open', async (_event, appId: unknown) => {
+    try {
+      const id = typeof appId === 'string' ? appId.trim() : '';
+      if (!id) throw new Error('Invalid app identifier.');
+      return await reopenConnectedApp(id);
+    } catch (err) {
+      return {
+        ok: false,
+        appId: typeof appId === 'string' ? appId : '',
+        isGui: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  });
+
+  ipcMain.handle('torve:app-restart', async (_event, appId: unknown) => {
+    try {
+      const id = typeof appId === 'string' ? appId.trim() : '';
+      if (!id) throw new Error('Invalid app identifier.');
+      const result = await restartConnectedAppLifecycle(id, {
+        onProgress: (progress) => broadcast('torve:connect-progress', progress),
+      });
+      invalidateSystemProxyProfilesCache();
+      return result;
+    } catch (err) {
+      return {
+        ok: false,
+        appId: typeof appId === 'string' ? appId : '',
+        isGui: false,
+        restarted: false,
+        verified: false,
+        detail: err instanceof Error ? err.message : String(err),
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  });
+
+  ipcMain.handle('torve:app-refresh', async (_event, appId: unknown) => {
+    try {
+      const id = typeof appId === 'string' ? appId.trim() : '';
+      if (!id) throw new Error('Invalid app identifier.');
+      const result = await verifyConnectedAppConfig(id, {
+        onProgress: (progress) => broadcast('torve:connect-progress', progress),
+      });
+      invalidateSystemProxyProfilesCache();
+      return result;
+    } catch (err) {
+      return {
+        ok: false,
+        appId: typeof appId === 'string' ? appId : '',
+        verified: false,
+        proxyReachable: false,
+        configPresent: false,
+        detail: err instanceof Error ? err.message : String(err),
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  });
 
   ipcMain.handle('torve:backups-list', () => listDirectCloudBackups());
   ipcMain.handle('torve:backups-restore', async (_event, appId: unknown): Promise<{ ok: boolean; restored: boolean; error?: string }> => {

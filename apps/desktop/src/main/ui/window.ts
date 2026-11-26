@@ -5,6 +5,7 @@ import {
   nativeImage,
   app,
   screen,
+  type Input,
   type Rectangle,
   type MenuItemConstructorOptions,
 } from 'electron';
@@ -161,6 +162,23 @@ export function setFloatWindowExpanded(expanded: boolean): void {
   win.setResizable(false);
 }
 
+function isBlockedDevToolsShortcut(input: Input): boolean {
+  const key = input.key.toLowerCase();
+  return (
+    key === 'f12'
+    || (input.control && input.shift && (key === 'i' || key === 'j'))
+    || (input.meta && input.alt && (key === 'i' || key === 'j'))
+  );
+}
+
+function isDevOpenDevToolsShortcut(input: Input): boolean {
+  const key = input.key.toLowerCase();
+  return (
+    (input.meta && input.alt && key === 'i')
+    || (input.control && input.shift && key === 'i')
+  );
+}
+
 function floatRendererUrl(rendererUrl: string): string {
   // Dev: http://127.0.0.1:5174/ -> .../float.html
   // Prod: file://.../renderer/index.html -> .../renderer/float.html
@@ -217,6 +235,7 @@ export function openFloatWindow(config: WindowConfig, initialData: unknown): Bro
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      devTools: !app.isPackaged,
     },
   });
   const created = floatWindow;
@@ -266,18 +285,21 @@ export function openFloatWindow(config: WindowConfig, initialData: unknown): Bro
     created.webContents.send('vpr-float:compact', floatCompact);
     // The pill is a separate window, so the main window's DevTools can't
     // inspect it. Open its own DevTools in dev; the shortcut below reopens it.
-    if (config.isDev) {
+    if (config.isDev && !app.isPackaged) {
       created.webContents.openDevTools({ mode: 'detach' });
     }
   });
 
-  // ⌘⌥I (macOS) / Ctrl+Shift+I to (re)open the pill's DevTools. Focus the
-  // pill first (click it) so it receives the keystroke.
-  created.webContents.on('before-input-event', (_event, input) => {
-    const toggle =
-      (input.meta && input.alt && input.key === 'i')
-      || (input.control && input.shift && input.key === 'I');
-    if (toggle && !created.isDestroyed()) {
+  // ⌘⌥I (macOS) / Ctrl+Shift+I to (re)open the pill's DevTools in dev.
+  // Packaged builds disable DevTools shortcuts completely.
+  created.webContents.on('before-input-event', (event, input) => {
+    if (app.isPackaged) {
+      if (isBlockedDevToolsShortcut(input)) {
+        event.preventDefault();
+      }
+      return;
+    }
+    if (isDevOpenDevToolsShortcut(input) && !created.isDestroyed()) {
       created.webContents.openDevTools({ mode: 'detach' });
     }
   });
@@ -439,6 +461,7 @@ export function createWindow(config: WindowConfig): void {
       nodeIntegration: false,
       sandbox: false,
       webviewTag: true,
+      devTools: !app.isPackaged,
     },
     ...macosWindowChrome,
   });
@@ -480,16 +503,18 @@ export function createWindow(config: WindowConfig): void {
       });
   });
 
-  if (config.isDev) {
+  if (config.isDev && !app.isPackaged) {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 
-  // Allow opening DevTools in production for debugging (Cmd+Option+I / Ctrl+Shift+I).
-  mainWindow.webContents.on('before-input-event', (_event, input) => {
-    const devToolsShortcut =
-      (input.meta && input.alt && input.key === 'i') ||   // macOS: Cmd+Option+I
-      (input.control && input.shift && input.key === 'I'); // Windows/Linux: Ctrl+Shift+I
-    if (devToolsShortcut && mainWindow) {
+  // DevTools shortcuts are available in dev only and blocked in packaged builds.
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (app.isPackaged) {
+      if (isBlockedDevToolsShortcut(input)) {
+        event.preventDefault();
+        return;
+      }
+    } else if (isDevOpenDevToolsShortcut(input) && mainWindow) {
       mainWindow.webContents.openDevTools({ mode: 'detach' });
     }
 
@@ -525,6 +550,20 @@ function showAboutDialog(appName: string, appIconPath: string | undefined): void
 }
 
 export function createApplicationMenu(appName: string, appIconPath: string | undefined): void {
+  const viewMenu: MenuItemConstructorOptions = app.isPackaged
+    ? {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { role: 'togglefullscreen' },
+      ],
+    }
+    : { role: 'viewMenu' };
+
   const template: MenuItemConstructorOptions[] = process.platform === 'darwin'
     ? [
       {
@@ -542,7 +581,7 @@ export function createApplicationMenu(appName: string, appIconPath: string | und
         ],
       },
       { role: 'editMenu' },
-      { role: 'viewMenu' },
+      viewMenu,
       { role: 'windowMenu' },
       {
         role: 'help',
@@ -558,9 +597,7 @@ export function createApplicationMenu(appName: string, appIconPath: string | und
       {
         role: 'editMenu',
       },
-      {
-        role: 'viewMenu',
-      },
+      viewMenu,
       {
         role: 'windowMenu',
       },

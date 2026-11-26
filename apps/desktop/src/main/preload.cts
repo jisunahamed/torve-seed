@@ -151,6 +151,23 @@ type AntigravityStandalonePatchStatus = {
   message: string;
 };
 
+type ConnectLifecycleStage =
+  | 'checking-proxy'
+  | 'backing-up'
+  | 'patching'
+  | 'restarting-app'
+  | 'verifying'
+  | 'done'
+  | 'error';
+
+type ConnectLifecycleProgress = {
+  appId: string;
+  stage: ConnectLifecycleStage;
+  label: string;
+  detail?: string;
+  timestamp: number;
+};
+
 type InstallUpdateResult =
   | { ok: true }
   | { ok: false; error: string; details: string; hint?: string };
@@ -485,6 +502,20 @@ const api = {
   },
   torveDirectStop() {
     return ipcRenderer.invoke('torve:direct-stop');
+  },
+  torveAppOpen(appId: string): Promise<{ ok: boolean; appId?: string; isGui?: boolean; fallback?: string; targetPath?: string; error?: string }> {
+    return ipcRenderer.invoke('torve:app-open', appId) as Promise<{ ok: boolean; appId?: string; isGui?: boolean; fallback?: string; targetPath?: string; error?: string }>;
+  },
+  torveAppRestart(appId: string): Promise<{ ok: boolean; appId?: string; isGui?: boolean; restarted?: boolean; launched?: boolean; needsSessionRestart?: boolean; verified?: boolean; detail?: string; error?: string }> {
+    return ipcRenderer.invoke('torve:app-restart', appId) as Promise<{ ok: boolean; appId?: string; isGui?: boolean; restarted?: boolean; launched?: boolean; needsSessionRestart?: boolean; verified?: boolean; detail?: string; error?: string }>;
+  },
+  torveAppRefresh(appId: string): Promise<{ ok: boolean; appId?: string; verified?: boolean; proxyReachable?: boolean; configPresent?: boolean; detail?: string; error?: string }> {
+    return ipcRenderer.invoke('torve:app-refresh', appId) as Promise<{ ok: boolean; appId?: string; verified?: boolean; proxyReachable?: boolean; configPresent?: boolean; detail?: string; error?: string }>;
+  },
+  onConnectProgress(handler: (event: ConnectLifecycleProgress) => void): () => void {
+    const listener = (_event: unknown, payload: ConnectLifecycleProgress) => handler(payload);
+    ipcRenderer.on('torve:connect-progress', listener);
+    return () => ipcRenderer.off('torve:connect-progress', listener);
   },
   openTool(toolName: string): Promise<{ ok: boolean; error?: string; fallback?: string }> {
     return ipcRenderer.invoke('desktop:open-tool', toolName) as Promise<{ ok: boolean; error?: string; fallback?: string }>;

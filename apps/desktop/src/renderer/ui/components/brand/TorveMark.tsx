@@ -1,26 +1,51 @@
+import torveMarkPng from '../../../assets/torve-mark.png';
+import torveWordmarkPng from '../../../assets/torve-wordmark.png';
+
 type Props = {
   size?: number;
   className?: string;
+  alt?: string;
 };
 
-/** Crisp Torve "T" geometric emblem matching the dark #0A0A0A / neon lime #D8FF0A palette. */
-export function TorveMark({ size = 28, className }: Props) {
+/** Official Torve 3D isometric emblem (assets/torve-mark.png). */
+export function TorveMark({ size = 28, className, alt }: Props) {
   return (
-    <svg
+    <img
+      src={torveMarkPng}
       width={size}
       height={size}
-      viewBox="0 0 36 36"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
+      alt={alt ?? ''}
+      aria-hidden={alt ? undefined : true}
+      draggable={false}
       className={className}
-      aria-hidden="true"
-    >
-      <rect width="36" height="36" rx="10" fill="#111111" stroke="#27272A" strokeWidth="1.5" />
-      <path
-        d="M8.5 11.25H27.5V15.5H20.25V27.5H15.75V15.5H8.5V11.25Z"
-        fill="#D8FF0A"
-      />
-      <rect x="23" y="23" width="4.5" height="4.5" rx="1.25" fill="#14FF73" />
-    </svg>
+      style={{
+        width: size,
+        height: size,
+        objectFit: 'contain',
+        display: 'block',
+        flexShrink: 0,
+        filter: 'drop-shadow(0 2px 8px rgba(216, 255, 10, 0.16))',
+      }}
+    />
+  );
+}
+
+/** Official TorveAI wordmark lockup (assets/torve-wordmark.png). */
+export function TorveWordmark({ height = 24, className, alt = 'TorveAI' }: { height?: number; className?: string; alt?: string }) {
+  return (
+    <img
+      src={torveWordmarkPng}
+      height={height}
+      alt={alt}
+      draggable={false}
+      className={className}
+      style={{
+        height,
+        width: 'auto',
+        objectFit: 'contain',
+        display: 'block',
+        flexShrink: 0,
+      }}
+    />
   );
 }

@@ -3,6 +3,8 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import test from 'node:test';
 import {
   buildChatRequestFromResponses,
+  buildResponsesJsonFromChat,
+  convertResponsesToolsToChat,
   startTorveCloudProxy,
   stopTorveCloudProxy,
   torveCloudProxyStatus,
@@ -147,7 +149,12 @@ test('buildChatRequestFromResponses preserves parallel_tool_calls, history, tool
   assert.deepEqual(chatReq['tool_choice'], { type: 'function', function: { name: 'exec_command' } });
 
   const tools = chatReq['tools'] as Array<Record<string, unknown>>;
-  assert.equal(tools.length, 3);
+  assert.equal(tools.length, 2);
+  assert.equal(tools.every((t) => t['type'] === 'function'), true);
+  assert.deepEqual(
+    tools.map((t) => (t['function'] as Record<string, unknown>)['name']),
+    ['exec_command', 'apply_patch'],
+  );
   assert.equal(tools.some((t) => ((t['function'] as Record<string, unknown> | undefined)?.['name']) === 'final_answer'), false);
 
   const messages = chatReq['messages'] as Array<Record<string, unknown>>;
@@ -635,4 +642,346 @@ test('per-chunk SSE idle timeout resets on every chunk and only aborts genuinely
     const body = await resp.text();
     assert.ok(body.includes('Torve Cloud stream timed out.'));
   }, { headerTimeoutMs: 120, streamIdleTimeoutMs: 120 });
+});
+
+test('convertResponsesToolsToChat flattens namespace tools, resolves collisions, and restores original names', () => {
+  // Single namespace preserves exact unique names and flattens nested namespaces
+  const single = convertResponsesToolsToChat([
+    {
+      type: 'namespace',
+      name: 'mcp_github',
+      tools: [
+        { type: 'function', name: 'get_issue', description: 'Get issue', parameters: { type: 'object', properties: { id: { type: 'number' } } } },
+        {
+          type: 'namespace',
+          name: 'prs',
+          tools: [
+            { type: 'function', name: 'list_prs', parameters: ['invalid-array'] },
+            { type: 'custom', name: 'patch_pr', description: 'Patch PR' },
+          ],
+        },
+        { type: 'web_search' },
+      ],
+    },
+  ]);
+
+  assert.ok(single.tools);
+  assert.equal(single.tools.length, 3);
+  assert.deepEqual(
+    single.tools.map((t) => (t['function'] as Record<string, unknown>)['name']),
+    ['get_issue', 'list_prs', 'patch_pr'],
+  );
+  assert.deepEqual((single.tools[1]!['function'] as Record<string, unknown>)['parameters'], { type: 'object', properties: {} });
+  assert.equal(single.forwardedToOriginalName.size, 0);
+
+  // Multi-namespace collision uses deterministic <namespace>__<name> and tracks alias map
+  const collided = convertResponsesToolsToChat([
+    {
+      type: 'namespace',
+      name: 'github',
+      tools: [
+        { type: 'function', name: 'search', description: 'GitHub search', parameters: { type: 'object', properties: { q: { type: 'string' } } } },
+        { type: 'function', name: 'search', description: 'Duplicate inside same namespace' },
+        { type: 'function', name: 'create_issue' },
+      ],
+    },
+    {
+      type: 'namespace',
+      name: 'linear',
+      tools: [
+        { type: 'function', name: 'search', description: 'Linear search', parameters: { type: 'object', properties: { q: { type: 'string' } } } },
+      ],
+    },
+  ]);
+
+  assert.ok(collided.tools);
+  assert.equal(collided.tools.length, 3);
+  for (const t of collided.tools) {
+    assert.equal(t['type'], 'function');
+  }
+  assert.deepEqual(
+    collided.tools.map((t) => (t['function'] as Record<string, unknown>)['name']),
+    ['github__search', 'create_issue', 'linear__search'],
+  );
+  assert.equal(collided.forwardedToOriginalName.get('github__search'), 'search');
+  assert.equal(collided.forwardedToOriginalName.get('linear__search'), 'search');
+  assert.equal(collided.forwardedToOriginalName.has('create_issue'), false);
+
+  // Non-streaming Responses output restores collided alias back to original Codex name
+  const responsesOut = buildResponsesJsonFromChat({
+    id: 'chatcmpl_ns',
+    model: 'gpt-5.4',
+    choices: [{
+      index: 0,
+      message: {
+        role: 'assistant',
+        tool_calls: [{
+          id: 'call_ns_1',
+          type: 'function',
+          function: { name: 'linear__search', arguments: '{"q":"bug"}' },
+        }],
+      },
+      finish_reason: 'tool_calls',
+    }],
+    usage: { prompt_tokens: 10, completion_tokens: 5 },
+  }, 'gpt-5.4', collided.forwardedToOriginalName);
+
+  const output = responsesOut['output'] as Array<Record<string, unknown>>;
+  assert.equal(output.length, 1);
+  assert.equal(output[0]!['type'], 'function_call');
+  assert.equal(output[0]!['name'], 'search');
+  assert.equal(output[0]!['arguments'], '{"q":"bug"}');
+});
+
+test('convertResponsesToolsToChat converts custom apply_patch and buildChatRequestFromResponses round-trips custom_tool_call history', () => {
+  const patchText = '*** Begin Patch\n*** Update File: a.ts\n@@\n-old\n+new\n*** End Patch';
+  const chatReq = buildChatRequestFromResponses({
+    model: 'gpt-5.4',
+    input: [
+      { type: 'message', role: 'user', content: 'Fix a.ts' },
+      { type: 'custom_tool_call', call_id: 'call_patch_1', name: 'apply_patch', input: patchText },
+      { type: 'custom_tool_call_output', call_id: 'call_patch_1', output: 'Success. Updated 1 file.' },
+      { type: 'function_call', call_id: 'call_patch_2', name: 'apply_patch', arguments: '{"input":"*** Begin Patch\\n*** End Patch"}' },
+      { type: 'function_call_output', call_id: 'call_patch_2', output: [{ type: 'input_text', text: 'Done' }] },
+    ],
+    tools: [
+      { type: 'custom', name: 'apply_patch', description: 'Apply a unified diff patch' },
+      { type: 'function', function: { name: 'read_file', description: 'Read file', parameters: { type: 'object', properties: { path: { type: 'string' } } }, strict: true } },
+    ],
+  }, 'gpt-5.4');
+
+  const tools = chatReq['tools'] as Array<{ type: string; function: Record<string, unknown> }>;
+  assert.equal(tools.length, 2);
+  assert.deepEqual(tools[0], {
+    type: 'function',
+    function: {
+      name: 'apply_patch',
+      description: 'Apply a unified diff patch',
+      parameters: {
+        type: 'object',
+        properties: {
+          input: { type: 'string', description: 'Apply a unified diff patch' },
+        },
+        required: ['input'],
+      },
+    },
+  });
+  assert.deepEqual(tools[1], {
+    type: 'function',
+    function: {
+      name: 'read_file',
+      description: 'Read file',
+      parameters: { type: 'object', properties: { path: { type: 'string' } } },
+      strict: true,
+    },
+  });
+
+  const messages = chatReq['messages'] as Array<Record<string, unknown>>;
+  assert.equal(messages.length, 5);
+  assert.deepEqual(messages[1], {
+    role: 'assistant',
+    content: null,
+    tool_calls: [{
+      id: 'call_patch_1',
+      type: 'function',
+      function: { name: 'apply_patch', arguments: JSON.stringify({ input: patchText }) },
+    }],
+  });
+  assert.deepEqual(messages[2], {
+    role: 'tool',
+    tool_call_id: 'call_patch_1',
+    content: 'Success. Updated 1 file.',
+  });
+  assert.deepEqual(messages[3], {
+    role: 'assistant',
+    content: null,
+    tool_calls: [{
+      id: 'call_patch_2',
+      type: 'function',
+      function: { name: 'apply_patch', arguments: '{"input":"*** Begin Patch\\n*** End Patch"}' },
+    }],
+  });
+  assert.deepEqual(messages[4], {
+    role: 'tool',
+    tool_call_id: 'call_patch_2',
+    content: 'Done',
+  });
+});
+
+test('convertResponsesToolsToChat strips all built-in and unknown Responses-only tool variants', () => {
+  const result = convertResponsesToolsToChat([
+    { type: 'web_search' },
+    { type: 'web_search_preview' },
+    { type: 'web_search_2025_08_26' },
+    { type: 'local_shell' },
+    { type: 'code_interpreter', container: { type: 'auto' } },
+    { type: 'file_search', vector_store_ids: ['vs_1'] },
+    { type: 'computer_use_preview', display_width: 1024, display_height: 768 },
+    { type: 'image_generation' },
+    { type: 'mcp', server_label: 'docs', server_url: 'https://example.com' },
+    { type: 'some_future_variant', foo: 'bar' },
+    { type: 'function', name: '' },
+    { type: 'function', function: { name: '   ' } },
+  ]);
+  assert.equal(result.tools, undefined);
+
+  const reqWithoutTools = buildChatRequestFromResponses({
+    model: 'gpt-5.4',
+    input: 'hello',
+    tools: [{ type: 'web_search' }, { type: 'local_shell' }],
+    tool_choice: 'required',
+  }, 'gpt-5.4');
+  assert.equal('tools' in reqWithoutTools, false);
+  assert.equal('tool_choice' in reqWithoutTools, false);
+});
+
+test('buildChatRequestFromResponses sanitizes tool_choice for kept vs stripped tools', () => {
+  const baseTools = [
+    { type: 'function', name: 'exec_command', parameters: { type: 'object', properties: { cmd: { type: 'string' } } } },
+    { type: 'custom', name: 'apply_patch', description: 'Patch files' },
+    { type: 'web_search' },
+    { type: 'local_shell' },
+  ];
+
+  // Kept function tool (flat and nested)
+  const keptFn = buildChatRequestFromResponses({
+    model: 'gpt-5.4',
+    input: 'hi',
+    tools: baseTools,
+    tool_choice: { type: 'function', name: 'exec_command' },
+  });
+  assert.deepEqual(keptFn['tool_choice'], { type: 'function', function: { name: 'exec_command' } });
+
+  const keptNestedFn = buildChatRequestFromResponses({
+    model: 'gpt-5.4',
+    input: 'hi',
+    tools: baseTools,
+    tool_choice: { type: 'function', function: { name: 'exec_command' } },
+  });
+  assert.deepEqual(keptNestedFn['tool_choice'], { type: 'function', function: { name: 'exec_command' } });
+
+  // Kept custom tool
+  const keptCustom = buildChatRequestFromResponses({
+    model: 'gpt-5.4',
+    input: 'hi',
+    tools: baseTools,
+    tool_choice: { type: 'custom', name: 'apply_patch' },
+  });
+  assert.deepEqual(keptCustom['tool_choice'], { type: 'function', function: { name: 'apply_patch' } });
+
+  // allowed_tools referencing a single kept tool resolves to function tool_choice; stripped-only drops it
+  const keptAllowed = buildChatRequestFromResponses({
+    model: 'gpt-5.4',
+    input: 'hi',
+    tools: baseTools,
+    tool_choice: { type: 'allowed_tools', mode: 'required', tools: [{ type: 'web_search' }, { type: 'function', name: 'exec_command' }] },
+  });
+  assert.deepEqual(keptAllowed['tool_choice'], { type: 'function', function: { name: 'exec_command' } });
+
+  // Stripped built-in tool_choice or unknown function name is dropped
+  const strippedBuiltIn = buildChatRequestFromResponses({
+    model: 'gpt-5.4',
+    input: 'hi',
+    tools: baseTools,
+    tool_choice: { type: 'web_search' },
+  });
+  assert.equal('tool_choice' in strippedBuiltIn, false);
+
+  const strippedNamed = buildChatRequestFromResponses({
+    model: 'gpt-5.4',
+    input: 'hi',
+    tools: baseTools,
+    tool_choice: { type: 'function', name: 'nonexistent_tool' },
+  });
+  assert.equal('tool_choice' in strippedNamed, false);
+
+  // Standard string modes kept when normalized tools are non-empty
+  for (const mode of ['auto', 'none', 'required'] as const) {
+    const req = buildChatRequestFromResponses({ model: 'gpt-5.4', input: 'hi', tools: baseTools, tool_choice: mode });
+    assert.equal(req['tool_choice'], mode);
+  }
+});
+
+test('POST /app/codex/v1/responses end-to-end forwards only type:function tools and restores collided namespace names in SSE', async () => {
+  let capturedUpstreamBody: Record<string, unknown> | null = null;
+
+  await withProxy([{ id: 'gpt-5.4' }], (_req, bodyText, res) => {
+    capturedUpstreamBody = JSON.parse(bodyText) as Record<string, unknown>;
+    res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8' });
+    res.write(`data: ${JSON.stringify({
+      id: 'chat_ns_sse',
+      model: 'gpt-5.4',
+      choices: [{
+        index: 0,
+        delta: {
+          role: 'assistant',
+          tool_calls: [{ index: 0, id: 'call_ns_sse_1', type: 'function', function: { name: 'mcp_docs__search', arguments: '{"q":' } }],
+        },
+      }],
+    })}\n\n`);
+    res.write(`data: ${JSON.stringify({
+      id: 'chat_ns_sse',
+      model: 'gpt-5.4',
+      choices: [{
+        index: 0,
+        delta: { tool_calls: [{ index: 0, function: { arguments: '"codex"}' } }] },
+        finish_reason: 'tool_calls',
+      }],
+      usage: { prompt_tokens: 25, completion_tokens: 10 },
+    })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    res.end();
+  }, async (baseUrl) => {
+    const resp = await fetch(`${baseUrl}/app/codex/v1/responses`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-5.4',
+        stream: true,
+        input: [{ type: 'message', role: 'user', content: [{ type: 'input_text', text: 'Search docs' }] }],
+        tools: [
+          { type: 'web_search_preview' },
+          { type: 'local_shell' },
+          { type: 'custom', name: 'apply_patch', description: 'Patch' },
+          {
+            type: 'namespace',
+            name: 'mcp_code',
+            tools: [{ type: 'function', name: 'search', parameters: { type: 'object', properties: { q: { type: 'string' } } } }],
+          },
+          {
+            type: 'namespace',
+            name: 'mcp_docs',
+            tools: [{ type: 'function', name: 'search', parameters: { type: 'object', properties: { q: { type: 'string' } } } }],
+          },
+        ],
+        tool_choice: { type: 'web_search_preview' },
+      }),
+    });
+
+    assert.equal(resp.status, 200);
+    const rawSse = await resp.text();
+    const events = parseSseEvents(rawSse);
+
+    // Every outbound tool forwarded to /v1/chat/completions must have strictly type: 'function'
+    assert.ok(capturedUpstreamBody);
+    const sentTools = capturedUpstreamBody['tools'] as Array<Record<string, unknown>>;
+    assert.equal(sentTools.length, 3);
+    assert.equal(sentTools.every((t) => t['type'] === 'function' && typeof (t['function'] as Record<string, unknown>)['name'] === 'string'), true);
+    assert.deepEqual(
+      sentTools.map((t) => (t['function'] as Record<string, unknown>)['name']),
+      ['apply_patch', 'mcp_code__search', 'mcp_docs__search'],
+    );
+    assert.equal('tool_choice' in capturedUpstreamBody, false);
+
+    // Returned streaming SSE events restore 'mcp_docs__search' -> 'search'
+    const added = JSON.parse(events.find((e) => e.event === 'response.output_item.added')!.data) as { item: Record<string, unknown> };
+    assert.equal(added.item['name'], 'search');
+
+    const argsDone = JSON.parse(events.find((e) => e.event === 'response.function_call_arguments.done')!.data) as Record<string, unknown>;
+    assert.equal(argsDone['name'], 'search');
+
+    const completed = JSON.parse(events.find((e) => e.event === 'response.completed')!.data) as { response: { output: Array<Record<string, unknown>> } };
+    assert.equal(completed.response.output[0]!['name'], 'search');
+    assert.equal(completed.response.output[0]!['arguments'], '{"q":"codex"}');
+  });
 });

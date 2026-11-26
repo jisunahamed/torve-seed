@@ -7,8 +7,11 @@ import type {
   TorveUsageResponse,
 } from '../../../types/bridge';
 import type { ViewName } from '../../types';
-import { TorveMark } from '../brand/TorveMark';
+import { QuotaGauge } from '../../../components/motion-brew/quota-gauge';
+import { UsageRing, type UsageMetric } from '../../../components/motion-brew/usage-ring';
+import { TorveMark, TorveWordmark } from '../brand/TorveMark';
 import { TorveAuthCard } from '../torve/TorveAuthCard';
+import { useTorveToast } from '../torve/TorveToastContext';
 import styles from './VprHomeView.module.scss';
 
 type Props = { onSelectView?: (view: ViewName) => void };
@@ -28,7 +31,17 @@ function formatResetTime(resetsAt: string | null): string {
   return parsed.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+function resolveGoal(used: number, limit: number | null | undefined, fallback: number): number {
+  if (typeof limit === 'number' && Number.isFinite(limit) && limit > 0) {
+    return limit;
+  }
+  const safeUsed = Math.max(0, used);
+  if (safeUsed <= fallback) return fallback;
+  return Math.max(fallback, Math.ceil((safeUsed * 1.25) / fallback) * fallback);
+}
+
 export function VprHomeView({ onSelectView }: Props) {
+  const toast = useTorveToast();
   const [account, setAccount] = useState<TorveAccountStatus | null>(null);
   const [me, setMe] = useState<TorveDesktopMeResponse | null>(null);
   const [proxyStatus, setProxyStatus] = useState<{ running: boolean; port: number; upstream: string } | null>(null);
@@ -39,8 +52,8 @@ export function VprHomeView({ onSelectView }: Props) {
   const [authError, setAuthError] = useState<{ message: string; statusCode?: number; code?: string } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadAll = useCallback(async () => {
-    const bridge = window.torveDesktop;
+  const loadAll = useCallback(async (notify = false) => {
+    const bridge = typeof window !== 'undefined' ? window.torveDesktop : undefined;
     if (!bridge) return;
     setRefreshing(true);
     try {
@@ -58,34 +71,55 @@ export function VprHomeView({ onSelectView }: Props) {
       if (direct?.activeProfileNames) setConnectedApps(direct.activeProfileNames);
       if (usageRes?.usage) setUsage7d(usageRes.usage);
       if (catalog?.models) setAvailableModels(catalog.models);
+
+      if (notify) {
+        const port = proxy?.port ?? 8378;
+        toast.push({
+          kind: 'success',
+          title: 'Overview refreshed',
+          description: acct?.connected
+            ? `Synced account quota and proxy status on 127.0.0.1:${port}.`
+            : `Synced local proxy status on 127.0.0.1:${port}.`,
+        });
+      }
+    } catch (err) {
+      if (notify) {
+        toast.push({
+          kind: 'error',
+          title: 'Refresh failed',
+          description: err instanceof Error ? err.message : 'Could not refresh Torve overview.',
+        });
+      }
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
-    void loadAll();
-    const unsubAuth = window.torveDesktop?.onTorveAuthEvent?.((event) => {
-      if (event.status === 'pending') {
-        setPkcePending(true);
-        setAuthError(null);
-      } else if (event.status === 'connected') {
-        setPkcePending(false);
-        setAuthError(null);
-        if (event.accountStatus) setAccount(event.accountStatus);
-        if (event.me !== undefined) setMe(event.me);
-        void loadAll();
-      } else if (event.status === 'cancelled') {
-        setPkcePending(false);
-      } else if (event.status === 'error') {
-        setPkcePending(false);
-        setAuthError({
-          message: event.error || 'Authentication failed.',
-          statusCode: event.statusCode,
-          code: event.code,
-        });
-      }
-    });
+    void loadAll(false);
+    const unsubAuth = typeof window !== 'undefined'
+      ? window.torveDesktop?.onTorveAuthEvent?.((event) => {
+          if (event.status === 'pending') {
+            setPkcePending(true);
+            setAuthError(null);
+          } else if (event.status === 'connected') {
+            setPkcePending(false);
+            setAuthError(null);
+            if (event.accountStatus) setAccount(event.accountStatus);
+            if (event.me !== undefined) setMe(event.me);
+            void loadAll(false);
+          } else if (event.status === 'cancelled') {
+            setPkcePending(false);
+          } else if (event.status === 'error') {
+            setPkcePending(false);
+            setAuthError({
+              message: event.error || 'Authentication failed.',
+              statusCode: event.statusCode,
+              code: event.code,
+            });
+          }
+        })
+      : undefined;
     return () => { unsubAuth?.(); };
   }, [loadAll]);
 
@@ -110,7 +144,7 @@ export function VprHomeView({ onSelectView }: Props) {
     if (res.status) setAccount(res.status);
     if (res.me !== undefined) setMe(res.me);
     setAuthError(null);
-    void loadAll();
+    void loadAll(false);
   };
 
   const handleSignOut = async () => {
@@ -123,38 +157,97 @@ export function VprHomeView({ onSelectView }: Props) {
       : null);
     setMe(null);
     setConnectedApps([]);
-    void loadAll();
+    void loadAll(false);
   };
 
   const quota = me?.quota ?? null;
-  const monthlyAllowance = quota?.monthlyAllowanceTokens ?? null;
-  const monthlyUsed = quota?.monthlyUsedTokens ?? null;
-  const monthlyPct = monthlyAllowance && monthlyAllowance > 0 && monthlyUsed !== null
-    ? Math.min(100, Math.round((monthlyUsed / monthlyAllowance) * 100))
-    : null;
+  const proxyPort = proxyStatus?.port ?? 8378;
   const rateLimited = quota?.rateLimitStatus?.toLowerCase() === 'limited';
   const topModels = (usage7d?.byModel ?? []).slice(0, 4);
+
+  const ringMetrics: UsageMetric[] = quota
+    ? [
+        {
+          label: 'Daily Tokens',
+          value: quota.usedTokensToday,
+          goal: resolveGoal(quota.usedTokensToday, quota.dailyTokenLimit, 100_000),
+          unit: quota.dailyTokenLimit ? 'tok' : 'tok (est)',
+        },
+        {
+          label: 'Monthly Tokens',
+          value: quota.monthlyUsedTokens ?? quota.usedTokensToday,
+          goal: resolveGoal(
+            quota.monthlyUsedTokens ?? quota.usedTokensToday,
+            quota.monthlyAllowanceTokens,
+            1_000_000,
+          ),
+          unit: quota.monthlyAllowanceTokens ? 'tok' : 'tok (est)',
+        },
+        {
+          label: 'Requests Today',
+          value: quota.usedRequestsToday,
+          goal: resolveGoal(quota.usedRequestsToday, quota.dailyRequestLimit, 500),
+          unit: quota.dailyRequestLimit ? 'req' : 'req (est)',
+        },
+      ]
+    : [];
+
+  const hasMonthlyAllowance =
+    quota?.monthlyAllowanceTokens !== null &&
+    quota?.monthlyAllowanceTokens !== undefined &&
+    quota.monthlyAllowanceTokens > 0;
+  const gaugeValue = quota
+    ? hasMonthlyAllowance
+      ? (quota.monthlyUsedTokens ?? 0)
+      : quota.usedTokensToday
+    : 0;
+  const gaugeGoal = quota
+    ? hasMonthlyAllowance
+      ? quota.monthlyAllowanceTokens!
+      : resolveGoal(quota.usedTokensToday, quota.dailyTokenLimit, 100_000)
+    : 100_000;
+  const gaugeUnit = hasMonthlyAllowance ? 'monthly tokens' : 'tokens today';
+  const gaugeGoalLabel = hasMonthlyAllowance
+    ? 'Monthly limit'
+    : quota?.dailyTokenLimit
+      ? 'Daily limit'
+      : 'Reference cap';
 
   return (
     <section className={styles.view} role="tabpanel" aria-label="Overview">
       <div className={styles.container}>
         <header className={styles.topBar}>
           <div className={styles.heading}>
-            <TorveMark size={30} />
-            <div>
-              <h1 className={styles.headingTitle}>Torve Desktop</h1>
-              <div className={styles.headingSub}>Direct Cloud AI Router · 127.0.0.1:{proxyStatus?.port ?? 8378}</div>
+            <div className={styles.brandEmblem}>
+              <TorveMark size={32} />
+            </div>
+            <div className={styles.headingCopy}>
+              <div className={styles.wordmarkRow}>
+                <TorveWordmark height={18} />
+                <span className={styles.editionPill}>Desktop</span>
+              </div>
+              <div className={styles.headingSub}>Direct Cloud AI Router</div>
             </div>
           </div>
-          <button
-            type="button"
-            className={styles.refreshBtn}
-            onClick={() => { void loadAll(); }}
-            disabled={refreshing}
-          >
-            <HugeiconsIcon icon={ArrowReloadHorizontalIcon} size={14} strokeWidth={2} />
-            <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
-          </button>
+
+          <div className={styles.topActions}>
+            <span
+              className={`${styles.proxyPill} ${proxyStatus?.running ? styles.proxyPillActive : styles.proxyPillStopped}`}
+              title={`Local proxy ${proxyStatus?.running ? 'running' : 'stopped'} on 127.0.0.1:${proxyPort}`}
+            >
+              <span className={styles.proxyDot} aria-hidden />
+              <span>127.0.0.1:{proxyPort}</span>
+            </span>
+            <button
+              type="button"
+              className={styles.refreshBtn}
+              onClick={() => { void loadAll(true); }}
+              disabled={refreshing}
+            >
+              <HugeiconsIcon icon={ArrowReloadHorizontalIcon} size={14} strokeWidth={2} />
+              <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
+            </button>
+          </div>
         </header>
 
         <TorveAuthCard
@@ -169,50 +262,33 @@ export function VprHomeView({ onSelectView }: Props) {
         />
 
         {account?.connected && quota ? (
-          <section className={styles.card} aria-label="Quota and allowance">
-            <div className={styles.cardHead}>
-              <h2 className={styles.cardTitle}>Quota &amp; Allowance</h2>
-              <span className={rateLimited ? styles.badgeWarn : styles.badgeOk}>
-                {rateLimited ? 'Rate Limited' : quota.rateLimitStatus || 'ok'}
-              </span>
-            </div>
-
-            <div className={styles.quotaGrid}>
-              <div className={styles.statBox}>
-                <span className={styles.statLabel}>Tokens Used Today</span>
-                <span className={styles.statValue}>{formatCompact(quota.usedTokensToday)}</span>
-                {quota.dailyTokenLimit ? (
-                  <div className={styles.statSub}>of {formatCompact(quota.dailyTokenLimit)} daily limit</div>
-                ) : null}
-              </div>
-              <div className={styles.statBox}>
-                <span className={styles.statLabel}>Requests Today</span>
-                <span className={styles.statValue}>{quota.usedRequestsToday.toLocaleString()}</span>
-                {quota.dailyRequestLimit ? (
-                  <div className={styles.statSub}>of {quota.dailyRequestLimit.toLocaleString()} daily limit</div>
-                ) : null}
-              </div>
-              <div className={styles.statBox}>
-                <span className={styles.statLabel}>Resets At</span>
-                <span className={styles.statValue} style={{ fontSize: 14 }}>
-                  {formatResetTime(quota.resetsAt)}
-                </span>
-              </div>
-            </div>
-
-            {monthlyPct !== null && monthlyAllowance ? (
-              <div className={styles.progressWrap}>
-                <div className={styles.progressHeader}>
-                  <span>Monthly Package Allowance</span>
-                  <span>
-                    {formatCompact(monthlyUsed)} / {formatCompact(monthlyAllowance)} ({monthlyPct}%)
+          <section className={styles.telemetryGrid} aria-label="Quota and usage telemetry">
+            <UsageRing
+              title="Live Usage"
+              metrics={ringMetrics}
+              className="w-full flex flex-col justify-between"
+            />
+            <QuotaGauge
+              value={gaugeValue}
+              goal={gaugeGoal}
+              unit={gaugeUnit}
+              goalLabel={gaugeGoalLabel}
+              className="w-full flex flex-col justify-between"
+              header={(
+                <div className={styles.gaugeHeader}>
+                  <span className={styles.gaugeTitle}>Allowance &amp; Quota</span>
+                  <span className={rateLimited ? styles.badgeCrit : styles.badgeOk}>
+                    {rateLimited ? 'Rate Limited' : quota.rateLimitStatus || 'ok'}
                   </span>
                 </div>
-                <div className={styles.progressTrack} role="progressbar" aria-valuenow={monthlyPct} aria-valuemin={0} aria-valuemax={100}>
-                  <div className={styles.progressFill} style={{ width: `${monthlyPct}%` }} />
+              )}
+              footer={(
+                <div className={styles.gaugeFooter}>
+                  <span className={styles.gaugeResetLabel}>Resets</span>
+                  <span className={styles.gaugeResetValue}>{formatResetTime(quota.resetsAt)}</span>
                 </div>
-              </div>
-            ) : null}
+              )}
+            />
           </section>
         ) : null}
 
@@ -224,11 +300,13 @@ export function VprHomeView({ onSelectView }: Props) {
                 {proxyStatus?.running ? 'Active' : 'Stopped'}
               </span>
             </div>
-            <div className={styles.statValue} style={{ fontSize: 15 }}>
-              http://127.0.0.1:{proxyStatus?.port ?? 8378}
-            </div>
-            <div className={styles.statSub}>
-              Upstream: {proxyStatus?.upstream || 'https://api.torveai.com'}
+            <div className={styles.statBox}>
+              <div className={styles.statValue} style={{ fontSize: 15 }}>
+                http://127.0.0.1:{proxyPort}
+              </div>
+              <div className={styles.statSub}>
+                Upstream: {proxyStatus?.upstream || 'https://api.torveai.com'}
+              </div>
             </div>
           </section>
 
@@ -245,11 +323,14 @@ export function VprHomeView({ onSelectView }: Props) {
             {connectedApps.length > 0 ? (
               <div className={styles.pillList}>
                 {connectedApps.map((name) => (
-                  <span key={name} className={styles.pill}>{name}</span>
+                  <span key={name} className={styles.pill}>
+                    <span className={styles.pillDot} aria-hidden />
+                    {name}
+                  </span>
                 ))}
               </div>
             ) : (
-              <div className={styles.statSub}>
+              <div className={styles.emptyBox}>
                 No harnesses toggled on yet. Enable Codex, Claude Desktop, OpenCode, or Antigravity in Connected Apps.
               </div>
             )}
@@ -289,7 +370,7 @@ export function VprHomeView({ onSelectView }: Props) {
               ))}
             </div>
           ) : (
-            <div className={styles.statSub}>Sign in to load your usage and available models.</div>
+            <div className={styles.emptyBox}>Sign in to load your usage and available models.</div>
           )}
         </section>
       </div>
