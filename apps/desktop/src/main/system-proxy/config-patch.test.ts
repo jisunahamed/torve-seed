@@ -609,6 +609,23 @@ test('applyConfigPatch (codex) creates the config file and replaces a previous m
   });
 });
 
+test('applyConfigPatch (codex) removes conflicting top-level openai_base_url', async () => {
+  await withTempConfig(async (dir) => {
+    const configPath = path.join(dir, 'config.toml');
+    await writeFile(
+      configPath,
+      'openai_base_url = "http://127.0.0.1:4202/_codex-router/tok/v1"\nmodel_provider = "codex-router"\n',
+      'utf8',
+    );
+    applyConfigPatch(makeCodexPatch(configPath), PEER_ID, 8378);
+
+    const raw = await readFile(configPath, 'utf8');
+    assert.ok(!raw.includes('openai_base_url'));
+    assert.ok(raw.includes('model_provider = "torve"'));
+    assert.ok(raw.includes('base_url = "http://127.0.0.1:8378/v1"'));
+  });
+});
+
 test('removeConfigPatch (codex) removes the managed table and model selection but keeps user tables', async () => {
   await withTempConfig(async (dir) => {
     const configPath = path.join(dir, 'config.toml');

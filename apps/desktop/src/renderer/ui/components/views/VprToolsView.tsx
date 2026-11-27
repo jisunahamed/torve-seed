@@ -196,7 +196,7 @@ const BRIDGE_HARNESSES: BridgeBrand[] = [
     id: 'codex',
     name: 'Codex',
     colors: ['#14FF73', '#D8FF0A'],
-    logo: <Terminal className="size-6 text-[#14FF73]" strokeWidth={1.85} aria-hidden="true" />,
+    logo: <BrandIcon brand="codex" size={24} />,
   },
   {
     id: 'antigravity',
@@ -218,58 +218,37 @@ const BRIDGE_HARNESSES: BridgeBrand[] = [
     id: 'opencode',
     name: 'OpenCode',
     colors: ['#38BDF8', '#14FF73'],
-    logo: (
-      <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
-        <rect x="3.5" y="3.5" width="17" height="17" rx="3.5" stroke="#38BDF8" strokeWidth="1.8" />
-        <rect x="8.5" y="8.5" width="7" height="7" rx="1.5" fill="#38BDF8" />
-      </svg>
-    ),
+    logo: <BrandIcon brand="opencode" size={24} />,
   },
   {
     id: 'claude-desktop',
     name: 'Claude Desktop',
-    colors: ['#F59E0B', '#D8FF0A'],
-    logo: (
-      <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
-        <g stroke="#F59E0B" strokeWidth="2" strokeLinecap="round">
-          <path d="M12 3v18" />
-          <path d="M3 12h18" />
-          <path d="M5.6 5.6l12.8 12.8" />
-          <path d="M18.4 5.6L5.6 18.4" />
-        </g>
-      </svg>
-    ),
+    colors: ['#D97757', '#F59E0B'],
+    logo: <BrandIcon brand="anthropic" size={24} />,
   },
   {
     id: 'claude-code',
     name: 'Claude Code',
-    colors: ['#EC4899', '#A855F7'],
-    logo: <Code2 className="size-6 text-[#EC4899]" strokeWidth={1.9} aria-hidden="true" />,
+    colors: ['#D97757', '#EC4899'],
+    logo: <BrandIcon brand="anthropic" size={24} />,
   },
   {
     id: 'gemini-cli',
     name: 'Gemini CLI',
-    colors: ['#38BDF8', '#A855F7'],
-    logo: (
-      <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
-        <path
-          d="M12 2.5c.6 5.3 4.2 8.9 9.5 9.5-5.3.6-8.9 4.2-9.5 9.5-.6-5.3-4.2-8.9-9.5-9.5 5.3-.6 8.9-4.2 9.5-9.5z"
-          fill="#38BDF8"
-        />
-      </svg>
-    ),
+    colors: ['#4285F4', '#A855F7'],
+    logo: <BrandIcon brand="gemini" size={24} />,
   },
   {
     id: 'aider',
     name: 'Aider',
-    colors: ['#A855F7', '#EC4899'],
-    logo: <Bot className="size-6 text-[#A855F7]" strokeWidth={1.85} aria-hidden="true" />,
+    colors: ['#14FF73', '#A855F7'],
+    logo: <Bot className="size-6 text-[#14FF73]" strokeWidth={1.85} aria-hidden="true" />,
   },
   {
     id: 'continue',
     name: 'Continue',
-    colors: ['#14FF73', '#38BDF8'],
-    logo: <FastForward className="size-6 text-[#14FF73]" strokeWidth={1.85} aria-hidden="true" />,
+    colors: ['#38BDF8', '#14FF73'],
+    logo: <FastForward className="size-6 text-[#38BDF8]" strokeWidth={1.85} aria-hidden="true" />,
   },
 ];
 

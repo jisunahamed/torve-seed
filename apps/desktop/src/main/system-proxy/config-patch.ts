@@ -1230,6 +1230,9 @@ function applyCodexProviderToFile(filePath: string, patch: CodexConfigPatchDef, 
   const raw = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
   let lines = raw.length > 0 ? raw.split('\n') : [];
   lines = removeCodexProviderTable(lines, patch.providerKey).lines;
+  // A top-level `openai_base_url` (e.g. from codex-router) overrides `model_provider`
+  // and hijacks Codex requests away from `[model_providers.torve]`.
+  lines = removeTomlTopLevelKey(lines, 'openai_base_url');
   lines = setTomlTopLevelString(lines, 'model_provider', patch.providerKey);
   lines = setTomlTopLevelString(lines, 'model', patch.model || ROUTED_MODEL_ALIAS);
   if (patch.modelCatalogJson) lines = setTomlTopLevelString(lines, 'model_catalog_json', expandTilde(patch.modelCatalogJson));

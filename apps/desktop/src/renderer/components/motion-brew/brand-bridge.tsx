@@ -740,17 +740,17 @@ export const BrandBridge = React.forwardRef<HTMLDivElement, BrandBridgeProps>(
       <div
         ref={root}
         className={cn(
-          "relative mx-auto w-[480px] max-w-full overflow-hidden rounded-2xl border border-[#27272A] bg-[#111111] text-[#F4F4F5] shadow-none",
+          "relative w-full max-w-full overflow-hidden rounded-[10px] border border-[#222226] bg-[#111114] text-[#F4F4F5] shadow-none",
           className,
         )}
       >
         {/* The graphic */}
         <div
-          className="relative overflow-hidden border-b border-[#27272A] bg-[#0A0A0A]"
+          className="relative flex justify-center overflow-hidden border-b border-[#222226] bg-[#09090B]"
           style={{ height: H * scale }}
           onPointerMove={(e) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            // Stage pixels, whatever scale the card is drawn at.
+            const stageEl = e.currentTarget.querySelector<HTMLElement>("[data-bridge-stage]");
+            const r = (stageEl ?? e.currentTarget).getBoundingClientRect();
             const k = r.width / W;
             pointer.current = {
               x: (e.clientX - r.left) / k,
@@ -771,6 +771,11 @@ export const BrandBridge = React.forwardRef<HTMLDivElement, BrandBridgeProps>(
                 "radial-gradient(circle at 50% 53%, rgba(216, 255, 10, 0.06), rgba(20, 255, 115, 0.03) 38%, transparent 70%)",
             }}
           />
+          <div
+            data-bridge-stage
+            className="relative shrink-0"
+            style={{ width: W * scale, height: H * scale }}
+          >
           <div
             className="absolute left-0 top-0 origin-top-left"
             style={{ width: W, height: H, transform: `scale(${scale})` }}
@@ -1023,6 +1028,7 @@ export const BrandBridge = React.forwardRef<HTMLDivElement, BrandBridgeProps>(
                 </motion.button>
               );
             })}
+          </div>
           </div>
         </div>
 

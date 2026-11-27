@@ -231,7 +231,7 @@ export default async function afterPack(context) {
   console.log(`[after-pack-harden] Flipping Electron fuses on ${electronBinaryPath}`);
   const flipped = await flipFuses(electronBinaryPath, {
     version: FuseVersion.V1,
-    [FuseV1Options.RunAsNode]: false,
+    [FuseV1Options.RunAsNode]: true,
     [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
     [FuseV1Options.EnableNodeCliInspectArguments]: false,
     [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
