@@ -2,20 +2,14 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { expandHomePath, getHomeDir } from './state.js';
-import type { AppDefinition, AppStatusItem, ConfigPatchDef } from './types.js';
-import { hasContinueYamlTorveEntries, readFlatYamlKey, readHermesProviderApi } from './yaml-lite.js';
+import type { AppDefinition, AppStatusItem, ComingSoonApp, ConfigPatchDef } from './types.js';
 
-function platformConfigPath(
-  posixPath: string,
-  windowsFolder: { base: 'APPDATA' | 'LOCALAPPDATA'; segments: readonly string[] } | null,
-  platform: NodeJS.Platform = process.platform,
-  env: NodeJS.ProcessEnv = process.env,
-): string {
-  if (platform !== 'win32' || !windowsFolder) return posixPath;
-  const fallback = windowsFolder.base === 'APPDATA' ? ['AppData', 'Roaming'] : ['AppData', 'Local'];
-  const root = env[windowsFolder.base] || path.join(getHomeDir(), ...fallback);
-  return path.join(root, ...windowsFolder.segments);
-}
+export const COMING_SOON_APPS: readonly ComingSoonApp[] = [
+  { id: 'cursor', displayName: 'Cursor' },
+  { id: 'cline', displayName: 'Cline / Roo Code', aliases: ['roo', 'roo-code', 'cline-roo-code', 'cline/roo-code'] },
+  { id: 'aider', displayName: 'Aider' },
+  { id: 'continue', displayName: 'Continue' },
+];
 
 export function antigravityIdeSettingsPath(
   platform: NodeJS.Platform = process.platform,
@@ -25,29 +19,6 @@ export function antigravityIdeSettingsPath(
   if (platform === 'win32') return path.join(env['APPDATA'] || path.join(home, 'AppData', 'Roaming'), 'Antigravity', 'User', 'settings.json');
   if (platform === 'darwin') return path.join(home, 'Library', 'Application Support', 'Antigravity', 'User', 'settings.json');
   return path.join(home, '.config', 'Antigravity', 'User', 'settings.json');
-}
-
-export function cursorConfigPaths(
-  platform: NodeJS.Platform = process.platform,
-  env: NodeJS.ProcessEnv = process.env,
-): string[] {
-  const home = getHomeDir();
-  if (platform === 'win32') {
-    return [
-      path.join(env['APPDATA'] || path.join(home, 'AppData', 'Roaming'), 'Cursor', 'User', 'settings.json'),
-      path.join(home, '.cursor'),
-    ];
-  }
-  if (platform === 'darwin') {
-    return [
-      path.join(home, 'Library', 'Application Support', 'Cursor', 'User', 'settings.json'),
-      path.join(home, '.cursor'),
-    ];
-  }
-  return [
-    path.join(home, '.config', 'Cursor', 'User', 'settings.json'),
-    path.join(home, '.cursor'),
-  ];
 }
 
 export function claudeDesktopDefaultPaths(platform: NodeJS.Platform = process.platform, env: NodeJS.ProcessEnv = process.env): {
@@ -80,6 +51,39 @@ export function getAppDefinitions(): readonly AppDefinition[] {
   const claudeDesktopPaths = claudeDesktopDefaultPaths();
   return [
     {
+      name: 'antigravity',
+      displayName: 'Google Antigravity',
+      kind: 'config-patch',
+      method: 'IDE settings + MCP fallback',
+      binary: 'antigravity',
+      detectPaths: [path.dirname(antigravityIdeSettingsPath()), '~/.gemini/antigravity'],
+      configPatch: {
+        format: 'antigravity-ide',
+        configPath: antigravityIdeSettingsPath(),
+        baseURL: 'http://127.0.0.1:{buyerPort}',
+        mcpFallback: true,
+        mcpConfigPath: '~/.gemini/config/mcp_config.json',
+        serverPath: '~/.torve/mcp/torve-local.mjs',
+      },
+    },
+    {
+      name: 'codex',
+      displayName: 'Codex',
+      kind: 'config-patch',
+      method: 'Config patch',
+      binary: 'codex',
+      detectPaths: ['~/.codex', '~/.local/bin/codex'],
+      configPatch: {
+        format: 'codex',
+        configPath: '~/.codex/config.toml',
+        providerKey: 'torve',
+        providerName: 'Torve AI',
+        baseURL: 'http://127.0.0.1:{buyerPort}/v1',
+        modelCatalogJson: '~/.torve/codex-model-catalog.json',
+        bearerToken: 'torve-local-proxy',
+      },
+    },
+    {
       name: 'opencode',
       displayName: 'OpenCode',
       kind: 'config-patch',
@@ -103,37 +107,6 @@ export function getAppDefinitions(): readonly AppDefinition[] {
       },
     },
     {
-      name: 'codex',
-      displayName: 'Codex',
-      kind: 'config-patch',
-      method: 'Config patch',
-      binary: 'codex',
-      detectPaths: ['~/.codex', '~/.local/bin/codex'],
-      configPatch: {
-        format: 'codex',
-        configPath: '~/.codex/config.toml',
-        providerKey: 'torve',
-        providerName: 'Torve AI',
-        baseURL: 'http://127.0.0.1:{buyerPort}/v1',
-        modelCatalogJson: '~/.torve/codex-model-catalog.json',
-        bearerToken: 'torve-local-proxy',
-      },
-    },
-    {
-      name: 'claude-code',
-      displayName: 'Claude Code',
-      kind: 'config-patch',
-      method: 'Config patch',
-      binary: 'claude',
-      detectPaths: ['~/.claude', '~/.local/bin/claude', '~/.claude/local/claude'],
-      configPatch: {
-        format: 'claude-code',
-        configPath: '~/.claude/settings.json',
-        providerKey: 'torve',
-        baseURL: 'http://localhost:{buyerPort}',
-      },
-    },
-    {
       name: 'claude-desktop',
       displayName: 'Claude Desktop',
       kind: 'config-patch',
@@ -150,6 +123,20 @@ export function getAppDefinitions(): readonly AppDefinition[] {
       },
     },
     {
+      name: 'claude-code',
+      displayName: 'Claude Code CLI',
+      kind: 'config-patch',
+      method: 'Config patch',
+      binary: 'claude',
+      detectPaths: ['~/.claude', '~/.local/bin/claude', '~/.claude/local/claude'],
+      configPatch: {
+        format: 'claude-code',
+        configPath: '~/.claude/settings.json',
+        providerKey: 'torve',
+        baseURL: 'http://localhost:{buyerPort}',
+      },
+    },
+    {
       name: 'gemini-cli',
       displayName: 'Gemini CLI',
       kind: 'config-patch',
@@ -163,184 +150,21 @@ export function getAppDefinitions(): readonly AppDefinition[] {
         baseURL: 'http://localhost:{buyerPort}',
       },
     },
-    {
-      name: 'antigravity',
-      displayName: 'Google Antigravity',
-      kind: 'config-patch',
-      method: 'IDE settings + MCP fallback',
-      binary: 'antigravity',
-      detectPaths: [path.dirname(antigravityIdeSettingsPath()), '~/.gemini/antigravity'],
-      configPatch: {
-        format: 'antigravity-ide',
-        configPath: antigravityIdeSettingsPath(),
-        baseURL: 'http://127.0.0.1:{buyerPort}',
-        mcpFallback: true,
-        mcpConfigPath: '~/.gemini/config/mcp_config.json',
-        serverPath: '~/.torve/mcp/torve-local.mjs',
-      },
-    },
-    {
-      name: 'cursor',
-      displayName: 'Cursor',
-      kind: 'manual',
-      method: 'Manual custom endpoint',
-      binary: 'cursor',
-      detectPaths: cursorConfigPaths(),
-      manualInstructions: (port: number) =>
-        [
-          'Cursor uses an in-app OpenAI base URL setting:',
-          '  1. Open Cursor -> Settings -> Models -> Override OpenAI Base URL',
-          `  2. Base URL: http://127.0.0.1:${port}/app/cursor/v1`,
-          '  3. OpenAI API Key: torve-local-proxy',
-        ].join('\n'),
-    },
-    {
-      name: 'aider',
-      displayName: 'Aider',
-      kind: 'config-patch',
-      method: 'Config patch',
-      binary: 'aider',
-      detectPaths: ['~/.aider.conf.yml', '~/.aider'],
-      configPatch: {
-        format: 'aider',
-        configPath: '~/.aider.conf.yml',
-        baseURL: 'http://127.0.0.1:{buyerPort}/v1',
-      },
-    },
-    {
-      name: 'continue',
-      displayName: 'Continue',
-      kind: 'config-patch',
-      method: 'Config patch',
-      detectPaths: ['~/.continue'],
-      configPatch: {
-        format: 'continue',
-        configPath: '~/.continue/config.yaml',
-        legacyConfigPath: '~/.continue/config.json',
-        baseURL: 'http://127.0.0.1:{buyerPort}/v1',
-      },
-    },
-    {
-      name: 'hermes',
-      displayName: 'Hermes Agent',
-      kind: 'config-patch',
-      method: 'Config patch',
-      binary: 'hermes',
-      detectPaths: ['~/.hermes'],
-      configPatch: {
-        format: 'hermes',
-        configPath: '~/.hermes/config.yaml',
-        providerKey: 'torve',
-        baseURL: 'http://localhost:{buyerPort}/v1',
-      },
-    },
-    {
-      name: 'droid',
-      displayName: 'Droid',
-      kind: 'config-patch',
-      method: 'Config patch',
-      binary: 'droid',
-      detectPaths: ['~/.factory'],
-      configPatch: {
-        format: 'droid',
-        configPath: '~/.factory/settings.json',
-        providerKey: 'torve',
-        providerName: 'Torve Auto',
-        baseURL: 'http://localhost:{buyerPort}/v1',
-        originator: 'droid',
-      },
-    },
-    {
-      name: 't3code',
-      displayName: 'T3 Code',
-      kind: 'config-patch',
-      method: 'Config patch',
-      binary: 't3',
-      detectPaths: ['~/.t3/userdata', '~/.t3'],
-      configPatch: {
-        format: 't3code',
-        configPath: '~/.t3/userdata/settings.json',
-        providerKey: 'torve',
-        providerName: 'Torve',
-        baseURL: 'http://localhost:{buyerPort}',
-      },
-    },
-    {
-      name: 'pi',
-      displayName: 'pi',
-      kind: 'config-patch',
-      method: 'Config patch',
-      binary: 'pi',
-      detectPaths: ['~/.pi'],
-      configPatch: {
-        format: 'pi',
-        configPath: '~/.pi/agent/models.json',
-        settingsPath: '~/.pi/agent/settings.json',
-        providerKey: 'torve',
-        baseURL: 'http://localhost:{buyerPort}/v1',
-        api: 'openai-responses',
-        originator: 'pi',
-      },
-    },
-    {
-      name: 'crush',
-      displayName: 'Crush',
-      kind: 'config-patch',
-      method: 'Config patch',
-      binary: 'crush',
-      detectPaths: [
-        path.dirname(expandHomePath(platformConfigPath('~/.config/crush/crush.json', { base: 'LOCALAPPDATA', segments: ['crush', 'crush.json'] }))),
-        '~/.config/crush',
-      ],
-      configPatch: {
-        format: 'crush',
-        configPath: platformConfigPath('~/.config/crush/crush.json', { base: 'LOCALAPPDATA', segments: ['crush', 'crush.json'] }),
-        providerKey: 'torve',
-        providerName: 'Torve',
-        baseURL: 'http://localhost:{buyerPort}/v1',
-      },
-    },
-    {
-      name: 'goose',
-      displayName: 'Goose',
-      kind: 'config-patch',
-      method: 'Config patch',
-      binary: 'goose',
-      detectPaths: [
-        path.dirname(expandHomePath(platformConfigPath('~/.config/goose/config.yaml', { base: 'APPDATA', segments: ['Block', 'goose', 'config', 'config.yaml'] }))),
-        '~/.config/goose',
-      ],
-      configPatch: {
-        format: 'goose',
-        configPath: platformConfigPath('~/.config/goose/config.yaml', { base: 'APPDATA', segments: ['Block', 'goose', 'config', 'config.yaml'] }),
-        providerKey: 'openai',
-        baseURL: 'http://localhost:{buyerPort}',
-      },
-    },
-    {
-      name: 'zed',
-      displayName: 'Zed',
-      kind: 'config-patch',
-      method: 'Config patch',
-      binary: 'zed',
-      detectPaths: [
-        path.dirname(expandHomePath(platformConfigPath('~/.config/zed/settings.json', { base: 'APPDATA', segments: ['Zed', 'settings.json'] }))),
-        '~/.config/zed',
-      ],
-      configPatch: {
-        format: 'zed',
-        configPath: platformConfigPath('~/.config/zed/settings.json', { base: 'APPDATA', segments: ['Zed', 'settings.json'] }),
-        providerKey: 'torve',
-        providerName: 'Torve',
-        baseURL: 'http://localhost:{buyerPort}/v1',
-      },
-    },
   ];
 }
 
 export function findAppDefinition(name: string): AppDefinition | undefined {
   const normalized = name.trim().toLowerCase();
   return getAppDefinitions().find((a) => a.name === normalized);
+}
+
+export function findComingSoonApp(name: string): ComingSoonApp | undefined {
+  const normalized = name.trim().toLowerCase();
+  return COMING_SOON_APPS.find(
+    (app) => app.id === normalized
+      || app.displayName.toLowerCase() === normalized
+      || app.aliases?.includes(normalized),
+  );
 }
 
 function binaryOnPath(binary: string): boolean {
@@ -475,7 +299,6 @@ export function opencodeTargets(patch: Extract<ConfigPatchDef, { format: 'openco
 
 export function isAppPatched(app: AppDefinition): boolean {
   const patch = app.configPatch;
-  if (!patch) return false;
 
   switch (patch.format) {
     case 'opencode': {
@@ -524,78 +347,21 @@ export function isAppPatched(app: AppDefinition): boolean {
       }
       return false;
     }
-    case 'aider': {
-      const filePath = expandHomePath(patch.configPath);
-      if (!existsSync(filePath)) return false;
-      const base = readFlatYamlKey(readFileSync(filePath, 'utf8'), 'openai-api-base');
-      return isLoopbackUrl(base);
-    }
-    case 'continue': {
-      const yamlPath = expandHomePath(patch.configPath);
-      const legacy = patch.legacyConfigPath ? expandHomePath(patch.legacyConfigPath) : null;
-      const target = !existsSync(yamlPath) && legacy && existsSync(legacy) ? legacy : yamlPath;
-      if (!existsSync(target)) return false;
-      if (target.endsWith('.json')) {
-        const cfg = tryReadJsonc(target);
-        const models = Array.isArray(cfg?.['models']) ? cfg['models'] : [];
-        return models.some((m) => m && typeof m === 'object' && typeof (m as Record<string, unknown>)['name'] === 'string' && ((m as Record<string, unknown>)['name'] as string).startsWith('Torve · '));
-      }
-      return hasContinueYamlTorveEntries(readFileSync(target, 'utf8'));
-    }
-    case 'hermes': {
-      const filePath = expandHomePath(patch.configPath);
-      if (!existsSync(filePath)) return false;
-      const api = readHermesProviderApi(readFileSync(filePath, 'utf8'), patch.providerKey);
-      return isLoopbackUrl(api);
-    }
-    case 'droid': {
-      const cfg = tryReadJsonc(expandHomePath(patch.configPath));
-      const customModels = Array.isArray(cfg?.['customModels']) ? cfg['customModels'] : [];
-      return customModels.some((m) => m && typeof m === 'object' && (m as Record<string, unknown>)['model'] === patch.providerKey);
-    }
-    case 't3code': {
-      const cfg = tryReadJsonc(expandHomePath(patch.configPath));
-      const instances = cfg?.['providerInstances'];
-      return Boolean(instances && typeof instances === 'object' && !Array.isArray(instances) && patch.providerKey in instances);
-    }
-    case 'pi': {
-      const cfg = tryReadJsonc(expandHomePath(patch.configPath));
-      const providers = cfg?.['providers'];
-      return Boolean(providers && typeof providers === 'object' && !Array.isArray(providers) && patch.providerKey in providers);
-    }
-    case 'crush': {
-      const cfg = tryReadJsonc(expandHomePath(patch.configPath));
-      const providers = cfg?.['providers'];
-      return Boolean(providers && typeof providers === 'object' && !Array.isArray(providers) && patch.providerKey in providers);
-    }
-    case 'goose': {
-      const filePath = expandHomePath(patch.configPath);
-      if (!existsSync(filePath)) return false;
-      const raw = readFileSync(filePath, 'utf8');
-      return isLoopbackUrl(readFlatYamlKey(raw, 'OPENAI_HOST')) && readFlatYamlKey(raw, 'OPENAI_API_KEY') === 'torve';
-    }
-    case 'zed': {
-      const cfg = tryReadJsonc(expandHomePath(patch.configPath));
-      const lm = cfg?.['language_models'];
-      if (!lm || typeof lm !== 'object' || Array.isArray(lm)) return false;
-      const compat = (lm as Record<string, unknown>)['openai_compatible'];
-      return Boolean(compat && typeof compat === 'object' && !Array.isArray(compat) && patch.providerName in compat);
-    }
   }
 }
 
 export function listAppsStatus(): AppStatusItem[] {
   return getAppDefinitions().map((app) => {
     const detected = isAppDetected(app);
-    const patched = app.kind === 'config-patch' ? isAppPatched(app) : false;
-    const configPath = app.configPatch ? expandHomePath(app.configPatch.configPath) : expandHomePath(app.detectPaths[0] ?? '');
+    const patched = isAppPatched(app);
+    const configPath = expandHomePath(app.configPatch.configPath);
     return {
       name: app.name,
       displayName: app.displayName,
       kind: app.kind,
       detected,
       patched,
-      status: app.kind === 'manual' ? 'MANUAL' : (patched ? 'ON' : 'OFF'),
+      status: patched ? 'ON' : 'OFF',
       configPath,
     };
   });

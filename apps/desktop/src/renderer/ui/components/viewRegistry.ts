@@ -29,13 +29,12 @@ export type ViewRegistryEntry = {
   preload: () => Promise<ComponentType<RoutedViewProps>>;
   receivesOnSelectView: boolean;
   /** Position on the screen-slide axis: navigating to a higher index slides
-      the new view in from the right, a lower one from the left. Drill-in
-      views (model, credits) sit after the tab they open from. */
+      the new view in from the right, a lower one from the left. */
   slideIndex: number;
   /** When AppShell warms this view's chunk: at startup, on first idle, or
       only when navigated to. */
   preloadPriority: 'eager' | 'idle' | 'none';
-  /** Nav-rail placement; null for drill-in and legacy dev routes. */
+  /** Nav-rail placement. */
   nav: ViewNavConfig | null;
 };
 
@@ -65,10 +64,6 @@ function createViewEntry(
     nav: config.nav ?? null,
   };
 }
-
-// Legacy dev routes have no slide relationship to the AI VPN screens; parking
-// them past the end keeps any transition involving them sliding "forward".
-const LEGACY_SLIDE_INDEX = 13;
 
 export const VIEW_REGISTRY = {
   home: createViewEntry(
@@ -106,62 +101,6 @@ export const VIEW_REGISTRY = {
       preloadPriority: 'eager',
       nav: { slot: 'bottom', label: 'Settings', icon: Settings02Icon },
     },
-  ),
-  model: createViewEntry(
-    async () => (await import('./views/VprModelView')).VprModelView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: 2.5, preloadPriority: 'idle' },
-  ),
-  tunnels: createViewEntry(
-    async () => (await import('./views/VprTunnelsView')).VprTunnelsView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
-  ),
-  chats: createViewEntry(
-    async () => (await import('./views/VprChatsView')).VprChatsView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
-  ),
-  credits: createViewEntry(
-    async () => (await import('./views/VprCreditsView')).VprCreditsView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
-  ),
-  deposit: createViewEntry(
-    async () => (await import('./views/VprDepositView')).VprDepositView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
-  ),
-  activity: createViewEntry(
-    async () => (await import('./views/VprActivityView')).VprActivityView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
-  ),
-  rewards: createViewEntry(
-    async () => (await import('./views/VprRewardsView')).VprRewardsView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
-  ),
-  chat: createViewEntry(
-    async () => (await import('./views/ChatView')).ChatView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
-  ),
-  help: createViewEntry(
-    async () => (await import('./views/VprHelpView')).VprHelpView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
-  ),
-  'torve-account': createViewEntry(
-    async () => (await import('./views/TorveAccountView')).TorveAccountView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
-  ),
-  peers: createViewEntry(
-    async () => (await import('./views/PeersView')).PeersView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
-  ),
-  connection: createViewEntry(
-    async () => (await import('./views/ConnectionView')).ConnectionView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
-  ),
-  config: createViewEntry(
-    async () => (await import('./views/ConfigView')).ConfigView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
-  ),
-  desktop: createViewEntry(
-    async () => (await import('./views/DesktopView')).DesktopView as ComponentType<RoutedViewProps>,
-    { receivesOnSelectView: true, slideIndex: LEGACY_SLIDE_INDEX, preloadPriority: 'none' },
   ),
 } satisfies Record<ViewName, ViewRegistryEntry>;
 

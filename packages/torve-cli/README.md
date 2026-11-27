@@ -1,15 +1,20 @@
-# `@torveai/torve-cli`
+# `@torveai/torve`
 
 Standalone, cross-platform companion CLI for **Torve Cloud** — zero Electron runtime dependencies, zero P2P/blockchain packages, built purely on Node.js (`>= 20`) standard library modules.
 
 Works on **Windows**, **macOS**, and **Linux** either:
-- **Alongside Torve Desktop**: automatically detects a running `127.0.0.1:8378` Desktop proxy and shares `~/.torve/` state (`models-cache.json`, `backups/`, `direct-cloud-profiles.json`).
+- **Alongside Torve Desktop**: automatically detects a running `127.0.0.1:8378` Desktop proxy and shares `~/.torve/` state (`models-cache.json`, `backups/`, `direct-cloud-profiles.json`, `backups/codex/migrated-threads.json`).
 - **100% Standalone**: authenticates via PKCE browser login or `--token`, runs a lightweight loopback HTTP proxy (`127.0.0.1:8378`) supporting `/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/v1/messages`, and `/v1beta`, and persists CLI state in `~/.torve/config.json` and `~/.torve/proxy.pid`.
+
+> Full Desktop + CLI walkthrough: see `docs/user-guide.md` in the repository.
 
 ## Installation
 
 ```bash
-npm install -g @torveai/torve-cli
+# Remove older harness CLI if previously installed
+npm uninstall -g @torveai/cli
+
+npm install -g @torveai/torve
 ```
 
 Or run directly from the monorepo:
@@ -37,12 +42,14 @@ torve logout --all
 ### Connected AI Apps
 
 ```bash
-# List supported apps, disk detection, and ON/OFF status
+# List supported apps, disk detection, ON/OFF state, and Coming Soon apps
 torve apps
 
 # Back up and patch an app (or all detected apps) to route via Torve proxy
-torve on opencode
+torve on antigravity
 torve on codex
+torve on opencode
+torve on claude-desktop
 torve on claude-code
 torve on gemini-cli
 torve on all
@@ -52,7 +59,19 @@ torve off codex
 torve off all
 ```
 
-Supported apps: `opencode`, `codex`, `claude-code`, `claude-desktop`, `gemini-cli`, `antigravity`, `cursor` (manual endpoint instructions), `aider`, `continue`, `hermes`, `droid`, `t3code`, `pi`, `crush`, `goose`, `zed`.
+Supported apps (6):
+- `antigravity` — **Google Antigravity**
+- `codex` — **Codex** (includes automatic `~/.codex/state_5.sqlite` old-thread migration/restoration on Node 22+ via `node:sqlite`)
+- `opencode` — **OpenCode**
+- `claude-desktop` — **Claude Desktop**
+- `claude-code` — **Claude Code CLI**
+- `gemini-cli` — **Gemini CLI**
+
+Coming Soon:
+- **Cursor** (`cursor`)
+- **Cline / Roo Code** (`cline`)
+- **Aider** (`aider`)
+- **Continue** (`continue`)
 
 ### Local Proxy & Diagnostics
 

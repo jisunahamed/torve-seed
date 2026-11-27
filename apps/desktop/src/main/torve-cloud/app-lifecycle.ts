@@ -127,47 +127,24 @@ export const TERMINAL_CLI_PROFILES: ReadonlySet<string> = new Set([
   'opencode-cli',
   'claude-code',
   'codex-cli',
-  'aider',
-  'pi',
-  'crush',
-  'continue',
-  'cline-roo',
 ]);
 
 /** Known GUI desktop / IDE applications that read config at startup. */
 export const KNOWN_GUI_PROFILES: ReadonlySet<string> = new Set([
   'antigravity',
   'claude-desktop',
-  'cursor',
-  'windsurf',
-  'vscode',
-  'visual-studio-code',
-  'zed',
-  't3code',
-  'gooeypi',
-  'hermes',
   'opencode-desktop',
   'codex-desktop',
-  'chatgpt',
 ]);
 
 /** Default GUI application names per profile when `restartAppName` isn't specified. */
 const DEFAULT_GUI_APP_NAMES: Readonly<Record<string, readonly string[]>> = {
   antigravity: ['Antigravity'],
   'claude-desktop': ['Claude'],
-  cursor: ['Cursor'],
-  windsurf: ['Windsurf'],
-  vscode: ['Visual Studio Code', 'Code'],
-  'visual-studio-code': ['Visual Studio Code', 'Code'],
-  zed: ['Zed'],
-  t3code: ['T3 Code', 'T3 Code (Alpha)', 'T3 Code (Beta)', 'T3 Code (Nightly)'],
-  gooeypi: ['GooeyPi'],
-  hermes: ['Hermes'],
   opencode: ['OpenCode'],
   'opencode-desktop': ['OpenCode'],
   codex: ['Codex', 'ChatGPT'],
   'codex-desktop': ['Codex', 'ChatGPT'],
-  goose: ['Goose'],
 };
 
 /**
@@ -286,13 +263,9 @@ async function collectPatchConfigPaths(patch: ConfigPatchDef): Promise<string[]>
     return cp.opencodeConfigTargets(patch);
   }
   const paths = [expandHome(patch.configPath)];
-  if (patch.format === 'pi') paths.push(expandHome(patch.settingsPath));
   if (patch.format === 'gemini-cli') paths.push(expandHome(patch.envPath));
   if (patch.format === 'antigravity-ide' && patch.mcpFallback && patch.mcpConfigPath) {
     paths.push(expandHome(patch.mcpConfigPath));
-  }
-  if (patch.format === 'continue' && patch.legacyConfigPath && !existsSync(paths[0]!) && existsSync(expandHome(patch.legacyConfigPath))) {
-    return [expandHome(patch.legacyConfigPath)];
   }
   return paths;
 }
@@ -437,7 +410,7 @@ export function createDefaultLifecycleRuntime(): AppLifecycleRuntime {
       }
       if (patch.format === 'opencode') {
         patch = { ...patch, apiKey: 'torve-local-proxy', modelAlias: 'auto', models: opencodeMod.opencodeModelsFromCatalog(catalog) };
-      } else if (patch.format === 'continue' || patch.format === 'claude-code') {
+      } else if (patch.format === 'claude-code') {
         patch = { ...patch, models: opencodeMod.opencodeModelsFromCatalog(catalog) };
       } else if (patch.format === 'gemini-cli' && overrides[profileName]?.enabled) {
         patch = { ...patch, model: overrides[profileName]!.modelId };
@@ -771,6 +744,79 @@ export async function relaunchOrVerifyApp(
     verified: proxyOk,
     detail: `${target.name} restarted and connected.`,
   };
+}
+
+/**
+ * Cleanly closes a running GUI app (with graceful quit, exit poll, and safe
+ * unresponsive fallback) BEFORE mutating app databases or sensitive configs.
+ */
+export async function stopAppIfRunning(
+  profileName: string,
+  opts: {
+    restartAppName?: string;
+    graceTimeoutMs?: number;
+    settleDelayMs?: number;
+    forceAfterGrace?: boolean;
+    onProgress?: (event: ConnectLifecycleProgress) => void;
+    runtime?: Partial<AppLifecycleRuntime>;
+  } = {},
+): Promise<{ ok: boolean; wasRunning: boolean; error?: string }> {
+  const runtime = mergeRuntime(opts.runtime);
+  const graceTimeoutMs = opts.graceTimeoutMs ?? DEFAULT_GRACE_TIMEOUT_MS;
+  const settleDelayMs = opts.settleDelayMs ?? DEFAULT_SETTLE_DELAY_MS;
+  const emit = (stage: ConnectLifecycleStage, label: string, detail?: string) => {
+    opts.onProgress?.(makeLifecycleProgress(profileName, stage, label, detail, runtime.now()));
+  };
+
+  const { target, isGui } = await resolveProfileAndTarget(profileName, opts.restartAppName, runtime);
+  if (!isGui || !target) {
+    return { ok: true, wasRunning: false };
+  }
+
+  if (!(await isSafeGuiTarget(target, runtime))) {
+    return {
+      ok: false,
+      wasRunning: false,
+      error: `Refused to terminate protected process "${target.name}".`,
+    };
+  }
+
+  const running = await runtime.isTargetRunning(target);
+  if (!running) {
+    return { ok: true, wasRunning: false };
+  }
+
+  emit('restarting-app', `Closing ${target.name}...`, `Waiting for ${target.name} to exit safely`);
+  try {
+    await runtime.quitTarget(target);
+  } catch {
+    // Wait loop checks exit status regardless.
+  }
+
+  let exited = await waitUntilExited(target, graceTimeoutMs, runtime);
+  if (!exited && opts.forceAfterGrace !== false && (await isSafeGuiTarget(target, runtime))) {
+    emit('restarting-app', `Closing ${target.name}...`, 'Force-closing unresponsive app window');
+    try {
+      await runtime.killTarget(target);
+    } catch {
+      // Best-effort fallback.
+    }
+    exited = await waitUntilExited(target, DEFAULT_FORCE_WAIT_MS, runtime);
+  }
+
+  if (!exited) {
+    return {
+      ok: false,
+      wasRunning: true,
+      error: `${target.name} is still running. Close it completely before modifying Codex state.`,
+    };
+  }
+
+  if (settleDelayMs > 0) {
+    await runtime.sleep(settleDelayMs);
+  }
+
+  return { ok: true, wasRunning: true };
 }
 
 /**

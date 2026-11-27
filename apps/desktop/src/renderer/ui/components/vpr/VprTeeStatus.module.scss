@@ -1,0 +1,10 @@
+.badge {
+  display: inline-flex;
+  max-width: 100%;
+  border-radius: 999px;
+}
+
+.badge:focus-visible {
+  outline: 2px solid var(--text-muted);
+  outline-offset: 2px;
+}

@@ -9,9 +9,6 @@ import {
   rendererUrl,
 } from '../app-context.js';
 import {
-  resolveBuyerProxyPort,
-} from '../runtime/active-config.js';
-import {
   closeFloatWindow,
   getFloatWindow,
   getFloatWindowCompact,
@@ -20,6 +17,8 @@ import {
   setFloatWindowCompact,
   setFloatWindowExpanded,
 } from '../ui/window.js';
+
+const DEFAULT_DIRECT_PROXY_PORT = Number(process.env['TORVE_CLOUD_PROXY_PORT']) || 8378;
 
 /** Last payload pushed to the pill, replayed when it reopens. */
 let lastVprFloatData: unknown;
@@ -60,8 +59,7 @@ export function registerFloatIpc(): void {
   // instead of a wrong "no chats" one.
   ipcMain.handle('buyer:conversations-list', async () => {
     try {
-      const buyerPort = await resolveBuyerProxyPort();
-      const response = await fetch(`http://127.0.0.1:${buyerPort}/_torve/conversations`, {
+      const response = await fetch(`http://127.0.0.1:${DEFAULT_DIRECT_PROXY_PORT}/_torve/conversations`, {
         signal: AbortSignal.timeout(3_000),
       });
       const parsed = await response.json() as { conversations?: unknown[] };
@@ -82,8 +80,7 @@ export function registerFloatIpc(): void {
     if ('pinnedModel' in record) payload.pinnedModel = typeof record.pinnedModel === 'string' ? record.pinnedModel : '';
     if (record.peerSource === 'user' || record.peerSource === 'auto') payload.peerSource = record.peerSource;
     try {
-      const buyerPort = await resolveBuyerProxyPort();
-      const response = await fetch(`http://127.0.0.1:${buyerPort}/_torve/conversations/update`, {
+      const response = await fetch(`http://127.0.0.1:${DEFAULT_DIRECT_PROXY_PORT}/_torve/conversations/update`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload),

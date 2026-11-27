@@ -167,7 +167,7 @@ export function UpdateBanner() {
       ? 'Downloading update…'
       : available
         ? `Torve Desktop v${update.version} is available`
-        : `Update ready — v${update.version}`;
+        : `Torve Desktop v${update.version} is ready to install`;
 
   const body = installing
     ? 'The app will restart on the new version in a moment.'
@@ -206,7 +206,7 @@ export function UpdateBanner() {
         )}
         {update.status === 'ready' && (
           <button type="button" className={styles.updateBannerBtn} onClick={() => { void handleInstall(); }}>
-            Restart &amp; Install
+            Restart to Install
           </button>
         )}
         {!installing && (

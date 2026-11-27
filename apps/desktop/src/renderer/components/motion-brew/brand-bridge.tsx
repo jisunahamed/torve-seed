@@ -56,6 +56,8 @@ export interface BridgeBrand {
   colors: string[];
   /** The mark inside the tile, about 28px. */
   logo: React.ReactNode;
+  /** When explicitly false, the harness is not installed on this machine. */
+  installed?: boolean;
 }
 
 export interface BrandBridgeProps {
@@ -72,6 +74,8 @@ export interface BrandBridgeProps {
    */
   autoplay?: boolean;
   onToggle?: (id: string, connected: boolean) => void;
+  /** Optional header strip rendered directly above the interactive stage. */
+  header?: React.ReactNode;
   /** Heading under the graphic. */
   title?: React.ReactNode;
   /** Line under the heading. */
@@ -205,11 +209,11 @@ export const DEFAULT_BRANDS = pick([
 
 // The stage is drawn at this size and scaled down to fit narrower containers.
 const W = 480;
-const H = 300;
+const H = 248;
 const HX = W / 2;
-const HY = 160;
-const HUB = 88;
-const TILE = 52;
+const HY = 124;
+const HUB = 84;
+const TILE = 50;
 const INK = "#A1A1AA";
 const GLIDE = [0.22, 1, 0.36, 1] as const;
 const POP = { type: "spring", stiffness: 520, damping: 28 } as const;
@@ -217,7 +221,7 @@ const POP = { type: "spring", stiffness: 520, damping: 28 } as const;
 /** Tile centres: two straight columns, evenly spaced round the hub's height. */
 function spots(n: number) {
   const side = Math.ceil(n / 2);
-  const gap = side > 3 ? 64 : 80;
+  const gap = side > 3 ? 58 : 70;
   return Array.from({ length: n }, (_, i) => {
     const right = i >= side;
     const k = right ? i - side : i;
@@ -304,6 +308,7 @@ export const BrandBridge = React.forwardRef<HTMLDivElement, BrandBridgeProps>(
       connectedIds,
       autoplay = true,
       onToggle,
+      header,
       title = "All your tools, one hub",
       description = "Connect the apps your team already uses and keep every account in sync. Tap a logo to link it, tap it again to let it go.",
       hub,
@@ -474,7 +479,7 @@ export const BrandBridge = React.forwardRef<HTMLDivElement, BrandBridgeProps>(
       let timer = 0;
       const connect = () => {
         const cur = live.current.on;
-        const left = list.flatMap((b, i) => (cur.has(b.id) ? [] : [i]));
+        const left = list.flatMap((b, i) => (b.installed !== false && !cur.has(b.id) ? [i] : []));
         if (!left.length) {
           setAuto(false);
           return;
@@ -744,9 +749,13 @@ export const BrandBridge = React.forwardRef<HTMLDivElement, BrandBridgeProps>(
           className,
         )}
       >
+        {header}
         {/* The graphic */}
         <div
-          className="relative flex justify-center overflow-hidden border-b border-[#222226] bg-[#09090B]"
+          className={cn(
+            "relative flex justify-center overflow-hidden bg-[#09090B]",
+            Boolean(title || description) && "border-b border-[#222226]",
+          )}
           style={{ height: H * scale }}
           onPointerMove={(e) => {
             const stageEl = e.currentTarget.querySelector<HTMLElement>("[data-bridge-stage]");
@@ -952,29 +961,37 @@ export const BrandBridge = React.forwardRef<HTMLDivElement, BrandBridgeProps>(
             {/* Brand tiles */}
             {list.map((b, i) => {
               const l = lines[i]!;
-              const conn = on.has(b.id);
-              const lit = hover === i;
+              const notInstalled = b.installed === false;
+              const conn = !notInstalled && on.has(b.id);
+              const lit = !notInstalled && hover === i;
               const right = i >= Math.ceil(list.length / 2);
               return (
                 <motion.button
                   key={b.id}
                   type="button"
+                  disabled={notInstalled}
+                  aria-disabled={notInstalled || undefined}
                   aria-pressed={conn}
-                  aria-label={`${b.name}, ${conn ? "connected" : "not connected"}`}
-                  title={`${b.name} — ${conn ? "Connected (click to disconnect)" : "Click to connect"}`}
+                  aria-label={`${b.name}, ${notInstalled ? "not installed" : conn ? "connected" : "not connected"}`}
+                  title={notInstalled
+                    ? "Not installed"
+                    : `${b.name} — ${conn ? "Connected (click to disconnect)" : "Click to connect"}`}
                   onClick={() => {
+                    if (notInstalled) return;
                     setAuto(false);
                     link(i, !conn);
                   }}
-                  onPointerEnter={() => setHover(i)}
+                  onPointerEnter={() => { if (!notInstalled) setHover(i); }}
                   onPointerLeave={() => setHover((h) => (h === i ? null : h))}
-                  onFocus={() => setHover(i)}
+                  onFocus={() => { if (!notInstalled) setHover(i); }}
                   onBlur={() => setHover((h) => (h === i ? null : h))}
                   className={cn(
-                    "group absolute grid cursor-pointer place-items-center rounded-[16px] border bg-[#18181B] shadow-none outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#D8FF0A]/70",
-                    conn
-                      ? "border-[#14FF73]/55"
-                      : "border-[#27272A] hover:border-[#3F3F46]",
+                    "group absolute grid place-items-center rounded-[16px] border bg-[#18181B] shadow-none outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#D8FF0A]/70",
+                    notInstalled
+                      ? "cursor-not-allowed border-[#222226] opacity-40"
+                      : conn
+                        ? "cursor-pointer border-[#14FF73]/55"
+                        : "cursor-pointer border-[#27272A] hover:border-[#3F3F46]",
                   )}
                   style={{
                     left: l.x - TILE / 2,
@@ -995,8 +1012,13 @@ export const BrandBridge = React.forwardRef<HTMLDivElement, BrandBridgeProps>(
                   animate={
                     shown
                       ? {
-                          opacity:
-                            hover !== null && !lit ? 0.75 : conn ? 1 : 0.92,
+                          opacity: notInstalled
+                            ? 0.35
+                            : hover !== null && !lit
+                              ? 0.75
+                              : conn
+                                ? 1
+                                : 0.92,
                           scale: lit ? 1.08 : 1,
                           x: 0,
                           y: lit ? -3 : 0,
@@ -1004,7 +1026,7 @@ export const BrandBridge = React.forwardRef<HTMLDivElement, BrandBridgeProps>(
                         }
                       : undefined
                   }
-                  whileTap={still ? undefined : { scale: 0.92 }}
+                  whileTap={still || notInstalled ? undefined : { scale: 0.92 }}
                   transition={{
                     type: "spring",
                     stiffness: 380,
@@ -1016,11 +1038,15 @@ export const BrandBridge = React.forwardRef<HTMLDivElement, BrandBridgeProps>(
                   <motion.span
                     className="grid"
                     animate={{
-                      opacity: conn ? 1 : 0.72,
+                      opacity: notInstalled ? 0.45 : conn ? 1 : 0.72,
                     }}
+                    style={notInstalled ? { filter: "grayscale(0.7)" } : undefined}
                     transition={{ duration: 0.35 }}
                   >
-                    <span className="grid transition-transform duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-110 group-hover:-rotate-6">
+                    <span className={cn(
+                      "grid transition-transform duration-300 [transition-timing-function:cubic-bezier(0.34,1.56,0.64,1)]",
+                      !notInstalled && "group-hover:scale-110 group-hover:-rotate-6",
+                    )}>
                       {b.logo}
                     </span>
                   </motion.span>
@@ -1031,29 +1057,35 @@ export const BrandBridge = React.forwardRef<HTMLDivElement, BrandBridgeProps>(
           </div>
         </div>
 
-        {/* Heading and line, centred under the graphic. */}
-        <div className="px-6 pb-5 pt-4 text-center">
-          <motion.h3
-            initial={still ? false : { opacity: 0, y: 8, filter: "blur(4px)" }}
-            animate={
-              shown ? { opacity: 1, y: 0, filter: "blur(0px)" } : undefined
-            }
-            transition={{ duration: 0.5, ease: GLIDE, delay: still ? 0 : 0.35 }}
-            className="text-[16px] font-semibold tracking-tight text-[#F4F4F5]"
-          >
-            {title}
-          </motion.h3>
-          <motion.p
-            initial={still ? false : { opacity: 0, y: 8, filter: "blur(4px)" }}
-            animate={
-              shown ? { opacity: 1, y: 0, filter: "blur(0px)" } : undefined
-            }
-            transition={{ duration: 0.5, ease: GLIDE, delay: still ? 0 : 0.43 }}
-            className="mx-auto mt-1.5 max-w-[380px] text-pretty text-[12px] leading-relaxed text-[#A1A1AA]"
-          >
-            {description}
-          </motion.p>
-        </div>
+        {/* Heading and line, centred under the graphic when provided. */}
+        {(title || description) ? (
+          <div className="px-6 pb-5 pt-4 text-center">
+            {title ? (
+              <motion.h3
+                initial={still ? false : { opacity: 0, y: 8, filter: "blur(4px)" }}
+                animate={
+                  shown ? { opacity: 1, y: 0, filter: "blur(0px)" } : undefined
+                }
+                transition={{ duration: 0.5, ease: GLIDE, delay: still ? 0 : 0.35 }}
+                className="text-[16px] font-semibold tracking-tight text-[#F4F4F5]"
+              >
+                {title}
+              </motion.h3>
+            ) : null}
+            {description ? (
+              <motion.p
+                initial={still ? false : { opacity: 0, y: 8, filter: "blur(4px)" }}
+                animate={
+                  shown ? { opacity: 1, y: 0, filter: "blur(0px)" } : undefined
+                }
+                transition={{ duration: 0.5, ease: GLIDE, delay: still ? 0 : 0.43 }}
+                className="mx-auto mt-1.5 max-w-[380px] text-pretty text-[12px] leading-relaxed text-[#A1A1AA]"
+              >
+                {description}
+              </motion.p>
+            ) : null}
+          </div>
+        ) : null}
         <span role="status" aria-live="polite" className="sr-only">
           {said}
         </span>

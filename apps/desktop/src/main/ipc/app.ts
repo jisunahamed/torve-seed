@@ -1,44 +1,18 @@
 /**
  * IPC surface for app-level queries: version and locale, first-run setup
- * state, the signing identity, voice transcription, and price references.
+ * state, telemetry controls, and the local signing identity.
  */
-import { ipcMain } from 'electron';
-import { stopPaymentsPortal } from '../payments/portal.js';
-import { stakingSessions } from '../staking/portal.js';
-import {
-  getAppSetupStatus,
-} from '../app-context.js';
-import {
-  getOpenRouterReferencePrices,
-} from '../billing/openrouter-catalog.js';
+import { app, dialog, ipcMain } from 'electron';
+import { writeFile } from 'node:fs/promises';
+import { getAppSetupStatus } from '../app-context.js';
 import {
   ensureSecureIdentity,
   exportIdentityPrivateKeyHex,
   getSecureIdentity,
   importIdentityPrivateKeyHex,
 } from '../identity.js';
-import {
-  invalidateCreditsCache,
-} from '../payments/credits.js';
-import {
-  getTelemetryService,
-} from '../telemetry/runtime.js';
-import {
-  getMainWindow,
-} from '../ui/window.js';
-import {
-  getVoiceTranscriptionStatus,
-  installVoiceTranscriptionModel,
-  setVoiceTranscriptionModel,
-  transcribeVoiceAudio,
-} from '../voice-transcription.js';
-import {
-  app,
-  dialog,
-} from 'electron';
-import {
-  writeFile,
-} from 'node:fs/promises';
+import { getTelemetryService } from '../telemetry/runtime.js';
+import { getMainWindow } from '../ui/window.js';
 import {
   TELEMETRY_ACTION_SURFACES,
   TELEMETRY_APP_NAMES,
@@ -48,27 +22,10 @@ import {
 } from '../../shared/telemetry.js';
 
 export function registerAppIpc(): void {
-  ipcMain.handle('voice:transcribe', async (_event, audio: ArrayBuffer | Uint8Array) => {
-    return transcribeVoiceAudio(audio);
-  });
-
-  ipcMain.handle('voice:get-status', () => getVoiceTranscriptionStatus());
-
-  ipcMain.handle('voice:set-model', (_event, modelId: string) => setVoiceTranscriptionModel(modelId));
-
-  ipcMain.handle('voice:install-model', (_event, modelId: string) => installVoiceTranscriptionModel(modelId));
-
   ipcMain.handle('app:get-setup-status', () => ({
     ...getAppSetupStatus(),
   }));
 
-  // Returns the macOS UI language (e.g. 'he', 'ar-EG', 'en-US') as Electron sees
-  // it. This is the same locale that drives the system window-chrome direction,
-  // so it's the authoritative signal for whether the traffic-light buttons are
-  // mirrored to the top-right. Prefer this over `navigator.language` /
-  // `navigator.languages` in the renderer — those reflect the *web* preferred
-  // language list, not the OS UI language, and can disagree on multilingual
-  // systems.
   ipcMain.handle('app:get-system-locale', () => app.getLocale());
 
   ipcMain.handle('app:get-version', () => app.getVersion());
@@ -114,7 +71,7 @@ export function registerAppIpc(): void {
     return { ok: true };
   });
 
-  ipcMain.handle('openrouter:reference-prices', () => getOpenRouterReferencePrices());
+  ipcMain.handle('openrouter:reference-prices', () => ({}));
 
   ipcMain.handle('identity:get', async () => {
     try {
@@ -165,16 +122,7 @@ export function registerAppIpc(): void {
         return { ok: false, error: 'Private key must be a string' };
       }
       await ensureSecureIdentity();
-      const result = await stakingSessions.reset(async () => {
-        const imported = await importIdentityPrivateKeyHex(rawKey);
-        if (imported.ok) await stopPaymentsPortal();
-        return imported;
-      });
-      if (result.ok) {
-        // Balances cached for the previous signer no longer apply.
-        invalidateCreditsCache();
-      }
-      return result;
+      return await importIdentityPrivateKeyHex(rawKey);
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : String(err) };
     }

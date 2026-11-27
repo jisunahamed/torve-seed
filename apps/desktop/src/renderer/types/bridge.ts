@@ -53,6 +53,10 @@ export type SystemProxyProfileSummary = {
   toolName?: string;
   canRestart?: boolean;
   needsRestart?: boolean;
+  /** False when the app/CLI is not detected on this machine. */
+  installed?: boolean;
+  /** True when the app's synced model list or config is stale and needs refresh. */
+  needsRefresh?: boolean;
   /** True for user-added custom apps (removable, favicon-based icon). */
   custom?: boolean;
   iconDataUri?: string;
@@ -575,6 +579,7 @@ export type DesktopBridge = {
     upstream: string;
   }) => void) => () => void;
   torveCloudProxyStatus?: () => Promise<{ running: boolean; port: number; upstream: string }>;
+  torveCloudProxyStart?: () => Promise<{ ok: boolean; running?: boolean; port?: number; error?: string }>;
   antigravityStandaloneStatus?: (opts?: { bypassCache?: boolean }) => Promise<AntigravityStandalonePatchStatus>;
   antigravityStandaloneSet?: (enabled: boolean) => Promise<{ ok: boolean; status?: AntigravityStandalonePatchStatus; error?: string }>;
   antigravityStandaloneCloseAndEnable?: () => Promise<{ ok: boolean; error?: string; status?: AntigravityStandalonePatchStatus }>;

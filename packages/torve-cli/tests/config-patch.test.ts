@@ -2,20 +2,27 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { isAppPatched, listAppsStatus } from '../src/apps.js';
+import { COMING_SOON_APPS, isAppPatched, listAppsStatus } from '../src/apps.js';
+import { migrateCodexThreadsToTorve, restoreCodexThreadsFromTorve } from '../src/codex-threads.js';
 import { disableApp, enableApp, MIN_CONTEXT_WINDOW_FLOOR, MIN_OUTPUT_TOKENS_FLOOR } from '../src/config-patch.js';
-import { codexCatalogPath } from '../src/state.js';
+import { codexCatalogPath, codexMigratedThreadsPath } from '../src/state.js';
 
 let tempRoot = '';
 let prevHome: string | undefined;
 let prevTorveHome: string | undefined;
+let prevAppData: string | undefined;
+let prevLocalAppData: string | undefined;
 
 beforeEach(() => {
   tempRoot = mkdtempSync(path.join(tmpdir(), 'torve-cli-patch-'));
   prevHome = process.env['TORVE_TEST_HOME'];
   prevTorveHome = process.env['TORVE_HOME'];
+  prevAppData = process.env['APPDATA'];
+  prevLocalAppData = process.env['LOCALAPPDATA'];
   process.env['TORVE_TEST_HOME'] = tempRoot;
   process.env['TORVE_HOME'] = path.join(tempRoot, '.torve');
+  process.env['APPDATA'] = path.join(tempRoot, 'AppData', 'Roaming');
+  process.env['LOCALAPPDATA'] = path.join(tempRoot, 'AppData', 'Local');
 });
 
 afterEach(() => {
@@ -23,10 +30,49 @@ afterEach(() => {
   else process.env['TORVE_TEST_HOME'] = prevHome;
   if (prevTorveHome === undefined) delete process.env['TORVE_HOME'];
   else process.env['TORVE_HOME'] = prevTorveHome;
+  if (prevAppData === undefined) delete process.env['APPDATA'];
+  else process.env['APPDATA'] = prevAppData;
+  if (prevLocalAppData === undefined) delete process.env['LOCALAPPDATA'];
+  else process.env['LOCALAPPDATA'] = prevLocalAppData;
   if (tempRoot) rmSync(tempRoot, { recursive: true, force: true });
 });
 
-describe('config patching and restoration', () => {
+async function loadNodeSqlite(): Promise<{ DatabaseSync: new (p: string) => { exec: (sql: string) => void; prepare: (sql: string) => { run: (...args: unknown[]) => unknown; all: (...args: unknown[]) => unknown[] }; close: () => void } } | null> {
+  try {
+    const mod = (await import('node:sqlite' as string)) as {
+      DatabaseSync?: new (p: string) => { exec: (sql: string) => void; prepare: (sql: string) => { run: (...args: unknown[]) => unknown; all: (...args: unknown[]) => unknown[] }; close: () => void };
+    };
+    return typeof mod.DatabaseSync === 'function' ? { DatabaseSync: mod.DatabaseSync } : null;
+  } catch {
+    return null;
+  }
+}
+
+describe('6-app inventory and config patching', () => {
+  it('exposes strictly the 6 active apps with distinct labels and 4 coming-soon apps', () => {
+    const statuses = listAppsStatus();
+    expect(statuses.map((s) => [s.name, s.displayName])).toEqual([
+      ['antigravity', 'Google Antigravity'],
+      ['codex', 'Codex'],
+      ['opencode', 'OpenCode'],
+      ['claude-desktop', 'Claude Desktop'],
+      ['claude-code', 'Claude Code CLI'],
+      ['gemini-cli', 'Gemini CLI'],
+    ]);
+    expect(COMING_SOON_APPS.map((a) => [a.id, a.displayName])).toEqual([
+      ['cursor', 'Cursor'],
+      ['cline', 'Cline / Roo Code'],
+      ['aider', 'Aider'],
+      ['continue', 'Continue'],
+    ]);
+  });
+
+  it('rejects removed legacy/niche apps and coming-soon apps in enableApp', async () => {
+    for (const removed of ['zed', 'goose', 'hermes', 'droid', 'crush', 'pi', 'gooeypi', 't3code', 'aider', 'continue', 'cursor']) {
+      await expect(enableApp(removed, { port: 8378, models: [] })).rejects.toThrow(/Unknown app/);
+    }
+  });
+
   it('patches OpenCode with singular provider, 1M context floor, and 32K output floor, then restores backup', async () => {
     const ocDir = path.join(tempRoot, '.config', 'opencode');
     mkdirSync(ocDir, { recursive: true });
@@ -65,13 +111,38 @@ describe('config patching and restoration', () => {
     expect(listAppsStatus().find((a) => a.name === 'opencode')!.status).toBe('OFF');
   });
 
-  it('patches Codex TOML with model_context_window = 1000000 and writes catalog, then restores cleanly', async () => {
+  it('patches Codex TOML, writes catalog, migrates/restores state_5.sqlite threads, and restores cleanly', async () => {
     const codexDir = path.join(tempRoot, '.codex');
     mkdirSync(codexDir, { recursive: true });
     const tomlFile = path.join(codexDir, 'config.toml');
     const original = 'approval_policy = "on-request"\n\n[projects."/repo"]\ntrust_level = "trusted"\n';
     writeFileSync(tomlFile, original, 'utf8');
     writeFileSync(path.join(codexDir, 'models_cache.json'), '{}', 'utf8');
+
+    const sqlite = await loadNodeSqlite();
+    const dbPath = path.join(codexDir, 'state_5.sqlite');
+    const rolloutPath = path.join(codexDir, 'rollout-1.jsonl');
+    if (sqlite) {
+      writeFileSync(
+        rolloutPath,
+        [
+          JSON.stringify({ timestamp: '2026-01-01T00:00:00Z', type: 'session_meta', payload: { id: 't-openai', model_provider: 'openai' } }),
+          JSON.stringify({ timestamp: '2026-01-01T00:00:01Z', type: 'response_item', payload: { text: 'hello' } }),
+        ].join('\n') + '\n',
+        'utf8',
+      );
+      const db = new sqlite.DatabaseSync(dbPath);
+      try {
+        db.exec('CREATE TABLE threads (id TEXT PRIMARY KEY, model_provider TEXT, rollout_path TEXT);');
+        const insert = db.prepare('INSERT INTO threads (id, model_provider, rollout_path) VALUES (?, ?, ?)');
+        const extendedRolloutPath = process.platform === 'win32' ? `\\\\?\\${rolloutPath}` : rolloutPath;
+        insert.run('t-openai', 'openai', extendedRolloutPath);
+        insert.run('t-router', 'codex-router', null);
+        insert.run('t-ollama', 'ollama', null);
+      } finally {
+        db.close();
+      }
+    }
 
     await enableApp('codex', {
       port: 8378,
@@ -88,25 +159,59 @@ describe('config patching and restoration', () => {
     expect(existsSync(codexCatalogPath())).toBe(true);
     expect(existsSync(path.join(codexDir, 'models_cache.json'))).toBe(false);
 
+    if (sqlite) {
+      expect(existsSync(codexMigratedThreadsPath())).toBe(true);
+      const db = new sqlite.DatabaseSync(dbPath);
+      try {
+        const rows = db.prepare('SELECT id, model_provider FROM threads').all() as Array<{ id: string; model_provider: string }>;
+        expect(Object.fromEntries(rows.map((r) => [r.id, r.model_provider]))).toEqual({
+          't-openai': 'torve',
+          't-router': 'torve',
+          't-ollama': 'ollama',
+        });
+      } finally {
+        db.close();
+      }
+      const sessionMeta = JSON.parse(readFileSync(rolloutPath, 'utf8').trim().split('\n')[0]!) as { payload: { model_provider: string } };
+      expect(sessionMeta.payload.model_provider).toBe('torve');
+    }
+
     await disableApp('codex');
     expect(readFileSync(tomlFile, 'utf8')).toBe(original);
     expect(existsSync(codexCatalogPath())).toBe(false);
+    expect(existsSync(codexMigratedThreadsPath())).toBe(false);
+
+    if (sqlite) {
+      const db = new sqlite.DatabaseSync(dbPath);
+      try {
+        const rows = db.prepare('SELECT id, model_provider FROM threads').all() as Array<{ id: string; model_provider: string }>;
+        expect(Object.fromEntries(rows.map((r) => [r.id, r.model_provider]))).toEqual({
+          't-openai': 'openai',
+          't-router': 'codex-router',
+          't-ollama': 'ollama',
+        });
+      } finally {
+        db.close();
+      }
+    }
   });
 
-  it('patches and restores Claude Code, Gemini CLI, Aider, Continue YAML, and Hermes YAML', async () => {
+  it('handles Codex thread migration safely when state_5.sqlite is missing', async () => {
+    const dbPath = path.join(tempRoot, 'missing-state_5.sqlite');
+    const manifestPath = path.join(tempRoot, 'codex-migrated-threads.json');
+    expect(await migrateCodexThreadsToTorve({ dbPath, manifestPath })).toEqual({ migratedCount: 0 });
+    expect(existsSync(manifestPath)).toBe(false);
+    expect(await restoreCodexThreadsFromTorve({ dbPath, manifestPath })).toEqual({ restoredCount: 0 });
+  });
+
+  it('patches and restores Claude Code CLI, Gemini CLI, Google Antigravity, and Claude Desktop', async () => {
     mkdirSync(path.join(tempRoot, '.claude'), { recursive: true });
     mkdirSync(path.join(tempRoot, '.gemini'), { recursive: true });
-    mkdirSync(path.join(tempRoot, '.continue'), { recursive: true });
-    mkdirSync(path.join(tempRoot, '.hermes'), { recursive: true });
-
     writeFileSync(path.join(tempRoot, '.claude', 'settings.json'), '{"model":"sonnet"}\n');
     writeFileSync(path.join(tempRoot, '.gemini', 'settings.json'), '{"theme":"Default"}\n');
-    writeFileSync(path.join(tempRoot, '.aider.conf.yml'), 'auto-commits: false\n');
-    writeFileSync(path.join(tempRoot, '.continue', 'config.yaml'), 'models:\n  - name: Local\n    provider: ollama\n');
-    writeFileSync(path.join(tempRoot, '.hermes', 'config.yaml'), 'model:\n  provider: openai\n');
 
     const models = [{ id: 'claude-sonnet-4', name: 'Claude Sonnet 4' }];
-    for (const app of ['claude-code', 'gemini-cli', 'aider', 'continue', 'hermes']) {
+    for (const app of ['claude-code', 'gemini-cli', 'antigravity', 'claude-desktop']) {
       await enableApp(app, { port: 8378, models });
     }
 
@@ -114,26 +219,23 @@ describe('config patching and restoration', () => {
       env: Record<string, string>;
       model: string;
     };
-    expect(claudeCfg.env['ANTHROPIC_BASE_URL']).toBe('http://localhost:8378/app/claude-code');
+    expect(claudeCfg.env['ANTHROPIC_BASE_URL']).toBe('http://127.0.0.1:8378/app/claude-desktop');
     expect(claudeCfg.model).toBe('torve');
 
     const geminiEnv = readFileSync(path.join(tempRoot, '.gemini', '.env'), 'utf8');
     expect(geminiEnv).toContain('GOOGLE_GEMINI_BASE_URL=http://localhost:8378/app/gemini-cli');
 
-    const continueYaml = readFileSync(path.join(tempRoot, '.continue', 'config.yaml'), 'utf8');
-    expect(continueYaml).toContain('name: Local');
-    expect(continueYaml).toContain('Torve · Auto');
+    const statuses = listAppsStatus();
+    expect(statuses.find((s) => s.name === 'antigravity')?.status).toBe('ON');
+    expect(statuses.find((s) => s.name === 'claude-desktop')?.status).toBe('ON');
+    expect(statuses.find((s) => s.name === 'claude-code')?.status).toBe('ON');
+    expect(statuses.find((s) => s.name === 'gemini-cli')?.status).toBe('ON');
 
-    const hermesYaml = readFileSync(path.join(tempRoot, '.hermes', 'config.yaml'), 'utf8');
-    expect(hermesYaml).toContain('http://localhost:8378/app/hermes/v1');
-
-    for (const app of ['claude-code', 'gemini-cli', 'aider', 'continue', 'hermes']) {
+    for (const app of ['claude-desktop', 'antigravity', 'gemini-cli', 'claude-code']) {
       await disableApp(app);
     }
 
     expect(JSON.parse(readFileSync(path.join(tempRoot, '.claude', 'settings.json'), 'utf8'))).toEqual({ model: 'sonnet' });
-    expect(readFileSync(path.join(tempRoot, '.aider.conf.yml'), 'utf8')).toBe('auto-commits: false\n');
-    expect(readFileSync(path.join(tempRoot, '.continue', 'config.yaml'), 'utf8')).not.toContain('Torve · ');
-    expect(readFileSync(path.join(tempRoot, '.hermes', 'config.yaml'), 'utf8')).toContain('provider: openai');
+    expect(listAppsStatus().every((s) => s.status === 'OFF')).toBe(true);
   });
 });

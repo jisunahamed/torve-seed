@@ -31,7 +31,7 @@ describe('view registry', () => {
     expect(loaded[0]).toBe(await preloadView('explore'));
   }, 15_000);
 
-  it('derives the clean 4-tab Torve Desktop nav rail without P2P clutter', () => {
+  it('derives the clean 4-tab Torve Desktop nav rail without legacy P2P clutter', () => {
     expect(navViews('main').map((entry) => entry.view)).toEqual(
       ['home', 'tools', 'explore'] satisfies ViewName[],
     );
@@ -40,9 +40,6 @@ describe('view registry', () => {
     expect(getViewRegistryEntry('tools').nav?.label).toBe('Connected Apps');
     expect(getViewRegistryEntry('explore').nav?.label).toBe('Models & Usage');
     expect(getViewRegistryEntry('preferences').nav?.label).toBe('Settings');
-    for (const removedNav of ['tunnels', 'rewards', 'credits', 'chat', 'torve-account'] as const) {
-      expect(getViewRegistryEntry(removedNav).nav).toBeNull();
-    }
     for (const entry of [...navViews('main'), ...navViews('bottom')]) {
       expect(entry.nav.label).toBeTruthy();
       expect(entry.nav.icon).toBeTruthy();
@@ -53,14 +50,13 @@ describe('view registry', () => {
     expect(viewsForPreload('eager')).toEqual(
       ['home', 'tools', 'explore', 'preferences'] satisfies ViewName[],
     );
-    expect(viewsForPreload('idle')).toEqual(['model'] satisfies ViewName[]);
+    expect(viewsForPreload('idle')).toEqual([]);
   });
 
   it('assigns every view a slide position', () => {
     for (const view of VIEW_NAMES) {
       expect(getViewRegistryEntry(view).slideIndex).toBeGreaterThanOrEqual(0);
     }
-    expect(getViewRegistryEntry('model').slideIndex).toBeGreaterThan(getViewRegistryEntry('explore').slideIndex);
   });
 
   it('covers every view in the shared window-preset map', () => {

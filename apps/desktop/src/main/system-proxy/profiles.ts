@@ -10,7 +10,7 @@ import { app } from 'electron';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
-import { resolveConnectDataDir } from '../runtime/process-manager.js';
+import { resolveConnectDataDir } from '../paths.js';
 import { loadAppLaunchSettings, normalizeToolSlugs } from '../connected-apps/launch-settings.js';
 import { customAppToCliProfile, loadCustomApps, type CustomAppRecord } from '../connected-apps/custom.js';
 import { mergeWithDefaultAppProfiles } from '../connected-apps/defaults.js';

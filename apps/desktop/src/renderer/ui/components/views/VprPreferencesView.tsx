@@ -46,13 +46,13 @@ function getUpdateStatusLabel(status: UpdateStatus | null, checking: boolean): s
     return 'Checking…';
   }
   if (!status) {
-    return 'Up to date';
+    return 'Torve Desktop is up to date';
   }
   switch (status.status) {
     case 'up-to-date':
-      return 'Up to date';
+      return 'Torve Desktop is up to date';
     case 'idle':
-      return status.error ? `Check failed: ${status.error}` : 'Up to date';
+      return status.error ? status.error : 'Torve Desktop is up to date';
     case 'available':
       return `Torve Desktop v${status.version} is available`;
     case 'downloading': {
@@ -60,11 +60,11 @@ function getUpdateStatusLabel(status: UpdateStatus | null, checking: boolean): s
       return `Downloading ${pct}%`;
     }
     case 'ready':
-      return `Ready to install v${status.version}`;
+      return `Torve Desktop v${status.version} is ready to install`;
     case 'installing':
       return 'Installing update…';
     case 'error':
-      return status.message || status.error || 'Update check failed.';
+      return status.message || status.error || 'Unable to check for updates right now. Please try again later.';
   }
 }
 
@@ -547,7 +547,7 @@ export function VprPreferencesView({ initialUpdateStatus = null }: Props) {
                   className={`${styles.btn} ${styles.btnPrimary}`}
                   onClick={() => { void handleInstallUpdate(); }}
                 >
-                  Restart &amp; Install
+                  Restart to Install
                 </button>
               ) : null}
               <button

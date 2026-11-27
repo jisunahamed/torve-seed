@@ -119,6 +119,131 @@
   border-color: rgba(20, 255, 115, 0.52);
 }
 
+.appPillUnavailable {
+  opacity: 0.68;
+  border-color: #222226;
+  background: #111114;
+}
+
+.appPillUnavailable:hover {
+  border-color: #27272a;
+}
+
+.notInstalledBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid #27272a;
+  background: #18181b;
+  color: #71717a;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.collapsibleSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.collapsibleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 2px;
+  border: none;
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+
+.collapsibleHeader:hover {
+  color: #f4f4f5;
+}
+
+.collapsibleChevron {
+  flex: 0 0 auto;
+  color: #71717a;
+  transition: transform 0.15s ease;
+}
+
+.collapsibleChevronOpen {
+  transform: rotate(180deg);
+}
+
+.comingSoonSection {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #222226;
+  border-radius: 14px;
+  background: #111114;
+}
+
+.comingSoonHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.comingSoonTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f4f4f5;
+}
+
+.comingSoonSub {
+  font-size: 11px;
+  color: #71717a;
+}
+
+.comingSoonGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.comingSoonCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid #222226;
+  border-radius: 10px;
+  background: #18181b;
+  opacity: 0.78;
+}
+
+.comingSoonName {
+  font-size: 12px;
+  font-weight: 500;
+  color: #d4d4d8;
+}
+
+.comingSoonPill {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid #27272a;
+  background: #111114;
+  color: #71717a;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
 .modelToolbar {
   display: flex;
   align-items: center;

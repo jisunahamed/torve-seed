@@ -10,7 +10,7 @@ import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { toolDesktopAppNames } from '../../shared/tool-resume.js';
-import { resolveConnectDataDir } from '../runtime/process-manager.js';
+import { resolveConnectDataDir } from '../paths.js';
 import {
   loadAppIdentitySettings,
   loadAppLaunchSettings,

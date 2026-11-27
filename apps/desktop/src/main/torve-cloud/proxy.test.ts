@@ -985,3 +985,118 @@ test('POST /app/codex/v1/responses end-to-end forwards only type:function tools 
     assert.equal(completed.response.output[0]!['arguments'], '{"q":"codex"}');
   });
 });
+
+test('POST /app/codex/v1/responses remaps non-catalog/legacy Codex thread models and retries 403 with safe fallback', async () => {
+  const prevApiUrl = process.env['TORVE_CLOUD_API_URL'];
+  const upstreamModels: Array<string | undefined> = [];
+  const upstream = createServer((req, res) => {
+    void (async () => {
+      const bodyText = await readStreamText(req);
+      const parsed = JSON.parse(bodyText) as { model?: string };
+      upstreamModels.push(parsed.model);
+      if (parsed.model === 'restricted-model') {
+        res.writeHead(403, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: { message: 'This model is not available for the current account' } }));
+        return;
+      }
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        id: 'chat_fallback',
+        object: 'chat.completion',
+        model: parsed.model,
+        choices: [{ index: 0, message: { role: 'assistant', content: 'recovered' }, finish_reason: 'stop' }],
+        usage: { prompt_tokens: 4, completion_tokens: 2 },
+      }));
+    })();
+  });
+  await new Promise<void>((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+  const addr = upstream.address();
+  assert.ok(addr && typeof addr === 'object');
+  process.env['TORVE_CLOUD_API_URL'] = `http://127.0.0.1:${addr.port}`;
+
+  try {
+    await startTorveCloudProxy(0, {
+      getApiKey: () => 'sk-trv-test-key-123456',
+      getModels: async () => [
+        { id: 'auto' },
+        { id: 'allam-2-7b-2', max_output_tokens: 4096 },
+        { id: 'restricted-model', max_output_tokens: 32768 },
+        { id: 'deepseek-v4-1-flash', max_output_tokens: 32768 },
+        { id: 'nemotron-3-nano', max_output_tokens: 32768 },
+      ],
+      recordUsage: false,
+      debugLog: false,
+    });
+    const baseUrl = `http://127.0.0.1:${torveCloudProxyStatus().port}`;
+
+    // 1. Legacy renamed model remaps to nemotron-3-nano
+    const legacyResp = await fetch(`${baseUrl}/app/codex/v1/responses`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'nemotron-3-nano-omni', stream: false, input: 'hi' }),
+    });
+    assert.equal(legacyResp.status, 200);
+    assert.equal(upstreamModels[0], 'nemotron-3-nano');
+
+    // 2. Old OpenAI model (not in catalog) remaps cleanly to safe flagship model instead of 403
+    const oldOpenAiResp = await fetch(`${baseUrl}/app/codex/v1/responses`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'gpt-5.6-sol', stream: false, input: 'hi' }),
+    });
+    assert.equal(oldOpenAiResp.status, 200);
+    assert.equal(upstreamModels[1], 'deepseek-v4-1-flash');
+
+    // 3. Account-gated 403 on a catalog model retries once cleanly with safe fallback
+    const forbiddenResp = await fetch(`${baseUrl}/app/codex/v1/responses`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'restricted-model', stream: false, input: 'hi' }),
+    });
+    assert.equal(forbiddenResp.status, 200);
+    assert.deepEqual(upstreamModels.slice(2), ['restricted-model', 'deepseek-v4-1-flash']);
+  } finally {
+    await stopTorveCloudProxy();
+    await new Promise<void>((resolve) => upstream.close(() => resolve()));
+    if (prevApiUrl === undefined) delete process.env['TORVE_CLOUD_API_URL'];
+    else process.env['TORVE_CLOUD_API_URL'] = prevApiUrl;
+  }
+});
+
+test('POST /v1/messages non-streaming strips upstream content-encoding header so Claude Desktop never throws ZlibError', async () => {
+  const { gzipSync } = await import('node:zlib');
+  const payload = JSON.stringify({
+    id: 'chat_gzip_1',
+    object: 'chat.completion',
+    model: 'mistral-large-4',
+    choices: [{ index: 0, message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+    usage: { prompt_tokens: 5, completion_tokens: 1 },
+  });
+  await withProxy([{ id: 'mistral-large-4' }], (_req, _body, res) => {
+    res.writeHead(200, {
+      'content-type': 'application/json',
+      'content-encoding': 'gzip',
+    });
+    res.end(gzipSync(Buffer.from(payload, 'utf8')));
+  }, async (baseUrl) => {
+    const resp = await fetch(`${baseUrl}/app/claude-desktop/v1/messages?beta=true`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': 'torve',
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'mistral-large-4',
+        max_tokens: 16,
+        stream: false,
+        messages: [{ role: 'user', content: 'hi' }],
+      }),
+    });
+    assert.equal(resp.status, 200);
+    assert.equal(resp.headers.get('content-encoding'), null);
+    const json = await resp.json() as { type: string; content: Array<{ text: string }> };
+    assert.equal(json.type, 'message');
+    assert.equal(json.content[0]?.text, 'ok');
+  });
+});

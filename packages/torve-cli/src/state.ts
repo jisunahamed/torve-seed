@@ -66,6 +66,26 @@ export function codexModelsCachePath(): string {
   return path.join(getHomeDir(), '.codex', 'models_cache.json');
 }
 
+export function codexDirPath(): string {
+  return path.join(getHomeDir(), '.codex');
+}
+
+export function codexStateDbPath(): string {
+  return path.join(codexDirPath(), 'state_5.sqlite');
+}
+
+export function codexSafetyBackupDir(): string {
+  return path.join(backupsRootDir(), 'codex', 'sqlite-safety');
+}
+
+export function codexMigratedThreadsPath(): string {
+  return path.join(backupsRootDir(), 'codex', 'migrated-threads.json');
+}
+
+export function legacyCodexMigratedThreadsPath(): string {
+  return path.join(getTorveDir(), 'codex-migrated-threads.json');
+}
+
 export function usageStatsPath(): string {
   return path.join(getTorveDir(), 'usage-stats.json');
 }
@@ -261,6 +281,7 @@ export async function clearAllSharedTorveState(): Promise<string[]> {
     directCloudProfilesPath(),
     directCloudOverridesPath(),
     codexCatalogPath(),
+    codexMigratedThreadsPath(),
     usageStatsPath(),
     proxyPidPath(),
   ];

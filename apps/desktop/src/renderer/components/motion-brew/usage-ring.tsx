@@ -302,7 +302,8 @@ const PillTabs = React.forwardRef<HTMLDivElement, PillTabsProps>(function PillTa
 export interface UsageMetric {
   label: string;
   value: number;
-  goal: number;
+  /** Plan cap for this metric. Leave `null`/`undefined` when the plan has no cap (Unlimited). */
+  goal?: number | null;
   unit: string;
 }
 
@@ -486,9 +487,12 @@ export const UsageRing = React.forwardRef<HTMLDivElement, UsageRingProps>(
     const safeTab = Math.min(tab, safeMetrics.length - 1);
     const [ringHover, setRingHover] = React.useState(false);
     const m = safeMetrics[safeTab]!;
-    const safeGoal = Math.max(1, m.goal);
+    const hasFiniteGoal =
+      typeof m.goal === "number" && Number.isFinite(m.goal) && m.goal > 0;
+    const isUnlimited = !hasFiniteGoal;
     const safeValue = Math.max(0, m.value);
-    const share = Math.min(1, safeValue / safeGoal);
+    const safeGoal = hasFiniteGoal ? Math.max(1, m.goal!) : Math.max(1, safeValue);
+    const share = isUnlimited ? 1 : Math.min(1, safeValue / safeGoal);
 
     // One motion value drives the ring and both numbers.
     const progress = useMotionValue(still ? share : 0);
@@ -605,16 +609,27 @@ export const UsageRing = React.forwardRef<HTMLDivElement, UsageRingProps>(
             })}
           </svg>
           <div className="absolute inset-0 grid place-items-center">
-            <p
-              className="flex items-baseline text-[32px] font-semibold leading-none tracking-tight text-[#F4F4F5] transition-colors duration-500"
-              // Past 80% the number takes the colour of the ring's tip, bright enough for dark surfaces.
-              style={
-                share >= 0.8 ? { color: wheel(share, hues, 0.82) } : undefined
-              }
-            >
-              <Odometer value={pct} label={`${Math.round(share * 100)}`} />
-              <span className="ml-0.5 text-xl text-[#71717A]">%</span>
-            </p>
+            {isUnlimited ? (
+              <div className="flex flex-col items-center text-center">
+                <span className="text-[32px] font-semibold leading-none tracking-tight text-[#14FF73]">
+                  ∞
+                </span>
+                <span className="mt-1.5 rounded-full border border-[#14FF73]/30 bg-[#14FF73]/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#14FF73]">
+                  Unlimited
+                </span>
+              </div>
+            ) : (
+              <p
+                className="flex items-baseline text-[32px] font-semibold leading-none tracking-tight text-[#F4F4F5] transition-colors duration-500"
+                // Past 80% the number takes the colour of the ring's tip, bright enough for dark surfaces.
+                style={
+                  share >= 0.8 ? { color: wheel(share, hues, 0.82) } : undefined
+                }
+              >
+                <Odometer value={pct} label={`${Math.round(share * 100)}`} />
+                <span className="ml-0.5 text-xl text-[#71717A]">%</span>
+              </p>
+            )}
           </div>
         </div>
 
@@ -623,8 +638,8 @@ export const UsageRing = React.forwardRef<HTMLDivElement, UsageRingProps>(
           <span className="tabular-nums text-[#F4F4F5]">
             <Odometer value={amount} label={`${safeValue}`} />
           </span>
-          {" / "}
-          {m.goal.toLocaleString()} {m.unit}
+          {hasFiniteGoal ? ` / ${safeGoal.toLocaleString()} ` : " "}
+          {m.unit}
         </p>
 
         {/* Metric tabs: the library's PillTabs, with its rubber band pill. */}

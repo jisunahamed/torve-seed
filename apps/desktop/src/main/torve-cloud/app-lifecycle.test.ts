@@ -102,13 +102,6 @@ test('classifies GUI desktop apps vs pure terminal CLIs and protects shells and 
   for (const guiApp of [
     'antigravity',
     'claude-desktop',
-    'cursor',
-    'windsurf',
-    'vscode',
-    'zed',
-    't3code',
-    'gooeypi',
-    'hermes',
   ]) {
     assert.equal(isGuiAppProfile(guiApp), true, `${guiApp} should be classified as GUI`);
     assert.equal(classifyAppProfile(guiApp), 'gui');
@@ -122,10 +115,6 @@ test('classifies GUI desktop apps vs pure terminal CLIs and protects shells and 
     'opencode-cli',
     'claude-code',
     'codex-cli',
-    'aider',
-    'pi',
-    'crush',
-    'continue',
   ]) {
     assert.equal(isGuiAppProfile(cliApp), false, `${cliApp} should be classified as CLI`);
     assert.equal(classifyAppProfile(cliApp), 'cli');
@@ -155,7 +144,7 @@ test('GUI relaunch follows close -> wait -> settle -> launch -> waitForTarget ->
   const runtime = createMockRuntime({
     events,
     async resolveLaunchTarget() {
-      return { name: 'Zed', path: 'C:\\Program Files\\Zed\\Zed.exe' };
+      return { name: 'OpenCode', path: 'C:\\Program Files\\OpenCode\\OpenCode.exe' };
     },
     async isTargetRunning() {
       events.push('isRunning');
@@ -166,7 +155,8 @@ test('GUI relaunch follows close -> wait -> settle -> launch -> waitForTarget ->
   });
 
   const progress: ConnectLifecycleProgress[] = [];
-  const result = await relaunchOrVerifyApp('zed', {
+  const result = await relaunchOrVerifyApp('opencode', {
+    restartAppName: 'OpenCode',
     graceTimeoutMs: 2_000,
     settleDelayMs: 150,
     port: 8378,
@@ -182,15 +172,15 @@ test('GUI relaunch follows close -> wait -> settle -> launch -> waitForTarget ->
 
   assert.deepEqual(events, [
     'isRunning',
-    'quit:Zed',
+    'quit:OpenCode',
     'isRunning',
     'sleep:250',
     'isRunning',
     'sleep:150',
-    'launch:Zed',
-    'markManaged:Zed',
-    'waitForTarget:Zed',
-    'captureManaged:Zed',
+    'launch:OpenCode',
+    'markManaged:OpenCode',
+    'waitForTarget:OpenCode',
+    'captureManaged:OpenCode',
     'probeProxy:8378',
   ]);
   assert.equal(events.some((e) => e.startsWith('kill:')), false);
@@ -247,7 +237,7 @@ test('GUI relaunch falls back to force kill after grace timeout and refuses prot
 });
 
 test('terminal CLIs never kill user processes and return non-destructive session-restart guidance', async () => {
-  for (const cliApp of ['claude-code', 'gemini-cli', 'opencode-cli', 'codex-cli', 'aider']) {
+  for (const cliApp of ['claude-code', 'gemini-cli', 'opencode-cli', 'codex-cli']) {
     const events: string[] = [];
     const runtime = createMockRuntime({
       events,
@@ -287,7 +277,7 @@ test('reopenConnectedApp uses launchAntigravity for antigravity and verifyConnec
     const runtime = createMockRuntime({
       events,
       async getActiveProfiles() {
-        return ['zed'];
+        return ['claude-desktop'];
       },
       async resyncProfileConfig(profileName) {
         events.push(`resync:${profileName}`);
@@ -299,7 +289,7 @@ test('reopenConnectedApp uses launchAntigravity for antigravity and verifyConnec
     assert.equal(openRes.ok, true);
     assert.ok(events.includes('launchAntigravity'));
 
-    const verifyRes = await verifyConnectedAppConfig('zed', {
+    const verifyRes = await verifyConnectedAppConfig('claude-desktop', {
       port: 8378,
       onProgress: (ev) => progress.push(ev),
       runtime,
@@ -327,34 +317,37 @@ test('startTorveCloudProfiles emits ordered progress stages and rolls back backu
   process.env['USERPROFILE'] = tempHome;
 
   const statePath = path.join(tempHome, '.torve', 'direct-cloud-profiles.json');
-  const aiderConfigPath = path.join(tempHome, '.aider.conf.yml');
-  const zedConfigPath = path.join(tempHome, 'zed-settings.json');
-  const aiderOriginal = 'model: gpt-4o\n';
-  await writeFile(aiderConfigPath, aiderOriginal, 'utf8');
+  const geminiConfigPath = path.join(tempHome, 'gemini-settings.json');
+  const geminiEnvPath = path.join(tempHome, 'gemini.env');
+  const opencodeConfigPath = path.join(tempHome, 'opencode.jsonc');
+  const geminiOriginal = '{"theme":"dark"}\n';
+  await writeFile(geminiConfigPath, geminiOriginal, 'utf8');
 
   const testProfiles: DesktopSystemProxyProfile[] = [
     {
-      name: 'aider',
-      label: 'Aider',
+      name: 'gemini-cli',
+      label: 'Gemini CLI',
       kind: 'config-patch',
       method: 'Config patch',
       domains: [],
       configPatch: {
-        format: 'aider',
-        configPath: aiderConfigPath,
-        baseURL: 'http://127.0.0.1:{buyerPort}/v1',
+        format: 'gemini-cli',
+        configPath: geminiConfigPath,
+        envPath: geminiEnvPath,
+        baseURL: 'http://127.0.0.1:{buyerPort}',
       },
     },
     {
-      name: 'zed',
-      label: 'Zed',
+      name: 'opencode',
+      label: 'OpenCode',
       kind: 'config-patch',
       method: 'Config patch',
       domains: [],
       configPatch: {
-        format: 'zed',
-        configPath: zedConfigPath,
+        format: 'opencode',
+        configPath: opencodeConfigPath,
         providerKey: 'torve',
+        npm: '@ai-sdk/openai-compatible',
         providerName: 'Torve',
         baseURL: 'http://127.0.0.1:{buyerPort}/v1',
       },
@@ -372,7 +365,7 @@ test('startTorveCloudProfiles emits ordered progress stages and rolls back backu
         return testProfiles;
       },
     });
-    const state = await startTorveCloudProfiles(['aider'], {
+    const state = await startTorveCloudProfiles(['gemini-cli'], {
       onProgress: (ev) => successStages.push(ev),
       deps: {
         statePath,
@@ -384,7 +377,7 @@ test('startTorveCloudProfiles emits ordered progress stages and rolls back backu
         lifecycleRuntime: runtime,
       },
     });
-    assert.deepEqual(state.activeProfileNames, ['aider']);
+    assert.deepEqual(state.activeProfileNames, ['gemini-cli']);
     assert.deepEqual(successStages.map((e) => e.stage), [
       'checking-proxy',
       'backing-up',
@@ -393,17 +386,18 @@ test('startTorveCloudProfiles emits ordered progress stages and rolls back backu
       'verifying',
       'done',
     ]);
-    assert.ok((await readFile(aiderConfigPath, 'utf8')).includes('127.0.0.1'));
+    assert.ok((await readFile(geminiEnvPath, 'utf8')).includes('127.0.0.1'));
 
-    // Reset state file and aider config for rollback test.
-    await writeFile(aiderConfigPath, aiderOriginal, 'utf8');
+    // Reset state file and gemini config for rollback test.
+    await writeFile(geminiConfigPath, geminiOriginal, 'utf8');
+    await rm(geminiEnvPath, { force: true });
     await rm(statePath, { force: true });
 
     // 2. Mid-flight failure on the second profile rolls back the first profile's exact backup.
     const rollbackStages: ConnectLifecycleProgress[] = [];
     let patchCalls = 0;
     await assert.rejects(
-      () => startTorveCloudProfiles(['aider', 'zed'], {
+      () => startTorveCloudProfiles(['gemini-cli', 'opencode'], {
         onProgress: (ev) => rollbackStages.push(ev),
         deps: {
           statePath,
@@ -421,9 +415,9 @@ test('startTorveCloudProfiles emits ordered progress stages and rolls back backu
             void peerId;
             void buyerPort;
             void wslTargets;
-            if (patch.format === 'aider') {
+            if (patch.format === 'gemini-cli') {
               // Write modified file to verify exact backup restore overwrites it cleanly.
-              throwIfNotExpected(aiderConfigPath);
+              throwIfNotExpected(geminiConfigPath);
             }
           },
           lifecycleRuntime: runtime,
@@ -433,14 +427,15 @@ test('startTorveCloudProfiles emits ordered progress stages and rolls back backu
     );
 
     // Let's also test real config-patch + rollback via actual applyConfigPatch for app 1 and failure on app 2.
-    await writeFile(aiderConfigPath, aiderOriginal, 'utf8');
+    await writeFile(geminiConfigPath, geminiOriginal, 'utf8');
+    await rm(geminiEnvPath, { force: true });
     await rm(statePath, { force: true });
 
     const { applyConfigPatch } = await import('../system-proxy/config-patch.js');
     const rollbackEvents2: ConnectLifecycleProgress[] = [];
     let callNum = 0;
     await assert.rejects(
-      () => startTorveCloudProfiles(['aider', 'zed'], {
+      () => startTorveCloudProfiles(['gemini-cli', 'opencode'], {
         onProgress: (ev) => rollbackEvents2.push(ev),
         deps: {
           statePath,
@@ -460,9 +455,9 @@ test('startTorveCloudProfiles emits ordered progress stages and rolls back backu
       /Simulated second app patch error/,
     );
 
-    // Exact original aider config bytes restored!
-    assert.equal(await readFile(aiderConfigPath, 'utf8'), aiderOriginal);
-    assert.equal(rollbackEvents2.some((e) => e.stage === 'error' && e.appId === 'zed'), true);
+    // Exact original gemini config bytes restored!
+    assert.equal(await readFile(geminiConfigPath, 'utf8'), geminiOriginal);
+    assert.equal(rollbackEvents2.some((e) => e.stage === 'error' && e.appId === 'opencode'), true);
   } finally {
     if (prevHome === undefined) delete process.env['HOME'];
     else process.env['HOME'] = prevHome;

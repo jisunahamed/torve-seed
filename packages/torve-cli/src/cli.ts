@@ -13,7 +13,7 @@ import {
   startLoopbackPkceServer,
   torveCloudUpstream,
 } from './api.js';
-import { listAppsStatus } from './apps.js';
+import { COMING_SOON_APPS, findComingSoonApp, getAppDefinitions, listAppsStatus } from './apps.js';
 import {
   disableAllApps,
   disableApp,
@@ -298,16 +298,26 @@ async function cmdLogout(args: ParsedCliArgs): Promise<number> {
   return 0;
 }
 
+function formatSupportedAppsLines(): string[] {
+  const pad = (s: string, w: number) => s.padEnd(w, ' ');
+  return getAppDefinitions().map((app) => `  ${pad(app.name, 16)} ${app.displayName}`);
+}
+
 function cmdApps(args: ParsedCliArgs): number {
   const apps = listAppsStatus();
   if (args.json) {
-    console.log(JSON.stringify({ apps }, null, 2));
+    console.log(JSON.stringify({ apps, comingSoon: COMING_SOON_APPS }, null, 2));
     return 0;
   }
   const pad = (s: string, w: number) => s.padEnd(w, ' ');
   console.log(`${pad('APP', 16)} ${pad('NAME', 20)} ${pad('DETECTED', 10)} ${pad('STATUS', 8)} CONFIG`);
   for (const app of apps) {
     console.log(`${pad(app.name, 16)} ${pad(app.displayName, 20)} ${pad(app.detected ? 'yes' : 'no', 10)} ${pad(app.status, 8)} ${app.configPath}`);
+  }
+  console.log('');
+  console.log('Coming Soon:');
+  for (const app of COMING_SOON_APPS) {
+    console.log(`  ${pad(app.id, 16)} ${app.displayName}`);
   }
   return 0;
 }
@@ -316,6 +326,21 @@ async function cmdOn(args: ParsedCliArgs): Promise<number> {
   const target = args.positionals[0]?.toLowerCase();
   if (!target) {
     throw new Error('Specify an app name or "all". Example: torve on codex');
+  }
+
+  const comingSoon = findComingSoonApp(target);
+  if (comingSoon) {
+    const supportedApps = getAppDefinitions().map((app) => ({ name: app.name, displayName: app.displayName }));
+    const message = `${comingSoon.displayName} is coming soon and is not yet supported in Torve CLI.`;
+    if (args.json) {
+      console.log(JSON.stringify({ ok: true, comingSoon: true, app: comingSoon.id, displayName: comingSoon.displayName, message, supportedApps }, null, 2));
+    } else {
+      console.log(message);
+      console.log('');
+      console.log(`Supported apps (${supportedApps.length}):`);
+      for (const line of formatSupportedAppsLines()) console.log(line);
+    }
+    return 0;
   }
 
   const creds = await resolveCredentials(args.token);
@@ -352,6 +377,22 @@ async function cmdOff(args: ParsedCliArgs): Promise<number> {
   if (!target) {
     throw new Error('Specify an app name or "all". Example: torve off codex');
   }
+
+  const comingSoon = findComingSoonApp(target);
+  if (comingSoon) {
+    const supportedApps = getAppDefinitions().map((app) => ({ name: app.name, displayName: app.displayName }));
+    const message = `${comingSoon.displayName} is coming soon and has no active Torve patch.`;
+    if (args.json) {
+      console.log(JSON.stringify({ ok: true, comingSoon: true, app: comingSoon.id, displayName: comingSoon.displayName, message, supportedApps }, null, 2));
+    } else {
+      console.log(message);
+      console.log('');
+      console.log(`Supported apps (${supportedApps.length}):`);
+      for (const line of formatSupportedAppsLines()) console.log(line);
+    }
+    return 0;
+  }
+
   const results = target === 'all' ? await disableAllApps() : [await disableApp(target)];
   if (args.json) {
     console.log(JSON.stringify({ ok: true, results }, null, 2));

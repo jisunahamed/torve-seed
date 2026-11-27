@@ -104,17 +104,59 @@ export function minifyCompiledMain(distDir) {
   return minified;
 }
 
+export function obfuscateCompiledMain(distDir) {
+  if (!existsSync(distDir)) return 0;
+  const JavaScriptObfuscator = require('javascript-obfuscator');
+  const targets = [];
+
+  const torveCloudDir = path.join(distDir, 'main', 'torve-cloud');
+  if (existsSync(torveCloudDir)) {
+    for (const entry of readdirSync(torveCloudDir, { withFileTypes: true })) {
+      if (
+        entry.isFile()
+        && entry.name.endsWith('.js')
+        && !entry.name.endsWith('.test.js')
+      ) {
+        targets.push(path.join(torveCloudDir, entry.name));
+      }
+    }
+  }
+
+  const configPatchPath = path.join(distDir, 'main', 'system-proxy', 'config-patch.js');
+  if (existsSync(configPatchPath)) {
+    targets.push(configPatchPath);
+  }
+
+  let obfuscated = 0;
+  for (const filePath of targets) {
+    const source = readFileSync(filePath, 'utf8');
+    const result = JavaScriptObfuscator.obfuscate(source, {
+      compact: true,
+      stringArray: true,
+      stringArrayEncoding: ['base64'],
+      identifierNamesGenerator: 'hexadecimal',
+      controlFlowFlattening: false,
+      target: 'node',
+    });
+    writeFileSync(filePath, result.getObfuscatedCode(), 'utf8');
+    obfuscated += 1;
+  }
+
+  return obfuscated;
+}
+
 export function hardenPrepack(desktopDir = defaultDesktopDir) {
   const distDir = path.join(desktopDir, 'dist');
   const cliDistDir = path.join(desktopDir, 'cli-dist');
 
   const removed = stripArtifactsInDirs([distDir, cliDistDir]);
   const minified = minifyCompiledMain(distDir);
+  const obfuscated = obfuscateCompiledMain(distDir);
 
   console.log(
-    `[harden:prepack] Removed ${removed} sourcemap/declaration file(s); minified ${minified} JS/CJS file(s) in dist/.`,
+    `[harden:prepack] Removed ${removed} sourcemap/declaration file(s); minified ${minified} JS/CJS file(s) in dist/; obfuscated ${obfuscated} sensitive file(s).`,
   );
-  return { removed, minified };
+  return { removed, minified, obfuscated };
 }
 
 function readAsarFilesViaHeader(asarPath) {
@@ -231,7 +273,7 @@ export default async function afterPack(context) {
   console.log(`[after-pack-harden] Flipping Electron fuses on ${electronBinaryPath}`);
   const flipped = await flipFuses(electronBinaryPath, {
     version: FuseVersion.V1,
-    [FuseV1Options.RunAsNode]: true,
+    [FuseV1Options.RunAsNode]: false,
     [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
     [FuseV1Options.EnableNodeCliInspectArguments]: false,
     [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,

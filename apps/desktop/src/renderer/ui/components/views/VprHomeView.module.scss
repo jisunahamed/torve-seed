@@ -133,6 +133,142 @@
   cursor: not-allowed;
 }
 
+.healthyRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.healthyPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid #222226;
+  background: #111114;
+  color: #a1a1aa;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.healthyDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #14ff73;
+  box-shadow: 0 0 0 3px rgba(20, 255, 115, 0.14);
+}
+
+.actionCard {
+  background: #111114;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 12px;
+  padding: 15px 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.actionCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.actionCardTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.actionCardTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f4f4f5;
+}
+
+.requiredPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.14);
+  color: #fcd34d;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.actionCount {
+  font-size: 12px;
+  color: #a1a1aa;
+  font-family: var(--font-mono);
+}
+
+.actionList {
+  display: grid;
+  gap: 8px;
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #18181b;
+  border: 1px solid #222226;
+}
+
+.actionCopy {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.actionDot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #f59e0b;
+}
+
+.actionMessage {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #f4f4f5;
+  line-height: 1.4;
+}
+
+.actionBtn {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #d8ff0a;
+  color: #09090b;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  cursor: pointer;
+  transition: filter 140ms ease, opacity 140ms ease;
+}
+
+.actionBtn:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.actionBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .telemetryGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -179,6 +315,78 @@
 .gaugeResetValue {
   color: #a1a1aa;
   font-family: var(--font-mono);
+}
+
+.bridgeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid #222226;
+  background: #111114;
+}
+
+.bridgeBadgeGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.clickToConnectPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(216, 255, 10, 0.35);
+  background: rgba(216, 255, 10, 0.1);
+  color: #d8ff0a;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.clickToConnectDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #d8ff0a;
+  box-shadow: 0 0 8px rgba(216, 255, 10, 0.65);
+}
+
+.bridgeCount {
+  font-size: 12px;
+  color: #a1a1aa;
+  font-family: var(--font-mono);
+}
+
+.bridgeHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bridgeProgressPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(216, 255, 10, 0.25);
+  background: rgba(216, 255, 10, 0.06);
+  color: #f4f4f5;
+  font-size: 12.5px;
+}
+
+.modelIdentity {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .card {

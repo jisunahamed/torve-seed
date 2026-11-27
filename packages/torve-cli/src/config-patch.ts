@@ -22,6 +22,7 @@ import {
   stripJsoncComments,
   stripJsoncTrailingCommas,
 } from './apps.js';
+import { migrateCodexThreadsToTorve, restoreCodexThreadsFromTorve } from './codex-threads.js';
 import {
   backupsRootDir,
   codexCatalogPath,
@@ -40,21 +41,11 @@ import type {
   OpencodeModelDefinition,
   TorveModel,
 } from './types.js';
-import {
-  applyContinueYamlPatch,
-  applyHermesYamlPatch,
-  readFlatYamlKey,
-  removeContinueYamlPatch,
-  removeFlatYamlKeys,
-  removeHermesYamlPatch,
-  setFlatYamlKeys,
-} from './yaml-lite.js';
 
 export const MIN_CONTEXT_WINDOW_FLOOR = 1_000_000;
 export const MIN_OUTPUT_TOKENS_FLOOR = 32_768;
 export const ROUTED_MODEL_ALIAS = 'torve';
 const ROUTED_MODEL_ALIAS_LABEL = 'Torve Auto';
-const DROID_ROUTED_MODEL_ID = 'custom:Torve-Auto-0';
 const CLAUDE_DESKTOP_PROFILE_ID = '00000000-0000-4000-8000-0000a4753eed';
 const CLAUDE_DESKTOP_PROFILE_NAME = 'Torve';
 const CLAUDE_GATEWAY_DEFAULT_PORT = Number(process.env['TORVE_CLAUDE_GATEWAY_PORT']) || 8380;
@@ -468,7 +459,7 @@ export function scopePatchForDirectCloud(
       models: opencodeModelsFromCatalog(models),
     };
   }
-  if (scoped.format === 'continue' || scoped.format === 'claude-code') {
+  if (scoped.format === 'claude-code') {
     return { ...scoped, models: opencodeModelsFromCatalog(models) };
   }
   return scoped;
@@ -1045,419 +1036,6 @@ function removeAntigravityPatch(patch: Extract<ConfigPatchDef, { format: 'antigr
   return changed;
 }
 
-// --- Aider, Continue, Hermes, Droid, T3Code, Pi, Crush, Goose, Zed ---
-
-function applyAiderPatch(patch: Extract<ConfigPatchDef, { format: 'aider' }>, port: number): void {
-  const filePath = expandHomePath(patch.configPath);
-  backupConfigFile(filePath);
-  const existing = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
-  const next = setFlatYamlKeys(existing, [
-    ['openai-api-base', patch.baseURL.replace('{buyerPort}', String(port))],
-    ['openai-api-key', 'torve-local-proxy'],
-    ['model', `openai/${ROUTED_MODEL_ALIAS}`],
-  ]);
-  writeTextAtomically(filePath, next);
-}
-
-function removeAiderPatch(patch: Extract<ConfigPatchDef, { format: 'aider' }>): boolean {
-  const filePath = expandHomePath(patch.configPath);
-  if (!existsSync(filePath)) return false;
-  const existing = readFileSync(filePath, 'utf8');
-  if (!isLoopbackHost(readFlatYamlKey(existing, 'openai-api-base'))) return false;
-  const res = removeFlatYamlKeys(existing, ['openai-api-base', 'openai-api-key', 'model']);
-  if (!res.changed) return false;
-  writeTextAtomically(filePath, res.content);
-  return true;
-}
-
-function resolveContinuePath(patch: Extract<ConfigPatchDef, { format: 'continue' }>): string {
-  const yamlPath = expandHomePath(patch.configPath);
-  const legacy = patch.legacyConfigPath ? expandHomePath(patch.legacyConfigPath) : null;
-  return !existsSync(yamlPath) && legacy && existsSync(legacy) ? legacy : yamlPath;
-}
-
-function applyContinuePatch(patch: Extract<ConfigPatchDef, { format: 'continue' }>, port: number): void {
-  const filePath = resolveContinuePath(patch);
-  backupConfigFile(filePath);
-  const base = patch.baseURL.replace('{buyerPort}', String(port));
-  const entries = [
-    { name: 'Torve · Auto', provider: 'openai', model: ROUTED_MODEL_ALIAS, apiBase: base, apiKey: 'torve-local-proxy' },
-    ...(patch.models ?? [])
-      .filter((m) => m.id !== 'auto' && m.id !== ROUTED_MODEL_ALIAS)
-      .map((m) => ({ name: `Torve · ${m.name}`, provider: 'openai', model: m.id, apiBase: base, apiKey: 'torve-local-proxy' })),
-  ];
-  const isTorve = (item: unknown) => Boolean(
-    item && typeof item === 'object' && !Array.isArray(item)
-    && typeof (item as JsonObject)['name'] === 'string'
-    && ((item as JsonObject)['name'] as string).startsWith('Torve · '),
-  );
-  if (filePath.endsWith('.json')) {
-    const config = readConfigJson(filePath);
-    const models = Array.isArray(config['models']) ? config['models'].filter((i) => !isTorve(i)) : [];
-    config['models'] = [...models, ...entries];
-    writeJsonFile(filePath, config);
-    return;
-  }
-  const existing = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
-  writeTextAtomically(filePath, applyContinueYamlPatch(existing, entries));
-}
-
-function removeContinuePatch(patch: Extract<ConfigPatchDef, { format: 'continue' }>): boolean {
-  const filePath = resolveContinuePath(patch);
-  if (!existsSync(filePath)) return false;
-  if (filePath.endsWith('.json')) {
-    const config = tryReadConfigJson(filePath);
-    if (!config) return false;
-    const models = Array.isArray(config['models']) ? config['models'] : [];
-    const filtered = models.filter((item) => !(
-      item && typeof item === 'object' && typeof (item as JsonObject)['name'] === 'string'
-      && ((item as JsonObject)['name'] as string).startsWith('Torve · ')
-    ));
-    if (filtered.length === models.length) return false;
-    config['models'] = filtered;
-    writeJsonFile(filePath, config);
-    return true;
-  }
-  const existing = readFileSync(filePath, 'utf8');
-  const res = removeContinueYamlPatch(existing);
-  if (!res.changed) return false;
-  writeTextAtomically(filePath, res.content);
-  return true;
-}
-
-function applyHermesPatch(patch: Extract<ConfigPatchDef, { format: 'hermes' }>, port: number): void {
-  const filePath = expandHomePath(patch.configPath);
-  backupConfigFile(filePath);
-  const existing = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
-  const next = applyHermesYamlPatch(existing, {
-    providerKey: patch.providerKey,
-    baseURL: patch.baseURL.replace('{buyerPort}', String(port)),
-    modelAlias: ROUTED_MODEL_ALIAS,
-    contextWindow: MIN_CONTEXT_WINDOW_FLOOR,
-  });
-  writeTextAtomically(filePath, next);
-}
-
-function removeHermesPatch(patch: Extract<ConfigPatchDef, { format: 'hermes' }>): boolean {
-  const filePath = expandHomePath(patch.configPath);
-  if (!existsSync(filePath)) return false;
-  const existing = readFileSync(filePath, 'utf8');
-  const res = removeHermesYamlPatch(existing, patch.providerKey, isLoopbackHost);
-  if (!res.changed) return false;
-  backupConfigFile(filePath);
-  writeTextAtomically(filePath, res.content);
-  return true;
-}
-
-function applyDroidPatch(patch: Extract<ConfigPatchDef, { format: 'droid' }>, port: number): void {
-  const filePath = expandHomePath(patch.configPath);
-  const statePath = `${filePath}.torve.state.json`;
-  const baseURL = patch.baseURL.replace('{buyerPort}', String(port));
-  const configExisted = existsSync(filePath);
-  backupConfigFile(filePath);
-  const config = readConfigJson(filePath);
-  const customModelsPresent = Object.prototype.hasOwnProperty.call(config, 'customModels');
-  const customModels = Array.isArray(config['customModels']) ? config['customModels'] : [];
-  const existingSession = config['sessionDefaultSettings'] !== undefined ? asObject(config['sessionDefaultSettings']) : undefined;
-  const isOwn = (m: unknown) => Boolean(m && typeof m === 'object' && (m as JsonObject)['model'] === patch.providerKey);
-  if (!existsSync(statePath)) {
-    writeJsonFile(statePath, {
-      version: 2,
-      configExisted,
-      customModelsPresent,
-      modelPresent: Object.prototype.hasOwnProperty.call(config, 'model'),
-      ...(Object.prototype.hasOwnProperty.call(config, 'model') ? { modelValue: config['model'] } : {}),
-      sessionDefaultSettingsPresent: existingSession !== undefined,
-      sessionDefaultModelPresent: existingSession !== undefined && Object.prototype.hasOwnProperty.call(existingSession, 'model'),
-      ...(existingSession !== undefined && Object.prototype.hasOwnProperty.call(existingSession, 'model')
-        ? { sessionDefaultModelValue: existingSession['model'] }
-        : {}),
-    });
-  }
-  const extraHeaders = patch.originator ? { originator: patch.originator } : {};
-  config['customModels'] = [
-    ...customModels.filter((m) => !isOwn(m)),
-    {
-      model: patch.providerKey,
-      id: DROID_ROUTED_MODEL_ID,
-      displayName: patch.providerName,
-      baseUrl: baseURL,
-      provider: 'generic-chat-completion-api',
-      maxOutputTokens: MIN_OUTPUT_TOKENS_FLOOR,
-      ...(Object.keys(extraHeaders).length > 0 ? { extraHeaders } : {}),
-    },
-  ];
-  const session = existingSession ?? {};
-  session['model'] = DROID_ROUTED_MODEL_ID;
-  config['sessionDefaultSettings'] = session;
-  writeJsonFile(filePath, config);
-}
-
-function removeDroidPatch(patch: Extract<ConfigPatchDef, { format: 'droid' }>): boolean {
-  const filePath = expandHomePath(patch.configPath);
-  const statePath = `${filePath}.torve.state.json`;
-  const state = tryReadConfigJson(statePath);
-  if (!state) return false;
-  const config = tryReadConfigJson(filePath);
-  if (!config) {
-    if (existsSync(statePath)) unlinkSync(statePath);
-    return true;
-  }
-  backupConfigFile(filePath);
-  let changed = false;
-  if (Array.isArray(config['customModels'])) {
-    const filtered = config['customModels'].filter((m) => !(m && typeof m === 'object' && (m as JsonObject)['model'] === patch.providerKey));
-    if (filtered.length !== config['customModels'].length) {
-      if (filtered.length === 0 && !state['customModelsPresent']) delete config['customModels'];
-      else config['customModels'] = filtered;
-      changed = true;
-    }
-  }
-  const session = config['sessionDefaultSettings'] && typeof config['sessionDefaultSettings'] === 'object' && !Array.isArray(config['sessionDefaultSettings'])
-    ? (config['sessionDefaultSettings'] as JsonObject)
-    : undefined;
-  if (session?.['model'] === DROID_ROUTED_MODEL_ID) {
-    if (state['sessionDefaultModelPresent']) session['model'] = state['sessionDefaultModelValue'];
-    else delete session['model'];
-    if (!state['sessionDefaultSettingsPresent'] && Object.keys(session).length === 0) delete config['sessionDefaultSettings'];
-    changed = true;
-  }
-  if (!state['configExisted'] && Object.keys(config).length === 0) unlinkSync(filePath);
-  else if (changed) writeJsonFile(filePath, config);
-  if (existsSync(statePath)) unlinkSync(statePath);
-  return changed;
-}
-
-function applyT3CodePatch(patch: Extract<ConfigPatchDef, { format: 't3code' }>, port: number): void {
-  const filePath = expandHomePath(patch.configPath);
-  backupConfigFile(filePath);
-  const config = readConfigJson(filePath);
-  const providerInstances = asObject(config['providerInstances']);
-  providerInstances[patch.providerKey] = {
-    driver: 'claudeAgent',
-    displayName: patch.providerName,
-    environment: [
-      { name: 'ANTHROPIC_BASE_URL', value: patch.baseURL.replace('{buyerPort}', String(port)), sensitive: false },
-      { name: 'ANTHROPIC_API_KEY', value: 'torve', sensitive: false },
-      { name: 'ANTHROPIC_CUSTOM_HEADERS', value: 'x-torve-system-proxy-source: t3code', sensitive: false },
-      { name: 'HTTP_PROXY', value: '', sensitive: false },
-      { name: 'HTTPS_PROXY', value: '', sensitive: false },
-      { name: 'http_proxy', value: '', sensitive: false },
-      { name: 'https_proxy', value: '', sensitive: false },
-      { name: 'NO_PROXY', value: 'localhost,127.0.0.1,::1', sensitive: false },
-      { name: 'no_proxy', value: 'localhost,127.0.0.1,::1', sensitive: false },
-      { name: 'NODE_OPTIONS', value: '', sensitive: false },
-    ],
-    enabled: true,
-    config: { customModels: [ROUTED_MODEL_ALIAS] },
-  };
-  config['providerInstances'] = providerInstances;
-  writeJsonFile(filePath, config);
-}
-
-function removeT3CodePatch(patch: Extract<ConfigPatchDef, { format: 't3code' }>): boolean {
-  const filePath = expandHomePath(patch.configPath);
-  const config = tryReadConfigJson(filePath);
-  if (!config) return false;
-  const instances = config['providerInstances'];
-  if (!instances || typeof instances !== 'object' || Array.isArray(instances) || !(patch.providerKey in instances)) return false;
-  delete (instances as JsonObject)[patch.providerKey];
-  if (Object.keys(instances as JsonObject).length === 0) delete config['providerInstances'];
-  backupConfigFile(filePath);
-  writeJsonFile(filePath, config);
-  return true;
-}
-
-function applyPiPatch(patch: Extract<ConfigPatchDef, { format: 'pi' }>, port: number): void {
-  const modelsPath = expandHomePath(patch.configPath);
-  const settingsPath = expandHomePath(patch.settingsPath);
-  const baseURL = patch.baseURL.replace('{buyerPort}', String(port));
-  backupConfigFile(modelsPath);
-  const config = readConfigJson(modelsPath);
-  const providers = asObject(config['providers']);
-  providers[patch.providerKey] = {
-    baseUrl: baseURL,
-    api: patch.api,
-    apiKey: 'torve',
-    ...(patch.originator ? { headers: { originator: patch.originator } } : {}),
-    models: [
-      {
-        id: ROUTED_MODEL_ALIAS,
-        name: ROUTED_MODEL_ALIAS_LABEL,
-        contextWindow: MIN_CONTEXT_WINDOW_FLOOR,
-        maxTokens: MIN_OUTPUT_TOKENS_FLOOR,
-      },
-    ],
-  };
-  config['providers'] = providers;
-  writeJsonFile(modelsPath, config);
-
-  backupConfigFile(settingsPath);
-  const settings = readConfigJson(settingsPath);
-  settings['defaultProvider'] = patch.providerKey;
-  settings['defaultModel'] = ROUTED_MODEL_ALIAS;
-  writeJsonFile(settingsPath, settings);
-}
-
-function removePiPatch(patch: Extract<ConfigPatchDef, { format: 'pi' }>): boolean {
-  let changed = false;
-  const modelsPath = expandHomePath(patch.configPath);
-  const settingsPath = expandHomePath(patch.settingsPath);
-  const config = tryReadConfigJson(modelsPath);
-  if (config && config['providers'] && typeof config['providers'] === 'object' && !Array.isArray(config['providers'])) {
-    if (patch.providerKey in (config['providers'] as JsonObject)) {
-      backupConfigFile(modelsPath);
-      delete (config['providers'] as JsonObject)[patch.providerKey];
-      writeJsonFile(modelsPath, config);
-      changed = true;
-    }
-  }
-  const settings = tryReadConfigJson(settingsPath);
-  if (settings && settings['defaultProvider'] === patch.providerKey) {
-    backupConfigFile(settingsPath);
-    delete settings['defaultProvider'];
-    delete settings['defaultModel'];
-    writeJsonFile(settingsPath, settings);
-    changed = true;
-  }
-  return changed;
-}
-
-function applyCrushPatch(patch: Extract<ConfigPatchDef, { format: 'crush' }>, port: number): void {
-  const filePath = expandHomePath(patch.configPath);
-  backupConfigFile(filePath);
-  const config = readConfigJson(filePath);
-  const providers = asObject(config['providers']);
-  providers[patch.providerKey] = {
-    type: 'openai-compat',
-    name: patch.providerName,
-    base_url: patch.baseURL.replace('{buyerPort}', String(port)),
-    api_key: 'torve',
-    models: [
-      { id: ROUTED_MODEL_ALIAS, name: ROUTED_MODEL_ALIAS_LABEL, context_window: MIN_CONTEXT_WINDOW_FLOOR, default_max_tokens: MIN_OUTPUT_TOKENS_FLOOR },
-    ],
-  };
-  config['providers'] = providers;
-  const models = asObject(config['models']);
-  const sel = { provider: patch.providerKey, model: ROUTED_MODEL_ALIAS };
-  models['large'] = { ...sel };
-  models['small'] = { ...sel };
-  config['models'] = models;
-  writeJsonFile(filePath, config);
-}
-
-function removeCrushPatch(patch: Extract<ConfigPatchDef, { format: 'crush' }>): boolean {
-  const filePath = expandHomePath(patch.configPath);
-  const config = tryReadConfigJson(filePath);
-  if (!config) return false;
-  let changed = false;
-  if (config['providers'] && typeof config['providers'] === 'object' && !Array.isArray(config['providers'])) {
-    if (patch.providerKey in (config['providers'] as JsonObject)) {
-      delete (config['providers'] as JsonObject)[patch.providerKey];
-      changed = true;
-    }
-  }
-  if (config['models'] && typeof config['models'] === 'object' && !Array.isArray(config['models'])) {
-    const models = config['models'] as JsonObject;
-    for (const size of ['large', 'small']) {
-      const entry = models[size];
-      if (entry && typeof entry === 'object' && (entry as JsonObject)['provider'] === patch.providerKey) {
-        delete models[size];
-        changed = true;
-      }
-    }
-    if (Object.keys(models).length === 0) delete config['models'];
-  }
-  if (!changed) return false;
-  backupConfigFile(filePath);
-  writeJsonFile(filePath, config);
-  return true;
-}
-
-function applyGoosePatch(patch: Extract<ConfigPatchDef, { format: 'goose' }>, port: number): void {
-  const filePath = expandHomePath(patch.configPath);
-  backupConfigFile(filePath);
-  const existing = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
-  const next = setFlatYamlKeys(existing, [
-    ['GOOSE_PROVIDER', patch.providerKey],
-    ['GOOSE_MODEL', ROUTED_MODEL_ALIAS],
-    ['OPENAI_HOST', patch.baseURL.replace('{buyerPort}', String(port))],
-    ['OPENAI_API_KEY', 'torve'],
-  ]);
-  writeTextAtomically(filePath, next);
-}
-
-function removeGoosePatch(patch: Extract<ConfigPatchDef, { format: 'goose' }>): boolean {
-  const filePath = expandHomePath(patch.configPath);
-  if (!existsSync(filePath)) return false;
-  const existing = readFileSync(filePath, 'utf8');
-  const keysToRemove: string[] = [];
-  if (isLoopbackHost(readFlatYamlKey(existing, 'OPENAI_HOST'))) keysToRemove.push('OPENAI_HOST');
-  if (readFlatYamlKey(existing, 'OPENAI_API_KEY') === 'torve') keysToRemove.push('OPENAI_API_KEY');
-  const model = readFlatYamlKey(existing, 'GOOSE_MODEL');
-  if (readFlatYamlKey(existing, 'GOOSE_PROVIDER') === patch.providerKey && (model === ROUTED_MODEL_ALIAS || model?.includes('@'))) {
-    keysToRemove.push('GOOSE_PROVIDER', 'GOOSE_MODEL');
-  }
-  if (keysToRemove.length === 0) return false;
-  const res = removeFlatYamlKeys(existing, keysToRemove);
-  if (!res.changed) return false;
-  backupConfigFile(filePath);
-  writeTextAtomically(filePath, res.content);
-  return true;
-}
-
-function applyZedPatch(patch: Extract<ConfigPatchDef, { format: 'zed' }>, port: number): void {
-  const filePath = expandHomePath(patch.configPath);
-  backupConfigFile(filePath);
-  const config = readConfigJson(filePath);
-  const lm = asObject(config['language_models']);
-  const compat = asObject(lm['openai_compatible']);
-  compat[patch.providerName] = {
-    api_url: patch.baseURL.replace('{buyerPort}', String(port)),
-    available_models: [
-      { name: ROUTED_MODEL_ALIAS, display_name: ROUTED_MODEL_ALIAS_LABEL, max_tokens: MIN_CONTEXT_WINDOW_FLOOR },
-    ],
-  };
-  lm['openai_compatible'] = compat;
-  config['language_models'] = lm;
-  const agent = asObject(config['agent']);
-  agent['default_model'] = { provider: patch.providerName, model: ROUTED_MODEL_ALIAS };
-  config['agent'] = agent;
-  writeJsonFile(filePath, config);
-}
-
-function removeZedPatch(patch: Extract<ConfigPatchDef, { format: 'zed' }>): boolean {
-  const filePath = expandHomePath(patch.configPath);
-  const config = tryReadConfigJson(filePath);
-  if (!config) return false;
-  let changed = false;
-  const lm = config['language_models'];
-  if (lm && typeof lm === 'object' && !Array.isArray(lm)) {
-    const compat = (lm as JsonObject)['openai_compatible'];
-    if (compat && typeof compat === 'object' && !Array.isArray(compat) && (patch.providerName in (compat as JsonObject))) {
-      delete (compat as JsonObject)[patch.providerName];
-      if (Object.keys(compat as JsonObject).length === 0) {
-        delete (lm as JsonObject)['openai_compatible'];
-        if (Object.keys(lm as JsonObject).length === 0) delete config['language_models'];
-      }
-      changed = true;
-    }
-  }
-  const agent = config['agent'];
-  if (agent && typeof agent === 'object' && !Array.isArray(agent)) {
-    const dm = (agent as JsonObject)['default_model'];
-    if (dm && typeof dm === 'object' && (dm as JsonObject)['provider'] === patch.providerName) {
-      delete (agent as JsonObject)['default_model'];
-      if (Object.keys(agent as JsonObject).length === 0) delete config['agent'];
-      changed = true;
-    }
-  }
-  if (!changed) return false;
-  backupConfigFile(filePath);
-  writeJsonFile(filePath, config);
-  return true;
-}
-
 export function applyConfigPatch(patch: ConfigPatchDef, port: number): void {
   switch (patch.format) {
     case 'opencode': applyOpencodePatch(patch, port); return;
@@ -1466,15 +1044,6 @@ export function applyConfigPatch(patch: ConfigPatchDef, port: number): void {
     case 'claude-desktop': applyClaudeDesktopPatch(patch); return;
     case 'gemini-cli': applyGeminiPatch(patch, port); return;
     case 'antigravity-ide': applyAntigravityPatch(patch, port); return;
-    case 'aider': applyAiderPatch(patch, port); return;
-    case 'continue': applyContinuePatch(patch, port); return;
-    case 'hermes': applyHermesPatch(patch, port); return;
-    case 'droid': applyDroidPatch(patch, port); return;
-    case 't3code': applyT3CodePatch(patch, port); return;
-    case 'pi': applyPiPatch(patch, port); return;
-    case 'crush': applyCrushPatch(patch, port); return;
-    case 'goose': applyGoosePatch(patch, port); return;
-    case 'zed': applyZedPatch(patch, port); return;
   }
 }
 
@@ -1486,15 +1055,6 @@ export function removeConfigPatch(patch: ConfigPatchDef): boolean {
     case 'claude-desktop': return removeClaudeDesktopPatch(patch);
     case 'gemini-cli': return removeGeminiPatch(patch);
     case 'antigravity-ide': return removeAntigravityPatch(patch);
-    case 'aider': return removeAiderPatch(patch);
-    case 'continue': return removeContinuePatch(patch);
-    case 'hermes': return removeHermesPatch(patch);
-    case 'droid': return removeDroidPatch(patch);
-    case 't3code': return removeT3CodePatch(patch);
-    case 'pi': return removePiPatch(patch);
-    case 'crush': return removeCrushPatch(patch);
-    case 'goose': return removeGoosePatch(patch);
-    case 'zed': return removeZedPatch(patch);
   }
 }
 
@@ -1518,23 +1078,17 @@ function backupPathsForPatch(patch: ConfigPatchDef): string[] {
   }
   const paths = patch.format === 'opencode' ? opencodeTargets(patch) : [expandHomePath(patch.configPath)];
   if (patch.format === 'codex') paths.push(codexModelsCachePath());
-  if (patch.format === 'pi') paths.push(expandHomePath(patch.settingsPath));
   if (patch.format === 'gemini-cli') paths.push(expandHomePath(patch.envPath));
   if (patch.format === 'antigravity-ide' && patch.mcpFallback) {
     if (patch.mcpConfigPath) paths.push(expandHomePath(patch.mcpConfigPath));
     if (patch.serverPath) paths.push(expandHomePath(patch.serverPath));
-  }
-  if (patch.format === 'continue' && patch.legacyConfigPath) {
-    const primary = expandHomePath(patch.configPath);
-    const legacy = expandHomePath(patch.legacyConfigPath);
-    if (!existsSync(primary) && existsSync(legacy)) return [legacy];
   }
   return paths;
 }
 
 export interface PatchAppResult {
   app: string;
-  action: 'patched' | 'manual' | 'skipped';
+  action: 'patched' | 'skipped';
   configPaths: string[];
   message: string;
 }
@@ -1545,14 +1099,6 @@ export async function enableApp(
 ): Promise<PatchAppResult> {
   const app = findAppDefinition(appName);
   if (!app) throw new Error(`Unknown app "${appName}". Run "torve apps" to see supported apps.`);
-  if (app.kind === 'manual' || !app.configPatch) {
-    return {
-      app: app.name,
-      action: 'manual',
-      configPaths: [],
-      message: app.manualInstructions ? app.manualInstructions(opts.port) : `${app.displayName} requires manual endpoint configuration.`,
-    };
-  }
 
   const overrides = await readDirectCloudOverrides();
   let patch = scopePatchForDirectCloud(app.name, app.configPatch, opts.models);
@@ -1575,6 +1121,9 @@ export async function enableApp(
       applyConfigPatch(claudeCodeTabPatch(opts.models, opts.port), opts.port);
     }
     await sealBackup(backupId);
+    if (patch.format === 'codex') {
+      await migrateCodexThreadsToTorve();
+    }
   } catch (err) {
     await rollbackBackup(backupId);
     if (app.name === 'codex') {
@@ -1600,14 +1149,6 @@ export async function enableApp(
 export async function disableApp(appName: string): Promise<PatchAppResult> {
   const app = findAppDefinition(appName);
   if (!app) throw new Error(`Unknown app "${appName}". Run "torve apps" to see supported apps.`);
-  if (app.kind === 'manual' || !app.configPatch) {
-    return {
-      app: app.name,
-      action: 'manual',
-      configPaths: [],
-      message: `${app.displayName} uses manual settings; revert Base URL inside the app if configured.`,
-    };
-  }
 
   const backupId = app.name === 'antigravity' ? 'antigravity-ide' : app.name;
   const patch = scopePatchForDirectCloud(app.name, app.configPatch);
@@ -1625,6 +1166,7 @@ export async function disableApp(appName: string): Promise<PatchAppResult> {
   if (app.name === 'codex') {
     await invalidateCodexModelsCache();
     await removeCodexModelCatalog();
+    await restoreCodexThreadsFromTorve();
   }
 
   const active = await readActiveProfilesState();
@@ -1647,7 +1189,6 @@ export async function disableApp(appName: string): Promise<PatchAppResult> {
 export async function enableAllDetectedApps(opts: { port: number; models: readonly TorveModel[] }): Promise<PatchAppResult[]> {
   const results: PatchAppResult[] = [];
   for (const app of getAppDefinitions()) {
-    if (app.kind !== 'config-patch') continue;
     if (!isAppDetected(app)) continue;
     results.push(await enableApp(app.name, opts));
   }
@@ -1659,11 +1200,11 @@ export async function disableAllApps(): Promise<PatchAppResult[]> {
   const active = await readActiveProfilesState();
   const candidates = new Set<string>(active.profiles);
   for (const app of getAppDefinitions()) {
-    if (app.kind === 'config-patch') candidates.add(app.name);
+    candidates.add(app.name);
   }
   for (const name of candidates) {
     const app: AppDefinition | undefined = findAppDefinition(name);
-    if (!app || app.kind !== 'config-patch') continue;
+    if (!app) continue;
     const res = await disableApp(app.name);
     if (res.action !== 'skipped') results.push(res);
   }

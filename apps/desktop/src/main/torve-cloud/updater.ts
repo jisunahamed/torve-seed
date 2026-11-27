@@ -7,8 +7,15 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 
-export const GITHUB_LATEST_RELEASE_URL =
-  'https://api.github.com/repos/jisunahamed/torve-seed/releases/latest';
+export const TORVE_UPDATES_URL = 'https://api.torveai.com/api/desktop/updates/latest';
+export const GITHUB_RELEASES_LIST_URL =
+  'https://api.github.com/repos/jisunahamed/torve-seed/releases?per_page=10';
+export const GITHUB_LATEST_RELEASE_URL = GITHUB_RELEASES_LIST_URL;
+
+export const FRIENDLY_UPDATE_CHECK_ERROR =
+  'Unable to check for updates right now. Please try again later.';
+export const FRIENDLY_UPDATE_DOWNLOAD_ERROR =
+  'Unable to download the update right now. Please try again later.';
 
 export type GitHubReleaseAsset = {
   name: string;
@@ -19,12 +26,18 @@ export type GitHubReleaseAsset = {
 };
 
 export type GitHubReleaseResponse = {
-  tag_name: string;
+  tag_name?: string;
+  version?: string;
   name?: string | null;
   html_url?: string | null;
   body?: string | null;
+  notes?: string | null;
   draft?: boolean;
   prerelease?: boolean;
+  downloadUrl?: string;
+  assetName?: string;
+  assetSize?: number;
+  sha256?: string | null;
   assets?: GitHubReleaseAsset[];
 };
 
@@ -60,6 +73,9 @@ export type TorveUpdaterOptions = {
   currentVersion?: string;
   tempDir?: string;
   releaseUrl?: string;
+  torveUpdatesUrl?: string;
+  fallbackReleaseUrl?: string;
+  autoDownload?: boolean;
   fetchFn?: typeof fetch;
   spawnFn?: (command: string, args: string[], options: SpawnOptions) => { unref: () => void };
   onQuit?: () => void;
@@ -70,6 +86,13 @@ type ParsedSemver = {
   minor: number;
   patch: number;
   prerelease: string[];
+};
+
+type ResolvedReleaseCandidate = {
+  version: string;
+  releaseName: string | null;
+  releaseNotes: string | null;
+  asset: GitHubReleaseAsset | null;
 };
 
 function parseSemver(raw: string): ParsedSemver | null {
@@ -94,7 +117,8 @@ export function compareSemver(a: string, b: string): number {
   if (!pa || !pb) {
     const na = a.trim().replace(/^v/i, '');
     const nb = b.trim().replace(/^v/i, '');
-    return na === nb ? 0 : na > nb ? 1 : -1;
+    if (na === nb) return 0;
+    return na > nb ? 1 : -1;
   }
 
   if (pa.major !== pb.major) return pa.major > pb.major ? 1 : -1;
@@ -106,49 +130,89 @@ export function compareSemver(a: string, b: string): number {
   if (pb.prerelease.length === 0) return -1;
 
   const len = Math.max(pa.prerelease.length, pb.prerelease.length);
-  for (let i = 0; i < len; i += 1) {
+  for (let i = 0; i < len; i++) {
     const ia = pa.prerelease[i];
     const ib = pb.prerelease[i];
     if (ia === undefined) return -1;
     if (ib === undefined) return 1;
-    if (ia === ib) continue;
-
-    const numA = /^\d+$/.test(ia) ? Number.parseInt(ia, 10) : null;
-    const numB = /^\d+$/.test(ib) ? Number.parseInt(ib, 10) : null;
-    if (numA !== null && numB !== null) {
-      return numA > numB ? 1 : -1;
+    const na = /^\d+$/.test(ia) ? Number.parseInt(ia, 10) : null;
+    const nb = /^\d+$/.test(ib) ? Number.parseInt(ib, 10) : null;
+    if (na !== null && nb !== null) {
+      if (na !== nb) return na > nb ? 1 : -1;
+    } else if (na !== null) {
+      return -1;
+    } else if (nb !== null) {
+      return 1;
+    } else if (ia !== ib) {
+      return ia > ib ? 1 : -1;
     }
-    if (numA !== null) return -1;
-    if (numB !== null) return 1;
-    return ia > ib ? 1 : -1;
   }
   return 0;
 }
 
-/**
- * Select the Windows NSIS installer `.exe` asset (`Torve-Desktop-Setup-*.exe`).
- */
-export function selectWindowsExeAsset(assets: GitHubReleaseAsset[] | undefined | null): GitHubReleaseAsset | null {
+export function selectWindowsExeAsset(assets: readonly GitHubReleaseAsset[] | undefined): GitHubReleaseAsset | null {
   if (!Array.isArray(assets)) return null;
-  return (
-    assets.find(
-      (asset) =>
-        typeof asset?.name === 'string'
-        && /^Torve-Desktop-Setup-.*\.exe$/i.test(asset.name)
-        && typeof asset.browser_download_url === 'string'
-        && asset.browser_download_url.length > 0,
-    ) ?? null
-  );
+  for (const asset of assets) {
+    if (!asset || typeof asset.name !== 'string' || typeof asset.browser_download_url !== 'string') {
+      continue;
+    }
+    if (/^Torve-Desktop-Setup-.*\.exe$/i.test(asset.name)) {
+      return asset;
+    }
+  }
+  return null;
 }
 
-/**
- * Verify that a downloaded file is non-empty and starts with a valid PE `MZ` header (`0x4D 0x5A`).
- */
+function normalizeCandidate(raw: unknown): ResolvedReleaseCandidate | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const rel = raw as GitHubReleaseResponse;
+  if (rel.draft) return null;
+
+  const rawVersion = (rel.tag_name ?? rel.version ?? '').trim().replace(/^v/i, '');
+  if (!rawVersion || !parseSemver(rawVersion)) return null;
+
+  let asset = selectWindowsExeAsset(rel.assets);
+  if (!asset && typeof rel.downloadUrl === 'string' && rel.downloadUrl.trim().length > 0) {
+    const candidateName = rel.assetName?.trim() || path.basename(rel.downloadUrl.split('?')[0] ?? '');
+    if (/^Torve-Desktop-Setup-.*\.exe$/i.test(candidateName)) {
+      asset = {
+        name: candidateName,
+        browser_download_url: rel.downloadUrl.trim(),
+        ...(typeof rel.assetSize === 'number' ? { size: rel.assetSize } : {}),
+        ...(typeof rel.sha256 === 'string' && rel.sha256.trim().length > 0
+          ? { digest: rel.sha256.startsWith('sha256:') ? rel.sha256.trim() : `sha256:${rel.sha256.trim()}` }
+          : {}),
+      };
+    }
+  }
+
+  return {
+    version: rawVersion,
+    releaseName: rel.name ?? `Torve Desktop v${rawVersion}`,
+    releaseNotes: rel.notes ?? rel.body ?? null,
+    asset,
+  };
+}
+
+export function selectBestReleaseCandidate(payload: unknown): ResolvedReleaseCandidate | null {
+  const list = Array.isArray(payload) ? payload : [payload];
+  const candidates = list
+    .map((entry) => normalizeCandidate(entry))
+    .filter((entry): entry is ResolvedReleaseCandidate => entry !== null);
+
+  if (candidates.length === 0) return null;
+
+  const withExe = candidates.filter((entry) => entry.asset !== null);
+  const pool = withExe.length > 0 ? withExe : candidates;
+  pool.sort((a, b) => compareSemver(b.version, a.version));
+  return pool[0] ?? null;
+}
+
 export async function verifyPeHeader(filePath: string): Promise<{ ok: boolean; size: number; error?: string }> {
   try {
     const info = await stat(filePath);
     if (!info.isFile() || info.size < 2) {
-      return { ok: false, size: info.size, error: 'Downloaded installer file is empty or too small.' };
+      return { ok: false, size: info.size, error: 'Downloaded installer file is empty or invalid.' };
     }
     const handle = await open(filePath, 'r');
     try {
@@ -165,11 +229,11 @@ export async function verifyPeHeader(filePath: string): Promise<{ ok: boolean; s
     } finally {
       await handle.close();
     }
-  } catch (err) {
+  } catch {
     return {
       ok: false,
       size: 0,
-      error: err instanceof Error ? err.message : String(err),
+      error: 'Downloaded installer file is missing or unreadable.',
     };
   }
 }
@@ -209,10 +273,18 @@ async function resolveElectronApp(): Promise<{
   }
 }
 
+function createAbortSignal(timeoutMs: number): AbortSignal | undefined {
+  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+    return AbortSignal.timeout(timeoutMs);
+  }
+  return undefined;
+}
+
 export class TorveUpdater {
   private state: TorveUpdaterState;
   private readonly listeners = new Set<(state: TorveUpdaterState) => void>();
-  private readonly releaseUrl: string;
+  private readonly releaseEndpoints: string[];
+  private readonly autoDownload: boolean;
   private readonly fetchFn: typeof fetch;
   private readonly spawnFn: (command: string, args: string[], options: SpawnOptions) => { unref: () => void };
   private readonly onQuit?: () => void;
@@ -220,11 +292,18 @@ export class TorveUpdater {
   private downloadUrl: string | null = null;
   private hasExplicitVersion: boolean;
   private inFlightCheck: Promise<TorveUpdaterState> | null = null;
+  private inFlightDownload: Promise<{ ok: boolean; filePath?: string; error?: string }> | null = null;
   private activeCheckSilent = false;
 
   constructor(options: TorveUpdaterOptions = {}) {
     this.hasExplicitVersion = Boolean(options.currentVersion);
-    this.releaseUrl = options.releaseUrl ?? GITHUB_LATEST_RELEASE_URL;
+    this.releaseEndpoints = options.releaseUrl
+      ? [options.releaseUrl]
+      : [
+          options.torveUpdatesUrl ?? TORVE_UPDATES_URL,
+          options.fallbackReleaseUrl ?? GITHUB_RELEASES_LIST_URL,
+        ];
+    this.autoDownload = options.autoDownload ?? true;
     this.fetchFn = options.fetchFn ?? fetch;
     this.spawnFn = options.spawnFn ?? ((cmd, args, opts) => spawn(cmd, args, opts));
     this.onQuit = options.onQuit;
@@ -330,6 +409,40 @@ export class TorveUpdater {
     });
   }
 
+  private async fetchLatestCandidate(currentVersion: string): Promise<{
+    ok: boolean;
+    candidate: ResolvedReleaseCandidate | null;
+    emptySuccess: boolean;
+  }> {
+    let anyEmptySuccess = false;
+    for (const endpoint of this.releaseEndpoints) {
+      try {
+        const response = await this.fetchFn(endpoint, {
+          headers: {
+            Accept: 'application/vnd.github+json, application/json',
+            'User-Agent': `Torve-Desktop/${currentVersion} (Windows)`,
+          },
+          signal: createAbortSignal(5_000),
+        });
+        if (!response.ok) continue;
+
+        const payload = (await response.json()) as unknown;
+        if (Array.isArray(payload) && payload.length === 0) {
+          anyEmptySuccess = true;
+          continue;
+        }
+        const candidate = selectBestReleaseCandidate(payload);
+        if (candidate) {
+          return { ok: true, candidate, emptySuccess: false };
+        }
+      } catch {
+        // Fall through cleanly to next configured endpoint.
+      }
+    }
+
+    return { ok: false, candidate: null, emptySuccess: anyEmptySuccess };
+  }
+
   private async performCheckForUpdates(): Promise<TorveUpdaterState> {
     const previousPhase = this.state.phase;
     const currentVersion = await this.ensureCurrentVersion();
@@ -337,52 +450,16 @@ export class TorveUpdater {
       this.setState({ phase: 'checking', error: null });
     }
 
-    try {
-      const response = await this.fetchFn(this.releaseUrl, {
-        headers: {
-          Accept: 'application/vnd.github+json',
-          'User-Agent': `Torve-Desktop/${currentVersion} (Windows)`,
-        },
-      });
-
-      if (!response.ok) {
-        return this.handleCheckFailure(
-          previousPhase,
-          `GitHub Releases check failed (${response.status} ${response.statusText}).`,
-        );
-      }
-
-      const release = (await response.json()) as GitHubReleaseResponse;
-      const latestVersion = (release.tag_name ?? '').trim().replace(/^v/i, '');
-      if (!latestVersion) {
-        return this.handleCheckFailure(
-          previousPhase,
-          'Latest GitHub release is missing a tag_name.',
-        );
-      }
-
-      if (
-        previousPhase === 'ready'
-        && this.state.downloadedFilePath
-        && this.state.latestVersion
-        && compareSemver(latestVersion, this.state.latestVersion) <= 0
-      ) {
-        return this.setState({
-          phase: 'ready',
-          lastCheckedAt: Date.now(),
-          error: null,
-        });
-      }
-
-      const isNewer = compareSemver(latestVersion, currentVersion) > 0;
-      if (!isNewer) {
+    const fetched = await this.fetchLatestCandidate(currentVersion);
+    if (!fetched.ok) {
+      if (fetched.emptySuccess) {
         this.downloadUrl = null;
         return this.setState({
           phase: 'up-to-date',
-          latestVersion,
-          releaseName: release.name ?? null,
-          releaseUrl: release.html_url ?? null,
-          releaseNotes: release.body ?? null,
+          latestVersion: currentVersion,
+          releaseName: null,
+          releaseUrl: null,
+          releaseNotes: null,
           assetName: null,
           assetSize: null,
           assetDigest: null,
@@ -390,50 +467,78 @@ export class TorveUpdater {
           error: null,
         });
       }
+      return this.handleCheckFailure(previousPhase, FRIENDLY_UPDATE_CHECK_ERROR);
+    }
 
-      const asset = selectWindowsExeAsset(release.assets);
-      if (!asset) {
-        this.downloadUrl = null;
-        return this.handleCheckFailure(
-          previousPhase,
-          `Release v${latestVersion} does not contain a Windows Torve-Desktop-Setup-*.exe asset.`,
-          {
-            latestVersion,
-            releaseName: release.name ?? null,
-            releaseUrl: release.html_url ?? null,
-            releaseNotes: release.body ?? null,
-          },
-        );
-      }
-
-      this.downloadUrl = asset.browser_download_url;
+    const candidate = fetched.candidate!;
+    if (
+      previousPhase === 'ready'
+      && this.state.downloadedFilePath
+      && this.state.latestVersion
+      && compareSemver(candidate.version, this.state.latestVersion) <= 0
+    ) {
       return this.setState({
-        phase: 'available',
-        latestVersion,
-        releaseName: release.name ?? null,
-        releaseUrl: release.html_url ?? null,
-        releaseNotes: release.body ?? null,
-        assetName: asset.name,
-        assetSize: typeof asset.size === 'number' ? asset.size : null,
-        assetDigest: asset.digest ?? null,
-        downloadPercent: 0,
-        downloadedBytes: 0,
-        totalBytes: typeof asset.size === 'number' ? asset.size : 0,
-        downloadedFilePath: null,
+        phase: 'ready',
         lastCheckedAt: Date.now(),
         error: null,
       });
-    } catch (err) {
-      return this.handleCheckFailure(
-        previousPhase,
-        err instanceof Error ? err.message : String(err),
-      );
     }
+
+    const isNewer = compareSemver(candidate.version, currentVersion) > 0;
+    if (!isNewer) {
+      this.downloadUrl = null;
+      return this.setState({
+        phase: 'up-to-date',
+        latestVersion: candidate.version,
+        releaseName: candidate.releaseName,
+        releaseUrl: null,
+        releaseNotes: candidate.releaseNotes,
+        assetName: null,
+        assetSize: null,
+        assetDigest: null,
+        lastCheckedAt: Date.now(),
+        error: null,
+      });
+    }
+
+    if (!candidate.asset) {
+      this.downloadUrl = null;
+      return this.setState({
+        phase: 'up-to-date',
+        latestVersion: currentVersion,
+        lastCheckedAt: Date.now(),
+        error: null,
+      });
+    }
+
+    this.downloadUrl = candidate.asset.browser_download_url;
+    const availableState = this.setState({
+      phase: 'available',
+      latestVersion: candidate.version,
+      releaseName: candidate.releaseName,
+      releaseUrl: null,
+      releaseNotes: candidate.releaseNotes,
+      assetName: candidate.asset.name,
+      assetSize: typeof candidate.asset.size === 'number' ? candidate.asset.size : null,
+      assetDigest: candidate.asset.digest ?? null,
+      downloadPercent: 0,
+      downloadedBytes: 0,
+      totalBytes: typeof candidate.asset.size === 'number' ? candidate.asset.size : 0,
+      downloadedFilePath: null,
+      lastCheckedAt: Date.now(),
+      error: null,
+    });
+
+    if (this.autoDownload) {
+      void this.downloadUpdate().catch(() => {});
+    }
+
+    return availableState;
   }
 
   async downloadUpdate(): Promise<{ ok: boolean; filePath?: string; error?: string }> {
-    if (this.state.phase === 'downloading') {
-      return { ok: false, error: 'An update download is already in progress.' };
+    if (this.inFlightDownload) {
+      return this.inFlightDownload;
     }
     if (this.state.phase === 'ready' && this.state.downloadedFilePath) {
       return { ok: true, filePath: this.state.downloadedFilePath };
@@ -442,8 +547,15 @@ export class TorveUpdater {
       return { ok: false, error: 'No update available to download.' };
     }
 
+    this.inFlightDownload = this.performDownloadUpdate().finally(() => {
+      this.inFlightDownload = null;
+    });
+    return this.inFlightDownload;
+  }
+
+  private async performDownloadUpdate(): Promise<{ ok: boolean; filePath?: string; error?: string }> {
     const tempDir = await this.resolveTempDir();
-    const safeAssetName = path.basename(this.state.assetName);
+    const safeAssetName = path.basename(this.state.assetName!);
     const destPath = path.join(tempDir, safeAssetName);
     const partPath = `${destPath}.part`;
 
@@ -457,7 +569,7 @@ export class TorveUpdater {
     });
 
     try {
-      const response = await this.fetchFn(this.downloadUrl, {
+      const response = await this.fetchFn(this.downloadUrl!, {
         headers: {
           'User-Agent': `Torve-Desktop/${this.state.currentVersion} (Windows)`,
         },
@@ -465,9 +577,8 @@ export class TorveUpdater {
       });
 
       if (!response.ok || !response.body) {
-        const msg = `Failed to download installer (${response.status} ${response.statusText}).`;
-        this.setState({ phase: 'error', error: msg });
-        return { ok: false, error: msg };
+        this.setState({ phase: 'error', error: FRIENDLY_UPDATE_DOWNLOAD_ERROR });
+        return { ok: false, error: FRIENDLY_UPDATE_DOWNLOAD_ERROR };
       }
 
       const contentLength = Number.parseInt(response.headers.get('content-length') ?? '', 10);
@@ -517,7 +628,7 @@ export class TorveUpdater {
         const actual = await computeFileSha256(partPath);
         if (actual !== expected) {
           await rm(partPath, { force: true }).catch(() => {});
-          const msg = 'Downloaded installer SHA-256 digest mismatch.';
+          const msg = 'Downloaded installer verification check failed.';
           this.setState({ phase: 'error', error: msg });
           return { ok: false, error: msg };
         }
@@ -535,11 +646,10 @@ export class TorveUpdater {
         error: null,
       });
       return { ok: true, filePath: destPath };
-    } catch (err) {
+    } catch {
       await rm(partPath, { force: true }).catch(() => {});
-      const msg = err instanceof Error ? err.message : String(err);
-      this.setState({ phase: 'error', error: msg });
-      return { ok: false, error: msg };
+      this.setState({ phase: 'error', error: FRIENDLY_UPDATE_DOWNLOAD_ERROR });
+      return { ok: false, error: FRIENDLY_UPDATE_DOWNLOAD_ERROR };
     }
   }
 
@@ -551,7 +661,7 @@ export class TorveUpdater {
 
     const peCheck = await verifyPeHeader(filePath);
     if (!peCheck.ok) {
-      const msg = peCheck.error ?? 'Installer file is missing or corrupted.';
+      const msg = peCheck.error ?? 'Downloaded installer is missing or invalid.';
       this.setState({ phase: 'error', error: msg });
       return { ok: false, error: msg };
     }
@@ -574,8 +684,8 @@ export class TorveUpdater {
       }, 150);
 
       return { ok: true };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+    } catch {
+      const msg = 'Unable to launch the update installer.';
       this.setState({ phase: 'error', error: msg });
       return { ok: false, error: msg };
     }

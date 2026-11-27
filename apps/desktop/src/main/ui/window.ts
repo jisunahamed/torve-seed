@@ -5,13 +5,13 @@ import {
   nativeImage,
   app,
   screen,
+  shell,
   type Input,
   type Rectangle,
   type MenuItemConstructorOptions,
 } from 'electron';
 import { windowPresetForView, type WindowSizePresetName } from '../../shared/view-windows.js';
 import { PRELOAD_PATH } from '../paths.js';
-import { adoptCheckoutWindow, checkoutWindowOpenHandler, closeCheckoutWindows } from '../payments/checkout-window.js';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -461,11 +461,12 @@ export function createWindow(config: WindowConfig): void {
     ...macosWindowChrome,
   });
 
-  // Sized popups (the Fun checkout's card/sign-in flows) open as app-owned
-  // child windows so they can be closed when the payment lands; everything
-  // else leaves for the system browser.
-  mainWindow.webContents.setWindowOpenHandler(checkoutWindowOpenHandler);
-  mainWindow.webContents.on('did-create-window', (child) => adoptCheckoutWindow(child));
+  mainWindow.webContents.setWindowOpenHandler((details) => {
+    if (details.url.startsWith('https://') || details.url.startsWith('http://')) {
+      void shell.openExternal(details.url);
+    }
+    return { action: 'deny' };
+  });
 
   mainWindow.on('enter-full-screen', () => {
     mainWindow?.webContents.send('fullscreen-change', true);
@@ -529,7 +530,6 @@ export function createWindow(config: WindowConfig): void {
   mainWindow.on('closed', () => {
     mainWindow = null;
     closeFloatWindow();
-    closeCheckoutWindows();
   });
 }
 

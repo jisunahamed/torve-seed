@@ -1,6 +1,19 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 import path from 'node:path';
+
+const require = createRequire(import.meta.url);
+
+function isPackagedElectron(): boolean {
+  try {
+    if (typeof process === 'undefined' || !process.versions?.electron) return false;
+    const electron = require('electron') as { app?: { isPackaged?: boolean } };
+    return electron?.app?.isPackaged === true;
+  } catch {
+    return false;
+  }
+}
 
 const LEGACY_CACHE_PATH = path.join(homedir(), '.torve', 'desktop-models.json');
 const CACHE_PATH = path.join(homedir(), '.torve', 'models-cache.json');
@@ -20,6 +33,9 @@ export function setTorveModelsUpdatedSink(
 }
 
 export function torveCloudUpstream(): string {
+  if (isPackagedElectron()) {
+    return 'https://api.torveai.com';
+  }
   return (process.env['TORVE_CLOUD_API_URL'] || 'https://api.torveai.com').replace(/\/+$/, '');
 }
 

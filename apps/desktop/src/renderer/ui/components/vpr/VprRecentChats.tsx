@@ -13,7 +13,7 @@ import {
   shortSessionId,
 } from '../../../modules/routing/conversations';
 import { displayToolName } from '../../../modules/routing/tool-names';
-import { BrandIcon } from '../brand/BrandIcon';
+import { BrandIcon, resolveBrandKey, shouldPreferBundledBrandIcon } from '../brand/BrandIcon';
 import styles from './VprRecentChats.module.scss';
 
 /* Chat rows sampled on the card — the full list lives on the Chats page. */
@@ -53,11 +53,12 @@ export function VprChatRow({ chat, modelLabel, routedPeerName, profiles = [], on
   const title = conversationTitle(chat);
   const cost = conversationCost(chat);
   const app = appForConversation(chat, profiles);
+  const brandKey = resolveBrandKey(app?.name ?? chat.tool, app?.displayName ?? chat.tool);
   return (
     <button type="button" className={styles.chatRow} onClick={onClick} title={title}>
-      {app?.iconDataUri
+      {app?.iconDataUri && !shouldPreferBundledBrandIcon(brandKey)
         ? <img src={app.iconDataUri} alt="" className={styles.appIcon} />
-        : <BrandIcon name={app?.name ?? chat.tool} hints={[app?.displayName ?? chat.tool]} size={18} />}
+        : <BrandIcon brand={brandKey} size={18} />}
       <span className={styles.chatText}>
         <span className={styles.chatTitleLine}>
           <span className={styles.chatTitle}>{title}</span>

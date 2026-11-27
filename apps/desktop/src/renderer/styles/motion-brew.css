@@ -22,18 +22,21 @@
   }
 }
 
-/* Override unlayered legacy button/input defaults from @torveai/ui inside Motion Brew surfaces */
-aside button:not([class*="border"]),
-[role="dialog"] button:not([class*="border"]),
-[role="radiogroup"] button:not([class*="border"]) {
-  border: 0;
-  background-color: transparent;
-  box-shadow: none;
-}
+@layer components {
+  /* Legacy @torveai/ui element defaults kept below @layer utilities so Tailwind classes win cleanly */
+  aside button:not([class*="border"]),
+  [role="dialog"] button:not([class*="border"]),
+  [role="radiogroup"] button:not([class*="border"]) {
+    border: 0;
+    padding: 0;
+    background-color: transparent;
+    box-shadow: none;
+  }
 
-[role="dialog"] input {
-  border: 0;
-  padding: 0;
-  background-color: transparent;
-  box-shadow: none;
+  [role="dialog"] input {
+    border: 0;
+    padding: 0;
+    background-color: transparent;
+    box-shadow: none;
+  }
 }

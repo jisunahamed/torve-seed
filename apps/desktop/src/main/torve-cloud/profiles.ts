@@ -1,7 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
-import { existsSync } from 'node:fs';
 import { ensureClaudeDesktopGateway, setClaudeDesktopGatewayDirectCatalogSource, stopClaudeDesktopGateway } from '../connected-apps/claude-desktop-gateway.js';
 import { CLAUDE_DESKTOP_PROFILE_ID, matchingClaudeDesktopTargets, opencodeConfigTargets, removeConfigPatch, applyConfigPatch } from '../system-proxy/config-patch.js';
 import type { ConfigPatchDef } from '../system-proxy/config-patch.js';
@@ -12,11 +11,13 @@ import { directCloudBackupMatchesPatched, discardDirectCloudBackup, extendDirect
 import { getDirectCloudOverrides } from './overrides.js';
 import { torveCloudModelsStatus, type TorveModel } from './models.js';
 import { CODEX_CATALOG_PATH, CODEX_MODELS_CACHE_PATH, invalidateCodexModelsCache, removeCodexModelCatalog, writeCodexModelCatalog } from './codex-catalog.js';
+import { migrateCodexThreadsToTorve, restoreCodexThreadsFromTorve } from './codex-threads.js';
 import { opencodeModelsFromCatalog } from './opencode-catalog.js';
 import {
   checkTorveCloudProxyHealth,
   makeLifecycleProgress,
   relaunchOrVerifyApp,
+  stopAppIfRunning,
   type AppLifecycleRuntime,
   type ConnectLifecycleProgress,
 } from './app-lifecycle.js';
@@ -106,7 +107,6 @@ function directPatch(appId: string, patch: ConfigPatchDef, models: readonly Torv
       models: opencodeModelsFromCatalog(models),
     };
   }
-  if (scoped.format === 'continue') return { ...scoped, models: opencodeModelsFromCatalog(models) };
   if (scoped.format === 'claude-code') return { ...scoped, models: opencodeModelsFromCatalog(models) };
   return scoped;
 }
@@ -144,17 +144,25 @@ function backupPaths(patch: ConfigPatchDef): string[] {
   }
   const paths = patch.format === 'opencode' ? opencodeConfigTargets(patch) : [expandHome(patch.configPath)];
   if (patch.format === 'codex') paths.push(CODEX_MODELS_CACHE_PATH);
-  if (patch.format === 'pi') paths.push(expandHome(patch.settingsPath));
   if (patch.format === 'gemini-cli') paths.push(expandHome(patch.envPath));
   if (patch.format === 'antigravity-ide' && patch.mcpFallback) {
     if (patch.mcpConfigPath) paths.push(expandHome(patch.mcpConfigPath));
     if (patch.serverPath) paths.push(expandHome(patch.serverPath));
   }
-  if (patch.format === 'continue' && patch.legacyConfigPath && !existsSync(paths[0]!) && existsSync(expandHome(patch.legacyConfigPath))) return [expandHome(patch.legacyConfigPath)];
   return paths;
 }
 
-async function removeDirectPatch(appId: string, patch: ConfigPatchDef, opts: { forceExact?: boolean } = {}): Promise<void> {
+async function removeDirectPatch(
+  appId: string,
+  patch: ConfigPatchDef,
+  opts: { forceExact?: boolean; runtime?: Partial<AppLifecycleRuntime> } = {},
+): Promise<void> {
+  if (appId === 'codex') {
+    const stopRes = await stopAppIfRunning('codex', { runtime: opts.runtime });
+    if (!stopRes.ok && stopRes.error) {
+      throw new Error(stopRes.error);
+    }
+  }
   const backupId = appId === 'antigravity' ? 'antigravity-ide' : appId;
   const restored = await restoreDirectCloudBackup(backupId, {
     forceExact: opts.forceExact ?? (appId === 'antigravity' || appId === 'claude-desktop'),
@@ -166,6 +174,12 @@ async function removeDirectPatch(appId: string, patch: ConfigPatchDef, opts: { f
   if (appId === 'codex') {
     await invalidateCodexModelsCache();
     await removeCodexModelCatalog();
+    const restoreRes = await restoreCodexThreadsFromTorve(
+      opts.runtime ? { ensureCodexClosed: async () => ({ ok: true }) } : {},
+    );
+    if (!restoreRes.ok && restoreRes.error) {
+      throw new Error(restoreRes.error);
+    }
   }
 }
 
@@ -175,6 +189,7 @@ export async function refreshCodexCatalogIfConnected(models?: readonly TorveMode
   const catalog = models ?? (await torveCloudModelsStatus()).models;
   await writeCodexModelCatalog(catalog);
   await invalidateCodexModelsCache();
+  await migrateCodexThreadsToTorve();
   return true;
 }
 
@@ -184,7 +199,7 @@ export async function refreshCatalogConfigsIfConnected(models?: readonly TorveMo
   latestDirectCatalogModels = catalog;
   const available = await resolveSystemProxyProfiles();
   let changed = false;
-  for (const name of ['opencode', 'continue']) {
+  for (const name of ['opencode']) {
     if (!state.profiles.includes(name)) continue;
     const profile = available.find((entry) => entry.name === name);
     if (!profile?.configPatch) continue;
@@ -281,6 +296,20 @@ export async function startTorveCloudProfiles(
       const patch = await resolvedPatch(profile);
       const backupId = profile.name === 'antigravity' ? 'antigravity-ide' : profile.name;
 
+      let codexWasRunning = false;
+      if (profile.configPatch?.format === 'codex') {
+        // Pre-flight safety: quit Codex cleanly BEFORE opening state_*.sqlite.
+        const stopRes = await stopAppIfRunning(profile.name, {
+          restartAppName: profile.restartAppName,
+          onProgress: opts.onProgress,
+          runtime: deps?.lifecycleRuntime,
+        });
+        if (!stopRes.ok) {
+          throw new Error(stopRes.error ?? 'Close Codex before enabling Torve.');
+        }
+        codexWasRunning = stopRes.wasRunning;
+      }
+
       emit(profile.name, 'backing-up', `Backing up ${profile.label} config...`);
       await prepareDirectCloudBackup(backupId, backupPaths(patch));
 
@@ -291,6 +320,14 @@ export async function startTorveCloudProfiles(
           applyPatchFn(claudeCodeTabPatch(catalog.models, port), 'direct', port, systemProxyWslTargetsPath());
         }
         await sealDirectCloudBackup(backupId);
+        if (profile.configPatch?.format === 'codex') {
+          const migRes = await migrateCodexThreadsToTorve(
+            deps?.lifecycleRuntime ? { ensureCodexClosed: async () => ({ ok: true }) } : {},
+          );
+          if (!migRes.ok) {
+            throw new Error(migRes.error ?? 'Failed to migrate Codex threads safely.');
+          }
+        }
       } catch (err) {
         // A multi-file patch may fail after its first atomic write. Since the
         // backup is not sealed yet, restore its raw originals directly.
@@ -328,7 +365,7 @@ export async function startTorveCloudProfiles(
         } else {
           const relaunch = await relaunchOrVerifyApp(profile.name, {
             restartAppName: profile.restartAppName,
-            launchIfStopped: opts.launchIfStopped ?? (profile.appAction === 'open-tool'),
+            launchIfStopped: codexWasRunning || opts.launchIfStopped || (profile.appAction === 'open-tool'),
             port,
             skipProxyVerify: true,
             onProgress: opts.onProgress,
@@ -369,12 +406,17 @@ export async function startTorveCloudProfiles(
         applyPatchFn(claudeCodeTabPatch(catalog.models, port), 'direct', port, systemProxyWslTargetsPath());
       }
       if (canReseal) await sealDirectCloudBackup(backupId);
+      if (profile.configPatch?.format === 'codex') {
+        await migrateCodexThreadsToTorve(
+          deps?.lifecycleRuntime ? { ensureCodexClosed: async () => ({ ok: true }) } : {},
+        );
+      }
     }
   } catch (err) {
     // Do not leave a partially connected batch behind when an install probe,
     // config parse, or post-patch verification fails midway through connect.
     for (const profile of [...applied].reverse()) {
-      await removeDirectPatch(profile.name, profile.configPatch!, { forceExact: true });
+      await removeDirectPatch(profile.name, profile.configPatch!, { forceExact: true, runtime: deps?.lifecycleRuntime });
     }
     const errMsg = err instanceof Error ? err.message : String(err);
     const errorAppId = activeAppId ?? toApply[0]?.name ?? names[0] ?? 'torve';
@@ -386,7 +428,7 @@ export async function startTorveCloudProfiles(
   for (const name of previous.profiles) {
     if (requested.has(name)) continue;
     const removed = available.find((profile) => profile.name === name);
-    if (removed?.configPatch) await removeDirectPatch(removed.name, removed.configPatch);
+    if (removed?.configPatch) await removeDirectPatch(removed.name, removed.configPatch, { runtime: deps?.lifecycleRuntime });
   }
   if (!profiles.some((profile) => profile.configPatch?.format === 'claude-desktop')) {
     if (deps?.stopClaudeGateway) await deps.stopClaudeGateway();
@@ -405,7 +447,7 @@ export async function stopTorveCloudProfiles(
   const available = await resolveSystemProxyProfiles(opts.deps);
   for (const name of state.profiles) {
     const profile = available.find((entry) => entry.name === name);
-    if (profile?.configPatch) await removeDirectPatch(profile.name, profile.configPatch);
+    if (profile?.configPatch) await removeDirectPatch(profile.name, profile.configPatch, { runtime: opts.deps?.lifecycleRuntime });
   }
   await save({ version: PROFILE_STATE_VERSION, profiles: [], updatedAt: Date.now() }, statePath);
   await stopTorveCloudProxy();

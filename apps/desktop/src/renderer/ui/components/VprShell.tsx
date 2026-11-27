@@ -12,7 +12,9 @@ import {
 import type { SystemProxyProfileSummary, TorveAccountStatus } from '../../types/bridge';
 import { VIEW_NAMES, type ViewName } from '../types';
 import { getViewRegistryEntry, navViews } from './viewRegistry';
+import { BrandIcon } from './brand/BrandIcon';
 import { TorveMark } from './brand/TorveMark';
+import { SidebarDiagnostics } from './torve/SidebarDiagnostics';
 import { TorveToastProvider, useTorveToast } from './torve/TorveToastContext';
 import { UpdateBanner } from './UpdateBanner';
 import { VprNavContext } from './vpr/VprNavContext';
@@ -64,7 +66,6 @@ function resolveSidebarLabel(view: ViewName, fallback: string): string {
 
 function formatViewTitle(view: ViewName): string {
   if (view === 'preferences') return 'Activity & Settings';
-  if (view === 'model') return 'Model Details';
   return getViewRegistryEntry(view).nav?.label ?? 'Torve Desktop';
 }
 
@@ -79,6 +80,8 @@ function VprShellInner({ activeView, onSelectView, onNavigateBack, children }: V
   const [models, setModels] = useState<CatalogModelEntry[]>([]);
   const [accountStatus, setAccountStatus] = useState<TorveAccountStatus | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+  const [sidebarRefreshing, setSidebarRefreshing] = useState(false);
+  const [signOutBusy, setSignOutBusy] = useState(false);
 
   useEffect(() => {
     const email = accountStatus?.email?.trim().toLowerCase();
@@ -205,7 +208,7 @@ function VprShellInner({ activeView, onSelectView, onNavigateBack, children }: V
     };
   }, [accountStatus, avatarUrl]);
 
-  const sidebarValue = activeView === 'model' ? 'explore' : activeView;
+  const sidebarValue = activeView;
 
   const { searchItems, modelIdBySearchId } = useMemo(() => {
     const activeSet = new Set(activeAppNames);
@@ -231,6 +234,7 @@ function VprShellInner({ activeView, onSelectView, onNavigateBack, children }: V
         group: 'Apps',
         title: app.displayName || app.name,
         meta: isConnected ? 'Connected' : 'Available',
+        icon: <BrandIcon name={app.name} hints={[app.displayName]} size={18} />,
         tint: '#18181B',
       });
     }
@@ -241,6 +245,7 @@ function VprShellInner({ activeView, onSelectView, onNavigateBack, children }: V
         group: 'Apps',
         title: name,
         meta: 'Connected',
+        icon: <BrandIcon name={name} size={18} />,
         tint: '#18181B',
       });
     }
@@ -253,6 +258,7 @@ function VprShellInner({ activeView, onSelectView, onNavigateBack, children }: V
         group: 'Models',
         title: model.display_name || model.name || model.id,
         meta: model.tier ? `${model.id} · ${model.tier}` : model.id,
+        icon: <BrandIcon name={model.id} hints={[model.display_name ?? model.name]} size={16} />,
         tint: '#18181B',
       });
     }
@@ -314,6 +320,83 @@ function VprShellInner({ activeView, onSelectView, onNavigateBack, children }: V
     [modelIdBySearchId, onSelectView, toast],
   );
 
+  const handleCopyProxy = useCallback(() => {
+    const url = `http://127.0.0.1:${proxyPort}`;
+    void navigator.clipboard?.writeText(url).then(() => {
+      toast.push({ kind: 'success', title: 'Copied local proxy URL', description: url, duration: 2500 });
+    }).catch(() => {});
+  }, [proxyPort, toast]);
+
+  const handleSidebarRefresh = useCallback(async () => {
+    const bridge = window.torveDesktop;
+    if (!bridge || sidebarRefreshing) return;
+    setSidebarRefreshing(true);
+    try {
+      const [proxy, direct, account] = await Promise.all([
+        bridge.torveCloudProxyStatus?.(),
+        bridge.torveDirectState?.(),
+        bridge.torveAccountGet?.(),
+        bridge.torveMeGet?.(),
+      ]);
+      if (proxy) setProxyStatus({ running: Boolean(proxy.running), port: proxy.port || 8378 });
+      if (direct && Array.isArray(direct.activeProfileNames)) {
+        setActiveAppNames(direct.activeProfileNames);
+      }
+      if (account) setAccountStatus(account);
+      const port = proxy?.port ?? proxyPort;
+      toast.push({
+        kind: 'success',
+        title: 'Status refreshed',
+        description: account?.connected
+          ? `Synced account and proxy status on 127.0.0.1:${port}.`
+          : `Synced local proxy status on 127.0.0.1:${port}.`,
+      });
+    } catch (err) {
+      toast.push({
+        kind: 'error',
+        title: 'Refresh failed',
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setSidebarRefreshing(false);
+    }
+  }, [proxyPort, sidebarRefreshing, toast]);
+
+  const handleManageKeys = useCallback(() => {
+    void window.torveDesktop?.openExternalUrl?.('https://torveai.com/dashboard/keys');
+  }, []);
+
+  const handleSidebarSignOut = useCallback(async () => {
+    const bridge = window.torveDesktop;
+    if (!bridge?.torveAccountClear || signOutBusy) return;
+    setSignOutBusy(true);
+    try {
+      const res = await bridge.torveAccountClear();
+      if (res && !res.ok) {
+        throw new Error(res.error || 'Failed to sign out.');
+      }
+      setAccountStatus((prev) => (prev
+        ? { ...prev, connected: false, authMode: null, email: null, keyHint: null, keyMeta: null, userMeta: null, updatedAt: null }
+        : null));
+      setActiveAppNames([]);
+      toast.push({ kind: 'info', title: 'Signed out', description: 'Disconnected your Torve Desktop session.' });
+      onSelectView('home');
+    } catch (err) {
+      toast.push({
+        kind: 'error',
+        title: 'Sign out failed',
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setSignOutBusy(false);
+    }
+  }, [onSelectView, signOutBusy, toast]);
+
+  const handleSidebarSignIn = useCallback(() => {
+    void window.torveDesktop?.torveAccountPkceStart?.().catch(() => {});
+    onSelectView('home');
+  }, [onSelectView]);
+
   return (
     <div className={styles.shell}>
       <div className={styles.dragStrip} aria-hidden="true" />
@@ -326,6 +409,28 @@ function VprShellInner({ activeView, onSelectView, onNavigateBack, children }: V
           defaultCollapsed={false}
           mobile="sidebar"
           user={sidebarUser}
+          diagnostics={(collapsed) => (
+            <SidebarDiagnostics
+              collapsed={collapsed}
+              proxyActive={proxyActive}
+              proxyPort={proxyPort}
+              connected={Boolean(accountStatus?.connected)}
+              planLabel={planName}
+              statusLabel={accountStatus?.userMeta?.status ?? null}
+              keyName={accountStatus?.keyMeta?.name ?? null}
+              keyPrefix={accountStatus?.keyMeta?.prefix ?? accountStatus?.keyHint ?? null}
+              authMode={accountStatus?.authMode ?? null}
+              healthy={Boolean(accountStatus?.connected && proxyActive)}
+              refreshing={sidebarRefreshing}
+              signOutBusy={signOutBusy}
+              onRefresh={() => { void handleSidebarRefresh(); }}
+              onCopyProxy={handleCopyProxy}
+              onManageKeys={handleManageKeys}
+              onSignOut={() => { void handleSidebarSignOut(); }}
+              onSignIn={handleSidebarSignIn}
+              onOpenOverview={() => onSelectView('home')}
+            />
+          )}
           onNavigate={(id) => {
             if ((VIEW_NAMES as readonly string[]).includes(id)) {
               onSelectView(id as ViewName);

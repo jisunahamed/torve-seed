@@ -2472,6 +2472,8 @@ export interface SidebarNavProps {
   onCollapsedChange?: (collapsed: boolean) => void;
   user?: { name: string; email?: string; avatar?: string };
   onSettings?: () => void;
+  /** Optional diagnostics panel rendered in the lower sidebar above the user row. */
+  diagnostics?: React.ReactNode | ((collapsed: boolean) => React.ReactNode);
   /**
    * How it shows on a phone. `"auto"` (default) turns it into a bottom bar of
    * icons and labels that swipes sideways when the screen is phone width (under
@@ -2733,6 +2735,7 @@ export const SidebarNav = React.forwardRef<HTMLElement, SidebarNavProps>(
       onCollapsedChange,
       user = DEFAULT_USER,
       onSettings,
+      diagnostics,
       mobile = "auto",
       className,
     },
@@ -3097,8 +3100,8 @@ export const SidebarNav = React.forwardRef<HTMLElement, SidebarNavProps>(
                         </span>
                         <span className="relative min-w-0 flex-1 self-stretch overflow-hidden">
                           <motion.span
-                            className="flex h-full items-center gap-2 pr-2"
-                            style={{ width: LABEL_W }}
+                            className="flex h-full items-center gap-2 pr-3"
+                            style={{ width: LABEL_W - 2 }}
                             {...fade(rowOrder)}
                           >
                             <span
@@ -3114,13 +3117,13 @@ export const SidebarNav = React.forwardRef<HTMLElement, SidebarNavProps>(
                               {item.label}
                             </span>
                             {item.tag && (
-                              <span className="grid h-5 place-items-center rounded-full border border-[#14FF73]/25 bg-[#14FF73]/12 px-2 text-xs font-medium text-[#14FF73]">
+                              <span className="grid h-5 shrink-0 place-items-center rounded-full border border-[#14FF73]/25 bg-[#14FF73]/12 px-2 text-xs font-medium text-[#14FF73]">
                                 {item.tag}
                               </span>
                             )}
                             {item.badge ? (
                               <motion.span
-                                className="grid h-5 min-w-5 place-items-center rounded-full bg-[#D8FF0A] px-1.5 text-xs font-semibold tabular-nums text-[#0A0A0A]"
+                                className="grid h-5 min-w-5 shrink-0 place-items-center rounded-full bg-[#D8FF0A] px-1.5 text-xs font-semibold tabular-nums text-[#0A0A0A]"
                                 animate={{
                                   scale:
                                     hover === item.id && !still
@@ -3242,6 +3245,12 @@ export const SidebarNav = React.forwardRef<HTMLElement, SidebarNavProps>(
               </div>
             ))}
           </nav>
+
+          {diagnostics ? (
+            <motion.div variants={ROW} className="mt-2">
+              {typeof diagnostics === "function" ? diagnostics(collapsed) : diagnostics}
+            </motion.div>
+          ) : null}
 
           {/* Account. */}
           <motion.div variants={ROW}>

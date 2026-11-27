@@ -10,19 +10,26 @@ function names(profiles: readonly unknown[]): string[] {
   return profiles.map((profile) => (profile as Record<string, unknown>)['name'] as string);
 }
 
-const DEFAULT_NAMES = ['opencode', 'codex', 'claude-code', 'gemini-cli', 'aider', 'continue', 'antigravity', 'claude-desktop', 'hermes', 'droid', 't3code', 'pi', 'gooeypi', 'crush', 'goose', 'zed'];
+const DEFAULT_NAMES = ['antigravity', 'codex', 'opencode', 'claude-desktop', 'claude-code', 'gemini-cli'];
 
-test('default app profiles are config-patch entries with unique names', () => {
+test('default app profiles are config-patch entries with exact display names', () => {
   assert.deepEqual(names(DEFAULT_APP_PROFILES), DEFAULT_NAMES);
+  assert.deepEqual(
+    DEFAULT_APP_PROFILES.map((profile) => [profile['name'], profile['displayName']]),
+    [
+      ['antigravity', 'Google Antigravity'],
+      ['codex', 'Codex'],
+      ['opencode', 'OpenCode'],
+      ['claude-desktop', 'Claude Desktop'],
+      ['claude-code', 'Claude Code CLI'],
+      ['gemini-cli', 'Gemini CLI'],
+    ],
+  );
   for (const profile of DEFAULT_APP_PROFILES) {
     assert.equal(profile['kind'], 'config-patch');
     const patch = profile['configPatch'] as Record<string, unknown>;
     assert.equal(typeof patch['configPath'], 'string');
-    // Provider-oriented JSON/TOML formats carry a providerKey. These
-    // tool-specific formats patch environment variables, model entries, or
-    // endpoint settings instead, so a provider key is not part of their
-    // schema.
-    if (!['gemini-cli', 'aider', 'continue', 'antigravity-ide', 'claude-desktop'].includes(patch['format'] as string)) {
+    if (!['gemini-cli', 'antigravity-ide', 'claude-desktop'].includes(patch['format'] as string)) {
       assert.equal(typeof patch['providerKey'], 'string');
     }
     const portPlaceholder = patch['format'] === 'claude-desktop' ? '{claudeGatewayPort}' : '{buyerPort}';
@@ -44,9 +51,8 @@ test('Claude Desktop patches the third-party profile and opens Claude on connect
   assert.equal(typeof patch['thirdPartyDir'], 'string');
 });
 
-test('Claude Code and T3 Code use distinct conversation sources', () => {
+test('Claude Code CLI configures claude-code format and distinct conversation source', () => {
   const claudeCode = DEFAULT_APP_PROFILES.find((entry) => entry['name'] === 'claude-code');
-  const t3code = DEFAULT_APP_PROFILES.find((entry) => entry['name'] === 't3code');
   assert.deepEqual(claudeCode?.['toolSlugs'], ['claude-code']);
   assert.deepEqual(claudeCode?.['configPatch'], {
     format: 'claude-code',
@@ -55,31 +61,6 @@ test('Claude Code and T3 Code use distinct conversation sources', () => {
     baseURL: 'http://localhost:{buyerPort}',
     installProbe: 'claude',
   });
-  assert.deepEqual(t3code?.['toolSlugs'], ['t3code']);
-});
-
-test('GooeyPi patches the shared Pi config without requiring pi on PATH', () => {
-  const profile = DEFAULT_APP_PROFILES.find((entry) => entry['name'] === 'gooeypi');
-  assert.ok(profile);
-  assert.deepEqual(profile['toolSlugs'], ['gooeypi']);
-  assert.deepEqual(profile['configPatch'], {
-    format: 'pi',
-    configPath: '~/.pi/agent/models.json',
-    settingsPath: '~/.pi/agent/settings.json',
-    providerKey: 'torve-gooeypi',
-    baseURL: 'http://localhost:{buyerPort}/v1',
-    api: 'openai-responses',
-    originator: 'gooeypi',
-  });
-});
-
-test('Hermes opens the installed Hermes desktop application by default', () => {
-  const profile = DEFAULT_APP_PROFILES.find((entry) => entry['name'] === 'hermes');
-  assert.ok(profile);
-  assert.equal(profile['appAction'], 'open-tool');
-  assert.equal(profile['toolName'], 'hermes');
-  assert.equal(profile['restartAppName'], 'Hermes');
-  assert.equal(profile['openUrl'], undefined);
 });
 
 test('platformConfigPath keeps the posix path off Windows and for home-rooted tools', () => {
@@ -119,6 +100,6 @@ test('mergeWithDefaultAppProfiles lets external profiles override same-name defa
     { name: 'opencode', displayName: 'OpenCode (private override)' },
   ];
   const merged = mergeWithDefaultAppProfiles(external);
-  assert.deepEqual(names(merged), ['acme', 'opencode', 'codex', 'claude-code', 'gemini-cli', 'aider', 'continue', 'antigravity', 'claude-desktop', 'hermes', 'droid', 't3code', 'pi', 'gooeypi', 'crush', 'goose', 'zed']);
+  assert.deepEqual(names(merged), ['acme', 'opencode', 'antigravity', 'codex', 'claude-desktop', 'claude-code', 'gemini-cli']);
   assert.equal((merged[1] as Record<string, unknown>)['displayName'], 'OpenCode (private override)');
 });

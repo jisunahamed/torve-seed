@@ -5,7 +5,7 @@ import type { VprFloatApp, VprFloatData } from '../../types/bridge';
 import { conversationAge, conversationMatchesApp } from '../../modules/routing/conversations';
 import { displayToolName } from '../../modules/routing/tool-names';
 import { VprMark } from '../components/VprLogo';
-import { BrandIcon, isThemeAwareAppBrand, resolveBrandKey } from '../components/brand/BrandIcon';
+import { BrandIcon, resolveBrandKey, shouldPreferBundledBrandIcon } from '../components/brand/BrandIcon';
 import { OverlayScrollArea } from '../components/OverlayScrollArea';
 import { VprBackTitle } from '../components/vpr/VprKit';
 import { VprModelRowList } from '../components/vpr/VprModelRows';
@@ -23,7 +23,7 @@ const COMPACT_MAX_WIDTH = 160;
 function AppMark({ app, tool, size }: { app?: VprFloatApp | null; tool?: string; size: number }) {
   const name = tool ?? app?.name;
   const brandKey = resolveBrandKey(name, app?.displayName ?? name);
-  if (app?.iconDataUri && !isThemeAwareAppBrand(brandKey)) {
+  if (app?.iconDataUri && !shouldPreferBundledBrandIcon(brandKey)) {
     return (
       <img
         src={app.iconDataUri}

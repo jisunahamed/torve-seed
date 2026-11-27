@@ -61,7 +61,7 @@ describe('VprPreferencesView safety and rendering', () => {
     expect(defaultMarkup).toContain('About Torve Desktop');
     expect(defaultMarkup).toContain('Check for Updates');
     expect(defaultMarkup).toContain('Last checked: Never');
-    expect(defaultMarkup).toContain('Up to date');
+    expect(defaultMarkup).toContain('Torve Desktop is up to date');
 
     const checkingMarkup = renderToStaticMarkup(
       <VprPreferencesView
@@ -87,7 +87,7 @@ describe('VprPreferencesView safety and rendering', () => {
         }}
       />,
     );
-    expect(upToDateMarkup).toContain('Up to date');
+    expect(upToDateMarkup).toContain('Torve Desktop is up to date');
     expect(upToDateMarkup).not.toContain('Last checked: Never');
 
     const availableMarkup = renderToStaticMarkup(
@@ -127,8 +127,8 @@ describe('VprPreferencesView safety and rendering', () => {
         }}
       />,
     );
-    expect(readyMarkup).toContain('Ready to install v0.2.59');
-    expect(readyMarkup).toContain('Restart &amp; Install');
+    expect(readyMarkup).toContain('Torve Desktop v0.2.59 is ready to install');
+    expect(readyMarkup).toContain('Restart to Install');
 
     const errorMarkup = renderToStaticMarkup(
       <VprPreferencesView

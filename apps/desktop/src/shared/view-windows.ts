@@ -6,29 +6,10 @@
 export type WindowSizePresetName = 'standard' | 'compact';
 
 export const VIEW_WINDOW_PRESETS = {
-  // Primary desktop views share the spacious, resizable developer workspace.
   home: 'standard',
-  explore: 'standard',
-  model: 'standard',
   tools: 'standard',
-  tunnels: 'standard',
-  chats: 'standard',
+  explore: 'standard',
   preferences: 'standard',
-  credits: 'standard',
-  deposit: 'standard',
-  activity: 'standard',
-  rewards: 'standard',
-  'torve-account': 'standard',
-  help: 'standard',
-  // Chat's base preset is the thin panel, but the view opens wide by default:
-  // chatPanelExpanded starts true, and AppShell applies the standard preset
-  // whenever it is set — the in-view toggle collapses back to this.
-  chat: 'compact',
-  // Diagnostic screens stay in the same workspace size.
-  peers: 'standard',
-  connection: 'standard',
-  desktop: 'standard',
-  config: 'standard',
 } as const satisfies Record<string, WindowSizePresetName>;
 
 export function windowPresetForView(view: string): WindowSizePresetName {

@@ -8,8 +8,23 @@
  * `../..` from their own `__dirname`, which silently breaks whenever a file
  * changes depth.
  */
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+const DEFAULT_CONNECT_DATA_DIR = path.join(homedir(), '.torve');
+const CONNECT_DATA_DIR_ENV = 'TORVE_DESKTOP_CONNECT_DATA_DIR';
+
+export function resolveConnectDataDir(): string {
+  const envDir = process.env[CONNECT_DATA_DIR_ENV]?.trim();
+  if (envDir && envDir.length > 0) {
+    if (envDir.startsWith('~/')) {
+      return path.join(homedir(), envDir.slice(2));
+    }
+    return path.resolve(envDir);
+  }
+  return DEFAULT_CONNECT_DATA_DIR;
+}
 
 /** `<app>/dist/main` — the compiled main process, and where `preload.cjs` lands. */
 export const MAIN_DIST_DIR = path.dirname(fileURLToPath(import.meta.url));

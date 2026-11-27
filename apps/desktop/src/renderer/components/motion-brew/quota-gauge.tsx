@@ -184,8 +184,10 @@ ZapIcon.displayName = "ZapIcon";
 export interface QuotaGaugeProps {
   /** Credits used so far. Default `2022`. */
   value?: number;
-  /** The plan limit. Default `2500`. */
-  goal?: number;
+  /** The plan limit. Leave `null`/`undefined` or pass `unlimited` when no finite cap exists. */
+  goal?: number | null;
+  /** When true, displays Unlimited Plan telemetry without fake percentage caps. */
+  unlimited?: boolean;
   /** Unit after the amount. Default `"credits used"`. */
   unit?: string;
   /** Label prefix before the goal in the resting caption. Default `"Monthly limit"`. */
@@ -333,6 +335,7 @@ export const QuotaGauge = React.forwardRef<HTMLDivElement, QuotaGaugeProps>(
     {
       value = 2022,
       goal = 2500,
+      unlimited = false,
       unit = "credits used",
       goalLabel = "Monthly limit",
       ticks = 44,
@@ -350,11 +353,14 @@ export const QuotaGauge = React.forwardRef<HTMLDivElement, QuotaGaugeProps>(
     const shown = inView || still;
     const [hover, setHover] = React.useState(false);
 
-    const safeGoal = Math.max(1, goal);
+    const hasFiniteGoal =
+      !unlimited && typeof goal === "number" && Number.isFinite(goal) && goal > 0;
+    const isUnlimited = !hasFiniteGoal;
     const safeValue = Math.max(0, value);
-    const share = Math.min(1, safeValue / safeGoal);
-    const isCritical = share >= 0.95;
-    const accentColor = color ?? (isCritical ? TORVE_CRIMSON : "#D8FF0A");
+    const safeGoal = hasFiniteGoal ? Math.max(1, goal!) : Math.max(1, safeValue);
+    const share = isUnlimited ? 1 : Math.min(1, safeValue / safeGoal);
+    const isCritical = !isUnlimited && share >= 0.95;
+    const accentColor = color ?? (isCritical ? TORVE_CRIMSON : isUnlimited ? "#14FF73" : "#D8FF0A");
 
     const amount = useMotionValue(still ? safeValue : 0);
     const [lit, setLit] = React.useState(still ? Math.round(share * ticks) : 0);
@@ -482,7 +488,27 @@ export const QuotaGauge = React.forwardRef<HTMLDivElement, QuotaGaugeProps>(
               }
               transition={{ type: "spring", stiffness: 380, damping: 30 }}
             >
-              {hover ? (
+              {isUnlimited ? (
+                hover ? (
+                  <>
+                    <p className="text-sm font-semibold text-[#14FF73]">
+                      No token limit
+                    </p>
+                    <p className="text-sm text-[#A1A1AA]">
+                      Unlimited active usage
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-semibold text-[#14FF73]">
+                      Unlimited Plan
+                    </p>
+                    <p className="text-sm text-[#71717A]">
+                      {goalLabel}
+                    </p>
+                  </>
+                )
+              ) : hover ? (
                 <>
                   <p className="text-sm font-semibold text-[#F4F4F5]">
                     {left > 0

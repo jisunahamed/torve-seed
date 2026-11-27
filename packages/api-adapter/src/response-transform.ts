@@ -374,10 +374,20 @@ function normalizeOpenAIError(parsed: Record<string, unknown>): Record<string, u
   };
 }
 
+function stripEncodingHeaders(headers: Record<string, string>): Record<string, string> {
+  const next: Record<string, string> = {};
+  for (const [k, v] of Object.entries(headers)) {
+    const lower = k.toLowerCase();
+    if (lower === 'content-encoding' || lower === 'content-length' || lower === 'transfer-encoding') continue;
+    next[k] = v;
+  }
+  return next;
+}
+
 function jsonHeaders(headers: Record<string, string>): Record<string, string> {
-  return { ...headers, 'content-type': 'application/json' };
+  return { ...stripEncodingHeaders(headers), 'content-type': 'application/json' };
 }
 
 function streamHeaders(headers: Record<string, string>): Record<string, string> {
-  return { ...headers, 'content-type': 'text/event-stream', 'cache-control': 'no-cache' };
+  return { ...stripEncodingHeaders(headers), 'content-type': 'text/event-stream', 'cache-control': 'no-cache' };
 }

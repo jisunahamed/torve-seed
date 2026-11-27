@@ -3,7 +3,6 @@ import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
-import { Document, parseDocument } from 'yaml';
 import {
   WSL_TOOL_PROBES,
   clearWslTargetsForTool,
@@ -21,9 +20,6 @@ import {
  */
 export const ROUTED_MODEL_ALIAS = 'torve';
 const ROUTED_MODEL_ALIAS_LABEL = 'Torve Auto';
-// Droid requires the `custom:` namespace to resolve this through `customModels`;
-// an unprefixed value is treated as a Factory-managed model and triggers Factory authentication.
-const DROID_ROUTED_MODEL_ID = 'custom:Torve-Auto-0';
 
 /**
  * Config patches point a tool's own configuration at the buyer proxy. Each
@@ -79,75 +75,6 @@ export type CodexConfigPatchDef = {
   readonly installProbe?: 'codex';
 };
 
-export type DroidConfigPatchDef = {
-  readonly format: 'droid';
-  /** Droid CLI and Factory Desktop's shared user settings. */
-  readonly configPath: string;
-  /** Custom model ID sent to the buyer proxy. */
-  readonly providerKey: string;
-  readonly providerName: string;
-  readonly baseURL: string;
-  readonly originator?: string;
-  readonly installProbe?: 'droid';
-};
-
-export type PiConfigPatchDef = {
-  readonly format: 'pi';
-  /** pi models.json (custom providers). */
-  readonly configPath: string;
-  /** pi settings.json (default provider/model selection). */
-  readonly settingsPath: string;
-  readonly providerKey: string;
-  readonly baseURL: string;
-  readonly api: 'openai-completions' | 'openai-responses' | 'anthropic-messages';
-  readonly originator?: string;
-  readonly installProbe?: 'pi';
-};
-
-export type CrushConfigPatchDef = {
-  readonly format: 'crush';
-  readonly configPath: string;
-  /** POSIX config path for WSL installs — `configPath` is resolved to a
-      Windows known folder at definition time, which is meaningless inside a
-      distro. */
-  readonly wslConfigPath?: string;
-  readonly providerKey: string;
-  readonly providerName: string;
-  readonly baseURL: string;
-  readonly installProbe?: 'crush';
-};
-
-export type GooseConfigPatchDef = {
-  readonly format: 'goose';
-  /** goose config.yaml (flat env-style keys). */
-  readonly configPath: string;
-  /** POSIX config path for WSL installs — see CrushConfigPatchDef. */
-  readonly wslConfigPath?: string;
-  /** goose provider engine ('openai' for openai-compatible hosts). */
-  readonly providerKey: string;
-  /** Host root without /v1 — goose appends the chat-completions path itself. */
-  readonly baseURL: string;
-  readonly installProbe?: 'goose';
-};
-
-export type HermesConfigPatchDef = {
-  readonly format: 'hermes';
-  /** Hermes user configuration (`~/.hermes/config.yaml`). */
-  readonly configPath: string;
-  /** Key under Hermes' named `providers` map. */
-  readonly providerKey: string;
-  readonly baseURL: string;
-};
-
-export type ZedConfigPatchDef = {
-  readonly format: 'zed';
-  readonly configPath: string;
-  readonly providerKey: string;
-  /** Key under language_models.openai_compatible; also the agent provider id. */
-  readonly providerName: string;
-  readonly baseURL: string;
-};
-
 export type ClaudeCodeConfigPatchDef = {
   readonly format: 'claude-code';
   readonly configPath: string;
@@ -155,14 +82,6 @@ export type ClaudeCodeConfigPatchDef = {
   readonly baseURL: string;
   readonly models?: readonly OpencodeModelDefinition[];
   readonly installProbe?: 'claude';
-};
-
-export type T3CodeConfigPatchDef = {
-  readonly format: 't3code';
-  readonly configPath: string;
-  readonly providerKey: string;
-  readonly providerName: string;
-  readonly baseURL: string;
 };
 
 /** Gemini CLI persists a loopback base URL in its user settings. */
@@ -173,8 +92,6 @@ export type GeminiConfigPatchDef = {
   readonly baseURL: string;
   readonly model?: string;
 };
-export type AiderConfigPatchDef = { readonly format: 'aider'; readonly configPath: string; readonly baseURL: string };
-export type ContinueConfigPatchDef = { readonly format: 'continue'; readonly configPath: string; readonly legacyConfigPath?: string; readonly baseURL: string; readonly models?: readonly OpencodeModelDefinition[] };
 export type AntigravityConfigPatchDef = {
   readonly format: 'antigravity-ide';
   /** VS Code user settings. `auto` is resolved per-platform by profiles.ts. */
@@ -212,17 +129,8 @@ export type ClaudeDesktopConfigPatchDef = {
 export type ConfigPatchDef =
   | OpencodeConfigPatchDef
   | CodexConfigPatchDef
-  | DroidConfigPatchDef
-  | PiConfigPatchDef
-  | CrushConfigPatchDef
-  | GooseConfigPatchDef
-  | HermesConfigPatchDef
-  | ZedConfigPatchDef
   | ClaudeCodeConfigPatchDef
-  | T3CodeConfigPatchDef
   | GeminiConfigPatchDef
-  | AiderConfigPatchDef
-  | ContinueConfigPatchDef
   | AntigravityConfigPatchDef
   | ClaudeDesktopConfigPatchDef;
 
@@ -279,8 +187,6 @@ export function readConfigPatch(value: unknown, profileName: string): ConfigPatc
       ...(readString(raw, 'model') ? { model: readString(raw, 'model') } : {}),
     };
   }
-  if (format === 'aider') return { format: 'aider', configPath: readRequiredString(raw, 'configPath', profileName), baseURL: readRequiredString(raw, 'baseURL', profileName) };
-  if (format === 'continue') return { format: 'continue', configPath: readRequiredString(raw, 'configPath', profileName), ...(readString(raw, 'legacyConfigPath') ? { legacyConfigPath: readString(raw, 'legacyConfigPath') } : {}), baseURL: readRequiredString(raw, 'baseURL', profileName) };
   if (format === 'antigravity-ide') {
     return {
       format: 'antigravity-ide',
@@ -307,72 +213,6 @@ export function readConfigPatch(value: unknown, profileName: string): ConfigPatc
       ...(raw['installProbe'] === 'codex' ? { installProbe: 'codex' as const } : {}),
     };
   }
-  if (format === 'droid') {
-    const originator = readString(raw, 'originator');
-    return {
-      format: 'droid',
-      configPath,
-      providerKey,
-      providerName: readRequiredString(raw, 'providerName', profileName),
-      baseURL,
-      ...(originator ? { originator } : {}),
-      ...(raw['installProbe'] === 'droid' ? { installProbe: 'droid' as const } : {}),
-    };
-  }
-  if (format === 'pi') {
-    const api = raw['api'];
-    const originator = readString(raw, 'originator');
-    return {
-      format: 'pi',
-      configPath,
-      settingsPath: readRequiredString(raw, 'settingsPath', profileName),
-      providerKey,
-      baseURL,
-      api: api === 'openai-responses' || api === 'anthropic-messages' ? api : 'openai-completions',
-      ...(originator ? { originator } : {}),
-      ...(raw['installProbe'] === 'pi' ? { installProbe: 'pi' as const } : {}),
-    };
-  }
-  if (format === 'crush') {
-    const wslConfigPath = readString(raw, 'wslConfigPath');
-    return {
-      format: 'crush',
-      configPath,
-      ...(wslConfigPath ? { wslConfigPath } : {}),
-      providerKey,
-      providerName: readRequiredString(raw, 'providerName', profileName),
-      baseURL,
-      ...(raw['installProbe'] === 'crush' ? { installProbe: 'crush' as const } : {}),
-    };
-  }
-  if (format === 'goose') {
-    const wslConfigPath = readString(raw, 'wslConfigPath');
-    return {
-      format: 'goose',
-      configPath,
-      ...(wslConfigPath ? { wslConfigPath } : {}),
-      providerKey,
-      baseURL,
-      ...(raw['installProbe'] === 'goose' ? { installProbe: 'goose' as const } : {}),
-    };
-  }
-  if (format === 'hermes') {
-    return {
-      format: 'hermes',
-      configPath,
-      providerKey,
-      baseURL,
-    };
-  }
-  if (format === 'zed') {
-    return {
-      format: 'zed',
-      configPath,
-      providerKey,
-      providerName: readRequiredString(raw, 'providerName', profileName),
-      baseURL,
-    };
-  }
   if (format === 'claude-code') {
     return {
       format: 'claude-code',
@@ -380,15 +220,6 @@ export function readConfigPatch(value: unknown, profileName: string): ConfigPatc
       providerKey,
       baseURL,
       ...(raw['installProbe'] === 'claude' ? { installProbe: 'claude' as const } : {}),
-    };
-  }
-  if (format === 't3code') {
-    return {
-      format: 't3code',
-      configPath,
-      providerKey,
-      providerName: readRequiredString(raw, 'providerName', profileName),
-      baseURL,
     };
   }
   return {
@@ -615,44 +446,14 @@ export function applyConfigPatch(patch: ConfigPatchDef, peerId: string, buyerPor
     applyCodexConfigPatch(patch, buyerPort, wslTargetsFile);
     return;
   }
-  if (patch.format === 'droid') {
-    applyDroidConfigPatch(patch, buyerPort, wslTargetsFile);
-    return;
-  }
-  if (patch.format === 'pi') {
-    applyPiConfigPatch(patch, buyerPort, wslTargetsFile);
-    return;
-  }
-  if (patch.format === 'crush') {
-    applyCrushConfigPatch(patch, buyerPort, wslTargetsFile);
-    return;
-  }
-  if (patch.format === 'goose') {
-    applyGooseConfigPatch(patch, buyerPort, wslTargetsFile);
-    return;
-  }
-  if (patch.format === 'hermes') {
-    applyHermesConfigPatch(patch, buyerPort);
-    return;
-  }
-  if (patch.format === 'zed') {
-    applyZedConfigPatch(patch, buyerPort);
-    return;
-  }
   if (patch.format === 'claude-code') {
     applyClaudeCodeConfigPatch(patch, buyerPort, wslTargetsFile);
-    return;
-  }
-  if (patch.format === 't3code') {
-    applyT3CodeConfigPatch(patch, buyerPort);
     return;
   }
   if (patch.format === 'gemini-cli') {
     applyGeminiCliConfigPatch(patch, buyerPort);
     return;
   }
-  if (patch.format === 'aider') { applyAiderConfigPatch(patch, buyerPort); return; }
-  if (patch.format === 'continue') { applyContinueConfigPatch(patch, buyerPort); return; }
   if (patch.format === 'antigravity-ide') { applyAntigravityPatch(patch, buyerPort); return; }
   if (patch.format === 'claude-desktop') {
     applyClaudeDesktopConfigPatch(patch);
@@ -668,6 +469,19 @@ export function substituteBaseUrlHost(baseURL: string, host: string): string {
   return baseURL.replace(/^(https?:\/\/)[^/:]+/, `$1${host}`);
 }
 
+function binaryOnPath(binary: string): boolean {
+  try {
+    if (process.platform === 'win32') {
+      execFileSync('where.exe', [binary], { stdio: 'ignore', windowsHide: true });
+    } else {
+      execFileSync('/bin/sh', ['-c', `command -v ${binary}`], { stdio: 'ignore' });
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Signals that a tool actually exists natively: its config dir, its
     home-relative install/state locations (shared with the WSL probe), or the
     binary on PATH. Any one suffices — a GUI process sees a reduced PATH, and
@@ -680,15 +494,47 @@ function nativeToolInstalled(tool: WslTool, configFilePath: string): boolean {
   }
   const probe = WSL_TOOL_PROBES[tool];
   if (probe.signals.some((signal) => existsSync(path.join(homedir(), ...signal.split('/'))))) return true;
+  return binaryOnPath(probe.binary);
+}
+
+/** Best-effort detection of whether a config-patch app/CLI is installed on this machine. */
+export function isConfigPatchProfileInstalled(patch: ConfigPatchDef, hasLaunchTarget = false): boolean {
+  if (hasLaunchTarget) return true;
   try {
-    if (process.platform === 'win32') {
-      execFileSync('where.exe', [probe.binary], { stdio: 'ignore', windowsHide: true });
-    } else {
-      execFileSync('/bin/sh', ['-c', `command -v ${probe.binary}`], { stdio: 'ignore' });
+    if (patch.format === 'claude-desktop') {
+      return matchingClaudeDesktopTargets(patch).length > 0;
     }
-    return true;
+    if (patch.format === 'antigravity-ide') {
+      const local = process.env['LOCALAPPDATA'] || path.join(homedir(), 'AppData', 'Local');
+      return (
+        existsSync(path.join(homedir(), '.antigravity'))
+        || (process.platform === 'win32' && existsSync(path.join(local, 'Programs', 'Antigravity')))
+        || (process.platform === 'darwin' && existsSync('/Applications/Antigravity.app'))
+        || binaryOnPath('antigravity')
+      );
+    }
+    if (patch.format === 'gemini-cli') {
+      return existsSync(path.join(homedir(), '.gemini', 'settings.json'))
+        || existsSync(path.join(homedir(), '.gemini', '.env'))
+        || binaryOnPath('gemini');
+    }
+    const toolMap: Record<string, WslTool> = {
+      opencode: 'opencode',
+      codex: 'codex',
+      'claude-code': 'claude',
+    };
+    const wslTool = toolMap[patch.format ?? 'opencode'];
+    if (wslTool) {
+      const nativePath = expandTilde(patch.configPath);
+      const posixPath = 'wslConfigPath' in patch && typeof patch.wslConfigPath === 'string'
+        ? patch.wslConfigPath
+        : patch.configPath;
+      return nativeToolInstalled(wslTool, nativePath)
+        || discoverWslToolTargets(wslTool, { configPath: posixPath }).length > 0;
+    }
+    return existsSync(expandTilde(patch.configPath));
   } catch {
-    return false;
+    return true;
   }
 }
 
@@ -849,35 +695,12 @@ export function removeConfigPatch(patch: ConfigPatchDef, wslTargetsFile?: string
   if (patch.format === 'codex') {
     return removeCodexConfigPatch(patch, wslTargetsFile);
   }
-  if (patch.format === 'droid') {
-    return removeDroidConfigPatch(patch, wslTargetsFile);
-  }
-  if (patch.format === 'pi') {
-    return removePiConfigPatch(patch, wslTargetsFile);
-  }
-  if (patch.format === 'crush') {
-    return removeCrushConfigPatch(patch, wslTargetsFile);
-  }
-  if (patch.format === 'goose') {
-    return removeGooseConfigPatch(patch, wslTargetsFile);
-  }
-  if (patch.format === 'hermes') {
-    return removeHermesConfigPatch(patch);
-  }
-  if (patch.format === 'zed') {
-    return removeZedConfigPatch(patch);
-  }
   if (patch.format === 'claude-code') {
     return removeClaudeCodeConfigPatch(patch, wslTargetsFile);
-  }
-  if (patch.format === 't3code') {
-    return removeT3CodeConfigPatch(patch);
   }
   if (patch.format === 'gemini-cli') {
     return removeGeminiCliConfigPatch(patch);
   }
-  if (patch.format === 'aider') return removeAiderConfigPatch(patch);
-  if (patch.format === 'continue') return removeContinueConfigPatch(patch);
   if (patch.format === 'antigravity-ide') return removeAntigravityPatch(patch);
   if (patch.format === 'claude-desktop') {
     return removeClaudeDesktopConfigPatch(patch);
@@ -918,226 +741,6 @@ function writeTextFile(filePath: string, content: string): void {
     mkdirSync(dir, { recursive: true });
   }
   writeTextFileAtomically(filePath, content);
-}
-
-// --- Droid CLI + Factory Desktop (`~/.factory/settings.json`) ---
-//
-// Both clients watch this file and share its `customModels` catalog. The
-// sidecar remembers only the fields Torve temporarily owns so disconnect
-// can restore the user's prior default without rolling back unrelated edits.
-
-type DroidPatchState = {
-  readonly version: 1 | 2;
-  readonly configExisted: boolean;
-  readonly customModelsPresent: boolean;
-  readonly modelPresent: boolean;
-  readonly modelValue?: unknown;
-  readonly sessionDefaultSettingsPresent: boolean;
-  readonly sessionDefaultModelPresent: boolean;
-  readonly sessionDefaultModelValue?: unknown;
-};
-
-function droidPatchStatePath(filePath: string): string {
-  return `${filePath}.torve.state.json`;
-}
-
-function readDroidPatchState(filePath: string): DroidPatchState | null {
-  const state = tryReadConfigPatchFile(droidPatchStatePath(filePath));
-  if (!state) return null;
-  if ((state['version'] !== 1 && state['version'] !== 2)
-    || typeof state['configExisted'] !== 'boolean'
-    || typeof state['customModelsPresent'] !== 'boolean'
-    || typeof state['modelPresent'] !== 'boolean'
-    || (state['version'] === 2 && (
-      typeof state['sessionDefaultSettingsPresent'] !== 'boolean'
-      || typeof state['sessionDefaultModelPresent'] !== 'boolean'
-    ))) {
-    throw new Error(`Invalid Torve Droid restore state at ${droidPatchStatePath(filePath)}`);
-  }
-  return {
-    version: state['version'],
-    configExisted: state['configExisted'],
-    customModelsPresent: state['customModelsPresent'],
-    modelPresent: state['modelPresent'],
-    ...(state['modelPresent'] ? { modelValue: state['modelValue'] } : {}),
-    sessionDefaultSettingsPresent: state['version'] === 2 && state['sessionDefaultSettingsPresent'] === true,
-    sessionDefaultModelPresent: state['version'] === 2 && state['sessionDefaultModelPresent'] === true,
-    ...(state['version'] === 2 && state['sessionDefaultModelPresent']
-      ? { sessionDefaultModelValue: state['sessionDefaultModelValue'] }
-      : {}),
-  };
-}
-
-function writeDroidPatchState(filePath: string, state: DroidPatchState): void {
-  writeJsonFile(droidPatchStatePath(filePath), {
-    version: 2,
-    configExisted: state.configExisted,
-    customModelsPresent: state.customModelsPresent,
-    modelPresent: state.modelPresent,
-    ...(state.modelPresent ? { modelValue: state.modelValue } : {}),
-    sessionDefaultSettingsPresent: state.sessionDefaultSettingsPresent,
-    sessionDefaultModelPresent: state.sessionDefaultModelPresent,
-    ...(state.sessionDefaultModelPresent ? { sessionDefaultModelValue: state.sessionDefaultModelValue } : {}),
-  });
-}
-
-function deleteDroidPatchState(filePath: string): void {
-  try {
-    unlinkSync(droidPatchStatePath(filePath));
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
-  }
-}
-
-function droidCustomModels(config: JsonObject, filePath: string): unknown[] {
-  const customModels = config['customModels'];
-  if (customModels === undefined) return [];
-  if (!Array.isArray(customModels)) {
-    throw new Error(`Droid customModels at ${filePath} must be an array`);
-  }
-  return customModels;
-}
-
-function isDroidModel(value: unknown, model: string): boolean {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value)
-    && (value as JsonObject)['model'] === model);
-}
-
-function droidSessionDefaultSettings(config: JsonObject, filePath: string): JsonObject | undefined {
-  const settings = config['sessionDefaultSettings'];
-  if (settings === undefined) return undefined;
-  if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
-    throw new Error(`Droid sessionDefaultSettings at ${filePath} must be an object`);
-  }
-  return settings as JsonObject;
-}
-
-function applyDroidConfigPatch(patch: DroidConfigPatchDef, buyerPort: number, wslTargetsFile?: string): void {
-  const filePath = expandTilde(patch.configPath);
-  const baseURL = patch.baseURL.replace('{buyerPort}', String(buyerPort));
-  if (patch.installProbe !== 'droid') {
-    applyDroidModelToFile(filePath, patch, baseURL);
-    return;
-  }
-  applyWithInstallProbe({
-    tool: 'droid',
-    native: { configPath: filePath },
-    posix: { configPath: patch.configPath },
-    baseURL,
-    wslTargetsFile,
-    write: (paths, url) => applyDroidModelToFile(paths.configPath, patch, url),
-  });
-}
-
-function applyDroidModelToFile(filePath: string, patch: DroidConfigPatchDef, baseURL: string): void {
-  const configExisted = existsSync(filePath);
-  backupConfigFile(filePath);
-  const config = readConfigPatchFile(filePath);
-  const customModelsPresent = Object.prototype.hasOwnProperty.call(config, 'customModels');
-  const customModels = droidCustomModels(config, filePath);
-  const existingSessionDefaultSettings = droidSessionDefaultSettings(config, filePath);
-  const state = readDroidPatchState(filePath);
-  const matchingModels = customModels.filter((model) => isDroidModel(model, patch.providerKey));
-  if (matchingModels.length > 0 && !state) {
-    throw new Error(
-      `Droid already defines a custom model named ${patch.providerKey} in ${filePath}; refusing to overwrite it.`,
-    );
-  }
-  if (!state) {
-    const modelPresent = Object.prototype.hasOwnProperty.call(config, 'model');
-    const sessionDefaultSettingsPresent = existingSessionDefaultSettings !== undefined;
-    const sessionDefaultModelPresent = existingSessionDefaultSettings !== undefined
-      && Object.prototype.hasOwnProperty.call(existingSessionDefaultSettings, 'model');
-    writeDroidPatchState(filePath, {
-      version: 2,
-      configExisted,
-      customModelsPresent,
-      modelPresent,
-      ...(modelPresent ? { modelValue: config['model'] } : {}),
-      sessionDefaultSettingsPresent,
-      sessionDefaultModelPresent,
-      ...(sessionDefaultModelPresent
-        ? { sessionDefaultModelValue: existingSessionDefaultSettings['model'] }
-        : {}),
-    });
-  }
-
-  const extraHeaders = patch.originator ? { originator: patch.originator } : {};
-  config['customModels'] = [
-    ...customModels.filter((model) => !isDroidModel(model, patch.providerKey)),
-    {
-      model: patch.providerKey,
-      id: DROID_ROUTED_MODEL_ID,
-      displayName: patch.providerName,
-      baseUrl: baseURL,
-      provider: 'generic-chat-completion-api',
-      maxOutputTokens: TORVE_MODEL_MAX_OUTPUT_TOKENS,
-      ...(Object.keys(extraHeaders).length > 0 ? { extraHeaders } : {}),
-    },
-  ];
-  const sessionDefaultSettings = existingSessionDefaultSettings ?? {};
-  sessionDefaultSettings['model'] = DROID_ROUTED_MODEL_ID;
-  config['sessionDefaultSettings'] = sessionDefaultSettings;
-  writeJsonFile(filePath, config);
-}
-
-function removeDroidConfigPatch(patch: DroidConfigPatchDef, wslTargetsFile?: string): boolean {
-  let changed = removeDroidModelFromFile(expandTilde(patch.configPath), patch);
-  if (patch.installProbe === 'droid') {
-    changed = removeWslInstalls('droid', wslTargetsFile, (target) => (
-      removeDroidModelFromFile(target.configPath, patch)
-    )) || changed;
-  }
-  return changed;
-}
-
-function removeDroidModelFromFile(filePath: string, patch: DroidConfigPatchDef): boolean {
-  const state = readDroidPatchState(filePath);
-  if (!state) return false;
-  const config = tryReadConfigPatchFile(filePath);
-  if (!config) {
-    deleteDroidPatchState(filePath);
-    return true;
-  }
-  backupConfigFile(filePath);
-
-  let changed = false;
-  const customModels = config['customModels'];
-  if (Array.isArray(customModels)) {
-    const filtered = customModels.filter((model) => !isDroidModel(model, patch.providerKey));
-    if (filtered.length !== customModels.length) {
-      if (filtered.length === 0 && !state.customModelsPresent) delete config['customModels'];
-      else config['customModels'] = filtered;
-      changed = true;
-    }
-  }
-  const sessionDefaultSettings = droidSessionDefaultSettings(config, filePath);
-  const managedSessionDefault = sessionDefaultSettings?.['model'] === DROID_ROUTED_MODEL_ID;
-  if (managedSessionDefault && sessionDefaultSettings) {
-    if (state.sessionDefaultModelPresent) {
-      sessionDefaultSettings['model'] = state.sessionDefaultModelValue;
-    } else {
-      delete sessionDefaultSettings['model'];
-    }
-    if (!state.sessionDefaultSettingsPresent && Object.keys(sessionDefaultSettings).length === 0) {
-      delete config['sessionDefaultSettings'];
-    }
-    changed = true;
-  }
-  const modelPresent = Object.prototype.hasOwnProperty.call(config, 'model');
-  if (config['model'] === patch.providerKey || (managedSessionDefault && !modelPresent && state.modelPresent)) {
-    if (state.modelPresent) config['model'] = state.modelValue;
-    else delete config['model'];
-    changed = true;
-  }
-
-  if (!state.configExisted && Object.keys(config).length === 0) {
-    unlinkSync(filePath);
-  } else if (changed) {
-    writeJsonFile(filePath, config);
-  }
-  deleteDroidPatchState(filePath);
-  return changed;
 }
 
 // --- Codex CLI (`~/.codex/config.toml`) ---
@@ -1279,213 +882,8 @@ function removeCodexProviderFromFile(filePath: string, patch: CodexConfigPatchDe
   return true;
 }
 
-// --- pi (`~/.pi/agent/models.json` + `~/.pi/agent/settings.json`) ---
-//
-// pi discovers custom providers from models.json and picks the default
-// provider/model from settings.json. The apiKey is a placeholder — the buyer
-// proxy is keyless, but pi hides models that have no credential at all.
-
-function applyPiConfigPatch(patch: PiConfigPatchDef, buyerPort: number, wslTargetsFile?: string): void {
-  const baseURL = patch.baseURL.replace('{buyerPort}', String(buyerPort));
-  const native = { configPath: expandTilde(patch.configPath), settingsPath: expandTilde(patch.settingsPath) };
-  if (patch.installProbe !== 'pi') {
-    applyPiProviderToFiles(native.configPath, native.settingsPath, patch, baseURL);
-    return;
-  }
-  applyWithInstallProbe({
-    tool: 'pi',
-    native,
-    posix: { configPath: patch.configPath, settingsPath: patch.settingsPath },
-    baseURL,
-    wslTargetsFile,
-    write: (paths, url) => applyPiProviderToFiles(paths.configPath, paths.settingsPath ?? native.settingsPath, patch, url),
-  });
-}
-
-function applyPiProviderToFiles(modelsPath: string, settingsPath: string, patch: PiConfigPatchDef, baseURL: string): void {
-  backupConfigFile(modelsPath);
-  const config = readConfigPatchFile(modelsPath);
-  const providers = (config['providers'] && typeof config['providers'] === 'object' && !Array.isArray(config['providers']))
-    ? config['providers'] as JsonObject
-    : {};
-  providers[patch.providerKey] = {
-    baseUrl: baseURL,
-    api: patch.api,
-    apiKey: 'torve',
-    ...(patch.originator ? { headers: { originator: patch.originator } } : {}),
-    models: [
-      {
-        id: ROUTED_MODEL_ALIAS,
-        name: ROUTED_MODEL_ALIAS_LABEL,
-        contextWindow: TORVE_MODEL_CONTEXT_WINDOW,
-        maxTokens: TORVE_MODEL_MAX_OUTPUT_TOKENS,
-      },
-    ],
-  };
-  config['providers'] = providers;
-  writeJsonFile(modelsPath, config);
-
-  backupConfigFile(settingsPath);
-  const settings = readConfigPatchFile(settingsPath);
-  settings['defaultProvider'] = patch.providerKey;
-  settings['defaultModel'] = ROUTED_MODEL_ALIAS;
-  writeJsonFile(settingsPath, settings);
-}
-
-function removePiConfigPatch(patch: PiConfigPatchDef, wslTargetsFile?: string): boolean {
-  let changed = removePiProviderFromFiles(expandTilde(patch.configPath), expandTilde(patch.settingsPath), patch);
-  if (patch.installProbe === 'pi') {
-    changed = removeWslInstalls('pi', wslTargetsFile, (target) =>
-      removePiProviderFromFiles(target.configPath, target.settingsPath ?? '', patch)) || changed;
-  }
-  return changed;
-}
-
-function removePiProviderFromFiles(modelsPath: string, settingsPath: string, patch: PiConfigPatchDef): boolean {
-  let changed = false;
-  const config = tryReadConfigPatchFile(modelsPath);
-  const providers = config?.['providers'];
-  if (config && providers && typeof providers === 'object' && !Array.isArray(providers) && (patch.providerKey in (providers as JsonObject))) {
-    backupConfigFile(modelsPath);
-    delete (providers as JsonObject)[patch.providerKey];
-    writeJsonFile(modelsPath, config);
-    changed = true;
-  }
-  const settings = tryReadConfigPatchFile(settingsPath);
-  if (settings && settings['defaultProvider'] === patch.providerKey) {
-    backupConfigFile(settingsPath);
-    delete settings['defaultProvider'];
-    delete settings['defaultModel'];
-    writeJsonFile(settingsPath, settings);
-    changed = true;
-  }
-  return changed;
-}
-
 function asObject(value: unknown): JsonObject {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : {};
-}
-
-// --- Crush (`~/.config/crush/crush.json`) ---
-//
-// Crush takes custom endpoints as a `providers` map entry with
-// `type: "openai-compat"`; the default model selection lives under
-// `models.large` / `models.small` as `{ provider, model }`.
-
-function applyCrushConfigPatch(patch: CrushConfigPatchDef, buyerPort: number, wslTargetsFile?: string): void {
-  const filePath = expandTilde(patch.configPath);
-  const baseURL = patch.baseURL.replace('{buyerPort}', String(buyerPort));
-  if (patch.installProbe !== 'crush') {
-    applyCrushProviderToFile(filePath, patch, baseURL);
-    return;
-  }
-  applyWithInstallProbe({
-    tool: 'crush',
-    native: { configPath: filePath },
-    posix: { configPath: patch.wslConfigPath ?? patch.configPath },
-    baseURL,
-    wslTargetsFile,
-    write: (paths, url) => applyCrushProviderToFile(paths.configPath, patch, url),
-  });
-}
-
-function applyCrushProviderToFile(filePath: string, patch: CrushConfigPatchDef, baseURL: string): void {
-  backupConfigFile(filePath);
-  const config = readConfigPatchFile(filePath);
-  const providers = asObject(config['providers']);
-  providers[patch.providerKey] = {
-    type: 'openai-compat',
-    name: patch.providerName,
-    base_url: baseURL,
-    api_key: 'torve',
-    models: [
-      { id: ROUTED_MODEL_ALIAS, name: ROUTED_MODEL_ALIAS_LABEL, context_window: TORVE_MODEL_CONTEXT_WINDOW, default_max_tokens: TORVE_MODEL_MAX_OUTPUT_TOKENS },
-    ],
-  };
-  config['providers'] = providers;
-  const models = asObject(config['models']);
-  const selection = { provider: patch.providerKey, model: ROUTED_MODEL_ALIAS };
-  models['large'] = { ...selection };
-  models['small'] = { ...selection };
-  config['models'] = models;
-  writeJsonFile(filePath, config);
-}
-
-function removeCrushConfigPatch(patch: CrushConfigPatchDef, wslTargetsFile?: string): boolean {
-  let changed = removeCrushProviderFromFile(expandTilde(patch.configPath), patch);
-  if (patch.installProbe === 'crush') {
-    changed = removeWslInstalls('crush', wslTargetsFile, (target) => removeCrushProviderFromFile(target.configPath, patch)) || changed;
-  }
-  return changed;
-}
-
-function removeCrushProviderFromFile(filePath: string, patch: CrushConfigPatchDef): boolean {
-  const config = tryReadConfigPatchFile(filePath);
-  if (!config) return false;
-  let changed = false;
-  const providers = config['providers'];
-  if (providers && typeof providers === 'object' && !Array.isArray(providers) && (patch.providerKey in (providers as JsonObject))) {
-    delete (providers as JsonObject)[patch.providerKey];
-    changed = true;
-  }
-  const models = config['models'];
-  if (models && typeof models === 'object' && !Array.isArray(models)) {
-    for (const size of ['large', 'small']) {
-      const entry = (models as JsonObject)[size];
-      if (entry && typeof entry === 'object' && (entry as JsonObject)['provider'] === patch.providerKey) {
-        delete (models as JsonObject)[size];
-        changed = true;
-      }
-    }
-    if (Object.keys(models as JsonObject).length === 0) delete config['models'];
-  }
-  if (!changed) return false;
-  backupConfigFile(filePath);
-  writeJsonFile(filePath, config);
-  return true;
-}
-
-// --- goose (`~/.config/goose/config.yaml`) ---
-//
-// goose config is flat env-style YAML keys (GOOSE_PROVIDER, GOOSE_MODEL,
-// OPENAI_HOST, ...), edited line-based so user keys and comments survive.
-// OPENAI_HOST is the host root — goose appends the /v1 chat path itself.
-// The api key normally lives in the OS keyring; the config-file value covers
-// keyring-less setups, and the buyer proxy ignores the credential anyway.
-
-function yamlScalar(value: string): string {
-  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
-}
-
-function yamlTopLevelKeyIndex(lines: readonly string[], key: string): number {
-  const pattern = new RegExp(`^${key}\\s*:`);
-  return lines.findIndex((line) => pattern.test(line));
-}
-
-function setYamlTopLevelString(lines: readonly string[], key: string, value: string): string[] {
-  const assignment = `${key}: ${yamlScalar(value)}`;
-  const index = yamlTopLevelKeyIndex(lines, key);
-  if (index !== -1) {
-    const next = [...lines];
-    next[index] = assignment;
-    return next;
-  }
-  return [...lines, assignment];
-}
-
-function readYamlTopLevelString(lines: readonly string[], key: string): string | undefined {
-  const index = yamlTopLevelKeyIndex(lines, key);
-  if (index === -1) return undefined;
-  const raw = lines[index]!.slice(lines[index]!.indexOf(':') + 1).trim();
-  const quoted = raw.match(/^"((?:[^"\\]|\\.)*)"/) ?? raw.match(/^'([^']*)'/);
-  if (quoted) return quoted[1]!.replace(/\\(.)/g, '$1');
-  return raw.split('#')[0]!.trim();
-}
-
-function removeYamlTopLevelKey(lines: readonly string[], key: string): string[] {
-  const index = yamlTopLevelKeyIndex(lines, key);
-  if (index === -1) return [...lines];
-  return [...lines.slice(0, index), ...lines.slice(index + 1)];
 }
 
 /** True for host values only this patch would have written: a loopback root,
@@ -1495,198 +893,6 @@ function isLoopbackHost(value: string | undefined, extraHosts: readonly string[]
   if (/^https?:\/\/(localhost|127\.0\.0\.1):\d+\/?$/.test(value)) return true;
   return extraHosts.some((host) =>
     new RegExp(`^https?://${host.replace(/[.$]/g, '\\$&')}:\\d+/?$`).test(value));
-}
-
-function applyGooseConfigPatch(patch: GooseConfigPatchDef, buyerPort: number, wslTargetsFile?: string): void {
-  const filePath = expandTilde(patch.configPath);
-  const baseURL = patch.baseURL.replace('{buyerPort}', String(buyerPort));
-  if (patch.installProbe !== 'goose') {
-    applyGooseProviderToFile(filePath, patch, baseURL);
-    return;
-  }
-  applyWithInstallProbe({
-    tool: 'goose',
-    native: { configPath: filePath },
-    posix: { configPath: patch.wslConfigPath ?? patch.configPath },
-    baseURL,
-    wslTargetsFile,
-    write: (paths, url) => applyGooseProviderToFile(paths.configPath, patch, url),
-  });
-}
-
-function applyGooseProviderToFile(filePath: string, patch: GooseConfigPatchDef, baseURL: string): void {
-  backupConfigFile(filePath);
-  const raw = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
-  let lines = raw.length > 0 ? raw.split('\n') : [];
-  while (lines.length > 0 && lines[lines.length - 1]!.trim() === '') lines.pop();
-  lines = setYamlTopLevelString(lines, 'GOOSE_PROVIDER', patch.providerKey);
-  lines = setYamlTopLevelString(lines, 'GOOSE_MODEL', ROUTED_MODEL_ALIAS);
-  lines = setYamlTopLevelString(lines, 'OPENAI_HOST', baseURL);
-  lines = setYamlTopLevelString(lines, 'OPENAI_API_KEY', 'torve');
-  writeTextFile(filePath, `${lines.join('\n')}\n`);
-}
-
-function removeGooseConfigPatch(patch: GooseConfigPatchDef, wslTargetsFile?: string): boolean {
-  let changed = removeGooseProviderFromFile(expandTilde(patch.configPath), patch, []);
-  if (patch.installProbe === 'goose') {
-    // The WSL config carries the gateway address rather than a loopback
-    // host, so the recorded host joins the ownership check.
-    changed = removeWslInstalls('goose', wslTargetsFile, (target) => removeGooseProviderFromFile(target.configPath, patch, [target.host])) || changed;
-  }
-  return changed;
-}
-
-function removeGooseProviderFromFile(filePath: string, patch: GooseConfigPatchDef, extraHosts: readonly string[]): boolean {
-  if (!existsSync(filePath)) return false;
-  let lines = readFileSync(filePath, 'utf8').split('\n');
-  let changed = false;
-  if (isLoopbackHost(readYamlTopLevelString(lines, 'OPENAI_HOST'), extraHosts)) {
-    lines = removeYamlTopLevelKey(lines, 'OPENAI_HOST');
-    changed = true;
-  }
-  if (readYamlTopLevelString(lines, 'OPENAI_API_KEY') === 'torve') {
-    lines = removeYamlTopLevelKey(lines, 'OPENAI_API_KEY');
-    changed = true;
-  }
-  const model = readYamlTopLevelString(lines, 'GOOSE_MODEL');
-  const ownsModel = model === ROUTED_MODEL_ALIAS || (model?.includes('@') ?? false);
-  if (readYamlTopLevelString(lines, 'GOOSE_PROVIDER') === patch.providerKey && ownsModel) {
-    lines = removeYamlTopLevelKey(lines, 'GOOSE_PROVIDER');
-    lines = removeYamlTopLevelKey(lines, 'GOOSE_MODEL');
-    changed = true;
-  }
-  if (!changed) return false;
-  backupConfigFile(filePath);
-  while (lines.length > 0 && lines[lines.length - 1]!.trim() === '') lines.pop();
-  writeTextFile(filePath, lines.length > 0 ? `${lines.join('\n')}\n` : '');
-  return true;
-}
-
-// --- Hermes Agent (`~/.hermes/config.yaml`) ---
-
-function readHermesConfigDocument(filePath: string): Document.Parsed {
-  const document = existsSync(filePath)
-    ? parseDocument(readFileSync(filePath, 'utf8'))
-    : parseDocument('{}\n');
-  if (document.errors.length > 0) {
-    throw new Error(`Unable to parse Hermes config: ${document.errors[0]!.message}`);
-  }
-  return document;
-}
-
-function writeHermesConfigDocument(filePath: string, document: Document.Parsed): void {
-  const dir = path.dirname(filePath);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeTextFileAtomically(filePath, document.toString());
-}
-
-function applyHermesConfigPatch(patch: HermesConfigPatchDef, buyerPort: number): void {
-  const filePath = expandTilde(patch.configPath);
-  const document = readHermesConfigDocument(filePath);
-  backupConfigFile(filePath);
-  document.setIn(['providers', patch.providerKey], {
-    name: 'Torve',
-    api: patch.baseURL.replace('{buyerPort}', String(buyerPort)),
-    transport: 'chat_completions',
-    extra_headers: {
-      originator: 'hermes',
-    },
-    default_model: ROUTED_MODEL_ALIAS,
-    models: {
-      [ROUTED_MODEL_ALIAS]: {
-        context_length: TORVE_MODEL_CONTEXT_WINDOW,
-      },
-    },
-  });
-  document.setIn(['model', 'provider'], patch.providerKey);
-  document.setIn(['model', 'default'], ROUTED_MODEL_ALIAS);
-  document.setIn(['model', 'base_url'], '');
-  document.setIn(['model', 'api_mode'], 'chat_completions');
-  writeHermesConfigDocument(filePath, document);
-}
-
-function removeHermesConfigPatch(patch: HermesConfigPatchDef): boolean {
-  const filePath = expandTilde(patch.configPath);
-  if (!existsSync(filePath)) return false;
-  const document = readHermesConfigDocument(filePath);
-  const providerApi = document.getIn(['providers', patch.providerKey, 'api']);
-  if (typeof providerApi !== 'string' || !/^https?:\/\/(localhost|127\.0\.0\.1):\d+\/v1\/?$/.test(providerApi)) {
-    return false;
-  }
-
-  let changed = document.deleteIn(['providers', patch.providerKey]);
-  if (document.getIn(['model', 'provider']) === patch.providerKey) {
-    changed = document.deleteIn(['model', 'provider']) || changed;
-    changed = document.deleteIn(['model', 'default']) || changed;
-    changed = document.deleteIn(['model', 'base_url']) || changed;
-    changed = document.deleteIn(['model', 'api_mode']) || changed;
-  }
-  if (!changed) return false;
-  backupConfigFile(filePath);
-  writeHermesConfigDocument(filePath, document);
-  return true;
-}
-
-// --- Zed (`~/.config/zed/settings.json`) ---
-//
-// Zed takes custom endpoints under `language_models.openai_compatible`,
-// keyed by provider name; the agent's default model references that name.
-// Zed asks for the provider's API key once in its UI — any value satisfies
-// the keyless buyer proxy.
-
-function applyZedConfigPatch(patch: ZedConfigPatchDef, buyerPort: number): void {
-  const filePath = expandTilde(patch.configPath);
-  backupConfigFile(filePath);
-  const config = readConfigPatchFile(filePath);
-  const languageModels = asObject(config['language_models']);
-  const compatible = asObject(languageModels['openai_compatible']);
-  compatible[patch.providerName] = {
-    api_url: patch.baseURL.replace('{buyerPort}', String(buyerPort)),
-    available_models: [
-      { name: ROUTED_MODEL_ALIAS, display_name: ROUTED_MODEL_ALIAS_LABEL, max_tokens: TORVE_MODEL_CONTEXT_WINDOW },
-    ],
-  };
-  languageModels['openai_compatible'] = compatible;
-  config['language_models'] = languageModels;
-  const agent = asObject(config['agent']);
-  agent['default_model'] = {
-    provider: patch.providerName,
-    model: ROUTED_MODEL_ALIAS,
-  };
-  config['agent'] = agent;
-  writeJsonFile(filePath, config);
-}
-
-function removeZedConfigPatch(patch: ZedConfigPatchDef): boolean {
-  const filePath = expandTilde(patch.configPath);
-  const config = tryReadConfigPatchFile(filePath);
-  if (!config) return false;
-  let changed = false;
-  const languageModels = config['language_models'];
-  const compatible = languageModels && typeof languageModels === 'object' && !Array.isArray(languageModels)
-    ? (languageModels as JsonObject)['openai_compatible']
-    : undefined;
-  if (compatible && typeof compatible === 'object' && !Array.isArray(compatible) && (patch.providerName in (compatible as JsonObject))) {
-    delete (compatible as JsonObject)[patch.providerName];
-    if (Object.keys(compatible as JsonObject).length === 0) {
-      delete (languageModels as JsonObject)['openai_compatible'];
-      if (Object.keys(languageModels as JsonObject).length === 0) delete config['language_models'];
-    }
-    changed = true;
-  }
-  const agent = config['agent'];
-  if (agent && typeof agent === 'object' && !Array.isArray(agent)) {
-    const defaultModel = (agent as JsonObject)['default_model'];
-    if (defaultModel && typeof defaultModel === 'object' && (defaultModel as JsonObject)['provider'] === patch.providerName) {
-      delete (agent as JsonObject)['default_model'];
-      if (Object.keys(agent as JsonObject).length === 0) delete config['agent'];
-      changed = true;
-    }
-  }
-  if (!changed) return false;
-  backupConfigFile(filePath);
-  writeJsonFile(filePath, config);
-  return true;
 }
 
 // --- Claude Code CLI (`~/.claude/settings.json`) ---
@@ -1908,57 +1114,6 @@ function removeClaudeCodeSettingsFromFile(
   return changed;
 }
 
-function applyT3CodeConfigPatch(patch: T3CodeConfigPatchDef, buyerPort: number): void {
-  const filePath = expandTilde(patch.configPath);
-  backupConfigFile(filePath);
-  const config = readConfigPatchFile(filePath);
-  const providerInstances = asObject(config['providerInstances']);
-  const customModels = [ROUTED_MODEL_ALIAS];
-  providerInstances[patch.providerKey] = {
-    driver: 'claudeAgent',
-    displayName: patch.providerName,
-    environment: [
-      { name: 'ANTHROPIC_BASE_URL', value: patch.baseURL.replace('{buyerPort}', String(buyerPort)), sensitive: false },
-      { name: 'ANTHROPIC_API_KEY', value: 'torve', sensitive: false },
-      { name: 'ANTHROPIC_CUSTOM_HEADERS', value: 'x-torve-system-proxy-source: t3code', sensitive: false },
-      { name: 'HTTP_PROXY', value: '', sensitive: false },
-      { name: 'HTTPS_PROXY', value: '', sensitive: false },
-      { name: 'http_proxy', value: '', sensitive: false },
-      { name: 'https_proxy', value: '', sensitive: false },
-      { name: 'NO_PROXY', value: 'localhost,127.0.0.1,::1', sensitive: false },
-      { name: 'no_proxy', value: 'localhost,127.0.0.1,::1', sensitive: false },
-      { name: 'NODE_OPTIONS', value: '', sensitive: false },
-    ],
-    enabled: true,
-    config: { customModels },
-  };
-  config['providerInstances'] = providerInstances;
-  writeJsonFile(filePath, config);
-}
-
-function removeT3CodeConfigPatch(patch: T3CodeConfigPatchDef): boolean {
-  const filePath = expandTilde(patch.configPath);
-  const config = tryReadConfigPatchFile(filePath);
-  if (!config) return false;
-  const providerInstances = config['providerInstances'];
-  if (!providerInstances || typeof providerInstances !== 'object' || Array.isArray(providerInstances)) return false;
-  const instance = (providerInstances as JsonObject)[patch.providerKey];
-  if (!instance || typeof instance !== 'object' || Array.isArray(instance)) return false;
-  const environment = (instance as JsonObject)['environment'];
-  const ownsInstance = Array.isArray(environment) && environment.some((variable) => {
-    if (!variable || typeof variable !== 'object' || Array.isArray(variable)) return false;
-    const value = (variable as JsonObject)['value'];
-    return (variable as JsonObject)['name'] === 'ANTHROPIC_BASE_URL'
-      && isLoopbackHost(typeof value === 'string' ? value : undefined);
-  });
-  if (!ownsInstance) return false;
-  delete (providerInstances as JsonObject)[patch.providerKey];
-  if (Object.keys(providerInstances as JsonObject).length === 0) delete config['providerInstances'];
-  backupConfigFile(filePath);
-  writeJsonFile(filePath, config);
-  return true;
-}
-
 function applyGeminiCliConfigPatch(patch: GeminiConfigPatchDef, buyerPort: number): void {
   const configPath = expandTilde(patch.configPath);
   const envPath = expandTilde(patch.envPath);
@@ -1978,75 +1133,6 @@ function applyGeminiCliConfigPatch(patch: GeminiConfigPatchDef, buyerPort: numbe
   });
 }
 
-function applyAiderConfigPatch(patch: AiderConfigPatchDef, buyerPort: number): void {
-  const filePath = expandTilde(patch.configPath);
-  backupConfigFile(filePath);
-  const document = existsSync(filePath) ? parseDocument(readFileSync(filePath, 'utf8')) : new Document({});
-  if (document.errors.length > 0) throw new Error(`Unable to parse Aider YAML config at ${filePath}`);
-  document.set('openai-api-base', patch.baseURL.replace('{buyerPort}', String(buyerPort)));
-  document.set('openai-api-key', 'torve-local-proxy');
-  document.set('model', `openai/${ROUTED_MODEL_ALIAS}`);
-  writeTextFileAtomically(filePath, document.toString());
-}
-
-function removeAiderConfigPatch(patch: AiderConfigPatchDef): boolean {
-  const filePath = expandTilde(patch.configPath);
-  if (!existsSync(filePath)) return false;
-  const document = parseDocument(readFileSync(filePath, 'utf8'));
-  const base = document.get('openai-api-base');
-  if (typeof base !== 'string' || !isLoopbackHost(base)) return false;
-  for (const key of ['openai-api-base', 'openai-api-key', 'model']) document.delete(key);
-  writeTextFileAtomically(filePath, document.toString());
-  return true;
-}
-
-function continuePath(patch: ContinueConfigPatchDef): string {
-  const yamlPath = expandTilde(patch.configPath);
-  const legacy = patch.legacyConfigPath ? expandTilde(patch.legacyConfigPath) : null;
-  return !existsSync(yamlPath) && legacy && existsSync(legacy) ? legacy : yamlPath;
-}
-
-function applyContinueConfigPatch(patch: ContinueConfigPatchDef, buyerPort: number): void {
-  const filePath = continuePath(patch);
-  backupConfigFile(filePath);
-  const base = patch.baseURL.replace('{buyerPort}', String(buyerPort));
-  const entries = [{ name: 'Torve · Auto', provider: 'openai', model: ROUTED_MODEL_ALIAS, apiBase: base, apiKey: 'torve-local-proxy' },
-    ...(patch.models ?? []).filter((model) => model.id !== 'auto' && model.id !== ROUTED_MODEL_ALIAS).map((model) => ({ name: `Torve · ${model.name}`, provider: 'openai', model: model.id, apiBase: base, apiKey: 'torve-local-proxy' }))];
-  const isTorve = (item: unknown) => Boolean(item && typeof item === 'object' && !Array.isArray(item)
-    && typeof (item as JsonObject)['name'] === 'string' && ((item as JsonObject)['name'] as string).startsWith('Torve · '));
-  if (filePath.endsWith('.json')) {
-    const config = readConfigPatchFile(filePath);
-    const models = Array.isArray(config['models']) ? config['models'].filter((item) => !isTorve(item)) : [];
-    config['models'] = [...models, ...entries];
-    writeJsonFile(filePath, config);
-    return;
-  }
-  const document = existsSync(filePath) ? parseDocument(readFileSync(filePath, 'utf8')) : new Document({});
-  if (document.errors.length > 0) throw new Error(`Unable to parse Continue YAML config at ${filePath}`);
-  const config = (document.toJS() ?? {}) as JsonObject;
-  const models = Array.isArray(config['models']) ? config['models'].filter((item) => !isTorve(item)) : [];
-  config['models'] = [...models, ...entries];
-  writeTextFileAtomically(filePath, new Document(config).toString());
-}
-
-function removeContinueConfigPatch(patch: ContinueConfigPatchDef): boolean {
-  const filePath = continuePath(patch);
-  if (!existsSync(filePath)) return false;
-  if (filePath.endsWith('.json')) {
-    const config = tryReadConfigPatchFile(filePath); if (!config) return false;
-    const models = Array.isArray(config['models']) ? config['models'] : [];
-    const filtered = models.filter((item) => !(item && typeof item === 'object' && typeof (item as JsonObject)['name'] === 'string' && ((item as JsonObject)['name'] as string).startsWith('Torve · ')));
-    if (filtered.length === models.length) return false;
-    config['models'] = filtered; writeJsonFile(filePath, config); return true;
-  }
-  const document = parseDocument(readFileSync(filePath, 'utf8'));
-  const config = (document.toJS() ?? {}) as JsonObject;
-  const models = Array.isArray(config['models']) ? config['models'] : [];
-  const filtered = models.filter((item) => !(item && typeof item === 'object' && typeof (item as JsonObject)['name'] === 'string' && ((item as JsonObject)['name'] as string).startsWith('Torve · ')));
-  if (filtered.length === models.length) return false;
-  config['models'] = filtered; writeTextFileAtomically(filePath, new Document(config).toString()); return true;
-}
-
 function applyAntigravityPatch(patch: AntigravityConfigPatchDef, buyerPort: number): void {
   const baseURL = patch.baseURL.replace('{buyerPort}', String(buyerPort));
   const settingsPath = expandTilde(patch.configPath);
@@ -2061,7 +1147,7 @@ function applyAntigravityPatch(patch: AntigravityConfigPatchDef, buyerPort: numb
   writeTextFileAtomically(serverPath, script);
   const config = readConfigPatchFile(configPath);
   const servers = asObject(config['mcpServers']);
-  servers['torve'] = { command: process.execPath, args: [serverPath], env: { ELECTRON_RUN_AS_NODE: '1' } };
+  servers['torve'] = { command: 'node', args: [serverPath] };
   config['mcpServers'] = servers;
   writeJsonFile(configPath, config);
 }

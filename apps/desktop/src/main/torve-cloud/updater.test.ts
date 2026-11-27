@@ -5,8 +5,12 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
+  FRIENDLY_UPDATE_CHECK_ERROR,
+  GITHUB_RELEASES_LIST_URL,
+  TORVE_UPDATES_URL,
   TorveUpdater,
   compareSemver,
+  selectBestReleaseCandidate,
   selectWindowsExeAsset,
   verifyPeHeader,
 } from './updater.js';
@@ -61,6 +65,30 @@ test('selectWindowsExeAsset selects Torve-Desktop-Setup-*.exe and ignores other 
   assert.equal(selectWindowsExeAsset(undefined), null);
 });
 
+test('selectBestReleaseCandidate picks highest valid semver non-draft release with .exe including prereleases', () => {
+  const picked = selectBestReleaseCandidate([
+    {
+      tag_name: 'v0.2.99-draft',
+      draft: true,
+      assets: [{ name: 'Torve-Desktop-Setup-0.2.99.exe', browser_download_url: 'https://downloads.example.com/draft.exe' }],
+    },
+    {
+      tag_name: 'v0.2.65-beta.2',
+      prerelease: true,
+      assets: [{ name: 'Torve-Desktop-Setup-0.2.65-beta.2.exe', browser_download_url: 'https://downloads.example.com/beta2.exe' }],
+    },
+    {
+      tag_name: 'v0.2.64',
+      prerelease: false,
+      assets: [{ name: 'Torve-Desktop-Setup-0.2.64.exe', browser_download_url: 'https://downloads.example.com/0.2.64.exe' }],
+    },
+  ]);
+
+  assert.ok(picked);
+  assert.equal(picked.version, '0.2.65-beta.2');
+  assert.equal(picked.asset?.name, 'Torve-Desktop-Setup-0.2.65-beta.2.exe');
+});
+
 test('verifyPeHeader accepts valid MZ header and rejects empty, corrupt, or missing files', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'torve-pe-test-'));
   try {
@@ -87,7 +115,7 @@ test('verifyPeHeader accepts valid MZ header and rejects empty, corrupt, or miss
   }
 });
 
-test('TorveUpdater checks, stream-downloads with progress, verifies PE/sha256, and spawns detached installer', async () => {
+test('TorveUpdater falls back from Torve updates API to prerelease list, auto-downloads, verifies PE/sha256, and spawns installer', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'torve-updater-flow-'));
   try {
     const exeBytes = Buffer.concat([
@@ -100,24 +128,31 @@ test('TorveUpdater checks, stream-downloads with progress, verifies PE/sha256, a
     let spawnedOpts: Record<string, unknown> | undefined;
     let unrefCalled = false;
     let quitCalled = false;
+    const requestedUrls: string[] = [];
 
     const mockFetch: typeof fetch = async (input) => {
       const url = typeof input === 'string' ? input : input.toString();
-      if (url.endsWith('/releases/latest')) {
+      requestedUrls.push(url);
+      if (url === TORVE_UPDATES_URL) {
+        return new Response('Not Found', { status: 404, statusText: 'Not Found' });
+      }
+      if (url === GITHUB_RELEASES_LIST_URL) {
         return new Response(
-          JSON.stringify({
-            tag_name: 'v0.2.58',
-            name: 'Torve Desktop v0.2.58',
-            html_url: 'https://github.com/jisunahamed/torve-seed/releases/tag/v0.2.58',
-            assets: [
-              {
-                name: 'Torve-Desktop-Setup-0.2.58.exe',
-                browser_download_url: 'https://downloads.example.com/Torve-Desktop-Setup-0.2.58.exe',
-                size: exeBytes.length,
-                digest: `sha256:${sha256}`,
-              },
-            ],
-          }),
+          JSON.stringify([
+            {
+              tag_name: 'v0.2.65-rc.1',
+              name: 'Torve Desktop v0.2.65-rc.1',
+              prerelease: true,
+              assets: [
+                {
+                  name: 'Torve-Desktop-Setup-0.2.65-rc.1.exe',
+                  browser_download_url: 'https://downloads.example.com/Torve-Desktop-Setup-0.2.65-rc.1.exe',
+                  size: exeBytes.length,
+                  digest: `sha256:${sha256}`,
+                },
+              ],
+            },
+          ]),
           { status: 200, headers: { 'content-type': 'application/json' } },
         );
       }
@@ -137,7 +172,7 @@ test('TorveUpdater checks, stream-downloads with progress, verifies PE/sha256, a
     };
 
     const updater = new TorveUpdater({
-      currentVersion: '0.2.57',
+      currentVersion: '0.2.64',
       tempDir: dir,
       fetchFn: mockFetch,
       spawnFn: (cmd, _args, opts) => {
@@ -165,9 +200,11 @@ test('TorveUpdater checks, stream-downloads with progress, verifies PE/sha256, a
 
     const checkState = await updater.checkForUpdates();
     assert.equal(checkState.phase, 'available');
-    assert.equal(checkState.latestVersion, '0.2.58');
-    assert.equal(checkState.assetName, 'Torve-Desktop-Setup-0.2.58.exe');
+    assert.equal(checkState.latestVersion, '0.2.65-rc.1');
+    assert.equal(checkState.releaseUrl, null);
+    assert.deepEqual(requestedUrls.slice(0, 2), [TORVE_UPDATES_URL, GITHUB_RELEASES_LIST_URL]);
 
+    // Auto-download was triggered automatically and deduplicates with explicit downloadUpdate().
     const dlResult = await updater.downloadUpdate();
     assert.equal(dlResult.ok, true);
     assert.ok(dlResult.filePath);
@@ -193,68 +230,72 @@ test('TorveUpdater checks, stream-downloads with progress, verifies PE/sha256, a
   }
 });
 
-test('TorveUpdater handles silent vs manual checks and unsigned exe PE validation', async () => {
+test('TorveUpdater uses friendly Torve error messages without GitHub/404/URLs and handles up-to-date and PE checks', async () => {
   const dir = await mkdtemp(path.join(tmpdir(), 'torve-updater-silent-'));
   try {
-    // 1. Offline silent check must not transition phase to 'error', while updating lastCheckedAt
+    // 1. Offline silent check must not transition phase to 'error', and manual check shows Torve-branded friendly error
     const offlineUpdater = new TorveUpdater({
-      currentVersion: '0.2.57',
+      currentVersion: '0.2.64',
       tempDir: dir,
       fetchFn: async () => {
-        throw new Error('ENOTFOUND api.github.com');
+        throw new Error('ENOTFOUND api.github.com 404 Not Found https://api.github.com');
       },
     });
     const silentRes = await offlineUpdater.checkForUpdates({ silent: true });
     assert.equal(silentRes.phase, 'idle');
     assert.ok(typeof silentRes.lastCheckedAt === 'number');
-    assert.match(silentRes.error ?? '', /ENOTFOUND/);
+    assert.equal(silentRes.error, FRIENDLY_UPDATE_CHECK_ERROR);
+    assert.doesNotMatch(silentRes.error ?? '', /github|404|http/i);
 
-    // Manual check on offline network DOES surface phase: 'error'
     const manualRes = await offlineUpdater.checkForUpdates({ silent: false });
     assert.equal(manualRes.phase, 'error');
-    assert.ok(typeof manualRes.lastCheckedAt === 'number');
-    assert.match(manualRes.error ?? '', /ENOTFOUND/);
+    assert.equal(manualRes.error, FRIENDLY_UPDATE_CHECK_ERROR);
+    assert.doesNotMatch(manualRes.error ?? '', /github|404|http/i);
 
-    // 2. Up-to-date check
+    // 2. Up-to-date check when highest published <= currentVersion
     const upToDateUpdater = new TorveUpdater({
-      currentVersion: '0.2.58',
+      currentVersion: '0.2.64',
       tempDir: dir,
       fetchFn: async () =>
         new Response(
-          JSON.stringify({
-            tag_name: 'v0.2.58',
-            html_url: 'https://github.com/jisunahamed/torve-seed/releases/tag/v0.2.58',
-            assets: [
-              {
-                name: 'Torve-Desktop-Setup-0.2.58.exe',
-                browser_download_url: 'https://downloads.example.com/Torve-Desktop-Setup-0.2.58.exe',
-              },
-            ],
-          }),
+          JSON.stringify([
+            {
+              tag_name: 'v0.2.64',
+              prerelease: true,
+              assets: [
+                {
+                  name: 'Torve-Desktop-Setup-0.2.64.exe',
+                  browser_download_url: 'https://downloads.example.com/Torve-Desktop-Setup-0.2.64.exe',
+                },
+              ],
+            },
+          ]),
           { status: 200 },
         ),
     });
     const upToDateState = await upToDateUpdater.checkForUpdates();
     assert.equal(upToDateState.phase, 'up-to-date');
-    assert.equal(upToDateState.latestVersion, '0.2.58');
-    assert.ok(typeof upToDateState.lastCheckedAt === 'number');
+    assert.equal(upToDateState.latestVersion, '0.2.64');
+    assert.equal(upToDateState.error, null);
 
     // 3. Unsigned .exe (no digest) succeeds if valid MZ PE, and rejects corrupt non-MZ payload
     const exeBytes = Buffer.from([0x4d, 0x5a, 0x90, 0x00, 0x03, 0x00]);
     let returnCorrupt = true;
     const unsignedUpdater = new TorveUpdater({
-      currentVersion: '0.2.57',
+      currentVersion: '0.2.64',
       tempDir: dir,
+      autoDownload: false,
+      releaseUrl: 'https://example.invalid/releases',
       fetchFn: async (input) => {
         const url = typeof input === 'string' ? input : input.toString();
-        if (url.endsWith('/releases/latest')) {
+        if (url === 'https://example.invalid/releases') {
           return new Response(
             JSON.stringify({
-              tag_name: 'v0.2.59',
+              tag_name: 'v0.2.65',
               assets: [
                 {
-                  name: 'Torve-Desktop-Setup-0.2.59.exe',
-                  browser_download_url: 'https://downloads.example.com/Torve-Desktop-Setup-0.2.59.exe',
+                  name: 'Torve-Desktop-Setup-0.2.65.exe',
+                  browser_download_url: 'https://downloads.example.com/Torve-Desktop-Setup-0.2.65.exe',
                 },
               ],
             }),

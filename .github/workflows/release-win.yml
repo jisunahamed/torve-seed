@@ -32,7 +32,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build workspace packages
-        run: pnpm --filter @torveai/desktop ensure:cli-dist
+        run: pnpm --filter @torveai/desktop ensure:workspace-deps
 
       - name: Typecheck & run desktop unit tests
         shell: bash
@@ -118,7 +118,10 @@ jobs:
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.installer.outputs.version) }}
           name: Torve Desktop v${{ steps.installer.outputs.version }} (Unsigned)
-          files: ${{ steps.installer.outputs.exe_path }}
+          files: |
+            ${{ steps.installer.outputs.exe_path }}
+            ${{ steps.installer.outputs.exe_path }}.blockmap
+            apps/desktop/release/latest.yml
           prerelease: true
           generate_release_notes: true
         env:

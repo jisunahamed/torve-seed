@@ -26,35 +26,10 @@ files:
   - "!node_modules/koffi/build/koffi/freebsd*"
   - "!node_modules/koffi/build/koffi/openbsd*"
   - "!node_modules/koffi/build/koffi/musl*"
-  # --- installer size trims (see PR for measurements) ---
-  # Sourcemaps and type declarations are never read at runtime.
   - "!node_modules/**/*.map"
   - "!node_modules/**/*.d.ts"
   - "!node_modules/**/*.d.mts"
   - "!node_modules/**/*.d.cts"
-  # officeparser is invoked with ocr: false (src/main/chat/attachments/prepare.ts),
-  # so its lazily-imported tesseract.js OCR stack (~45 MB of wasm builds) is dead code.
-  - "!node_modules/tesseract.js/**"
-  - "!node_modules/tesseract.js-core/**"
-  # @napi-rs/canvas is pdfjs-dist's optional page-rendering backend; we only
-  # extract text, never render pages.
-  - "!node_modules/@napi-rs/canvas/**"
-  - "!node_modules/@napi-rs/canvas-*/**"
-  # pdfjs-dist: officeparser loads legacy/build/pdf.mjs and we point the worker
-  # at build/pdf.worker.mjs (prepare.ts resolvePdfWorkerSrc). Everything else in
-  # the package — browser viewer, sandbox, minified duplicates, cmaps (unused
-  # without a configured cMapUrl), render-only wasm codecs — is dead weight.
-  - "!node_modules/pdfjs-dist/web/**"
-  - "!node_modules/pdfjs-dist/cmaps/**"
-  - "!node_modules/pdfjs-dist/wasm/**"
-  - "!node_modules/pdfjs-dist/**/*.min.mjs"
-  - "!node_modules/pdfjs-dist/**/pdf.sandbox.mjs"
-  - "!node_modules/pdfjs-dist/build/pdf.mjs"
-  - "!node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"
-  # Node build of officeparser never loads its browser bundles.
-  - "!node_modules/officeparser/dist/officeparser.browser*"
-  # Vite/rollup native binaries leak into the packed tree via pnpm; nothing
-  # bundles at runtime.
   - "!node_modules/@rollup/rollup-*/**"
 
 extraMetadata:
@@ -66,97 +41,23 @@ asarUnpack:
   - "node_modules/better-sqlite3/**"
   - "node_modules/bindings/**"
   - "node_modules/file-uri-to-path/**"
-  - "node_modules/node-datachannel/**"
-  - "node_modules/keytar/**"
 
 extraResources:
   - from: build/system-proxy-profiles.json
     to: system-proxy-profiles.json
-  # NOTE: whisper binaries are shipped per-platform (see the mac/win/linux
-  # extraResources blocks below). The tiny model is no longer bundled — the app
-  # downloads it into userData on first transcription (voice-transcription.ts),
-  # which cuts ~74 MB from every installer.
-  - from: ../../skills/torve-images
-    to: skills/torve-images
-  - from: ../../skills/torve-videos
-    to: skills/torve-videos
-  - from: cli-dist/
-    to: cli-dist/
-    filter:
-      - "**/*"
-      - "!**/*.map"
-      - "!**/*.d.ts"
-  - from: ../../packages/torve-verifier/dist
-    to: bundled-plugins/@torveai/torve-verifier/dist
-    filter:
-      - "**/*.js"
-  - from: ../../packages/torve-verifier/package.json
-    to: bundled-plugins/@torveai/torve-verifier/package.json
-  - from: ../../plugins/router-local/dist
-    to: bundled-plugins/@torveai/router-local/dist
-    filter:
-      - "**/*.js"
-  - from: ../../plugins/router-local/package.json
-    to: bundled-plugins/@torveai/router-local/package.json
-  - from: ../../plugins/router-local/node_modules/@torveai/router-core/dist
-    to: bundled-plugins/@torveai/router-core/dist
-    filter:
-      - "**/*.js"
-  - from: ../../plugins/router-local/node_modules/@torveai/router-core/package.json
-    to: bundled-plugins/@torveai/router-core/package.json
-  - from: ../../packages/node/dist
-    to: bundled-plugins/@torveai/node/dist
-    filter:
-      - "**/*.js"
-  - from: ../../packages/node/package.json
-    to: bundled-plugins/@torveai/node/package.json
-  - from: ../../packages/api-adapter/dist
-    to: bundled-plugins/@torveai/api-adapter/dist
-    filter:
-      - "**/*.js"
-  - from: ../../packages/api-adapter/package.json
-    to: bundled-plugins/@torveai/api-adapter/package.json
-  # bundled-runtime contains the full transitive runtime dependency tree of
-  # @torveai/node (ethers, @silentbot1/nat-api, tokenx, ...) materialized as
-  # real files by scripts/prepare-dist.mjs. We expose it under bundled-plugins
-  # so plugins.ts.installPluginFromBundle can copy everything offline without
-  # going through npm.
-  - from: bundled-runtime/
-    to: bundled-plugins/
-    filter:
-      - "**/*"
-      # Sourcemaps/type declarations are never read by installed plugins.
-      - "!**/*.map"
-      - "!**/*.d.ts"
-      - "!**/*.d.mts"
-      - "!**/*.d.cts"
 
-# Runs prepare-dist for the arch being packed (mac only) so a single
-# electron-builder invocation can build x64 + arm64 with matching-arch
-# native modules — and generate ONE latest-mac.yml listing both arches.
 beforePack: ./scripts/before-pack.js
 afterPack: ./scripts/after-pack-harden.mjs
 
 mac:
-  extraResources:
-    - from: resources/whisper/
-      to: whisper/
-      filter:
-        - "bin/darwin-*/**"
   category: public.app-category.developer-tools
   icon: assets/torve-dock-icon.png
-  extendInfo:
-    NSMicrophoneUsageDescription: AntStation uses your microphone to record voice messages for local transcription.
   identity: "Shahaf Antwarg (H3M5BXXQR2)"
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   notarize: true
-  # NOTE: arch is intentionally NOT pinned here. release-mac.mjs passes
-  # --x64 --arm64 in one invocation (per-arch native modules handled by
-  # scripts/before-pack.js), while ad-hoc local builds default to the host
-  # arch only.
   target:
     - target: dmg
     - target: zip
@@ -165,34 +66,20 @@ dmg:
   title: "${productName} ${version}"
 
 win:
-  extraResources:
-    - from: resources/whisper/
-      to: whisper/
-      filter:
-        - "bin/win32-*/**"
   icon: assets/torve-icon.ico
-  # Custom sign hook: cloud code signing over the CA's HTTPS API (see the
-  # script header for the flow). No-ops when the WIN_SIGN_* env vars are
-  # absent (unsigned local builds). sha256 only — the sha1 pass adds
-  # nothing on any Windows that can run Electron.
   sign: ./scripts/win-sign.cjs
   signingHashAlgorithms:
     - sha256
-  # x64 only, deliberately. Listing [x64, arm64] here makes electron-builder 25
-  # emit ONE universal NSIS installer with both full app payloads inside
-  # (~430 MB), and release:win runs prepare-dist once on the x64 runner, so the
-  # arm64 half shipped x64 native modules and could not start anyway.
-  # Windows-on-ARM runs the x64 build under emulation. If we ever ship real
-  # arm64, mirror release-mac.mjs: one electron-builder pass per arch with
-  # TORVE_PACK_ARCH set and ${arch} in the artifact name.
   target:
     - target: nsis
       arch:
         - x64
 
 nsis:
-  oneClick: false
-  allowToChangeInstallationDirectory: true
+  oneClick: true
+  perMachine: true
+  allowToChangeInstallationDirectory: false
+  runAfterFinish: true
   deleteAppDataOnUninstall: false
   artifactName: "Torve-Desktop-Setup-${version}.${ext}"
   installerIcon: assets/torve-icon.ico
@@ -200,21 +87,9 @@ nsis:
   shortcutName: Torve Desktop
 
 linux:
-  extraResources:
-    - from: resources/whisper/
-      to: whisper/
-      filter:
-        - "bin/linux-*/**"
   icon: assets/torve-dock-icon.png
   category: Development
-  # Deterministic names (default deb naming uses the package name + amd64):
-  # Torve-AI VPN-<version>-<x64|arm64>.<AppImage|deb>. The website download
-  # matcher and the alpha mirror both rely on this shape.
   artifactName: "${productName}-${version}-${arch}.${ext}"
-  # NOTE: arch is intentionally NOT pinned here (same reasoning as mac above).
-  # CI builds each arch on a matching native runner (ubuntu-latest /
-  # ubuntu-24.04-arm), so the default current-arch build always packs
-  # prepare-dist's matching-arch native modules.
   target:
     - target: AppImage
     - target: deb

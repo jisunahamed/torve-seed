@@ -1,4 +1,29 @@
-import type { RuntimeMode } from './runtime/process-manager.js';
+export type RuntimeMode = 'connect' | 'system-proxy' | 'tunnel';
+
+export interface RuntimeProcessState {
+  mode: RuntimeMode;
+  running: boolean;
+  pid: number | null;
+  startedAt: number | null;
+  lastExitCode: number | null;
+  lastError: string | null;
+}
+
+export interface StartOptions {
+  mode: RuntimeMode;
+  router?: string;
+  dashboardPort?: number;
+  configPath?: string;
+  verbose?: boolean;
+  env?: Record<string, string>;
+  systemProxyPeerId?: string;
+  systemProxyPort?: number;
+  systemProxyProfiles?: string[];
+  systemProxyDefaultModel?: string;
+  systemProxyServedModels?: string[];
+  setSystemProxy?: boolean;
+  tunnelBuyerPort?: number;
+}
 
 export type AppendLogFn = (mode: RuntimeMode, stream: 'stdout' | 'stderr' | 'system', line: string) => void;
 

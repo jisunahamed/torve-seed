@@ -1400,6 +1400,8 @@ export interface SearchModalItem {
   group: string;
   /** A short figure, like "1,210 sales". */
   meta?: string;
+  /** Optional glyph rendered inside the tile instead of an initial. */
+  icon?: React.ReactNode;
   /** Background of its tile and card. */
   tint?: string;
 }
@@ -1996,7 +1998,7 @@ export const SearchModal = React.forwardRef<HTMLDivElement, SearchModalProps>(
           e.stopPropagation();
         }}
         className={cn(
-          "relative w-[560px] max-w-full text-[#F4F4F5]",
+          modal ? "relative w-[620px] max-w-full text-[#F4F4F5]" : "relative w-[560px] max-w-full text-[#F4F4F5]",
           !modal && className,
         )}
       >
@@ -2081,7 +2083,7 @@ export const SearchModal = React.forwardRef<HTMLDivElement, SearchModalProps>(
                   </AnimatePresence>
                 </span>
                 {focused && (
-                  <span className="ml-2 rounded-md border border-[#27272A] bg-[#18181B] px-1.5 text-[12px] leading-5 text-[#A1A1AA]">
+                  <span className="ml-2.5 shrink-0 rounded-md border border-[#27272A] bg-[#18181B] px-2 py-0.5 text-[11px] font-medium leading-4 text-[#A1A1AA]">
                     Tab
                   </span>
                 )}
@@ -2283,7 +2285,7 @@ export const SearchModal = React.forwardRef<HTMLDivElement, SearchModalProps>(
                                         transition={POP}
                                         className="grid size-8 place-items-center rounded-[10px] border border-[#27272A] bg-[#0A0A0A] text-[14px] font-semibold text-[#D8FF0A]"
                                       >
-                                        {item.title[0]!.toUpperCase()}
+                                        {item.icon ?? item.title[0]!.toUpperCase()}
                                       </motion.span>
                                       {tail(
                                         entry.key,
@@ -2418,7 +2420,7 @@ export const SearchModal = React.forwardRef<HTMLDivElement, SearchModalProps>(
                                 transition={POP}
                                 className="relative grid size-11 shrink-0 place-items-center rounded-[14px] border border-[#27272A] bg-[#0A0A0A] text-[16px] font-semibold text-[#D8FF0A]"
                               >
-                                {top.title[0]!.toUpperCase()}
+                                {top.icon ?? top.title[0]!.toUpperCase()}
                               </motion.span>
                               <span className="relative min-w-0 flex-1">
                                 <span className="block truncate text-[16px] font-medium leading-6 text-[#F4F4F5]">
@@ -2475,6 +2477,11 @@ export const SearchModal = React.forwardRef<HTMLDivElement, SearchModalProps>(
                                       backgroundColor: on ? "#D8FF0A" : "#14FF73",
                                     }}
                                   />
+                                  {item.icon ? (
+                                    <span className="relative grid size-5 shrink-0 place-items-center">
+                                      {item.icon}
+                                    </span>
+                                  ) : null}
                                   <span className="relative min-w-0 flex-1 truncate text-[14px] text-[#F4F4F5]">
                                     <Marked
                                       text={item.title}

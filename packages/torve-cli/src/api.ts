@@ -25,12 +25,25 @@ export interface DesktopAuthExchangeResult {
   user: TorveUserMeta;
 }
 
+const PRODUCTION_API_URL = 'https://api.torveai.com';
+const PRODUCTION_WEB_URL = 'https://torveai.com';
+
+function allowDevUrlOverride(): boolean {
+  return process.env['TORVE_CLI_ALLOW_DEV_URL'] === '1' || process.env['NODE_ENV'] === 'test';
+}
+
 export function torveCloudUpstream(): string {
-  return (process.env['TORVE_CLOUD_API_URL'] || 'https://api.torveai.com').replace(/\/+$/, '');
+  if (allowDevUrlOverride() && process.env['TORVE_CLOUD_API_URL']?.trim()) {
+    return process.env['TORVE_CLOUD_API_URL'].trim().replace(/\/+$/, '');
+  }
+  return PRODUCTION_API_URL;
 }
 
 export function torveWebBaseUrl(): string {
-  return (process.env['TORVE_WEB_URL'] || 'https://torveai.com').replace(/\/+$/, '');
+  if (allowDevUrlOverride() && process.env['TORVE_WEB_URL']?.trim()) {
+    return process.env['TORVE_WEB_URL'].trim().replace(/\/+$/, '');
+  }
+  return PRODUCTION_WEB_URL;
 }
 
 export function torveDesktopApiBase(): string {

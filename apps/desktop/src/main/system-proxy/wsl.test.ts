@@ -60,7 +60,7 @@ test('wslToolProbeCommand checks the binary and every home-relative signal', () 
   assert.ok(command.includes('test -e "$HOME/.opencode/bin/opencode"'));
   assert.ok(command.includes('test -e "$HOME/.local/share/opencode"'));
   assert.ok(wslToolProbeCommand('codex').includes('test -e "$HOME/.codex"'));
-  assert.ok(wslToolProbeCommand('droid').includes('test -e "$HOME/.factory"'));
+  assert.ok(wslToolProbeCommand('claude').includes('test -e "$HOME/.claude"'));
 });
 
 test('WSL targets file keeps per-tool rows independent and clears when empty', async () => {
@@ -71,23 +71,23 @@ test('WSL targets file keeps per-tool rows independent and clears when empty', a
       { tool: 'opencode', distro: 'Ubuntu', configPath: '\\\\wsl.localhost\\Ubuntu\\home\\u\\x.jsonc', host: '172.29.32.1', needsRelay: true },
       { tool: 'opencode', distro: 'Mirrored', configPath: '\\\\wsl.localhost\\Mirrored\\home\\u\\x.jsonc', host: 'localhost', needsRelay: false },
     ];
-    const piTargets: WslConfigTarget[] = [
-      { tool: 'pi', distro: 'Ubuntu', configPath: '\\\\wsl.localhost\\Ubuntu\\home\\u\\models.json', settingsPath: '\\\\wsl.localhost\\Ubuntu\\home\\u\\settings.json', host: '172.29.32.1', needsRelay: true },
+    const codexTargets: WslConfigTarget[] = [
+      { tool: 'codex', distro: 'Ubuntu', configPath: '\\\\wsl.localhost\\Ubuntu\\home\\u\\.codex\\config.toml', host: '172.29.32.1', needsRelay: true },
     ];
     saveWslTargetsForTool(filePath, 'opencode', opencodeTargets);
-    saveWslTargetsForTool(filePath, 'pi', piTargets);
-    assert.deepEqual(readWslTargets(filePath), [...opencodeTargets, ...piTargets]);
-    assert.deepEqual(readWslTargetsForTool(filePath, 'pi'), piTargets);
+    saveWslTargetsForTool(filePath, 'codex', codexTargets);
+    assert.deepEqual(readWslTargets(filePath), [...opencodeTargets, ...codexTargets]);
+    assert.deepEqual(readWslTargetsForTool(filePath, 'codex'), codexTargets);
 
     // Re-saving one tool replaces only that tool's rows.
     saveWslTargetsForTool(filePath, 'opencode', [opencodeTargets[0]!]);
-    assert.deepEqual(readWslTargets(filePath), [piTargets[0], opencodeTargets[0]]);
+    assert.deepEqual(readWslTargets(filePath), [codexTargets[0], opencodeTargets[0]]);
 
     clearWslTargetsForTool(filePath, 'opencode');
-    assert.deepEqual(readWslTargets(filePath), piTargets);
+    assert.deepEqual(readWslTargets(filePath), codexTargets);
 
     // Clearing the last tool removes the file entirely.
-    clearWslTargetsForTool(filePath, 'pi');
+    clearWslTargetsForTool(filePath, 'codex');
     assert.equal(existsSync(filePath), false);
     assert.deepEqual(readWslTargets(filePath), []);
   } finally {
@@ -96,13 +96,13 @@ test('WSL targets file keeps per-tool rows independent and clears when empty', a
 });
 
 test('isMappablePosixPath rejects Windows known-folder paths', () => {
-  assert.equal(isMappablePosixPath('~/.config/crush/crush.json'), true);
-  assert.equal(isMappablePosixPath('/root/.config/goose/config.yaml'), true);
-  assert.equal(isMappablePosixPath('C:\\Users\\u\\AppData\\Local\\crush\\crush.json'), false);
+  assert.equal(isMappablePosixPath('~/.config/opencode/opencode.jsonc'), true);
+  assert.equal(isMappablePosixPath('/root/.codex/config.toml'), true);
+  assert.equal(isMappablePosixPath('C:\\Users\\u\\AppData\\Local\\opencode\\opencode.jsonc'), false);
   // A profile with installProbe but no wslConfigPath falls back to its
   // Windows-resolved configPath; discovery must refuse to map that.
   assert.deepEqual(
-    discoverWslToolTargets('crush', { configPath: 'C:\\Users\\u\\AppData\\Local\\crush\\crush.json' }),
+    discoverWslToolTargets('opencode', { configPath: 'C:\\Users\\u\\AppData\\Local\\opencode\\opencode.jsonc' }),
     [],
   );
 });

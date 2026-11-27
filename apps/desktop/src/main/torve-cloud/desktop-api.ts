@@ -1,7 +1,20 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import { torveCloudUpstream } from './models.js';
+
+const require = createRequire(import.meta.url);
+
+function isPackagedElectron(): boolean {
+  try {
+    if (typeof process === 'undefined' || !process.versions?.electron) return false;
+    const electron = require('electron') as { app?: { isPackaged?: boolean } };
+    return electron?.app?.isPackaged === true;
+  } catch {
+    return false;
+  }
+}
 
 export type DesktopAuthMode = 'oauth' | 'manual';
 export type DesktopUsageRange = '24h' | '7d' | '30d';
@@ -95,6 +108,9 @@ const API_TIMEOUT_MS = 12_000;
 const LOOPBACK_HOST = '127.0.0.1';
 
 export function torveWebBaseUrl(): string {
+  if (isPackagedElectron()) {
+    return 'https://torveai.com';
+  }
   return (process.env['TORVE_WEB_URL'] || 'https://torveai.com').replace(/\/+$/, '');
 }
 

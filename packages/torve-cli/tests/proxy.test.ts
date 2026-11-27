@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { afterEach, describe, expect, it } from 'vitest';
+import { torveCloudUpstream, torveWebBaseUrl } from '../src/api.js';
 import {
   buildChatRequestFromResponses,
   convertResponsesToolsToChat,
@@ -92,6 +93,52 @@ describe('standalone proxy server', () => {
     }, 'gpt-5.4');
     expect(chatReq['max_tokens']).toBe(32_768);
     expect(chatReq['reasoning_effort']).toBe('high');
+  });
+
+  it('strips built-in Responses tools and resolves namespace collisions', () => {
+    const tools = convertResponsesToolsToChat([
+      { type: 'web_search' },
+      { type: 'web_search_preview' },
+      { type: 'code_interpreter' },
+      { type: 'file_search' },
+      { type: 'mcp', server_label: 'docs' },
+      { type: 'namespace', name: 'fs', tools: [{ type: 'function', name: 'read' }] },
+      { type: 'namespace', name: 'net', tools: [{ type: 'function', name: 'read' }] },
+    ]);
+
+    expect(tools).toHaveLength(2);
+    expect(tools!.map((t) => (t['function'] as Record<string, unknown>)['name'])).toEqual([
+      'fs__read',
+      'net__read',
+    ]);
+  });
+
+  it('locks production endpoints to api.torveai.com and torveai.com outside test/dev override', () => {
+    const prevNodeEnv = process.env['NODE_ENV'];
+    const prevAllow = process.env['TORVE_CLI_ALLOW_DEV_URL'];
+    const prevApi = process.env['TORVE_CLOUD_API_URL'];
+    const prevWeb = process.env['TORVE_WEB_URL'];
+    try {
+      process.env['NODE_ENV'] = 'production';
+      delete process.env['TORVE_CLI_ALLOW_DEV_URL'];
+      process.env['TORVE_CLOUD_API_URL'] = 'https://evil.example.com';
+      process.env['TORVE_WEB_URL'] = 'https://evil-web.example.com';
+      expect(torveCloudUpstream()).toBe('https://api.torveai.com');
+      expect(torveWebBaseUrl()).toBe('https://torveai.com');
+
+      process.env['TORVE_CLI_ALLOW_DEV_URL'] = '1';
+      expect(torveCloudUpstream()).toBe('https://evil.example.com');
+      expect(torveWebBaseUrl()).toBe('https://evil-web.example.com');
+    } finally {
+      if (prevNodeEnv === undefined) delete process.env['NODE_ENV'];
+      else process.env['NODE_ENV'] = prevNodeEnv;
+      if (prevAllow === undefined) delete process.env['TORVE_CLI_ALLOW_DEV_URL'];
+      else process.env['TORVE_CLI_ALLOW_DEV_URL'] = prevAllow;
+      if (prevApi === undefined) delete process.env['TORVE_CLOUD_API_URL'];
+      else process.env['TORVE_CLOUD_API_URL'] = prevApi;
+      if (prevWeb === undefined) delete process.env['TORVE_WEB_URL'];
+      else process.env['TORVE_WEB_URL'] = prevWeb;
+    }
   });
 
   it('serves /_torve/health and /v1/models with 1M context and 32K output floors', async () => {

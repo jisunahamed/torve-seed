@@ -4,20 +4,14 @@ import path from 'node:path';
 /**
  * Built-in "Connected apps" catalog for the AI VPN Connected apps screen.
  *
- * These are open-source tools with natively configurable API endpoints, so
- * they can ship publicly with the app and show by default — no MITM proxy or
- * private profile list required. Entries use the same raw profile JSON shape
- * as the packaged/env profile list (see apps/cli/src/system-proxy/profiles.ts).
- *
- * Merge rules: an entry in the packaged/env profile list with the same `name`
- * replaces the default here, so releases can still tweak or extend the
- * catalog; user-added custom apps (custom.ts) merge in separately.
+ * These are the 6 active supported tools with natively configurable API
+ * endpoints, so they ship publicly with the app and show by default.
  */
 
 /**
  * Per-platform config path for tools that follow Windows conventions instead
  * of `~/.config`. `~/`-style paths expand against homedir() everywhere, which
- * is right for home-rooted tools (codex `~/.codex`, pi `~/.pi`, opencode
+ * is right for home-rooted tools (codex `~/.codex`, opencode
  * `~/.config/opencode` — verified home-based even on Windows) but wrong for
  * tools whose Windows builds read from the known folders. Resolved here, at
  * definition time, so the patcher keeps a single path string per profile.
@@ -35,6 +29,42 @@ export function platformConfigPath(
 }
 
 export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
+  {
+    name: 'antigravity',
+    displayName: 'Google Antigravity',
+    kind: 'config-patch',
+    method: 'MCP fallback (native picker requires VS Code edition)',
+    toolSlugs: ['antigravity'],
+    domains: [],
+    pathPrefixes: [],
+    configPatch: {
+      format: 'antigravity-ide',
+      configPath: 'auto',
+      baseURL: 'http://127.0.0.1:{buyerPort}',
+      mcpFallback: true,
+      mcpConfigPath: '~/.gemini/config/mcp_config.json',
+      serverPath: '~/.torve/mcp/torve-local.mjs',
+    },
+  },
+  {
+    name: 'codex',
+    displayName: 'Codex',
+    kind: 'config-patch',
+    method: 'Config patch',
+    toolSlugs: ['codex'],
+    domains: [],
+    pathPrefixes: [],
+    configPatch: {
+      format: 'codex',
+      configPath: '~/.codex/config.toml',
+      providerKey: 'torve',
+      providerName: 'Torve AI',
+      baseURL: 'http://127.0.0.1:{buyerPort}/v1',
+      modelCatalogJson: '~/.torve/codex-model-catalog.json',
+      bearerToken: 'torve-local-proxy',
+      installProbe: 'codex',
+    },
+  },
   {
     name: 'opencode',
     displayName: 'OpenCode',
@@ -60,27 +90,39 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
     },
   },
   {
-    name: 'codex',
-    displayName: 'Codex',
+    name: 'claude-desktop',
+    displayName: 'Claude Desktop',
     kind: 'config-patch',
     method: 'Config patch',
-    toolSlugs: ['codex'],
+    // The gateway stamps every forwarded request with the claude-desktop
+    // source marker, so this exact slug is the whole identity.
+    toolSlugs: ['claude-desktop'],
     domains: [],
     pathPrefixes: [],
+    // 'open-tool' opens Claude after connect even when it was not running
+    // (restartAppName is both the restart target for a running Claude and
+    // the open-tool launch fallback).
+    appAction: 'open-tool',
+    restartAppName: 'Claude',
     configPatch: {
-      format: 'codex',
-      configPath: '~/.codex/config.toml',
-      providerKey: 'torve',
-      providerName: 'Torve AI',
-      baseURL: 'http://127.0.0.1:{buyerPort}/v1',
-      modelCatalogJson: '~/.torve/codex-model-catalog.json',
-      bearerToken: 'torve-local-proxy',
-      installProbe: 'codex',
+      format: 'claude-desktop',
+      // Claude's normal-profile config: the patch flips deploymentMode to
+      // "3p" here, which makes Claude boot against the Claude-3p profile
+      // directory below, where the Torve gateway profile is written.
+      // Windows paths are NOT resolved here — Claude has several install
+      // layouts there (classic, MSIX, Nest), so claudeDesktopPatchTargets
+      // derives its own candidate roots on win32 and these apply elsewhere.
+      configPath: '~/Library/Application Support/Claude/claude_desktop_config.json',
+      thirdPartyDir: '~/Library/Application Support/Claude-3p',
+      // Claude talks to the desktop's local Claude gateway (Anthropic-native
+      // model catalog + forwarding to the buyer proxy), not the buyer proxy
+      // directly — see connected-apps/claude-desktop-gateway.ts.
+      baseURL: 'http://127.0.0.1:{claudeGatewayPort}',
     },
   },
   {
     name: 'claude-code',
-    displayName: 'Claude Code',
+    displayName: 'Claude Code CLI',
     kind: 'config-patch',
     method: 'Config patch',
     toolSlugs: ['claude-code'],
@@ -107,216 +149,6 @@ export const DEFAULT_APP_PROFILES: readonly Record<string, unknown>[] = [
       configPath: '~/.gemini/settings.json',
       envPath: '~/.gemini/.env',
       baseURL: 'http://localhost:{buyerPort}',
-    },
-  },
-  {
-    name: 'aider', displayName: 'Aider', kind: 'config-patch', method: 'Config patch',
-    toolSlugs: ['aider'], domains: [], pathPrefixes: [],
-    configPatch: { format: 'aider', configPath: '~/.aider.conf.yml', baseURL: 'http://127.0.0.1:{buyerPort}/v1' },
-  },
-  {
-    name: 'continue', displayName: 'Continue', kind: 'config-patch', method: 'Config patch',
-    toolSlugs: ['continue'], domains: [], pathPrefixes: [],
-    configPatch: { format: 'continue', configPath: '~/.continue/config.yaml', legacyConfigPath: '~/.continue/config.json', baseURL: 'http://127.0.0.1:{buyerPort}/v1' },
-  },
-  {
-    name: 'antigravity', displayName: 'Google Antigravity', kind: 'config-patch', method: 'MCP fallback (native picker requires VS Code edition)',
-    toolSlugs: ['antigravity'], domains: [], pathPrefixes: [],
-    configPatch: {
-      format: 'antigravity-ide', configPath: 'auto', baseURL: 'http://127.0.0.1:{buyerPort}',
-      mcpFallback: true, mcpConfigPath: '~/.gemini/config/mcp_config.json', serverPath: '~/.torve/mcp/torve-local.mjs',
-    },
-  },
-  {
-    name: 'claude-desktop',
-    displayName: 'Claude',
-    kind: 'config-patch',
-    method: 'Config patch',
-    // The gateway stamps every forwarded request with the claude-desktop
-    // source marker, so this exact slug is the whole identity. No generic
-    // 'claude' entry: it would prefix-match t3code's claude-code/claude-cli
-    // sessions and steal them in first-match-wins attribution.
-    toolSlugs: ['claude-desktop'],
-    domains: [],
-    pathPrefixes: [],
-    // 'open-tool' opens Claude after connect even when it was not running
-    // (restartAppName is both the restart target for a running Claude and
-    // the open-tool launch fallback).
-    appAction: 'open-tool',
-    restartAppName: 'Claude',
-    configPatch: {
-      format: 'claude-desktop',
-      // Claude's normal-profile config: the patch flips deploymentMode to
-      // "3p" here, which makes Claude boot against the Claude-3p profile
-      // directory below, where the Torve gateway profile is written.
-      // Windows paths are NOT resolved here — Claude has several install
-      // layouts there (classic, MSIX, Nest), so claudeDesktopPatchTargets
-      // derives its own candidate roots on win32 and these apply elsewhere.
-      configPath: '~/Library/Application Support/Claude/claude_desktop_config.json',
-      thirdPartyDir: '~/Library/Application Support/Claude-3p',
-      // Claude talks to the desktop's local Claude gateway (Anthropic-native
-      // model catalog + forwarding to the buyer proxy), not the buyer proxy
-      // directly — see connected-apps/claude-desktop-gateway.ts.
-      baseURL: 'http://127.0.0.1:{claudeGatewayPort}',
-    },
-  },
-  {
-    name: 'hermes',
-    displayName: 'Hermes Agent',
-    kind: 'config-patch',
-    method: 'Config patch',
-    toolSlugs: ['hermes', 'hermes-agent'],
-    domains: [],
-    pathPrefixes: [],
-    appAction: 'open-tool',
-    toolName: 'hermes',
-    restartAppName: 'Hermes',
-    configPatch: {
-      format: 'hermes',
-      configPath: '~/.hermes/config.yaml',
-      providerKey: 'torve',
-      baseURL: 'http://localhost:{buyerPort}/v1',
-    },
-  },
-  {
-    name: 'droid',
-    displayName: 'Droid',
-    kind: 'config-patch',
-    method: 'Config patch',
-    toolSlugs: ['droid'],
-    domains: [],
-    pathPrefixes: [],
-    configPatch: {
-      format: 'droid',
-      // Droid CLI and Factory Desktop share this live-reloaded user config.
-      configPath: '~/.factory/settings.json',
-      providerKey: 'torve',
-      providerName: 'Torve Auto',
-      baseURL: 'http://localhost:{buyerPort}/v1',
-      originator: 'droid',
-      installProbe: 'droid',
-    },
-  },
-  {
-    name: 't3code',
-    displayName: 'T3 Code',
-    kind: 'config-patch',
-    method: 'Config patch',
-    toolSlugs: ['t3code'],
-    domains: [],
-    pathPrefixes: [],
-    configPatch: {
-      format: 't3code',
-      configPath: '~/.t3/userdata/settings.json',
-      providerKey: 'torve',
-      providerName: 'Torve',
-      baseURL: 'http://localhost:{buyerPort}',
-    },
-  },
-  {
-    name: 'pi',
-    displayName: 'pi',
-    kind: 'config-patch',
-    method: 'Config patch',
-    toolSlugs: ['pi'],
-    domains: [],
-    pathPrefixes: [],
-    configPatch: {
-      format: 'pi',
-      configPath: '~/.pi/agent/models.json',
-      settingsPath: '~/.pi/agent/settings.json',
-      providerKey: 'torve',
-      baseURL: 'http://localhost:{buyerPort}/v1',
-      // Pi's OpenAI Responses transport includes prompt_cache_key with the
-      // Pi session id. The buyer proxy uses that as the conversation key so
-      // Pi chats show up in AI VPN Recent Chats.
-      api: 'openai-responses',
-      originator: 'pi',
-      installProbe: 'pi',
-    },
-  },
-  {
-    name: 'gooeypi',
-    displayName: 'GooeyPi',
-    kind: 'config-patch',
-    method: 'Config patch',
-    toolSlugs: ['gooeypi'],
-    domains: [],
-    pathPrefixes: [],
-    configPatch: {
-      format: 'pi',
-      configPath: '~/.pi/agent/models.json',
-      settingsPath: '~/.pi/agent/settings.json',
-      providerKey: 'torve-gooeypi',
-      baseURL: 'http://localhost:{buyerPort}/v1',
-      api: 'openai-responses',
-      originator: 'gooeypi',
-    },
-  },
-  {
-    name: 'crush',
-    displayName: 'Crush',
-    kind: 'config-patch',
-    method: 'Config patch',
-    toolSlugs: ['crush'],
-    domains: [],
-    pathPrefixes: [],
-    configPatch: {
-      format: 'crush',
-      // Windows: crush (charm) resolves its global config under LOCALAPPDATA.
-      configPath: platformConfigPath('~/.config/crush/crush.json', {
-        base: 'LOCALAPPDATA',
-        segments: ['crush', 'crush.json'],
-      }),
-      // WSL installs read the XDG path regardless of the Windows resolution.
-      wslConfigPath: '~/.config/crush/crush.json',
-      providerKey: 'torve',
-      providerName: 'Torve',
-      baseURL: 'http://localhost:{buyerPort}/v1',
-      installProbe: 'crush',
-    },
-  },
-  {
-    name: 'goose',
-    displayName: 'Goose',
-    kind: 'config-patch',
-    method: 'Config patch',
-    toolSlugs: ['goose'],
-    domains: [],
-    pathPrefixes: [],
-    configPatch: {
-      format: 'goose',
-      // Windows: goose reads %APPDATA%\Block\goose\config\config.yaml.
-      configPath: platformConfigPath('~/.config/goose/config.yaml', {
-        base: 'APPDATA',
-        segments: ['Block', 'goose', 'config', 'config.yaml'],
-      }),
-      // WSL installs read the XDG path regardless of the Windows resolution.
-      wslConfigPath: '~/.config/goose/config.yaml',
-      // goose provider engine; the host root is patched to the buyer proxy.
-      providerKey: 'openai',
-      baseURL: 'http://localhost:{buyerPort}',
-      installProbe: 'goose',
-    },
-  },
-  {
-    name: 'zed',
-    displayName: 'Zed',
-    kind: 'config-patch',
-    method: 'Config patch',
-    toolSlugs: ['zed'],
-    domains: [],
-    pathPrefixes: [],
-    configPatch: {
-      format: 'zed',
-      // Windows: Zed reads %APPDATA%\Zed\settings.json.
-      configPath: platformConfigPath('~/.config/zed/settings.json', {
-        base: 'APPDATA',
-        segments: ['Zed', 'settings.json'],
-      }),
-      providerKey: 'torve',
-      providerName: 'Torve',
-      baseURL: 'http://localhost:{buyerPort}/v1',
     },
   },
 ];

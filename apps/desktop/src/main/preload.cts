@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { RuntimeMode, RuntimeProcessState, StartOptions } from './runtime/process-manager.js';
+import type { RuntimeMode, RuntimeProcessState, StartOptions } from './utils.js';
 import type {
   FirstModelShownSignal,
   TelemetryStatus,

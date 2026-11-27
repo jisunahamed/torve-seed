@@ -75,32 +75,20 @@ export interface OpencodeModelDefinition {
 }
 
 export type ConfigPatchFormat =
-  | 'opencode'
-  | 'codex'
-  | 'claude-code'
-  | 'claude-desktop'
-  | 'gemini-cli'
   | 'antigravity-ide'
-  | 'aider'
-  | 'continue'
-  | 'hermes'
-  | 'droid'
-  | 't3code'
-  | 'pi'
-  | 'crush'
-  | 'goose'
-  | 'zed';
+  | 'codex'
+  | 'opencode'
+  | 'claude-desktop'
+  | 'claude-code'
+  | 'gemini-cli';
 
-export interface OpencodeConfigPatchDef {
-  readonly format: 'opencode';
+export interface AntigravityConfigPatchDef {
+  readonly format: 'antigravity-ide';
   readonly configPath: string;
-  readonly providerKey: string;
-  readonly npm: string;
-  readonly providerName: string;
   readonly baseURL: string;
-  readonly models?: readonly OpencodeModelDefinition[];
-  readonly modelAlias?: string;
-  readonly apiKey?: string;
+  readonly mcpConfigPath?: string;
+  readonly serverPath?: string;
+  readonly mcpFallback?: boolean;
 }
 
 export interface CodexConfigPatchDef {
@@ -114,12 +102,16 @@ export interface CodexConfigPatchDef {
   readonly bearerToken?: string;
 }
 
-export interface ClaudeCodeConfigPatchDef {
-  readonly format: 'claude-code';
+export interface OpencodeConfigPatchDef {
+  readonly format: 'opencode';
   readonly configPath: string;
   readonly providerKey: string;
+  readonly npm: string;
+  readonly providerName: string;
   readonly baseURL: string;
   readonly models?: readonly OpencodeModelDefinition[];
+  readonly modelAlias?: string;
+  readonly apiKey?: string;
 }
 
 export interface ClaudeDesktopConfigPatchDef {
@@ -127,6 +119,14 @@ export interface ClaudeDesktopConfigPatchDef {
   readonly configPath: string;
   readonly thirdPartyDir: string;
   readonly baseURL: string;
+}
+
+export interface ClaudeCodeConfigPatchDef {
+  readonly format: 'claude-code';
+  readonly configPath: string;
+  readonly providerKey: string;
+  readonly baseURL: string;
+  readonly models?: readonly OpencodeModelDefinition[];
 }
 
 export interface GeminiConfigPatchDef {
@@ -137,120 +137,36 @@ export interface GeminiConfigPatchDef {
   readonly model?: string;
 }
 
-export interface AntigravityConfigPatchDef {
-  readonly format: 'antigravity-ide';
-  readonly configPath: string;
-  readonly baseURL: string;
-  readonly mcpConfigPath?: string;
-  readonly serverPath?: string;
-  readonly mcpFallback?: boolean;
-}
-
-export interface AiderConfigPatchDef {
-  readonly format: 'aider';
-  readonly configPath: string;
-  readonly baseURL: string;
-}
-
-export interface ContinueConfigPatchDef {
-  readonly format: 'continue';
-  readonly configPath: string;
-  readonly legacyConfigPath?: string;
-  readonly baseURL: string;
-  readonly models?: readonly OpencodeModelDefinition[];
-}
-
-export interface HermesConfigPatchDef {
-  readonly format: 'hermes';
-  readonly configPath: string;
-  readonly providerKey: string;
-  readonly baseURL: string;
-}
-
-export interface DroidConfigPatchDef {
-  readonly format: 'droid';
-  readonly configPath: string;
-  readonly providerKey: string;
-  readonly providerName: string;
-  readonly baseURL: string;
-  readonly originator?: string;
-}
-
-export interface T3CodeConfigPatchDef {
-  readonly format: 't3code';
-  readonly configPath: string;
-  readonly providerKey: string;
-  readonly providerName: string;
-  readonly baseURL: string;
-}
-
-export interface PiConfigPatchDef {
-  readonly format: 'pi';
-  readonly configPath: string;
-  readonly settingsPath: string;
-  readonly providerKey: string;
-  readonly baseURL: string;
-  readonly api: 'openai-completions' | 'openai-responses' | 'anthropic-messages';
-  readonly originator?: string;
-}
-
-export interface CrushConfigPatchDef {
-  readonly format: 'crush';
-  readonly configPath: string;
-  readonly providerKey: string;
-  readonly providerName: string;
-  readonly baseURL: string;
-}
-
-export interface GooseConfigPatchDef {
-  readonly format: 'goose';
-  readonly configPath: string;
-  readonly providerKey: string;
-  readonly baseURL: string;
-}
-
-export interface ZedConfigPatchDef {
-  readonly format: 'zed';
-  readonly configPath: string;
-  readonly providerKey: string;
-  readonly providerName: string;
-  readonly baseURL: string;
-}
-
 export type ConfigPatchDef =
-  | OpencodeConfigPatchDef
-  | CodexConfigPatchDef
-  | ClaudeCodeConfigPatchDef
-  | ClaudeDesktopConfigPatchDef
-  | GeminiConfigPatchDef
   | AntigravityConfigPatchDef
-  | AiderConfigPatchDef
-  | ContinueConfigPatchDef
-  | HermesConfigPatchDef
-  | DroidConfigPatchDef
-  | T3CodeConfigPatchDef
-  | PiConfigPatchDef
-  | CrushConfigPatchDef
-  | GooseConfigPatchDef
-  | ZedConfigPatchDef;
+  | CodexConfigPatchDef
+  | OpencodeConfigPatchDef
+  | ClaudeDesktopConfigPatchDef
+  | ClaudeCodeConfigPatchDef
+  | GeminiConfigPatchDef;
 
 export interface AppDefinition {
   readonly name: string;
   readonly displayName: string;
-  readonly kind: 'config-patch' | 'manual';
+  readonly kind: 'config-patch';
   readonly method: string;
   readonly binary?: string;
   readonly detectPaths: readonly string[];
-  readonly configPatch?: ConfigPatchDef;
-  readonly manualInstructions?: (port: number) => string;
+  readonly configPatch: ConfigPatchDef;
+}
+
+export interface ComingSoonApp {
+  readonly id: string;
+  readonly displayName: string;
+  readonly aliases?: readonly string[];
 }
 
 export interface AppStatusItem {
   name: string;
   displayName: string;
-  kind: 'config-patch' | 'manual';
+  kind: 'config-patch';
   detected: boolean;
   patched: boolean;
-  status: 'ON' | 'OFF' | 'MANUAL';
+  status: 'ON' | 'OFF';
   configPath: string;
 }

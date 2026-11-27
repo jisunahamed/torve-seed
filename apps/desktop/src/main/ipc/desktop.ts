@@ -2,7 +2,9 @@
  * IPC surface for desktop shell actions: opening tools and external URLs,
  * window presets, directory pickers, and attachment downloads.
  */
-import { app, ipcMain } from 'electron';
+import { app, dialog, ipcMain, shell, type OpenDialogOptions } from 'electron';
+import { execFileSync, spawn } from 'node:child_process';
+import { homedir } from 'node:os';
 import {
   toolDesktopAppNames,
   toolResumeCommand,
@@ -10,12 +12,6 @@ import {
 import {
   setDesktopDebugEnabled,
 } from '../app-context.js';
-import {
-  resolveAttachmentPath,
-} from '../chat/attachments/store.js';
-import {
-  getWorkspacePickerDefaultDir,
-} from '../chat/workspace.js';
 import {
   launchAppTarget,
   listInstalledAppsWithIcons,
@@ -39,25 +35,10 @@ import {
   allSystemProxyProfiles,
 } from '../system-proxy/profiles.js';
 import {
-  systemProxyCaPath,
-} from '../system-proxy/paths.js';
-import {
   applyWindowPreset,
   applyWindowView,
   getMainWindow,
 } from '../ui/window.js';
-import {
-  type OpenDialogOptions,
-  dialog,
-  shell,
-} from 'electron';
-import {
-  execFileSync,
-  spawn,
-} from 'node:child_process';
-import {
-  copyFile,
-} from 'node:fs/promises';
 
 export function registerDesktopIpc(): void {
   ipcMain.handle('desktop:set-debug-logs', (_event, enabled: boolean) => {
@@ -84,13 +65,6 @@ export function registerDesktopIpc(): void {
       if (!key) {
         return { ok: false, error: 'Unknown tool.' };
       }
-      if (key === 'cursor') {
-        const target = namedAppTarget('Cursor');
-        if (!target) return { ok: false, error: 'Could not find Cursor on this device.' };
-        const result = launchAppTarget(target);
-        if (result.ok) await waitForAppTarget(target);
-        return result;
-      }
       if (key === 'antigravity') {
         return await launchAntigravity();
       }
@@ -102,9 +76,7 @@ export function registerDesktopIpc(): void {
       // for known tools) wins over the packaged open action.
       const launchTarget = effectiveLaunchTarget(profile.name);
       if (launchTarget) {
-        const result = launchAppTarget(launchTarget, {
-          env: { NODE_EXTRA_CA_CERTS: systemProxyCaPath() },
-        });
+        const result = launchAppTarget(launchTarget);
         // Resolve only once the app is actually up — the caller's connect
         // spinner runs off this promise.
         if (result.ok) {
@@ -123,9 +95,7 @@ export function registerDesktopIpc(): void {
         if (!target) {
           return { ok: false, error: `Could not find ${profile.restartAppName} on this device.` };
         }
-        const result = launchAppTarget(target, {
-          env: { NODE_EXTRA_CA_CERTS: systemProxyCaPath() },
-        });
+        const result = launchAppTarget(target);
         if (!result.ok) return result;
         markAppTargetManaged(target);
         await waitForAppTarget(target);
@@ -202,46 +172,18 @@ export function registerDesktopIpc(): void {
 
   ipcMain.handle(
     'attachment:download',
-    async (
-      _event,
-      conversationId: string,
-      attachmentId: string,
-      suggestedName: string,
-    ): Promise<{ ok: boolean; path?: string; error?: string }> => {
-      // Download flow via dialog.showSaveDialog + copyFile. More reliable
-      // cross-platform than relying on <a download> with a custom
-      // Electron protocol URL — Chromium's save-to-disk path is only
-      // guaranteed for http(s)/data/blob.
-      try {
-        const resolved = await resolveAttachmentPath(conversationId, attachmentId);
-        if (!resolved) {
-          return { ok: false, error: 'Attachment not found' };
-        }
-        const win = getMainWindow();
-        const safeSuggested = typeof suggestedName === 'string' && suggestedName.trim().length > 0
-          ? suggestedName.trim()
-          : 'attachment';
-        const result = win
-          ? await dialog.showSaveDialog(win, { defaultPath: safeSuggested })
-          : await dialog.showSaveDialog({ defaultPath: safeSuggested });
-        if (result.canceled || !result.filePath) {
-          return { ok: false, error: 'cancelled' };
-        }
-        await copyFile(resolved, result.filePath);
-        return { ok: true, path: result.filePath };
-      } catch (err) {
-        return { ok: false, error: err instanceof Error ? err.message : String(err) };
-      }
-    },
+    async (): Promise<{ ok: boolean; path?: string; error?: string }> => ({
+      ok: false,
+      error: 'In-app chat attachments are not enabled in Direct Torve Cloud mode.',
+    }),
   );
 
   ipcMain.handle('desktop:pick-directory', async () => {
-    const currentWorkspaceDir = await getWorkspacePickerDefaultDir();
     const dialogOptions: OpenDialogOptions = {
       properties: ['openDirectory'],
       title: 'Select Workspace Folder',
       buttonLabel: 'Use Folder',
-      defaultPath: currentWorkspaceDir,
+      defaultPath: homedir(),
     };
     const win = getMainWindow();
     const result = win

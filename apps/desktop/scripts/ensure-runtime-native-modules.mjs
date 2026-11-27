@@ -20,15 +20,9 @@ const runtimeInfo = {
 const moduleChecks = [
   {
     label: 'better-sqlite3',
-    packageDir: path.resolve(repoRoot, 'packages', 'node'),
-    packageJson: path.resolve(repoRoot, 'packages', 'node', 'package.json'),
+    packageDir: desktopDir,
+    packageJson: path.resolve(desktopDir, 'package.json'),
     moduleName: 'better-sqlite3',
-  },
-  {
-    label: 'keytar',
-    packageDir: path.resolve(repoRoot, 'plugins', 'provider-anthropic'),
-    packageJson: path.resolve(repoRoot, 'plugins', 'provider-anthropic', 'package.json'),
-    moduleName: 'keytar',
   },
 ];
 

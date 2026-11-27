@@ -75,6 +75,10 @@ test('connected-app tool names resolve their marks', () => {
   assert.equal(resolveBrandKey('hermes', 'Hermes Agent'), 'hermes');
   assert.equal(resolveBrandKey('hermes-agent'), 'hermes');
   assert.equal(resolveBrandKey('cursor', 'Cursor'), 'cursor');
+  assert.equal(resolveBrandKey('antigravity', 'Google Antigravity'), 'antigravity');
+  assert.equal(resolveBrandKey('opencode', 'OpenCode'), 'opencode');
+  assert.equal(resolveBrandKey('claude-code', 'Claude Code CLI'), 'claude-code');
+  assert.equal(resolveBrandKey('claude-desktop', 'Claude Desktop'), 'anthropic');
   assert.equal(resolveBrandKey('openai', 'Hermes 4 70B'), 'openai');
   // Standalone-word guards: no false hits inside other identifiers.
   assert.equal(resolveBrandKey('amazed-tool', 'thing'), 'generic');
@@ -91,7 +95,17 @@ test('Cursor renders its bundled brand mark', () => {
 test('dark application marks use theme-aware brand rendering', () => {
   assert.equal(isThemeAwareAppBrand('cursor'), true);
   assert.equal(isThemeAwareAppBrand('hermes'), true);
+  assert.equal(isThemeAwareAppBrand('opencode'), true);
   assert.equal(isThemeAwareAppBrand('codex'), false);
+});
+
+test('updated Antigravity, OpenCode, and Claude Code CLI render their new custom marks', () => {
+  const ag = renderToStaticMarkup(BrandIcon({ brand: 'antigravity', size: 24 }));
+  assert.match(ag, /radialGradient/);
+  const oc = renderToStaticMarkup(BrandIcon({ brand: 'opencode', size: 24 }));
+  assert.match(oc, /fill-opacity="0\.34"/);
+  const cc = renderToStaticMarkup(BrandIcon({ brand: 'claude-code', size: 24 }));
+  assert.match(cc, /shape-rendering="crispEdges"/);
 });
 
 test('tunnel providers resolve their bundled brand marks', () => {

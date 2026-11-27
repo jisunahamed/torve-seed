@@ -5,6 +5,7 @@
  */
 import { randomUUID } from 'node:crypto';
 import { appendFile, mkdir } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { homedir } from 'node:os';
 import pathModule from 'node:path';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
@@ -21,6 +22,18 @@ import { resolveDirectCloudModel } from './overrides.js';
 import { handleAntigravityV1Internal } from './antigravity-v1internal.js';
 import { modelsEndpointPayload } from './codex-catalog.js';
 import { buildTorveUpstreamHeaders, extractTokenUsageFromRecord, recordLocalUsage, sanitizeTorveClientApp, SseUsageTracker } from './usage.js';
+
+const require = createRequire(import.meta.url);
+
+function isPackagedElectron(): boolean {
+  try {
+    if (typeof process === 'undefined' || !process.versions?.electron) return false;
+    const electron = require('electron') as { app?: { isPackaged?: boolean } };
+    return electron?.app?.isPackaged === true;
+  } catch {
+    return false;
+  }
+}
 
 const DEFAULT_PORT = Number(process.env['TORVE_CLOUD_PROXY_PORT']) || 8378;
 const MAX_BODY_BYTES = 64 * 1024 * 1024;
@@ -204,12 +217,55 @@ async function resolveModelsCatalog(apiKey: string): Promise<TorveModel[]> {
   return catalog.models.length > 0 ? catalog.models : await refreshTorveCloudModels(apiKey);
 }
 
+const LEGACY_MODEL_ALIASES: Readonly<Record<string, string>> = {
+  'nemotron-3-nano-omni': 'nemotron-3-nano',
+  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning': 'nemotron-3-nano',
+  'ei/nvidia-nemotron-3-5-lightning-30b-a3b': 'nvidia/nemotron-3.5-lightning-30b-a3b-2',
+  'ei/nvidia-nemotron-3-ultra-550b-a55b': 'nemotron-3-ultra',
+  'ei/minimaxai-minimax-m3': 'minimax-m3-1-flash',
+};
+
+const PREFERRED_FALLBACK_MODELS = [
+  'deepseek-v4-1-flash',
+  'nemotron-3-ultra',
+  'nemotron-3-nano',
+  'qwen3.8-27b-2',
+  'mistral-large-4',
+  'gpt-oss-120b',
+] as const;
+
+function pickSafeFallbackModel(models: readonly TorveModel[], excludeModel?: string | null): string | null {
+  const eligible = excludeModel ? models.filter((m) => m.id !== excludeModel) : models;
+  if (eligible.length === 0) return null;
+  for (const preferred of PREFERRED_FALLBACK_MODELS) {
+    if (eligible.some((m) => m.id === preferred)) return preferred;
+  }
+  const nonTiny = eligible.find((m) => {
+    if (m.id === 'auto') return false;
+    const rawOut = finitePositiveNumber(m['max_output_tokens'] ?? m['max_tokens']);
+    return rawOut === 0 || rawOut > LOW_OUTPUT_TOKENS_THRESHOLD;
+  });
+  if (nonTiny) return nonTiny.id;
+  return eligible.find((m) => m.id !== 'auto')?.id ?? eligible[0]?.id ?? null;
+}
+
 async function resolveModelForRequest(appId: string | null, requestedModel: string | null, apiKey: string): Promise<string | null> {
-  const fallback = activeOptions.getModels
-    ? (await activeOptions.getModels(apiKey))[0]?.id ?? null
-    : (await torveCloudModelsStatus()).models[0]?.id ?? null;
+  const models = activeOptions.getModels
+    ? await activeOptions.getModels(apiKey)
+    : (await torveCloudModelsStatus()).models;
+  const fallback = models[0]?.id ?? null;
   if (activeOptions.resolveModel) {
     return await activeOptions.resolveModel(appId, requestedModel, fallback);
+  }
+  if (requestedModel && requestedModel !== 'torve' && requestedModel !== 'auto') {
+    const mapped = LEGACY_MODEL_ALIASES[requestedModel];
+    if (mapped && (models.length === 0 || models.some((m) => m.id === mapped))) {
+      return mapped;
+    }
+    if (models.length > 0 && !models.some((m) => m.id === requestedModel)) {
+      const safeFallback = pickSafeFallbackModel(models) ?? fallback;
+      return await resolveDirectCloudModel(appId, null, safeFallback);
+    }
   }
   return await resolveDirectCloudModel(appId, requestedModel, fallback);
 }
@@ -270,6 +326,11 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     }
     const apiKey = await resolveApiKey();
     if (!apiKey) { status = 401; errorSummary = 'Torve account is not connected.'; return sendError(res, status, 'Connect a Torve account in Torve Desktop first.'); }
+    if (isPackagedElectron() && !apiKey.startsWith('sk-trv-')) {
+      status = 401;
+      errorSummary = 'Valid Torve Cloud API key required.';
+      return sendError(res, status, 'Valid Torve Cloud credential (sk-trv-...) is required.');
+    }
     if (req.method === 'GET' && path === '/v1/models') {
       const models = await resolveModelsCatalog(apiKey);
       // Guarantee a 1M token context floor and 32K output floor on every advertised model so
@@ -1377,19 +1438,37 @@ async function handleResponsesRequest(
     return { status: 400, requestedModel: null, resolvedModel: null, stream: false, usage: null, errorSummary: 'Request translation failed.' };
   }
   const requestedModel = typeof reqBody['model'] === 'string' && reqBody['model'].trim() ? reqBody['model'].trim() : null;
-  const resolvedModel = await resolveModelForRequest(appId, requestedModel, apiKey);
+  let resolvedModel = await resolveModelForRequest(appId, requestedModel, apiKey);
   const stream = Boolean(reqBody['stream']);
-  const { chatBody, toolMap } = buildChatRequestWithMappingFromResponses(reqBody, resolvedModel);
+  let adaptedReq = buildChatRequestWithMappingFromResponses(reqBody, resolvedModel);
   const headers = jsonUpstreamHeaders(incomingHeaders, apiKey, appId, stream ? 'text/event-stream' : 'application/json');
 
   const fetchCtrl = createUpstreamFetchControl(res);
   try {
-    const upstream = await fetch(`${torveCloudUpstream()}/v1/chat/completions`, {
+    let upstream = await fetch(`${torveCloudUpstream()}/v1/chat/completions`, {
       method: 'POST',
       headers,
-      body: JSON.stringify(chatBody),
+      body: JSON.stringify(adaptedReq.chatBody),
       signal: fetchCtrl.signal,
     });
+    if (!upstream.ok && upstream.status === 403 && !isSse(upstream.headers.get('content-type'))) {
+      const catalog = activeOptions.getModels
+        ? await activeOptions.getModels(apiKey)
+        : (await torveCloudModelsStatus()).models;
+      const retryModel = pickSafeFallbackModel(catalog, resolvedModel);
+      if (retryModel) {
+        await upstream.body?.cancel().catch(() => {});
+        resolvedModel = retryModel;
+        adaptedReq = buildChatRequestWithMappingFromResponses(reqBody, resolvedModel);
+        upstream = await fetch(`${torveCloudUpstream()}/v1/chat/completions`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(adaptedReq.chatBody),
+          signal: fetchCtrl.signal,
+        });
+      }
+    }
+    const { toolMap } = adaptedReq;
     const streaming = Boolean(upstream.body && isSse(upstream.headers.get('content-type')));
     fetchCtrl.markHeadersReceived(streaming);
 
@@ -1897,7 +1976,14 @@ async function streamChatToAnthropicSse(
 }
 
 function requestHeaders(req: IncomingMessage): Record<string, string> { const result: Record<string, string> = {}; for (const [key, value] of Object.entries(req.headers)) if (typeof value === 'string') result[key] = value; return result; }
-function responseHeaders(headers: Headers): Record<string, string> { const result: Record<string, string> = {}; headers.forEach((value, key) => { if (!HOP_BY_HOP.has(key.toLowerCase())) result[key] = value; }); return result; }
+function responseHeaders(headers: Headers): Record<string, string> {
+  const result: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    const lower = key.toLowerCase();
+    if (!HOP_BY_HOP.has(lower) && lower !== 'content-encoding') result[key] = value;
+  });
+  return result;
+}
 export function upstreamHeaders(headers: Record<string, string>, apiKey: string, appId: string | null = null): Record<string, string> {
   return buildTorveUpstreamHeaders(headers, apiKey, appId, HOP_BY_HOP);
 }

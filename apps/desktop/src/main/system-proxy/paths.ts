@@ -6,7 +6,7 @@
  */
 import path from 'node:path';
 import { desktopSystemProxyDataDir } from '../dev-instance.js';
-import { resolveConnectDataDir } from '../runtime/process-manager.js';
+import { resolveConnectDataDir } from '../paths.js';
 
 export function systemProxyDataDir(): string {
   const explicit = desktopSystemProxyDataDir();
