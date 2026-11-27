@@ -219,6 +219,30 @@ export function assertNoSourceMapsInAsar(asarPath) {
   console.log(`[after-pack-harden] Verified 0 .map files in ${asarPath} (${entries.length} entries scanned).`);
 }
 
+const REQUIRED_ASAR_PACKAGES = [
+  '@torveai/api-adapter',
+  '@torveai/node',
+  '@torveai/buyer-core',
+  '@torveai/protocol',
+  'better-sqlite3',
+  'ethers',
+  'tokenx',
+  '@noble/hashes',
+];
+
+export function assertRequiredPackagesInAsar(asarPath) {
+  const entrySet = new Set(listAsarEntries(asarPath).map((entry) => entry.replace(/\\/g, '/')));
+  const missing = REQUIRED_ASAR_PACKAGES.filter(
+    (pkg) => !entrySet.has(`/node_modules/${pkg}/package.json`),
+  );
+  if (missing.length > 0) {
+    throw new Error(
+      `[after-pack-harden] Missing runtime package(s) in ${asarPath}: ${missing.join(', ')}`,
+    );
+  }
+  console.log(`[after-pack-harden] Verified ${REQUIRED_ASAR_PACKAGES.length} required runtime packages inside ${asarPath}.`);
+}
+
 function resolveResourcesDir(context) {
   if (typeof context.packager?.getResourcesDir === 'function') {
     return context.packager.getResourcesDir(context.appOutDir);
@@ -252,8 +276,9 @@ export default async function afterPack(context) {
   const resourcesDir = resolveResourcesDir(context);
   const appAsarPath = path.join(resourcesDir, 'app.asar');
 
-  // 1. Verify app.asar contains zero .map files (read-only; never mutate post-hash).
+  // 1. Verify app.asar contains zero .map files and all required runtime packages.
   assertNoSourceMapsInAsar(appAsarPath);
+  assertRequiredPackagesInAsar(appAsarPath);
 
   // Strip any .map files from unpacked extraResources outside app.asar.
   const extraRemoved = stripArtifactsInDirs(

@@ -8,8 +8,8 @@ import { existsSync } from 'node:fs';
 import { readFile, writeFile, mkdir, unlink, rename, copyFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
-import type { Identity } from '@torveai/node';
-import { bytesToHex, identityFromPrivateKeyHex } from '@torveai/node';
+import type { Identity } from '@torveai/node/p2p';
+import { bytesToHex, identityFromPrivateKeyHex } from '@torveai/node/p2p';
 
 const ENCRYPTED_IDENTITY_PATH = path.join(homedir(), '.torve', 'identity.enc');
 const PLAINTEXT_IDENTITY_PATH = path.join(homedir(), '.torve', 'identity.key');

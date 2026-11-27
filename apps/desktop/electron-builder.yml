@@ -13,6 +13,9 @@ files:
   - dist/**/*
   - assets/**/*
   - package.json
+  - node_modules/@torveai/**/*
+  - "!node_modules/@torveai/**/src/**"
+  - "!node_modules/@torveai/**/node_modules/**"
   - "!**/*.map"
   - "!**/*.js.map"
   - "!**/*.css.map"

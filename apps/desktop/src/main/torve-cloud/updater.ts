@@ -5,6 +5,7 @@ import { open, rename, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as WebReadableStream } from 'node:stream/web';
 
 export const TORVE_UPDATES_URL = 'https://api.torveai.com/api/desktop/updates/latest';
@@ -593,27 +594,30 @@ export class TorveUpdater {
       const nodeStream = Readable.fromWeb(response.body as unknown as WebReadableStream);
       const fileStream = createWriteStream(partPath);
 
-      await new Promise<void>((resolve, reject) => {
-        nodeStream.on('data', (chunk: Buffer) => {
-          downloadedBytes += chunk.length;
-          const percent = totalBytes > 0
-            ? Math.min(100, Math.round((downloadedBytes / totalBytes) * 100))
-            : 0;
-          if (percent !== lastPercent) {
-            lastPercent = percent;
-            this.setState({
-              phase: 'downloading',
-              downloadedBytes,
-              totalBytes,
-              downloadPercent: percent,
-            });
-          }
-        });
-        nodeStream.on('error', reject);
-        fileStream.on('error', reject);
-        fileStream.on('finish', () => resolve());
-        nodeStream.pipe(fileStream);
+      nodeStream.on('data', (chunk: Buffer) => {
+        downloadedBytes += chunk.length;
+        const percent = totalBytes > 0
+          ? Math.min(100, Math.round((downloadedBytes / totalBytes) * 100))
+          : 0;
+        if (percent !== lastPercent) {
+          lastPercent = percent;
+          this.setState({
+            phase: 'downloading',
+            downloadedBytes,
+            totalBytes,
+            downloadPercent: percent,
+          });
+        }
       });
+
+      await pipeline(nodeStream, fileStream);
+
+      if (totalBytes > 0 && downloadedBytes !== totalBytes) {
+        await rm(partPath, { force: true }).catch(() => {});
+        const msg = `Downloaded installer is incomplete (${downloadedBytes.toLocaleString()} of ${totalBytes.toLocaleString()} bytes). Please retry.`;
+        this.setState({ phase: 'error', error: msg });
+        return { ok: false, error: msg };
+      }
 
       const peCheck = await verifyPeHeader(partPath);
       if (!peCheck.ok) {
@@ -628,7 +632,7 @@ export class TorveUpdater {
         const actual = await computeFileSha256(partPath);
         if (actual !== expected) {
           await rm(partPath, { force: true }).catch(() => {});
-          const msg = 'Downloaded installer verification check failed.';
+          const msg = `Downloaded installer verification check failed (SHA-256 mismatch).`;
           this.setState({ phase: 'error', error: msg });
           return { ok: false, error: msg };
         }
