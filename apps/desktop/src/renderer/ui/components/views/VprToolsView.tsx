@@ -195,22 +195,31 @@ const BRIDGE_HARNESSES: BridgeBrand[] = [
   {
     id: 'codex',
     name: 'Codex',
-    colors: ['#14FF73', '#D8FF0A'],
-    logo: <BrandIcon brand="codex" size={24} />,
+    colors: ['#10A37F', '#D8FF0A'],
+    logo: <BrandIcon brand="openai" size={24} style={{ color: '#10A37F' }} />,
   },
   {
     id: 'antigravity',
     name: 'Antigravity',
-    colors: ['#D8FF0A', '#14FF73'],
+    colors: ['#4285F4', '#D8FF0A'],
     logo: (
       <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="ag-bridge-grad" x1="4" y1="3" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#4285F4" />
+            <stop offset="50%" stopColor="#34A853" />
+            <stop offset="100%" stopColor="#D8FF0A" />
+          </linearGradient>
+        </defs>
         <path
-          d="M12 3.2L19.2 19.6L12 15.8L4.8 19.6L12 3.2Z"
-          stroke="#D8FF0A"
+          d="M12 2.8L20 20.2L12 15.8L4 20.2L12 2.8Z"
+          fill="url(#ag-bridge-grad)"
+          fillOpacity="0.22"
+          stroke="url(#ag-bridge-grad)"
           strokeWidth="1.9"
           strokeLinejoin="round"
         />
-        <circle cx="12" cy="11.5" r="2" fill="#14FF73" />
+        <circle cx="12" cy="11.4" r="2.2" fill="#D8FF0A" />
       </svg>
     ),
   },
@@ -218,7 +227,7 @@ const BRIDGE_HARNESSES: BridgeBrand[] = [
     id: 'opencode',
     name: 'OpenCode',
     colors: ['#38BDF8', '#14FF73'],
-    logo: <BrandIcon brand="opencode" size={24} />,
+    logo: <BrandIcon brand="opencode" size={24} style={{ color: '#38BDF8' }} />,
   },
   {
     id: 'claude-desktop',
@@ -230,25 +239,57 @@ const BRIDGE_HARNESSES: BridgeBrand[] = [
     id: 'claude-code',
     name: 'Claude Code',
     colors: ['#D97757', '#EC4899'],
-    logo: <BrandIcon brand="anthropic" size={24} />,
+    logo: (
+      <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
+        <rect x="2.5" y="4" width="19" height="16" rx="4" fill="#D97757" fillOpacity="0.16" stroke="#D97757" strokeWidth="1.7" />
+        <path d="M7 9.5l3 2.5-3 2.5" stroke="#D97757" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12.5 14.5h4.5" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    ),
   },
   {
     id: 'gemini-cli',
     name: 'Gemini CLI',
-    colors: ['#4285F4', '#A855F7'],
-    logo: <BrandIcon brand="gemini" size={24} />,
+    colors: ['#4285F4', '#9B72CB'],
+    logo: (
+      <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="gem-bridge-grad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#4285F4" />
+            <stop offset="55%" stopColor="#9B72CB" />
+            <stop offset="100%" stopColor="#D96570" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M12 2.5c.6 5.3 4.2 8.9 9.5 9.5-5.3.6-8.9 4.2-9.5 9.5-.6-5.3-4.2-8.9-9.5-9.5 5.3-.6 8.9-4.2 9.5-9.5z"
+          fill="url(#gem-bridge-grad)"
+        />
+      </svg>
+    ),
   },
   {
     id: 'aider',
     name: 'Aider',
-    colors: ['#14FF73', '#A855F7'],
-    logo: <Bot className="size-6 text-[#14FF73]" strokeWidth={1.85} aria-hidden="true" />,
+    colors: ['#14FF73', '#10B981'],
+    logo: (
+      <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="4.5" fill="#14FF73" fillOpacity="0.14" stroke="#14FF73" strokeWidth="1.6" />
+        <path d="M7.5 16.5L11 7.5l3.5 9" stroke="#14FF73" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M8.7 13.8h4.6" stroke="#14FF73" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M15.5 16.5h2" stroke="#D8FF0A" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    ),
   },
   {
     id: 'continue',
     name: 'Continue',
     colors: ['#38BDF8', '#14FF73'],
-    logo: <FastForward className="size-6 text-[#38BDF8]" strokeWidth={1.85} aria-hidden="true" />,
+    logo: (
+      <svg viewBox="0 0 24 24" className="size-6" fill="none" aria-hidden="true">
+        <path d="M5 6.5l6.5 5.5L5 17.5" stroke="#38BDF8" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M12.5 6.5L19 12l-6.5 5.5" stroke="#14FF73" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
   },
 ];
 

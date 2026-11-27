@@ -174,3 +174,28 @@ test('Codex models cache invalidation removes stale catalog data', async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('writeCodexModelCatalog strips bloated model_messages/base_instructions so 60+ models stay under 1 MiB', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'torve-codex-bloat-'));
+  const catalogPath = path.join(dir, 'codex-model-catalog.json');
+  try {
+    const bloatedTemplate = {
+      ...FALLBACK_CODEX_MODEL_TEMPLATE,
+      slug: 'gpt-5.4-mini',
+      display_name: 'GPT-5.4-Mini',
+      model_messages: { instructions: 'x'.repeat(16_000) },
+      base_instructions: 'y'.repeat(12_000),
+    };
+    const manyModels = Array.from({ length: 60 }, (_, i) => ({ id: `torve-model-${i}` }));
+    await writeCodexModelCatalog(manyModels, catalogPath, { models: [bloatedTemplate] });
+    const bytes = await readFile(catalogPath);
+    assert.ok(bytes.byteLength < CODEX_CATALOG_MAX_BYTES, `expected < 1 MiB, got ${bytes.byteLength}`);
+    const parsed = JSON.parse(bytes.toString('utf8')) as { models: Array<Record<string, unknown>> };
+    const torveEntry = parsed.models.find((m) => m['slug'] === 'torve-model-0');
+    assert.ok(torveEntry);
+    assert.equal('model_messages' in torveEntry, false);
+    assert.equal(torveEntry['base_instructions'], FALLBACK_CODEX_MODEL_TEMPLATE['base_instructions']);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});

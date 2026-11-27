@@ -134,9 +134,14 @@ export function codexCatalogPayload(models: readonly TorveModel[], base = instal
     entry.visibility = 'list';
     entry.supported_in_api = true;
     entry.priority = index;
-    // Do not inherit deprecation/upgrade banners from the cloned native template.
+    // Do not inherit deprecation/upgrade banners or bloated per-model prompt blobs
+    // from the cloned native template (keeping every model well below Codex's 1 MiB limit).
     if ('upgrade' in entry) entry['upgrade'] = null;
     if ('availability_nux' in entry) entry['availability_nux'] = null;
+    if ('model_messages' in entry) delete entry['model_messages'];
+    if (typeof entry['base_instructions'] === 'string' && entry['base_instructions'].length > 256) {
+      entry['base_instructions'] = FALLBACK_CODEX_MODEL_TEMPLATE['base_instructions'];
+    }
     // Codex Desktop opens in "simple" view without the model list or slider when
     // `auto` exposes 2+ reasoning levels; keeping 1 level opens the full picker.
     if (model.id === 'auto') {
@@ -172,7 +177,11 @@ export async function writeCodexModelCatalog(
   filePath = CODEX_CATALOG_PATH,
   base?: CodexCatalog,
 ): Promise<string> {
-  const bytes = Buffer.from(`${JSON.stringify(codexCatalogPayload(models, base), null, 2)}\n`);
+  const payload = codexCatalogPayload(models, base);
+  let bytes = Buffer.from(`${JSON.stringify(payload, null, 2)}\n`);
+  if (bytes.byteLength >= CODEX_CATALOG_MAX_BYTES) {
+    bytes = Buffer.from(`${JSON.stringify(payload)}\n`);
+  }
   if (bytes.byteLength >= CODEX_CATALOG_MAX_BYTES) {
     throw new Error('Merged Codex model catalog exceeds Codex\'s 1 MiB limit.');
   }

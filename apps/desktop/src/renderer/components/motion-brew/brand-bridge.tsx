@@ -1016,8 +1016,7 @@ export const BrandBridge = React.forwardRef<HTMLDivElement, BrandBridgeProps>(
                   <motion.span
                     className="grid"
                     animate={{
-                      filter: conn ? "grayscale(0)" : "grayscale(1)",
-                      opacity: conn ? 1 : 0.55,
+                      opacity: conn ? 1 : 0.72,
                     }}
                     transition={{ duration: 0.35 }}
                   >
