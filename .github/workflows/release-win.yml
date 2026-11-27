@@ -32,7 +32,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build workspace packages
-        run: pnpm --filter @torveai/desktop ensure:workspace-deps
+        run: pnpm run build:tier0
 
       - name: Typecheck & run desktop unit tests
         shell: bash
